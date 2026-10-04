@@ -40,5 +40,320 @@
     "mod": "Simple Civilian Behaviour",
     "examined": "2026-10-04",
     "pbo": "WBK_Civies.pbo"
+  },
+  {
+    "mod": "Pinned Down Combat Suppression",
+    "workshop_id": "3559900745",
+    "pbo": "PinnedDown.pbo",
+    "sha256": "cbb1f19d98bc0221356008cb72e8be252cb15ee545e8e6327b3521380faa4136",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down Surrender",
+    "workshop_id": "3579551673",
+    "pbo": "PD_surrender.pbo",
+    "sha256": "3cd078789d257c0cfcf2e9efc30276c7048a2ef61a840c8a380cfdbf8e4cc638",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down Medical Solution",
+    "workshop_id": "3709853140",
+    "pbo": "PD_MedicalSolution.pbo",
+    "sha256": "18811a1adb0729042e6bc9242e9a3a18bf796ed0e56d13555d6949e0cec174da",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down: Steel Rain | Autonomous Artillery, CAS & VLS",
+    "workshop_id": "3763118318",
+    "pbo": "pinneddown_arty.pbo",
+    "sha256": "00f78193c631863e368c542d5111b72402a93b8576b7e34a496eafdfba13438e",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down: Cover and Concealment",
+    "workshop_id": "3775025723",
+    "pbo": "pd_cover_concealment.pbo",
+    "sha256": "da89356cc13ce0c84e8f6cf93f91c15efa7c3bfe205592fb8ceec2c0981610f8",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down: Tracks And Boots",
+    "workshop_id": "3776232873",
+    "pbo": "pd_tracks_and_boots.pbo",
+    "sha256": "221f006d4100181f89cfedeb12f515df5d1f90e2a1c8d185d371daa857428540",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down Combat Awareness",
+    "workshop_id": "3785056303",
+    "pbo": "pd_combat_awareness.pbo",
+    "sha256": "cd4f9df809fe1277d69f0310aa69beedc97e90b72fe84c37e2625caa13a32460",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Pinned Down Conductor",
+    "workshop_id": "3799629858",
+    "pbo": "pd_conductor.pbo",
+    "sha256": "1ad1f34ebc5c920f6691febc6fe3a227e76cab1d0258f7fdc913e814d3c1cb28",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Smart Aircraft AI - Realistic Reactions & Tactics",
+    "workshop_id": "3682445063",
+    "pbo": "saai.pbo",
+    "sha256": "91a394e3d9b35cfe0f5c0188c1c053da74d9fe5a59534699d93633b8a958cbc2",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Smart Combat AI - Realistic Reactions & Tactics V2",
+    "workshop_id": "3800356547",
+    "pbo": "smart_combat_ai.pbo",
+    "sha256": "1806c5a59e3225aeb5e47bbfadff9fd1cd0dd7d8509ad30114adb91b0164d943",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Smart Merge AI",
+    "workshop_id": "3721618614",
+    "pbo": "smai_main.pbo",
+    "sha256": "702d3db1eb5b273f4ae99b3f931e578b757ed985980a4904d2f65a8cc31ec7d5",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "AI Helicopter Decelerate No Climbing",
+    "workshop_id": "3496308284",
+    "pbo": "AHDNC_main.pbo",
+    "sha256": "35a481294908469fcc4b10b6ab1409b254e6220ef6ce766894d9d7519c344273",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "BHL AI",
+    "workshop_id": "3771745732",
+    "pbo": "bhl_ai.pbo",
+    "sha256": "8f2be87332ddaf6f37caf7bea68baf66717c9b9f2168f233abc2371d435a1a34",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_artillery.pbo",
+    "sha256": "4779a7ec9acfd078383e91a1721a384d136d70333bcd75d7ff28ce7fc8360ec7",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_awareness.pbo",
+    "sha256": "c44f8132d8c38518cc139d4e0dfe80604c4fb777a023eeb117718794dd7ec08d",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_combat.pbo",
+    "sha256": "63bb7b181a586f19cd1fff117e2ca3f5bb44f7f94f0d8f874e8ffe7eb1b44c4e",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_compat.pbo",
+    "sha256": "891013b77bf35e2462a548156882f03d0e23385dcc0a936417d1956e2275e5ee",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_core.pbo",
+    "sha256": "5c09d6eb2124a677be6f714e157808244df779c87850ea0c613589c2c823f47c",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_main.pbo",
+    "sha256": "92d3006ac00de09aac06a423b2333eb29185c8045a04e4246b830ae174aa685e",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_manager.pbo",
+    "sha256": "850fef95ccd9c197a2e95619def22fa64685ef4476be5732617163cba29c8d95",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_skill.pbo",
+    "sha256": "90dba0a4cc2d9020f9cbb88510236e3e85208aba9c48065dc838890a1fe33f79",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_squad.pbo",
+    "sha256": "a93750b54b4d3b622897cd10cb72723ff152c7870da3a7ba54a4ccfc08b9d9ba",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_states.pbo",
+    "sha256": "5d54595d9baf8831c2ef4f87f6d6e7115dff61a5af2e30037be3d5ddf47e48ff",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "DiGii AI - Tactical AI Overhaul",
+    "workshop_id": "3742481604",
+    "pbo": "digii_ai_vehicles.pbo",
+    "sha256": "78d2448ef8f16a4454d7602882a35f4457b856c14eb89519390fe43ad6b7c253",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "AI Culler - Optimized Warfare",
+    "workshop_id": "3744994173",
+    "pbo": "aic_client.pbo",
+    "sha256": "fd1698eda7728e7c126a970e6ab2069af68a313e1f75b6178fd1f46b4fb88245",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "AI Culler - Optimized Warfare",
+    "workshop_id": "3744994173",
+    "pbo": "aic_main.pbo",
+    "sha256": "4c9afdda7aa8b2b30862c38bb7ffabaecd7d3d18f506b69443d03ae43307322d",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_air.pbo",
+    "sha256": "969ef457a04b36a98ed409fafb8859f82b94e6f45f98b617d628bf1be32213a5",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_autonomy.pbo",
+    "sha256": "b351e7d2542f1f39980ca7b2cf754f5f7ee8f1c59f10c2213fc86b322f0a26dd",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_core.pbo",
+    "sha256": "7a60fe44a4015e259bd6aea33c8c40da20e9c91f89a7e4cba12298e652dac98b",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_debug.pbo",
+    "sha256": "8936a0cc6783961c4a73d9a9c9a38ce84524db1b9b2f5667723a6a890dddbdc2",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_infantry.pbo",
+    "sha256": "ba386680364dc132c0235b0e26dcd0e1d1018e48afd1d8b0a3bf744a2afe1539",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_support.pbo",
+    "sha256": "07957e801f68b4d8ef02b39e06d3517f2a60c713cdba28b7b108c459fdbfca21",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_traversal.pbo",
+    "sha256": "89edbba25ade027c431bd605f4a0c4282158795e4e7339c876256c207682c34a",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "Scorpions Advanced AI",
+    "workshop_id": "3778948165",
+    "pbo": "saai_vehicles.pbo",
+    "sha256": "b638fd924c93cb4a01534e1ecd99813b3b144ec3936aaf9ec3238b4560b72307",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
+  },
+  {
+    "mod": "PROTOCOL AI NAVY SEAL",
+    "workshop_id": "3813369033",
+    "pbo": "prototcol_ai_navy_seal.pbo",
+    "sha256": "2518d8cf9e8d66c47b05734f0e7a34bb4e2304e7bc72be0b7a273a58c71dcd65",
+    "extracted": "2026-10-04",
+    "review_status": "initial_family_assessment",
+    "note": "Selected source methods reviewed; no complete package or runtime acceptance. See AI-METHOD-ASSESSMENT.md."
   }
 ]

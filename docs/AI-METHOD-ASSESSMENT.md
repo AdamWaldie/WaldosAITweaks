@@ -4,6 +4,13 @@ Assessment date: 4 October 2026. Installed PBOs were unpacked locally with HEMTT
 Upstream code is kept in ignored scratch storage and is excluded from WAIT packages.
 No upstream source was imported into production in this pass.
 
+LAMBS Danger and its Waypoints component are now required runtime foundations, following the
+decision to build WAIT around LAMBS. The existing shared-ownership default remains; explicit
+WAIT-only settings remain available for legacy/manual diagnostics. This dependency does not prove
+that every inherited WAIT movement path composes correctly with LAMBS. Those paths still require
+ownership and behavior acceptance. The [upstream license](https://github.com/nk3nny/LambsDanger/blob/master/LICENSE)
+restricts derivative Workshop redistribution, so WAIT neither bundles nor rewrites upstream code.
+
 ## Findings from installed code
 
 | Source | Observed implementation | WAIT decision |
@@ -61,3 +68,52 @@ performance/ownership correction; its live impact has not been measured yet.
 
 See [modding and operations](MODDING-AND-OPERATIONS.md) for primary references and the packaged
 test/release procedure. Installed-source fingerprints are recorded in `inspected-mod-sources.json`.
+
+## Extended installed-source assessment
+
+All additional local AI reference candidates are in scope. The following is a first source pass,
+not a complete addon audit. Classification applies to the identified method, not the whole mod.
+Useful means a method worth implementing independently; repair means a verified source problem;
+conflict means incompatible with WAIT's physical movement or ownership requirements; pending means
+the behavior has not been inspected deeply enough. No upstream files below are release content.
+
+| Source and evidence | Classification | WAIT action |
+| --- | --- | --- |
+| Pinned Down Combat Suppression, `functions/fn_postInit.sqf`: optional close-fire event bridge, support-aware hearing exception | Useful; full suppression path pending | Keep sound reports distinct from physical suppression; support elements must not stop because distant shots are heard |
+| Pinned Down Surrender, `functions/fn_postInit.sqf`: one-second `allGroups` evaluation plus separate prisoner jobs | Requires changes | Evaluate changed local groups through WAIT's shared budget; prisoner behavior must be finite and subordinate to Zeus |
+| Pinned Down Medical Solution, `XEH_postInit.sqf`: several watched-unit PFHs; initial machine gate excludes headless clients | Requires changes; HC ownership risk | Assess local treatment jobs and ACE integration separately; do not import damage shields or repeated animation overrides |
+| Pinned Down Steel Rain, `XEH_postInit.sqf`: initialization follows CBA settings-ready event | Useful; strike execution pending | Use readiness events, not guessed startup delays; preserve lethal-only first-burst red-smoke warning |
+| Pinned Down Cover and Concealment, `functions/fn_processGroups.sqf`: four-group round-robin slice | Useful | Retain staggered local processing and cache cover geometry; measure single-job worst-case cost as well as slice count |
+| Pinned Down Tracks and Boots, `fn_registerJob.sqf`, `fn_releaseJob.sqf`, `fn_commandPassengerLocal.sqf`: public transport job, assigned seats, hidden exits and position jumps | Useful ownership; conflicting recovery | WAIT now respects the active transport job on occupied/assigned vehicles. Do not reproduce hidden exits or micro-teleports |
+| Pinned Down Combat Awareness, `fn_postInit.sqf`, `fn_hearGunfire.sqf`: class Fired handlers, firing-group cooldown, group-owner knowledge | Useful; full cost pending | Consider vehicle fire and integral suppressors. Keep uncertain WAIT reports; do not grant exact targets from sound |
+| Pinned Down Conductor, `fn_inspectGroupOwnership.sqf`, `fn_createSupportLease.sqf`, release functions: active leases and explicit garrison markers | Useful; borrowing policy differs | WAIT now yields to live Conductor leases/garrisons. Do not borrow or restore over newer Zeus orders |
+| Smart Merge AI, `fn_tick.sqf`, `fn_abortPending.sqf`: bounded queues, time budget and explicit pending movement | Useful; total-budget accounting needs review | WAIT now yields to owned pending merges. Preserve player/mission group identity; casualty reinforcement is not an unconditional merge |
+| Smart Aircraft AI, `XEH_postInit.sqf`, `fn_main.sqf`: server-only startup, weapon-specific distance defaults and AA cache | Useful ranges; owner model requires changes | Ground/air weapon capability and observed threat drive attack selection. Keep flight decisions on aircraft owner, not server-only |
+| Smart Combat AI V2, `fn_getFeatureOwner.sqf`, `fn_registerUnit.sqf`: feature ownership resolver and actor registry | Useful; full runtime pending | Feature-level authority is preferable to blanket addon disable. Detection alone is not a completed coexistence adapter |
+| AI Helicopter Decelerate No Climbing, `fnc_perSecond.sqf`: locality/player checks, terrain-ahead probes, temporary frame correction | Useful safety checks; controller conflict | Reuse independent safety concepts; one flight correction owner only. Preserve terrain clearance and native recovery |
+| BHL AI, `fn_landingLogic.sqf`: glideslope, waypoint/locality abort, direct PATH/physics takeover | Useful approach geometry; conflicting permanent-style takeover risk | Keep abort and go-around concepts; do not stack velocity controllers over native flight or LAMBS |
+| DiGii AI, `digii_ai_manager/functions/fnc_managerTick.sqf`: one local scheduler, due-group slices and LOD cadence | Useful | Build on WAIT's existing scheduler instead of adding another. Slice limits do not bound the work inside one group |
+| AI Culler, `fn_mainLoop.sqf`: global unit scans, disabled simulation and restoration for dead/mounted units | Performance reference; conflicts with behavior acceptance | Do not count culled units as successful movement or silently enable their simulation. Separate culling from tactical AI benchmarking |
+| Scorpions Advanced AI, `saai_air/fn_airAttackSafety.sqf`, `fn_airAimSolution.sqf`: speed/munition safety geometry and predictive release authorization | Useful; native firing outcome pending | Examine weapon direction, moving target and parent velocity; never bend projectiles or treat authorization as a hit |
+| Protocol Navy Seal, `fn_navy_seal.sqf`: shallow-water predicate requires depth both >= 0.1 and <= 0.1 | Repair: effectively exact-depth shoreline selection | Implement a non-zero safe depth interval in WAIT and validate terrain/slope/access. Do not copy the equality constraint |
+| Protocol CQB, `fn_cqb.sqf`: enemy-near-building test uses distance rather than room/floor containment | Requires changes | Proximity cannot prove an enemy is inside; use real building/topology evidence before committing the entry team |
+
+The other Protocol sources have been extracted; initial config/settings inspection is not yet
+sufficient for algorithm acceptance. Battle Lines, VCOM and the exact IMS DEV package still need
+their source evidence completed. Every reference remains eligible for further investigation;
+none receives a quality exemption because its Workshop page describes a useful feature.
+
+## Changes and queued acceptance
+
+The compatibility map now identifies the installed Pinned Down and additional AI reference families.
+Read-only operation markers protect Conductor support/garrisons, Tracks and Boots transports and
+Smart Merge pending movement. Both ground and aircraft permission checks consume the actor gate;
+aircraft also honor their own generic external-control flag. Detection of the other packages is
+diagnostic only and does not assert complete interoperability.
+
+Queue one packaged batch covering ordinary AI with addons merely loaded; active external operations;
+release/reacquisition; assigned but dismounted cargo; Zeus replacement; HC transfer; deletion; and
+setting changes. Require physical progress and exact external-marker preservation. Benchmark 50
+mixed groups against the same LAMBS-only dependency baseline, with WAIT off/on, using the agreed
+5% median / 10% p95 added frame-time budget. Retain a separate vanilla baseline to show the total
+cost of the complete dependency stack. No game was launched for this source pass.

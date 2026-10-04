@@ -5,7 +5,7 @@
  * headless clients have acknowledged profile adoption. Also reports the Cortex scheduler and
  * survivor-regroup counters, per-feature gates/tuning, coordinated support outcomes,
  * active drill heartbeats, durable transition/remount/support/combined-arms ownership, pending artillery
- * relocation, bounded action/order snapshots and queue health
+ * relocation, bounded action/order snapshots, detected external providers and queue health
  * for the server (headless-client private counters stay on those machines). This is independent of which scheduler moved
  * the groups: ACE Headless may be active while WMP's optional HC distributor is disabled.
  *
@@ -465,4 +465,10 @@ private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
             typeOf _aircraft,owner _aircraft,_plan,_outcome,_request,((_aircraft getVariable ["Waldo_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
 } forEach (_adaptiveAircraft select [0,20]);
 _checks pushBack ["ai","cortex-air-attack-snapshot-limits","LOADED",format ["Adaptive aircraft total=%1 sampled=%2 (limit 20). Active plans and retained outcomes are included; physical travel, Fired events and explicit transitions remain the acceptance evidence.",count _adaptiveAircraft,(count _adaptiveAircraft) min 20]];
+private _compat = missionNamespace getVariable ["Waldo_AITweaks_Compatibility", createHashMap];
+private _providers = (keys _compat) select {_compat get _x};
+_providers sort true;
+_checks pushBack ["ai", "ai-external-providers", "LOADED", format [
+    "Detected=%1. Presence is diagnostic only; active operation markers reserve actors. Detection does not certify compatibility. LAMBS Danger/Waypoints are required foundations.", _providers
+]];
 ["ai", _checks] call Waldo_fnc_AITweaksDiagnosticReport

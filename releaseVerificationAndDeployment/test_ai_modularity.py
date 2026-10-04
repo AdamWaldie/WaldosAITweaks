@@ -147,6 +147,32 @@ class AIModularityContracts(unittest.TestCase):
             self.assertIn(patch,diagnostics)
             self.assertNotIn(patch+' setVariable',lease)
         self.assertIn('config companions remain active in every mode',diagnostics)
+class ExtendedSourceOwnershipContracts(unittest.TestCase):
+    def test_lambs_foundation_is_required_and_default_audit_loads_it(self):
+        config = (ROOT/'addons/main/config.cpp').read_text(encoding='utf-8')
+        launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
+        self.assertRegex(config, r'requiredAddons\[\].*"lambs_danger".*"lambs_wp"')
+        self.assertIn('@LAMBS_Danger.fsm', launcher)
+        self.assertNotIn('fsmDanger =', config)
+
+    def test_active_external_operations_are_read_only_and_bounded(self):
+        owner = src('cortexExternalOwner')
+        for marker in ['PDCO_activeLeaseId', 'PDCO_garrisonActive', 'PDCO_garrisonPending',
+                       'PDTB_jobId', 'smai_ownedMove', 'smai_pendingTargetGroup']:
+            self.assertIn(marker, owner)
+        self.assertIn('assignedVehicle _unit', owner)
+        self.assertIn('vehicle _unit', owner)
+        self.assertNotIn('setVariable', owner)
+        self.assertNotIn('allGroups', owner)
+        self.assertNotIn('allUnits', owner)
+        self.assertNotIn('call _patch', owner)
+
+    def test_aircraft_cannot_bypass_external_operation_ownership(self):
+        aircraft = src('cortexAircraftEligible')
+        self.assertIn('_aircraft getVariable ["Waldo_AI_ExternalControl",false]', aircraft)
+        self.assertIn('[_x] call Waldo_fnc_CortexExternalOwner != ""', aircraft)
+        self.assertIn('Waldo_fnc_CortexExternalOwner', src('cortexIsEligible'))
+
 if __name__ == '__main__': unittest.main()
 
 

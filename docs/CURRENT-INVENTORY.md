@@ -27,10 +27,13 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 | Other actors | Civilian reactions, airborne insertion and naval assault | Event-driven or finite group job |
 | Operator support | Diagnostics, ZEN control and convoy module, visible QA overlays | Required ZEN and audit mission |
 
-## Optional integrations
+## Foundation and optional integrations
 
-The code detects installed LAMBS components, VCOM AI, WebKnight/IMS, Simple Civilian Behaviour, HBQ
-Advanced Driving AI and supported Protocol AI packages. Integrations must use public variables or
+LAMBS Danger and its Waypoints component are the required infantry foundation. The code also
+detects LAMBS companions, VCOM AI, WebKnight/IMS, Simple Civilian Behaviour, HBQ, Pinned Down,
+Smart Aircraft/Combat/Merge, helicopter deceleration, BHL, DiGii, AI Culler and Scorpions AI.
+Detection does not certify an ownership adapter. See [source assessment](AI-METHOD-ASSESSMENT.md).
+Integrations must use public variables or
 functions, take a finite lease, and restore the exact prior state. Addon presence alone must not
 disable unrelated AI.
 
