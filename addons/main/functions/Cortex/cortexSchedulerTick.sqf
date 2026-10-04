@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Each invocation processes due jobs within the local budget. Joining owners have independent queues; jobs are not replayed across machines.
  * Runs due Smart AI Pass jobs on this machine with a soft time budget between jobs.
  *
  * Called by one CBA handler every frame on each AI-owning machine (server and headless clients

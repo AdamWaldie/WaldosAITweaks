@@ -16,6 +16,10 @@ jobs:
           version: v1.22.0
       - run: python -m unittest discover -s releaseVerificationAndDeployment -p 'test_*.py'
       - run: python releaseVerificationAndDeployment/sqf_validator.py
+      - run: python releaseVerificationAndDeployment/config_style_checker.py
+      - run: python releaseVerificationAndDeployment/documentation_contract_checker.py
+      - run: python releaseVerificationAndDeployment/zeus_script_parity_checker.py
+      - run: python releaseVerificationAndDeployment/performance_audit.py
       - run: python releaseVerificationAndDeployment/check_cortex_coverage.py
       - run: hemtt release --no-bin
       - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm

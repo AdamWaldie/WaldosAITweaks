@@ -9,7 +9,7 @@ patch = 0
 git_hash = 0
 
 [files]
-include = ["README.md", "LICENSE", "docs/MODDING-AND-OPERATIONS.md"]
+include = ["README.md", "LICENSE", "CONTRIBUTING.md", "docs/*.md"]
 
 [properties]
 author = "WaldoTheWarfighter"

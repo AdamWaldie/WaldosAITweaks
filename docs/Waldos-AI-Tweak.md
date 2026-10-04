@@ -132,10 +132,10 @@ Check that AI tuning is enabled and that the unit's side, faction and class pass
 
 ## See also
 
-- [Optional Feature Systems](Optional-Feature-Systems)
-- [Optional Feature Extensions](Optional-Feature-Extensions)
-- [AI Convoy System](AI-Convoy-System)
+- [Optional Feature Systems](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Optional-Feature-Systems)
+- [Optional Feature Extensions](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Optional-Feature-Extensions)
+- [AI Convoy System](https://github.com/AdamWaldie/WaldosMissionPack/wiki/AI-Convoy-System)
 
 <!-- WMP-WIKI-NAV -->
 ---
-[Wiki home](Home) · [Quickstart](Quickstart-Guide) · [Feature index](Feature-Tutorials)
+[Wiki home](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Tutorials)

@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Versioned local handler installation removes obsolete handlers before replacement. Each joining interface installs its own watcher.
  * Installs, on each player's machine, the curator event handlers that give Zeus priority over the
  * Smart AI Pass.
  *
