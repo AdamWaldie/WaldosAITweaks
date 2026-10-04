@@ -137,7 +137,7 @@ if !(missionNamespace getVariable ["WAIT_AIPass_DiscoveryQueued", false]) then {
     [WAIT_fnc_CortexDiscover, createHashMap, 1] call WAIT_fnc_CortexQueueJob;
 };
 
-diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 compatibility=%7/%8 alternativeBackend=%9 meleeBackend=%10 wbk=%11).",
+diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 compatibility=%7/%8 alternativeBackend=%9 meleeBackend=%10 specialistBackend=%11).",
     ["headless client", "server"] select isServer,
     missionNamespace getVariable ["WAIT_AIPass_Contact_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Flank_Enable", true],

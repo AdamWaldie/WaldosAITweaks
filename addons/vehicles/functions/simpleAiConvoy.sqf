@@ -67,16 +67,16 @@ if (!_release) then {
         {
             private _vehicle = _x;
             if (_saved findIf {(_x select 0) == _vehicle} < 0) then {
-                private _drivingPause = if (isNil {_vehicle getVariable "HBQAD_Pause"}) then {[false,false]} else {[true,_vehicle getVariable ["HBQAD_Pause",false]]};
-                private _drivingCrew = if (isNil {_vehicle getVariable "HBQAD_PreventDisembark"}) then {[false,false]} else {[true,_vehicle getVariable ["HBQAD_PreventDisembark",false]]};
+                private _drivingPause = if (isNil {[_vehicle,"drivingPause"] call WAIT_fnc_CompatibilityState}) then {[false,false]} else {[true,[_vehicle,"drivingPause",false] call WAIT_fnc_CompatibilityState]};
+                private _drivingCrew = if (isNil {[_vehicle,"drivingCrewReturn"] call WAIT_fnc_CompatibilityState}) then {[false,false]} else {[true,[_vehicle,"drivingCrewReturn",false] call WAIT_fnc_CompatibilityState]};
                 _saved pushBack [_vehicle, getForcedSpeed _vehicle, getUnloadInCombat _vehicle, [_drivingPause,_drivingCrew]];
             };
             // external controller's public live pause stops obstacle, traffic and unstuck movement without disabling
             // its addon. Its separate crew loop does not read Pause, so WMP also suspends only that
             // per-vehicle option while WMP owns seat and dismount semantics.
-            if (isClass (configFile >> "CfgPatches" >> "hbq_advanced_driving_ai")) then {
-                _vehicle setVariable ["HBQAD_Pause",true,true];
-                _vehicle setVariable ["HBQAD_PreventDisembark",false,true];
+            if ((["drivingBackend"] call WAIT_fnc_CompatibilityAvailable)) then {
+                [_vehicle,"drivingPause",true,true,true] call WAIT_fnc_CompatibilityState;
+                [_vehicle,"drivingCrewReturn",false,true,true] call WAIT_fnc_CompatibilityState;
             };
         } forEach _vehicles;
         _restore set [2, _saved];

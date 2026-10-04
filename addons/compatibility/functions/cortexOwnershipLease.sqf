@@ -3,13 +3,13 @@
  * Gives one finite Cortex movement operation exclusive group-level movement ownership when
  * LAMBS_Danger and/or external controller are active, then restores each mod's exact previous setting.
  *
- * Locality/authority: call only where the group is local. The lease and COMPAT group switch are
+ * Locality/authority: call only where the group is local. The lease and external controller group switch are
  * public so a new server/headless-client owner can renew or release the same ownership record.
- * WMP mode already owns COMPAT group movement through WAIT_AIPass_DangerBackendDisabledByPass. external controller always
+ * WMP mode already owns external controller group movement through WAIT_AIPass_DangerBackendDisabledByPass. external controller always
  * receives a finite lease because Cortex does not otherwise own it. LAMBS_Turrets, Suppression and
  * RPG remain active, and external controller skill/formation settings are never altered.
  * Repeat/JIP: reacquiring the same owner renews its deadline without changing the saved baseline;
- * another owner is refused until release or expiry. A fresh lease is refused while COMPAT has a
+ * another owner is refused until release or expiry. A fresh lease is refused while external controller has a
  * queued/active tactic or external controller has an active support/medic move. Release restores only captured
  * settings and leaves pre-existing user opt-outs intact. Repeated release is harmless.
  *
@@ -21,13 +21,13 @@
  *
  * Return Value:
  * Boolean - true when ownership was acquired/released, false for invalid locality, a competing
- * owner or movement which COMPAT already owns
+ * owner or movement which external controller already owns
  *
  * Current callers: every finite Cortex group-movement start/end, CortexDiscover and CortexReleaseGroup.
  *
  * Example:
  * [_group, "SUPPORT", true, serverTime + 180] call WAIT_fnc_CortexOwnershipLease;
- * Result: COMPAT group manoeuvres pause for that finite Cortex support move and resume afterwards.
+ * Result: external controller group manoeuvres pause for that finite Cortex support move and resume afterwards.
  */
 
 params [
@@ -56,9 +56,9 @@ if (_acquire) exitWith {
     private _expiredVcom=count _alternativeBackendLease == 3 && {serverTime >= (_alternativeBackendLease select 2)};
     if (_alternativeBackendLease isNotEqualTo [] && {!_sameVcom} && {!_expiredVcom}) exitWith {false};
 
-    // COMPAT 2.6.2.1 publishes isExecutingTactic before its delayed flank/assault callback. Testing
+    // external controller installed build publishes isExecutingTactic before its delayed flank/assault callback. Testing
     // it here therefore covers both queued and running tactics. forceMove covers unit/group actions;
-    // task* identifies explicit COMPAT Waypoint ownership. Do not clear any of these upstream states.
+    // task* identifies explicit external controller Waypoint ownership. Do not clear any of these upstream states.
     private _dangerTactic = _group getVariable ["lambs_main_currentTactic", ""];
     private _dangerWaypointTask = _dangerTactic isEqualType "" && {
         (toLowerANSI _dangerTactic) find "task" == 0

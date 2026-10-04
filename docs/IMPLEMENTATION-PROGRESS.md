@@ -9,12 +9,11 @@
 - Runtime tuning uses the CBA server layer instead of independently publishing effective values.
 - Behaviour-based capability registry; source inventory and fingerprints removed from tracked content.
 - Cross-product detection and ownership markers preserved within interoperability boundaries.
+- Technical controller identifiers isolated in compatibility adapters and their tests; neutral diagnostics, audit labels and internal APIs.
 - Existing audit cases retained; bootstrap sources added to feature coverage.
 
 ## Still outstanding
 
-- Confinement of every third-party identifier to compatibility code/tests, neutral diagnostics and
-  removal of remaining historical inspiration wording. No clean-history claim yet.
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.
 - CBA configuration gaps and activation metadata for all controls.
 - Deep assessment of every remaining method, including simulation/recovery shortcut purpose.

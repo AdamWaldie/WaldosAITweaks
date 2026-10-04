@@ -191,7 +191,7 @@ if (_operatingCrew && {!_precisionExcluded}) then {
     {
         _unit setSkill [_x, ((_unit skill _x) * _crewMultiplier) max 0 min 1];
     } forEach ["aimingAccuracy", "aimingShake", "aimingSpeed"];
-    if !(isClass (configFile >> "CfgPatches" >> "lambs_turrets")) then {
+    if !((["turretPolicy"] call WAIT_fnc_CompatibilityAvailable)) then {
         private _dispersionSetting=["WAIT_AI_VehicleCrewDispersion","WAIT_AI_AirCrewDispersion"] select (_vehicle isKindOf "Air");
         private _dispersionDefault=[3.5,4.25] select (_vehicle isKindOf "Air");
         private _dispersion = ((missionNamespace getVariable [_dispersionSetting, _dispersionDefault]) max 1) min 7;

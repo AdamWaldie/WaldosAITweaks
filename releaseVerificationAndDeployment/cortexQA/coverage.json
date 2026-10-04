@@ -120,7 +120,9 @@
       "production_sources": [
         "addons/compatibility/functions/cortexBuildingBackendRelease.sqf",
         "addons/compatibility/functions/cortexBuildingBackendStart.sqf",
-        "addons/compatibility/functions/cortexOwnershipLease.sqf"
+        "addons/compatibility/functions/cortexOwnershipLease.sqf",
+        "addons/compatibility/functions/compatibilityAvailable.sqf",
+        "addons/compatibility/functions/compatibilityState.sqf"
       ]
     },
     {

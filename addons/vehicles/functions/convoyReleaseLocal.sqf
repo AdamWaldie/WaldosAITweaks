@@ -42,8 +42,8 @@ if (_restore isNotEqualTo []) then {
             if (_forget && {isServer} && {_drivingRestore isNotEqualTo []}) then {
                 (_drivingRestore select 0) params ["_hadPause","_pause"];
                 (_drivingRestore select 1) params ["_hadCrew","_crew"];
-                if (_hadPause) then {_vehicle setVariable ["HBQAD_Pause",_pause,true]} else {_vehicle setVariable ["HBQAD_Pause",nil,true]};
-                if (_hadCrew) then {_vehicle setVariable ["HBQAD_PreventDisembark",_crew,true]} else {_vehicle setVariable ["HBQAD_PreventDisembark",nil,true]};
+                if (_hadPause) then {[_vehicle,"drivingPause",_pause,true,true] call WAIT_fnc_CompatibilityState} else {[_vehicle,"drivingPause",nil,true,true] call WAIT_fnc_CompatibilityState};
+                if (_hadCrew) then {[_vehicle,"drivingCrewReturn",_crew,true,true] call WAIT_fnc_CompatibilityState} else {[_vehicle,"drivingCrewReturn",nil,true,true] call WAIT_fnc_CompatibilityState};
             };
         };
         if (local _vehicle) then {

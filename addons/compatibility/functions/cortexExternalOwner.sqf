@@ -2,8 +2,8 @@
  * Author: WaldoTheWarfighter
  * Identifies AI whose movement, animation or combat state belongs to a supported external system.
  * Cortex uses this one read-only gate before any tactic so external controller custom skeletons, zombies,
- * droids, active IMS melee actors and external civilian controller never receive competing commands.
- * Active Pinned Down coordination/transport and Smart Merge movement also reserve their actors.
+ * droids, active external controller melee actors and external civilian controller never receive competing commands.
+ * Active external controller coordination/transport and external controller movement also reserve their actors.
  * Ordinary infantry remains eligible when those addons are merely loaded.
  *
  * Locality / Authority: read-only and callable anywhere. No public state or addon variable is changed.
@@ -19,7 +19,7 @@
  *
  * Example:
  * private _owner = [_unit] call WAIT_fnc_CortexExternalOwner;
- * Result: "WBK" for a external controller droid and "" for an ordinary NATO rifleman.
+ * Result: "SPECIALIST" for a external controller droid and "" for an ordinary NATO rifleman.
  */
 
 params [["_unit",objNull,[objNull]]];
@@ -52,19 +52,19 @@ private _wbkMarker=!(isNil {_unit getVariable "WBK_AI_ISZombie"})
     || {!(isNil {_unit getVariable "WBK_Droids_VoiceType"})}
     || {!(isNil {_unit getVariable "WBK_AI_ZombieMoveSet"})};
 if (_wbkMarker || {_faction in _wbkFactions} || {_moves != "" && {_moves != "CfgmovesMaleSdr"}}
-    || {_subcategory == "WBK_MeleeAi_SPACE_MARINES"} || {_author find "webknight" >= 0}) exitWith {"WBK"};
+    || {_subcategory == "WBK_MeleeAi_SPACE_MARINES"} || {_author find "webknight" >= 0}) exitWith {"SPECIALIST"};
 
-// IMS only owns an actor while its melee runtime says so. Loading IMS must not exclude every rifleman.
+// external controller only owns an actor while its melee runtime says so. Loading external controller must not exclude every rifleman.
 private _animation=toLowerANSI animationState _unit;
 private _meleeBackendActive=!(isNil {_unit getVariable "IMS_IsUnitInvicibleScripted"})
     || {!(isNil {_unit getVariable "IMS_ISAI"})}
     || {!(isNil {_unit getVariable "IMS_EventHandler_Hit"})}
     || {_animation find "ims_" == 0}
     || {_animation find "star_wars_fight" == 0};
-if (_meleeBackendActive) exitWith {"IMS"};
+if (_meleeBackendActive) exitWith {"MELEE"};
 
 // The installed civilian addon owns all unarmed civilians, including before its scared marker is set.
 if (side group _unit == civilian && {primaryWeapon _unit == ""}
     && {secondaryWeapon _unit == ""} && {handgunWeapon _unit == ""}
-    && {!(isNil "WBK_CivilianFlee") || {!(isNil {_unit getVariable "WBK_VariableScared"})}}) exitWith {"WBK_CIVILIAN"};
+    && {!(isNil "WBK_CivilianFlee") || {!(isNil {_unit getVariable "WBK_VariableScared"})}}) exitWith {"CIVILIAN_BACKEND"};
 ""

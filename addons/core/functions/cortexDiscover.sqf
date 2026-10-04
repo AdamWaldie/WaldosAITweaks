@@ -94,17 +94,17 @@ private _spotters = [];
         // generic ground-group loop as a second movement/behaviour owner.
         private _eligible = _groundEligible;
         if ((!_dangerWmpMode || {!_eligible}) && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false]}) then {
-            _group setVariable ["lambs_danger_disableGroupAI", _group getVariable ["WAIT_AIPass_DangerBackendBaseline", false], true];
+            [_group,"dangerDisabled",_group getVariable ["WAIT_AIPass_DangerBackendBaseline", false],true,true] call WAIT_fnc_CompatibilityState;
             _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", nil, true];
             _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
         };
         if (_dangerWmpMode && {_eligible} && {!(_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false])}) then {
             private _scopedLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
             private _baseline = if (count _scopedLease == 3) then {_scopedLease select 1} else {
-                _group getVariable ["lambs_danger_disableGroupAI", false]
+                [_group,"dangerDisabled",false] call WAIT_fnc_CompatibilityState
             };
             _group setVariable ["WAIT_AIPass_DangerBackendBaseline", _baseline, true];
-            _group setVariable ["lambs_danger_disableGroupAI", true, true];
+            [_group,"dangerDisabled",true,true,true] call WAIT_fnc_CompatibilityState;
             _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", true, true];
         };
         private _dangerLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];

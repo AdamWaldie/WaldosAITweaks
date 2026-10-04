@@ -138,7 +138,7 @@ if ((units _group) findIf {
 // restoration has finished, then stop: remount, post-contact and withdrawal intents from an older
 // episode must not compete with the reconstructed building controller.
 private _buildingIntent=_group getVariable ["WAIT_Cortex_BuildingIntent",[]];
-if (count _buildingIntent >= 3 && {isClass (configFile >> "CfgPatches" >> "lambs_wp")}
+if (count _buildingIntent >= 3 && {(["buildingBackend"] call WAIT_fnc_CompatibilityAvailable)}
     && {[_group] call WAIT_fnc_CortexIsEligible} && {!([_group] call WAIT_fnc_CortexZeusHeld)}) exitWith {
     _group setVariable ["WAIT_Cortex_Remount",nil,true];
     _group setVariable ["WAIT_Cortex_TransitionIntent",nil,true];
