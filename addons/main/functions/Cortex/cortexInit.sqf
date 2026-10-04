@@ -19,8 +19,8 @@
  * optional handlers when their switches have been turned on since the last call. Player clients return immediately and pay nothing. Each
  * behaviour has its own Waldo_AIPass_<Behaviour>_Enable switch in \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf, and
  * Waldo_fnc_CortexIsEligible keeps player groups and other WMP features' units out.
- * LAMBS_Danger, Waypoints, Turrets, Suppression and RPG are detected without becoming hard
- * dependencies. Only Danger participates in movement ownership; the config-only companions remain active.
+ * The required infantry foundation supplies danger and building tasks. Optional weapon components
+ * remain active; movement ownership is reserved only for finite WAIT operations.
  * Locality and authority: the server publishes Waldo_AIPass_Enable and replays this call to
  * headless clients through the JIP key Waldo_AIPass_RuntimeInit. Remote calls from anything other
  * than the server are refused. A headless client waits for the feature-runtime snapshot first.
@@ -36,7 +36,7 @@
  * [] call Waldo_fnc_CortexInit;
  * Result: on the server, the pass starts and every connected or later headless client starts it too.
  *
- * Current callers: init.sqf when Waldo_AIPass_Enable is true, the AI Control ZEN module and JIP replay.
+ * Current callers: addon postInit, CBA setting callbacks, the AI Control ZEN module and JIP replay.
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};

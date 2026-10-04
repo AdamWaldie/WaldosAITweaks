@@ -173,6 +173,28 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         self.assertIn('[_x] call Waldo_fnc_CortexExternalOwner != ""', aircraft)
         self.assertIn('Waldo_fnc_CortexExternalOwner', src('cortexIsEligible'))
 
+class AddonSettingLifecycleContracts(unittest.TestCase):
+    def test_optional_handlers_reconcile_after_postinit_only(self):
+        callback = (ROOT/'addons/main/functions/aiTweaksSettingChanged.sqf').read_text(encoding='utf-8')
+        gate = callback.index('Waldo_AITweaks_PostInitComplete')
+        for setting in ['Waldo_AIPass_GrenadeEvasion_Enable', 'Waldo_AIPass_CivilianReaction_Enable']:
+            self.assertGreater(callback.index(setting), gate)
+        self.assertIn('Waldo_AIPass_Active', callback)
+        self.assertIn('call Waldo_fnc_CortexInit', callback)
+        self.assertNotIn('addPerFrameHandler', callback)
+        self.assertNotIn('allUnits', callback)
+        installer = src('cortexInit')
+        self.assertIn('removeMissionEventHandler ["ProjectileCreated"', installer)
+        self.assertIn('removeMissionEventHandler ["EntityCreated"', installer)
+        self.assertIn('[_x,true] call Waldo_fnc_CortexCivilianSetup', installer)
+
+    def test_setting_presentation_preserves_identifiers_and_uses_product_language(self):
+        spec = src('cortexTuningSpec')
+        self.assertIn('"Waldo_AIPass_LambsMode", "Infantry controller ownership"', spec)
+        self.assertNotIn('"LAMBS integration"', spec)
+        for phrase in ['when LAMBS Turrets', 'PROTOCOL AI NAVY SEAL takes', 'Simple Civilian Behaviour owns']:
+            self.assertNotIn(phrase, spec)
+
 if __name__ == '__main__': unittest.main()
 
 

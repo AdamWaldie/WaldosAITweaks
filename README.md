@@ -19,10 +19,11 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 Run `hemtt build` from the repository root to create the mod package. CBA_A3, ZEN and LAMBS Danger
 (including its Waypoints component) are hard runtime dependencies. LAMBS supplies the infantry
 danger FSM and building-task foundation; WAIT adds finite tactical operations around that base.
-ACE, LAMBS Turrets/Suppression/RPG, VCOM AI, WebKnight systems, HBQ and other AI packages are optional.
-The LAMBS code is not bundled or modified in this package. Its published license restricts derivative
-Workshop redistribution; the dependency preserves upstream attribution and distribution.
+Optional combat, civilian and vehicle controllers retain explicit ownership of their active tasks.
+Dependency code is installed separately and is not bundled or modified in this package.
 
+See [addon lifecycle and feature integration](docs/ADDON-LIFECYCLE.md) for how existing WAIT
+improvements fit the mod runtime.
 ## Product boundary
 
 This repository owns AI behaviour:
