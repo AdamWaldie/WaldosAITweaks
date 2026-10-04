@@ -1,0 +1,16 @@
+name = "Waldos AI Tweaks"
+prefix = "waldo_ai_tweaks"
+mainprefix = "z"
+
+[version]
+major = 0
+minor = 1
+patch = 0
+git_hash = 0
+
+[files]
+include = [
+    "mod.cpp",
+    "README.md",
+    "LICENSE"
+]

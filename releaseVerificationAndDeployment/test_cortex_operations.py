@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / 'MissionScripts/AiScripting/Cortex'
+BASE = ROOT / 'addons/main/functions/Cortex'
 def source(name): return (BASE / (name + '.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
     def test_cortex_control_deduplicates_settings_and_diagnostics_explain_once(self):
@@ -14,7 +14,7 @@ class CortexOperations(unittest.TestCase):
         opened=source('cortexControlOpenLocal')
         self.assertIn('private _seenKeys = createHashMap',opened)
         self.assertIn('_display setVariable ["Cortex_Spec",_spec]',opened)
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('Expected evidence:',diagnostics)
         self.assertIn('not an action trigger or success result',diagnostics)
         self.assertNotIn('Trigger/inspection:',diagnostics)
@@ -52,7 +52,7 @@ class CortexOperations(unittest.TestCase):
     def test_published_cortex_defaults_match_current_core_switches(self):
         import re
         defaults=(ROOT/'cortex_defaults.md').read_text(encoding='utf-8')
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         shipped=dict(re.findall(r'^\s*\["(Waldo_[^"]+)",\s*(.+?)\],(?:\s*//.*)?$',config,re.MULTILINE))
         published=dict(re.findall(r'^\| `([^`]+)` \| `([^`]+)` \|',defaults,re.MULTILINE))
         self.assertGreater(len(shipped),100)
@@ -64,16 +64,16 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(key,published)
 
     def test_counter_battery_diagnostics_report_the_automatic_default(self):
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         expected='missionNamespace getVariable ["Waldo_AIPass_CounterBattery_Mode", "AUTO"]'
         self.assertIn('["Waldo_AIPass_CounterBattery_Mode", "AUTO"]',config)
         self.assertIn(expected,diagnostics)
         self.assertNotIn('missionNamespace getVariable ["Waldo_AIPass_CounterBattery_Mode", "KNOWN"]',diagnostics)
 
     def test_diagnostics_master_fallbacks_match_enabled_defaults(self):
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         for key in ['Waldo_AIRebalance_Enable','Waldo_AIPass_Enable']:
             self.assertIn(f'["{key}", true]',config)
             self.assertIn(f'missionNamespace getVariable ["{key}", true]',diagnostics)
@@ -290,7 +290,7 @@ class CortexOperations(unittest.TestCase):
     def test_clearance_preserves_failure_evidence_after_release(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('_group setVariable ["Waldo_Cortex_ClearEvidence",[+(_job get "cleared")',clear)
         self.assertIn('_group setVariable ["Waldo_Cortex_ClearEvidence",[+(_order param [1,[]])',release)
         self.assertIn('_group getVariable ["Waldo_Cortex_ClearEvidence",[]]',diagnostics)
@@ -385,7 +385,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('old CBA callback cannot become valid again after a quick restart',stop)
 
     def test_ai_diagnostics_feature_depth_and_queue_scope(self):
-        diagnostic=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         for feature in ['Regroup','Contact','PostContact','Flank','StreetCrossing','FireControl','Morale','Surrender','GrenadeEvasion','AntiArmour','Vehicles','ContactReports','Reinforce','Artillery','CounterBattery','Airborne','AircraftFlares','Investigate','Assault','Advance','CoordinatedAssault','Stance','AmmoShare','VehicleGunnery','ArtillerySmoke','AircraftBreak','VehicleDismount','VehicleRemount','VehicleWithdraw','CoverValidation','Hearing','MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']:
             self.assertIn('["'+feature+'",',diagnostic)
         self.assertIn('private _parents=+(_dependencies',diagnostic)
@@ -399,7 +399,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('call Waldo_fnc_CortexIsEligible',diagnostic)
 
     def test_ai_diagnostics_are_bounded_read_only_snapshots(self):
-        diagnostic=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertNotIn('call Waldo_fnc_CortexZeusHeld',diagnostic)
         self.assertNotIn('setVariable',diagnostic)
         self.assertNotIn('smart-ai-pass',diagnostic)
@@ -549,7 +549,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('case "GRENADE": {', text)
 
     def test_tactical_bounds_use_dynamic_line_defaults(self):
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         route=source('cortexPlanRoute')
         advance=source('cortexAdvanceStart')
         step=source('cortexFlankStep')
@@ -615,7 +615,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('remoteExecCall ["Waldo_fnc_CortexQAInstallShotCounter",_owner]',qa)
 
     def test_zeus_mark_releases_cortex_immediately_on_group_owner(self):
-        mark=(ROOT/'MissionScripts/AiScripting/Cortex/cortexZeusMark.sqf').read_text()
+        mark=(ROOT/'addons/main/functions/Cortex/cortexZeusMark.sqf').read_text()
         executable=mark.split('params [',1)[1]
         self.assertLess(executable.index('setVariable ["Waldo_AIPass_ZeusHold"'),executable.index('Waldo_fnc_CortexReleaseGroup'))
         self.assertIn('[_group,false,"ZEUS_TAKEOVER"] call Waldo_fnc_CortexReleaseGroup',mark)
@@ -628,7 +628,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('["_waypointIndex",-1,[0]]',mark)
         self.assertLess(executable.index('setVariable ["Waldo_Cortex_ZeusOrderSnapshot"'),
                         executable.index('Waldo_fnc_CortexReleaseGroup'))
-        watch=(ROOT/'MissionScripts/AiScripting/Cortex/cortexZeusWatchLocal.sqf').read_text()
+        watch=(ROOT/'addons/main/functions/Cortex/cortexZeusWatchLocal.sqf').read_text()
         self.assertIn('params ["", "_group", "_waypointID"]',watch)
         self.assertIn('[_group,true,_waypointID] call Waldo_fnc_CortexZeusMark',watch)
         self.assertIn('[_waypoint select 0,true,_waypoint select 1] call Waldo_fnc_CortexZeusMark',watch)
@@ -715,7 +715,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('TERRAIN',pending)
         production={
             path.relative_to(ROOT).as_posix()
-            for path in (ROOT/'MissionScripts/AiScripting').rglob('*.sqf')
+            for path in (ROOT/'addons/main/functions').rglob('*.sqf')
         }
         assigned=[path for case in data['cases'] for path in case['production_sources']]
         self.assertEqual(151,len(production))
@@ -1035,15 +1035,15 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(reason,advance)
         self.assertIn('Waldo_Cortex_AdvanceRefusal',advance)
         self.assertNotIn('CBA_fnc_addPerFrameHandler',advance)
-        diagnostic=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text()
+        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('cortex-tactical-refusal-',diagnostic)
         self.assertIn('Waldo_Cortex_FlankRefusal',diagnostic)
         self.assertIn('Waldo_Cortex_AdvanceRefusal',diagnostic)
 
     def test_group_phases_change_atomically_and_publish_bounded_history(self):
         setter=source('cortexSetPhase')
-        functions=(ROOT/'functions.hpp').read_text()
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text()
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text()
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('class CortexSetPhase',functions)
         for marker in ['_state set ["phase",_next]','_state set ["phaseStart",_phaseStart]',
                        'setVariable ["Waldo_AIPass_PublicPhase",_next,true]',
@@ -1066,7 +1066,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_manoeuvres_share_one_bounded_avenue_selector(self):
         selector=source('cortexSelectAvenue')
-        functions=(ROOT/'functions.hpp').read_text(encoding='utf-8')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         advance=source('cortexAdvanceStart')
         flank=source('cortexFlankStart')
         retreat=source('cortexRetreat')
@@ -1161,7 +1161,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('vectorAdd [0,100,0]',qa)
 
     def test_bounding_advance_default_reacts_before_native_waypoint_is_consumed(self):
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text()
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text()
         spec=source('cortexTuningSpec')
         advance=source('cortexAdvanceStart')
         self.assertIn('["Waldo_AIPass_Advance_MinContactSeconds", 5]',config)
@@ -1344,7 +1344,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state set ["supportBoundSequence",_role select 1]',maintain)
 
     def test_wmp_diagnostics_explain_coordinated_failures_and_flare_modes(self):
-        diagnostic=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         for marker in ['cortex-coordination-health','recordedBoundFailures=',
                        'boundFailuresByToken','Waldo_Cortex_SupportBoundResult',
                        'Waldo_Cortex_SupportAbort','groupSpeed=%8',
@@ -1552,7 +1552,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('random 1 >= ([_group, "coordinatedChance"]',coordinated)
 
     def test_shipped_profiles_retain_legacy_movement_keys_for_configuration_compatibility(self):
-        config=(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         for profile,flank,advance in [
             ('MILITIA','0.3','0.7'),
             ('LINE','0.5','0.6'),
@@ -1663,7 +1663,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('if (_nearTier',first_contact_share.split('Waldo_fnc_CortexCombinedArmsRequest',1)[0])
         self.assertNotIn('Waldo_AIPass_CoordinatedAssault_Enable',
                          first_contact_share.split('Waldo_fnc_CortexCombinedArmsRequest',1)[0])
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('cortex-combined-role-',diagnostics)
         self.assertIn('Combined roles share an opportunity only',diagnostics)
 
@@ -2441,7 +2441,7 @@ class CortexOperations(unittest.TestCase):
     def test_every_ai_setting_has_an_acceptance_case(self):
         import re, json
         data=json.loads((ROOT/'releaseVerificationAndDeployment/cortexQA/coverage.json').read_text(encoding='utf-8'))
-        actual=set(re.findall(r'^\s*\["(Waldo_[^"]+)"\s*,',(ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8'),re.M))
+        actual=set(re.findall(r'^\s*\["(Waldo_[^"]+)"\s*,',(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8'),re.M))
         declared=[key for case in data['cases'] for key in case['settings']]
         self.assertEqual(actual,set(declared))
         self.assertEqual(len(declared),len(set(declared)))
@@ -2498,14 +2498,15 @@ class CortexOperations(unittest.TestCase):
 
     def test_cortex_exports_preserve_legacy_function_aliases(self):
         import re
-        text=(ROOT/'functions.hpp').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         exports=dict(re.findall(r'class (\w+) \{file = "([^"]+)";',text))
         legacy={name:path for name,path in exports.items() if name.startswith('AIPass')}
         self.assertGreater(len(legacy),90)
         for name,path in legacy.items():
             self.assertEqual(path,exports['Cortex'+name[6:]])
-            self.assertTrue((ROOT/path.replace('\\','/')).is_file(),path)
-        for path in (ROOT/'MissionScripts/AiScripting/Cortex').glob('*.sqf'):
+            local_path=path.replace('\\','/').removeprefix('/z/waldo_ai_tweaks/')
+            self.assertTrue((ROOT/local_path).is_file(),path)
+        for path in (ROOT/'addons/main/functions/Cortex').glob('*.sqf'):
             self.assertNotIn('Waldo_fnc_AIPass',path.read_text(encoding='utf-8'))
 
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
@@ -2576,7 +2577,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(case,server)
 
     def test_convoy_resume_keeps_local_trails_and_does_not_project_recovery(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text()
+        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text()
         self.assertIn('["frontTrails", _resumeTrails]',text)
         self.assertIn('["followers", _resumeFollowers]',text)
         self.assertNotIn('_front getPos [_desiredGap',text)
@@ -2592,13 +2593,13 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('unitCombatMode _x in ["YELLOW","RED"]',text)
 
     def test_convoy_spacing_does_not_trim_navigation_to_a_short_stop(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text()
+        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text()
         self.assertNotIn('_frontDistance > _desiredGap * 0.7',text)
         self.assertNotIn('_frontDistance < _gap',text)
         self.assertIn('private _limit = (_frontSpeed + (_controlGap-_desiredGap)*0.4) max 0;',text)
 
     def test_convoy_spacing_cannot_stabilize_a_lateral_wedge(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
         self.assertIn('private _controlGap = _gap;',text)
         self.assertIn('_controlGap=(_delta vectorDotProduct _direction) max 0;',text)
         self.assertIn('private _lateralOffset = 0;',text)
@@ -2606,13 +2607,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_pairGap=(_delta vectorDotProduct _direction) max 0;',text)
 
     def test_convoy_snapshot_preserves_navigation_before_release(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoySync.sqf').read_text()
+        text=(ROOT/'addons/main/functions/convoySync.sqf').read_text()
         self.assertLess(text.index('private _navigation ='),text.index('[_group, true, _configuration select 7'))
         self.assertIn('_keepCrew isEqualTo (_configuration select 4)',text)
         self.assertIn('setVariable ["Waldo_Convoy_LocalState",_navigation]',text)
 
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
-        tick=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text(encoding='utf-8')
+        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['Waldo_Convoy_RouteRecovery_Enable','["routeWatch",',
                        'currentWaypoint _group >= count waypoints _group',
                        'waypointPosition _watchedWaypoint distance2D _watchedPosition < 2',
@@ -2624,9 +2625,9 @@ class CortexOperations(unittest.TestCase):
             self.assertNotIn(forbidden,recovery)
 
     def test_convoy_temporarily_yields_hbq_vehicle_workers_and_restores_exact_state(self):
-        start=(ROOT/'MissionScripts/AiScripting/simpleAiConvoy.sqf').read_text(encoding='utf-8')
-        release=(ROOT/'MissionScripts/AiScripting/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        start=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
+        release=(ROOT/'addons/main/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('CfgPatches" >> "hbq_advanced_driving_ai',start)
         for variable in ['HBQAD_Pause','HBQAD_PreventDisembark']:
             self.assertIn('isNil {_vehicle getVariable "'+variable+'"}',start)
@@ -2638,7 +2639,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
 
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
-        tick=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text(encoding='utf-8')
+        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['Waldo_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',
                        'roadsConnectedTo _road','_travel >= 70','["roadAssist",',
                        '["leadSpeedLimit",[_leadLimit,time]]','private _pathTurn=0;',
@@ -2660,7 +2661,7 @@ class CortexOperations(unittest.TestCase):
                        '-single-file']:
             self.assertIn(marker,matrix)
         self.assertIn('_maxLateral <= 8',matrix)
-        text=(ROOT/'MissionScripts/AiScripting/simpleAiConvoy.sqf').read_text()
+        text=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text()
         self.assertIn('getAssignedCuratorUnit',text)
         self.assertIn('pushBackUnique owner _curator',text)
         self.assertIn('CORTEX CONVOY STOPPED',text)
@@ -2711,9 +2712,9 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('moveInCargo',tick)
 
     def test_stalled_convoy_halt_preserves_passengers_and_validates_vehicle(self):
-        tick=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text(encoding='utf-8')
-        halt=(ROOT/'MissionScripts/AiScripting/convoyHaltServer.sqf').read_text(encoding='utf-8')
-        api=(ROOT/'MissionScripts/AiScripting/simpleAiConvoy.sqf').read_text(encoding='utf-8')
+        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        halt=(ROOT/'addons/main/functions/convoyHaltServer.sqf').read_text(encoding='utf-8')
+        api=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         self.assertEqual(tick.count('if (_attempts > 3)'),2)
         self.assertNotIn('doFollow driver _front',tick)
         self.assertIn('_blockedVehicle in (_configuration select 4)',halt)
@@ -2722,7 +2723,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('disableCollisionWith',tick)
 
     def test_convoy_can_acquire_forward_trail_beyond_initial_capture_radius(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoyTick.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
         self.assertIn('if (_nearest < 0)',text)
         self.assertIn('(_delta vectorDotProduct _heading) > _length*0.5',text)
         self.assertIn('_nearest + ([1,0] select _joining)',text)
@@ -2730,7 +2731,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('driver _lead doMove (waypointPosition',text)
 
     def test_convoy_retains_actual_seat_for_crew_and_both_cargo_group_layouts(self):
-        text=(ROOT/'MissionScripts/AiScripting/convoyCrewLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/convoyCrewLocal.sqf').read_text(encoding='utf-8')
         self.assertIn('_assignedOccupant != _unit',text)
         for role in ['assignAsDriver','assignAsCommander','assignAsGunner','assignAsCargoIndex','assignAsTurret']:
             self.assertIn(role,text)
@@ -2743,7 +2744,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('{deleteVehicle _x} forEach _actors',qa)
 
     def test_deceleration_old_owner_cannot_clear_new_worker(self):
-        base=ROOT/'MissionScripts/AiScripting'
+        base=ROOT/'addons/main/functions'
         init=(base/'helicopterDecelerationInit.sqf').read_text(encoding='utf-8')
         self.assertIn('GenerationLocal",0])+1',init)
         self.assertIn('GenerationLocal",0]] spawn Waldo_fnc_HelicopterDecelerationTrackLocal',init)
@@ -2759,7 +2760,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(after_sleep.index('!= _generation'),after_sleep.index('private _speed'))
 
     def test_air_attack_reads_driver_weapons_outside_turret_inventory(self):
-        text=(ROOT/'MissionScripts/AiScripting/Cortex/cortexAirAttackPlan.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/Cortex/cortexAirAttackPlan.sqf').read_text(encoding='utf-8')
         self.assertIn('(weapons _aircraft)+(_aircraft weaponsTurret [-1])',text)
         self.assertIn('_driverWeapons arrayIntersect _driverWeapons',text)
         self.assertIn('private _loadedMagazines=magazinesAllTurrets _aircraft',text)
@@ -2772,7 +2773,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_airGroup createUnit',qa)
 
     def test_deceleration_releases_changed_order_before_impulse(self):
-        text=(ROOT/'MissionScripts/AiScripting/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         for marker in ['waypointPosition _wp','waypointType _wp','waypointScript _wp','waypointSpeed _wp',
                        'currentPilot _aircraft == _entryPilot','Waldo_AI_ExternalControl','ORDER_CHANGED']:
             self.assertIn(marker,text)
@@ -2780,7 +2781,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('&& {call _ownsOrder}'),text.index('_aircraft addForce'))
 
     def test_deceleration_impulse_uses_elapsed_simulation_time(self):
-        text=(ROOT/'MissionScripts/AiScripting/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/main/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         self.assertIn('time - _lastImpulseTime',text)
         self.assertIn('min 0.1',text)
         self.assertIn('min ((_climbRate - _maximumClimbRate) max 0)',text)
@@ -2791,7 +2792,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('private _startSpeed=abs speed'), text.index('_wp setWaypointPosition'))
         self.assertLess(text.index('_id+": braking"'), text.index('private _startSpeed=abs speed'))
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal']:
-            code=(ROOT/'MissionScripts/AiScripting'/f'{name}.sqf').read_text(encoding='utf-8')
+            code=(ROOT/'addons/main/functions'/f'{name}.sqf').read_text(encoding='utf-8')
             self.assertIn('Waldo_HelicopterDeceleration_IncludeVTOL',code)
 
     def test_deceleration_exclusion_uses_a_live_braking_envelope(self):
@@ -2917,7 +2918,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_manoeuvre_transitions_are_public_bounded_and_audited(self):
         helper=source('cortexDrillSetStage')
-        functions=(ROOT/'functions.hpp').read_text(encoding='utf-8')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text(encoding='utf-8')
         self.assertIn('class CortexDrillSetStage',functions)
         for marker in ['Waldo_Cortex_DrillTransition','Waldo_Cortex_DrillTransitions',
@@ -3408,7 +3409,7 @@ class CortexOperations(unittest.TestCase):
         for name in ['featureRuntimeApply','featureRuntimeRequestState']:
             transport=(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{name}.sqf').read_text()
             self.assertIn('Waldo_Cortex_AirAttack_Enable',transport)
-        diagnostics=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text()
+        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
         for requirement in ['adaptiveAirAttacks','activeAirAttacks','cortex-air-attack-',
                             'lastCountermeasureRequest','actualShots','observedAA']:
             self.assertIn(requirement,diagnostics)
@@ -3447,7 +3448,7 @@ class CortexOperations(unittest.TestCase):
     def test_cortex_air_leases_exclude_other_flight_controllers(self):
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal']:
-            path = ROOT / 'MissionScripts' / 'AiScripting' / (name + '.sqf')
+            path = ROOT / 'addons' / 'main' / 'functions' / (name + '.sqf')
             text=path.read_text(encoding='utf-8')
             self.assertIn('Waldo_Cortex_AirAttackToken',text,name)
             self.assertIn('Waldo_Cortex_MissileDefenceActive',text,name)
@@ -3455,7 +3456,7 @@ class CortexOperations(unittest.TestCase):
     def test_direct_zeus_aircraft_orders_exclude_auxiliary_flight_controllers(self):
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal','improvedHelicopterLandingExecuteLocal']:
-            path = ROOT / 'MissionScripts' / 'AiScripting' / (name + '.sqf')
+            path = ROOT / 'addons' / 'main' / 'functions' / (name + '.sqf')
             self.assertIn('Waldo_fnc_CortexZeusHeld', path.read_text(encoding='utf-8'), name)
 
     def test_attack_run_flare_jobs_are_not_queued_for_ineligible_aircraft(self):
@@ -3538,7 +3539,7 @@ class CortexOperations(unittest.TestCase):
         guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
         for item in ['Waldo_Cortex_AirAttackPlan','actual shots','observed AA','CountermeasureLastRequest']:
             self.assertIn(item,guide)
-        diagnostic=(ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text()
+        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('cortex-air-attack-snapshot-limits',diagnostic)
 
     def test_onboard_reports_are_expiring_owner_validated_cargo_only(self):

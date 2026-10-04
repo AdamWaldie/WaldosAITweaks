@@ -1,10 +1,10 @@
 # WMP Cortex
 
-Cortex functions use `Waldo_fnc_Cortex...`; their implementation is in `MissionScripts/AiScripting/Cortex/`. Older `Waldo_fnc_AIPass...` names remain compatibility aliases to the same implementation. Existing `Waldo_AIPass_...` configuration and state keys are retained for mission compatibility.
+Cortex functions use `Waldo_fnc_Cortex...`; their implementation is in `addons/main/functions/Cortex/`. Older `Waldo_fnc_AIPass...` names remain compatibility aliases to the same implementation. Existing `Waldo_AIPass_...` configuration and state keys are retained for mission compatibility.
 
 > **Use this page when:** you want non-player AI squads to fight, move and support each other more sensibly without adding an AI mod.
 
-_Associated Files: `MissionConfig/aiConfig.sqf`; `MissionScripts/AiScripting/Cortex/` (scheduler, eligibility, Zeus priority, group tick, profiles and every behaviour); `MissionScripts/ZenModules/RuntimeControl/featureRuntimeZen.sqf` (settings and purpose-based order dialogs); `initPlayerLocal.sqf` (Zeus watcher)_
+_Associated Files: `addons/main/settings/aiConfig.sqf`; `addons/main/functions/Cortex/` (scheduler, eligibility, Zeus priority, group tick, profiles and every behaviour); `MissionScripts/ZenModules/RuntimeControl/featureRuntimeZen.sqf` (settings and purpose-based order dialogs); `initPlayerLocal.sqf` (Zeus watcher)_
 
 The Smart AI Pass improves how AI squads behave. [Waldo's AI Tuning](Waldos-AI-Tweak) changes how
 well they shoot and spot; this pass changes what they do. It covers every non-player AI group,
@@ -36,7 +36,7 @@ cannot refuse or cancel the order.
 
 ## Enable the pass
 
-1. Open `MissionConfig\aiConfig.sqf`.
+1. Open `addons\main\settings\aiConfig.sqf`.
 2. Cortex is enabled by default. Set `Waldo_AIPass_Enable` to `false` to disable it.
 3. Look at the behaviour switches (`Waldo_AIPass_<Behaviour>_Enable`). The combat behaviours are on
    by default. Artillery, counter-battery, airborne insertion, surrender, grenade evasion and

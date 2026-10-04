@@ -3,13 +3,13 @@ from pathlib import Path
 import re
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / 'MissionScripts/AiScripting/Cortex'
+BASE = ROOT / 'addons/main/functions/Cortex'
 def src(name):
     return re.sub(r'^/\*.*?\*/\s*', '', (BASE / (name+'.sqf')).read_text(encoding='utf-8-sig'), flags=re.S)
 class AIModularityContracts(unittest.TestCase):
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_child_switches_are_configured_validated_and_replayed(self):
-        config = (ROOT/'MissionConfig/aiConfig.sqf').read_text(encoding='utf-8')
+        config = (ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         spec = src('cortexTuningSpec')
         names = ['VehicleDismount','VehicleRemount','VehicleWithdraw','CoverValidation','Hearing']
         names = ['Waldo_AIPass_'+n+'_Enable' for n in names] + ['Waldo_Convoy_'+n+'_Enable' for n in ['MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']]
@@ -103,7 +103,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertNotIn('doMove',drive)
         self.assertNotIn('forceSpeed',drive)
     def test_convoy_checks_each_crew_and_passenger_group(self):
-        text = (ROOT/'MissionScripts/AiScripting/convoyCrewLocal.sqf').read_text(encoding='utf-8')
+        text = (ROOT/'addons/main/functions/convoyCrewLocal.sqf').read_text(encoding='utf-8')
         for feature in ['MountedFire','Unload','Cover']:
             self.assertIn('[group _unit,"Waldo_Convoy_'+feature+'_Enable",true]',text)
         for contract in ['fullCrew','_seats set','_unit doTarget _enemy','Waldo_fnc_CortexPassengerReady']:
@@ -125,7 +125,7 @@ class AIModularityContracts(unittest.TestCase):
                          'lambs_danger_isExecutingTactic','lambs_danger_forceMove','lambs_main_currentTactic','Waldo_Cortex_LambsBusyRefusals']:
             self.assertIn(contract,lease)
         self.assertLess(lease.index('lambs_danger_isExecutingTactic'),lease.index('setVariable ["lambs_danger_disableGroupAI", true'))
-        self.assertIn('CortexLambsLease',(ROOT/'functions.hpp').read_text(encoding='utf-8'))
+        self.assertIn('CortexLambsLease',(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8'))
         apply = src('cortexSupportApply')
         maintain = src('cortexSupportMaintain')
         self.assertIn('[_group,"SUPPORT",true,_expiry] call Waldo_fnc_CortexLambsLease',apply)
@@ -140,7 +140,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('Waldo_AIPass_LambsBaseline',src('cortexReleaseGroup'))
     def test_lambs_config_companions_are_detected_but_never_disabled(self):
         init = src('cortexInit')
-        diagnostics = (ROOT/'MissionScripts/AiScripting/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostics = (ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         lease = src('cortexLambsLease')
         for patch in ['lambs_turrets','lambs_suppression','lambs_rpg']:
             self.assertIn(patch,init)
