@@ -24,6 +24,11 @@ if !(_config isEqualType createHashMap) exitWith {
     };
 } forEach (_config getOrDefault ["shared", []]);
 
+// CBA Settings owns persisted mission/server configuration. Existing variable names remain the
+// public scripting API because CBA deliberately stores each setting in missionNamespace.
+[] call Waldo_fnc_AITweaksRegisterSettings;
+[] call Waldo_fnc_AITweaksDetectCompatibility;
+
 // Owner-local startup is allowed only after this machine has loaded every guarded default.
 missionNamespace setVariable ["Waldo_AITweaks_SettingsReady", true];
 

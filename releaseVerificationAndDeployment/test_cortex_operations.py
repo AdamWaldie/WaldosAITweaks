@@ -28,13 +28,13 @@ class CortexOperations(unittest.TestCase):
     def test_cortex_control_distinguishes_master_gates_from_feature_switches(self):
         spec=source('cortexTuningSpec')
         for label in [
-            'Apply WMP skill profiles',
+            'Apply WAIT skill profiles',
             'Enable Cortex automatic tactics',
             'Enable Cortex vehicle tactics',
             'Enable spotter artillery support',
             'Proactive attack-run countermeasures',
             'Missile-threat countermeasures',
-            'Selected WMP skill profile',
+            'Selected WAIT skill profile',
         ]:
             self.assertIn(label,spec)
         self.assertIn('_name find "AttackRunFlares" >= 0',spec)
@@ -1686,12 +1686,12 @@ class CortexOperations(unittest.TestCase):
 
     def test_alternativeBackend_and_danger_receive_finite_exact_state_movement_leases(self):
         lease=source('cortexOwnershipLease')
-        init=source('cortexInit')
+        compat=(ROOT/'addons/main/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         for text in ['Waldo_AIPass_AlternativeBackendLoaded','Waldo_Cortex_AlternativeLease','Vcm_Disable',
                      'VCM_MOVE2SUP','VCM_MBUSY','Waldo_Cortex_OwnershipLease']:
             self.assertIn(text,lease)
         self.assertIn('_group setVariable ["Vcm_Disable",_baselineVcom,true]',lease)
-        self.assertIn('isClass (configFile >> "CfgPatches" >> "VCOM_AI")',init)
+        self.assertIn('"VCOM_AI" call _patch',compat)
         self.assertNotIn('VCM_NOFLANK',lease)
         self.assertNotIn('VCM_DisableForm',lease)
         self.assertNotIn('VCM_Skilldisable',lease)
@@ -1763,7 +1763,7 @@ class CortexOperations(unittest.TestCase):
         start=source('cortexSupportBoundStart')
         self.assertIn('["teams",[_first,_second]]',start)
         self.assertIn('["SUPPORT_BOUND","FINAL"] select _final',start)
-        self.assertIn('Waldo_fnc_CortexFlankStep',start)
+        self.assertIn('Waldo_fnc_CortexDrillStart',start)
         self.assertIn('"supportHeld"',source('cortexCheckpoint'))
         for name in ['cortexRetreat','cortexRestoreCalm']:
             self.assertIn('"supportHeld"',source(name))
@@ -2194,6 +2194,25 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Waldo_AIPass_ResumeGraceUntil',tick)
         self.assertIn('Waldo_AIPass_ResumeGraceUntil',scheduler)
         self.assertIn('SCHEDULER_STALLED',end)
+
+    def test_finite_tactical_drills_use_one_owner_local_fsm(self):
+        launcher=source('cortexDrillStart')
+        self.assertIn('!local _group',launcher)
+        self.assertIn('execFSM "\\z\\waldo_ai_tweaks\\addons\\main\\fsm\\tacticalDrill.fsm"',launcher)
+        self.assertIn('completedFSM _existingHandle',launcher)
+        self.assertIn('Waldo_Cortex_DrillFSM',launcher)
+        self.assertIn('call Waldo_fnc_CortexQueueJob',launcher)
+        for name in ['cortexFlankStart','cortexAdvanceStart','cortexSupportBoundStart']:
+            start=source(name)
+            self.assertIn('call Waldo_fnc_CortexDrillStart',start)
+            self.assertNotIn('Waldo_fnc_CortexFlankStep,',start)
+        fsm=(ROOT/'addons/main/fsm/tacticalDrill.fsm').read_text(encoding='utf-8')
+        self.assertIn('fsmName = "WAIT finite tactical drill"',fsm)
+        self.assertIn('call Waldo_fnc_CortexFlankStep',fsm)
+        self.assertIn('!local _group',fsm)
+        self.assertIn('_thisFSM',fsm)
+        self.assertNotIn('allGroups',fsm)
+        self.assertNotIn('allUnits',fsm)
 
     def test_calm_requester_fully_releases_responder_reservation(self):
         tick=source('cortexGroupTick')
@@ -2823,7 +2842,7 @@ class CortexOperations(unittest.TestCase):
         for name in ['cortexFlankStart','cortexAdvanceStart']:
             code=source(name)
             self.assertIn('["token",_token]',code)
-            self.assertIn('["drillToken",_token]',code)
+            self.assertIn('[_group,_token] call Waldo_fnc_CortexDrillStart',code)
             self.assertIn('Waldo_Cortex_DrillSerial',code)
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
         self.assertIn('-stale-step-no-mutation',qa)
@@ -3630,10 +3649,10 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexNavalRelease')
         tick=source('cortexGroupTick')
         vehicles=source('cortexVehicles')
-        init=source('cortexInit')
+        compat=(ROOT/'addons/main/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         for marker in ['Waldo_AIPass_NavalAssault_Enable','PROTOCOL_AI_NAVY_SEAL',
                        'Waldo_AIPass_NavalBackendLoaded']:
-            self.assertIn(marker,init + naval)
+            self.assertIn(marker,compat + naval)
         self.assertIn('Waldo_Cortex_NavalOperation',naval)
         self.assertIn('Waldo_Cortex_NavalOperation',source('cortexLocality'))
         for marker in ['surfaceIsWater _landing','surfaceIsWater _approach',

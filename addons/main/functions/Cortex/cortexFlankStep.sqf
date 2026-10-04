@@ -97,10 +97,10 @@
  * Number - seconds until the next step, or -1 when the drill ended
  *
  * Example:
- * [Waldo_fnc_CortexFlankStep, createHashMapFromArray [["group", _group],["drillToken",_drill get "token"]], 0] call Waldo_fnc_CortexQueueJob;
+ * [createHashMapFromArray [["group", _group],["drillToken",_drill get "token"]]] call Waldo_fnc_CortexFlankStep;
  * Result: the element moves one stage further.
  *
- * Current callers: Waldo_fnc_CortexFlankStart and Waldo_fnc_CortexAdvanceStart.
+ * Current caller: the finite tacticalDrill FSM launched by Waldo_fnc_CortexDrillStart.
  */
 
 params [["_job", createHashMap, [createHashMap]]];

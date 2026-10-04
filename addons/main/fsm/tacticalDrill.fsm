@@ -1,0 +1,99 @@
+class FSM
+{
+    fsmName = "WAIT finite tactical drill";
+    class States
+    {
+        class Init
+        {
+            name = "Init";
+            init = "_group = _this param [0,grpNull,[grpNull]]; _token = _this param [1,\"\",[\"\"]]; _job = createHashMapFromArray [[\"group\",_group],[\"drillToken\",_token]]; _delay = -1; _nextStep = time; _finished = false;";
+            precondition = "";
+            class Links
+            {
+                class Invalid
+                {
+                    priority = 2.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "isNull _group || {_token == \"\"} || {!local _group}";
+                    action = "_finished = true;";
+                };
+                class Start
+                {
+                    priority = 0.000000;
+                    to = "Step";
+                    precondition = "";
+                    condition = "true";
+                    action = "";
+                };
+            };
+        };
+        class Step
+        {
+            name = "Step";
+            init = "_delay = [_job] call Waldo_fnc_CortexFlankStep; _finished = !(_delay isEqualType 0) || {_delay < 0}; if (!_finished) then {_nextStep = time + _delay};";
+            precondition = "";
+            class Links
+            {
+                class Complete
+                {
+                    priority = 2.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "_finished";
+                    action = "";
+                };
+                class Wait
+                {
+                    priority = 0.000000;
+                    to = "Waiting";
+                    precondition = "";
+                    condition = "true";
+                    action = "";
+                };
+            };
+        };
+        class Waiting
+        {
+            name = "Waiting";
+            init = "";
+            precondition = "";
+            class Links
+            {
+                class OwnershipLost
+                {
+                    priority = 3.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "isNull _group || {!local _group}";
+                    action = "_finished = true;";
+                };
+                class TokenChanged
+                {
+                    priority = 2.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "private _state = _group getVariable [\"Waldo_AIPass_State\",createHashMap]; private _drill = _state getOrDefault [\"drill\",createHashMap]; count _drill == 0 || {(_drill getOrDefault [\"token\",\"\"]) != _token}";
+                    action = "_finished = true;";
+                };
+                class Due
+                {
+                    priority = 0.000000;
+                    to = "Step";
+                    precondition = "";
+                    condition = "time >= _nextStep";
+                    action = "";
+                };
+            };
+        };
+        class Finished
+        {
+            name = "Finished";
+            init = "if (!isNull _group) then {private _record = _group getVariable [\"Waldo_Cortex_DrillFSM\",[]]; if (count _record == 2 && {(_record select 0) == _token} && {(_record select 1) == _thisFSM}) then {_group setVariable [\"Waldo_Cortex_DrillFSM\",nil]}};";
+            precondition = "";
+            class Links {};
+        };
+    };
+    initState = "Init";
+    finalStates[] = {"Finished"};
+};

@@ -44,7 +44,8 @@ if (!_dangerLoaded && {!_alternativeBackendLoaded}) exitWith {true};
 private _lease = _group getVariable ["Waldo_Cortex_OwnershipLease", []];
 private _alternativeBackendLease=_group getVariable ["Waldo_Cortex_AlternativeLease",[]];
 private _blanket = _group getVariable ["Waldo_AIPass_DangerBackendDisabledByPass", false];
-private _wmpMode = toUpperANSI (missionNamespace getVariable ["Waldo_AIPass_InfantryOwnership", "SPLIT"]) == "WMP";
+private _mode = toUpperANSI (missionNamespace getVariable ["Waldo_AIPass_InfantryOwnership", "SPLIT"]);
+private _wmpMode = _mode in ["WAIT", "WMP"]; // WMP remains a legacy saved-settings value.
 
 if (_acquire) exitWith {
     if (_owner == "") exitWith {false};
