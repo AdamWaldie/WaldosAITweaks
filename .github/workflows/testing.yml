@@ -1,0 +1,28 @@
+name: Validate and package WAIT
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: arma-actions/hemtt@v1
+        with:
+          version: v1.22.0
+      - run: python -m unittest discover -s releaseVerificationAndDeployment -p 'test_*.py'
+      - run: python releaseVerificationAndDeployment/sqf_validator.py
+      - run: python releaseVerificationAndDeployment/check_cortex_coverage.py
+      - run: hemtt build --no-bin
+      - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
+      - run: python releaseVerificationAndDeployment/mod_pipeline.py seal .hemttout/build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WAIT-packaged-build
+          path: .hemttout/build/
+          include-hidden-files: true
