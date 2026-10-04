@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: A new garrison releases prior assignments; published positions support adoption by a new owner, including a joining HC.
  * Orders an AI group to garrison the buildings around a point.
  *
  * Uses height-sorted, roofed positions and outward watch sectors. PATH locks only after arrival.

@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Each call requests a new shot; callers own cooldowns. No persistent handler or JIP replay.
  * Fires a vehicle's countermeasure launcher: smoke on ground vehicles, flares on aircraft.
  *
  * Vanilla and most mod smoke launchers and flare launchers use the "cmlauncher" weapon simulation,

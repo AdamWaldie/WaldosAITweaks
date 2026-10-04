@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Repeated configuration replaces the current authoritative snapshot; broadcast settings are available to joining owners.
  * Validates and broadcasts live improved-helicopter-landing settings. Remote changes require an
  * assigned curator. Connected machines receive one ordered payload before the event-driven handler
  * is initialised; the server's durable values are included in the normal JIP runtime snapshot.

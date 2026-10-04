@@ -13,6 +13,14 @@ try {
         if ($LASTEXITCODE) { throw 'Static regression checks failed' }
         & $Python releaseVerificationAndDeployment/sqf_validator.py
         if ($LASTEXITCODE) { throw 'SQF validation failed' }
+        & $Python releaseVerificationAndDeployment/config_style_checker.py
+        if ($LASTEXITCODE) { throw 'config_style_checker.py failed' }
+        & $Python releaseVerificationAndDeployment/documentation_contract_checker.py
+        if ($LASTEXITCODE) { throw 'documentation_contract_checker.py failed' }
+        & $Python releaseVerificationAndDeployment/zeus_script_parity_checker.py
+        if ($LASTEXITCODE) { throw 'zeus_script_parity_checker.py failed' }
+        & $Python releaseVerificationAndDeployment/performance_audit.py
+        if ($LASTEXITCODE) { throw 'performance_audit.py failed' }
         & $Python releaseVerificationAndDeployment/check_cortex_coverage.py
         if ($LASTEXITCODE) { throw 'Feature coverage checks failed' }
     }
