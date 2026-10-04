@@ -22,7 +22,23 @@ private _compat = createHashMapFromArray [
     ["webKnight", !isNil "WBK_LoadAIThroughEden" || {!isNil "WBK_Droid_B1_Load"}],
     ["civilianBackend", !isNil "WBK_CivilianFlee"],
     ["drivingBackend", "HBQ_AdvancedDrivingAI" call _patch],
-    ["navalBackend", "PROTOCOL_AI_NAVY_SEAL" call _patch]
+    ["navalBackend", "PROTOCOL_AI_NAVY_SEAL" call _patch],
+    ["suppressionBackend", "PinnedDown" call _patch],
+    ["surrenderBackend", "mky_surrender_sameas_spe" call _patch],
+    ["medicalBackend", "PD_MedicalSolution" call _patch],
+    ["supportBackend", "pinneddown_arty" call _patch],
+    ["coverBackend", "PD_Cover_And_Concealment" call _patch],
+    ["transportBackend", "PD_Tracks_And_Boots" call _patch],
+    ["awarenessBackend", "PD_CombatAwareness" call _patch],
+    ["coordinationBackend", "PD_Conductor" call _patch],
+    ["smartAircraft", "SAAI_main" call _patch],
+    ["smartCombat", "SmartCombatAI" call _patch],
+    ["smartMerge", "smai_main" call _patch],
+    ["helicopterDeceleration", "AHDNC_main" call _patch],
+    ["bhlLanding", "BHL_AI" call _patch],
+    ["digii", "digii_ai_main" call _patch],
+    ["aiCuller", "aic_main" call _patch],
+    ["scorpions", "saai_core" call _patch]
 ];
 missionNamespace setVariable ["Waldo_AITweaks_Compatibility", _compat];
 

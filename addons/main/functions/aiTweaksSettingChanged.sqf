@@ -18,6 +18,12 @@ if !(missionNamespace getVariable ["Waldo_AITweaks_PostInitComplete", false]) ex
 if (_name == "Waldo_AIPass_Enable") then {
     if (_value) then {[] call Waldo_fnc_CortexInit} else {[] call Waldo_fnc_CortexStop};
 };
+// These optional handlers must follow CBA changes immediately, including disable/re-enable.
+// Reuse the guarded owner-local installer; ordinary tuning values remain live reads.
+if (_name in ["Waldo_AIPass_GrenadeEvasion_Enable", "Waldo_AIPass_CivilianReaction_Enable"]
+    && {missionNamespace getVariable ["Waldo_AIPass_Active", false]}) then {
+    [] call Waldo_fnc_CortexInit;
+};
 if (_name find "Waldo_AIRebalance_" == 0 || {_name in ["Waldo_AI_InfantryDispersion", "Waldo_AI_VehicleCrewAimMultiplier", "Waldo_AI_VehicleCrewDispersion", "Waldo_AI_AirCrewDispersion"]}) then {
     if (missionNamespace getVariable ["Waldo_AIRebalance_Enable", true]) then {
         [
