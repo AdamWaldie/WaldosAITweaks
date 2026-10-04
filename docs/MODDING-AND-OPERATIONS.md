@@ -1,6 +1,8 @@
 # Mod build, testing and architecture
 
-WAIT requires Arma 3 2.18+, CBA and ZEN. ACE, COMPAT, external controller and specialist unit mods remain optional.
+WAIT requires Arma 3 2.18+, CBA, ZEN and COMPAT Danger with its Waypoints component. ACE,
+COMPAT companion addons, external controller and specialist unit mods remain optional. COMPAT is installed separately;
+WAIT does not redistribute its source or replace its danger FSM.
 The production addon is `addons/main`, with the virtual path `z\waldo_ai_tweaks\addons\main`.
 Missions load the packaged mod. CBA XEH runs initialization and CBA Settings exposes the existing
 feature names. Dynamic AA/AO and WMP mission systems remain outside this repository.

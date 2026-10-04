@@ -16,10 +16,14 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - the standalone settings request uses a CBA server event and validates the requesting curator;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. CBA_A3 and ZEN are hard runtime
-dependencies. ACE, COMPAT, external controller AI, external controller systems, external controller and supported external controller packages are
-detected only when present.
+Run `hemtt build` from the repository root to create the mod package. CBA_A3, ZEN and COMPAT Danger
+(including its Waypoints component) are hard runtime dependencies. COMPAT supplies the infantry
+danger FSM and building-task foundation; WAIT adds finite tactical operations around that base.
+Optional combat, civilian and vehicle controllers retain explicit ownership of their active tasks.
+Dependency code is installed separately and is not bundled or modified in this package.
 
+See [addon lifecycle and feature integration](docs/ADDON-LIFECYCLE.md) for how existing WAIT
+improvements fit the mod runtime.
 ## Product boundary
 
 This repository owns AI behaviour:
