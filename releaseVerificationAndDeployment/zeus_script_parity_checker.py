@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check WAIT's shared CBA/Zeus/script settings and generated reference."""
+"""Check WAIT's shared CBA/script settings and generated reference."""
 import argparse
 import json
 from pathlib import Path
@@ -24,7 +24,7 @@ def settings(root=ROOT):
 def render(rows):
     text = '# Settings reference\n\n'
     text += ('Generated from `CortexTuningSpec`; edit that source and regenerate this page. '
-             'These global options are available through CBA Addon Options and the Zeus tuning control. '
+             'These global options are available through CBA Addon Options. '
              'CBA owns persistence and JIP synchronization. The variable keys remain the script API. '
              'Custom tactical and skill profiles extend the listed built-in choices at runtime. Server validation clamps slider input and rejects unsupported selections.\n\n'
              'Defaults describe configuration, not confirmed behavioural acceptance. See '
@@ -48,7 +48,7 @@ def audit(root=ROOT):
         if kind=='SLIDER': valid=len(options)==3 and options[0]<=default<=options[1]
         if kind=='COMBO': valid=len(options)==2 and len(options[0])==len(options[1]) and default in options[0]
         if not valid: problems.append('invalid setting type/options/default: '+key)
-    for name in ['aiTweaksRegisterSettings.sqf','cortexControlOpenLocal.sqf','cortexTuning.sqf']:
+    for name in ['aiTweaksRegisterSettings.sqf','cortexTuning.sqf']:
         if 'call WAIT_fnc_CortexTuningSpec' not in next((root/'addons').rglob(name)).read_text():
             problems.append('settings consumer bypasses shared specification: '+name)
     config=(root/'addons/main/CfgFunctions.hpp').read_text()
@@ -70,5 +70,5 @@ if __name__=='__main__':
     args=parser.parse_args()
     if args.write_reference: (ROOT/REFERENCE).write_text(render(settings()),encoding='utf-8')
     problems=audit()
-    print('\n'.join(problems) if problems else f'CBA/Zeus/script parity and {len(settings())} documented settings passed')
+    print('\n'.join(problems) if problems else f'CBA/script parity and {len(settings())} documented settings passed')
     sys.exit(bool(problems))

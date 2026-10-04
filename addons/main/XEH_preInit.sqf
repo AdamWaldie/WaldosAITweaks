@@ -32,11 +32,6 @@ if !(_config isEqualType createHashMap) exitWith {
 // Owner-local startup is allowed only after this machine has loaded every guarded default.
 missionNamespace setVariable ["WAIT_AITweaks_SettingsReady", true];
 
-if (isServer) then {
-    ["WAIT_AITweaks_SettingsRequest", {
-        _this call WAIT_fnc_AITweaksSettingsRequestServer;
-    }] call CBA_fnc_addEventHandler;
-};
 ["WAIT_AITweaks_LandingReconfigure", {
     [] call WAIT_fnc_ImprovedHelicopterLandingInit;
 }] call CBA_fnc_addEventHandler;

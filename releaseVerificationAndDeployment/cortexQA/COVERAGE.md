@@ -9,7 +9,7 @@ Feature cases: **63**. Required variant categories: **14**.
 | --- | ---: | ---: | ---: | --- | ---: | --- |
 | TERRAIN - Cross-cutting uneven-terrain movement and air attack | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | TERRAIN-BATTLE - Equal-force live battle on measured terrain | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
-| CORE - Master, exclusions and ownership | 3 | 1 | 29 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
+| CORE - Master, exclusions and ownership | 3 | 1 | 28 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
 | COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 3 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
 | SCHED - Scheduler and distance tiers | 11 | 0 | 4 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
 | PROFILE - Behaviour profiles and aggression | 4 | 1 | 1 | `runProfiles.sqf` | 1 | implemented_partial |
@@ -57,7 +57,7 @@ Feature cases: **63**. Required variant categories: **14**.
 | BREAK - Aircraft evasive break | 1 | 0 | 0 | `runAircraft.sqf` | 2 | implemented_partial |
 | DEFEND - Defence orders | 0 | 0 | 4 | `runServer.sqf` | 0 | implemented_partial |
 | CLEAR - Building clearance | 0 | 0 | 3 | `runBuildingComparison.sqf` | 1 | implemented_partial |
-| UI - Cortex UI and purpose modules | 0 | 0 | 3 | `runClient.sqf` | 0 | implemented_partial |
+| UI - CBA configuration and diagnostics | 0 | 0 | 1 | `runClient.sqf` | 0 | implemented_partial |
 | LIFECYCLE - Transfer, disconnect and JIP | 0 | 0 | 10 | `runLifecycle.sqf` | 6 | implemented_partial |
 | MULTI-FLANK - Multi-squad flank cohesion | 0 | 0 | 0 | `runMultiManoeuvre.sqf` | 1 | implemented_partial |
 | MULTI-BOUND - Squad and multi-squad bounding overwatch | 0 | 0 | 0 | `runMultiManoeuvre.sqf` | 1 | implemented_partial |
@@ -390,11 +390,11 @@ Feature cases: **63**. Required variant categories: **14**.
 
 **Automation and open work:** runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance and ordinary-waypoint physical handover. Live enemies, terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.
 
-### UI - Cortex UI and purpose modules
+### UI - CBA configuration and diagnostics
 
-**Expected:** Selected objects/settings match server results; explanatory gates, draft retention, cancellation and state replay are correct.
+**Expected:** Every option is registered once with the correct type and a valid effective value. Server enforcement, persistence and JIP require separate multiplayer acceptance.
 
-**Automation and open work:** runClient.sqf UI-*; functional pass; mouse and layout acceptance pending
+**Automation and open work:** runClient.sqf UI-* checks CBA registration and effective-state validity; interactive Addon Options, persistence and JIP acceptance pending
 
 ### LIFECYCLE - Transfer, disconnect and JIP
 

@@ -1,11 +1,11 @@
 /*
  * Author: WaldoTheWarfighter
- * Returns the standalone Cortex control panel colours without depending on Waldos Mission Pack UI code.
+ * Returns the standalone audit overlay colours without depending on Waldos Mission Pack UI code.
  * Locality / Authority: Read-only and interface-local.
  * Repeat/JIP: Stateless and safe to repeat.
  * Arguments: None.
  * Return Value: HASHMAP with panel, text and muted RGBA colours.
- * Current callers: CortexControlOpenLocal and CortexControlPageLocal.
+ * Current callers: disposable cortexQA/runGuide.sqf.
  * Example: private _theme = [] call WAIT_fnc_AITweaksUiTheme;
  */
 

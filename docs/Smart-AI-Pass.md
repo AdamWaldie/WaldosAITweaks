@@ -395,93 +395,21 @@ The static chute setting, `WALDO_STATIC_STATICCHUTE`, must name a vehicle derive
 This is separate from the player [Paradrop](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Paradrop) feature. AI jumpers from Paradrop itself are
 taken over once they land (see Exclusions).
 
-## With external AI controller
+## External controller ownership
 
-All four external AI controller packages remain optional; Cortex never makes them mission dependencies. They have
-different ownership implications:
+WAIT requires CBA and ZEN. Optional controllers may retain immediate danger, driving, civilian or
+specialist animation ownership. Compatibility detection does not make these additional dependencies.
 
-| Package | Cortex treatment |
-|---|---|
-| [external AI controller]() | Active behaviour controller. Cortex uses the group-level external AI controller switch for explicit movement handover. |
-| [external AI controller]() | Its public garrison and CQB functions are the preferred backend for Cortex building orders whenever installed. |
-| [external AI controller]() | Config-only turret dispersion changes remain active in every mode. WMP retains its vehicle-crew skill multiplier but disables its additional owner-local aim coefficient while this addon is present, avoiding a stacked penalty. |
-| [external AI controller]() | Config-only AI suppression/stress changes remain active in every mode. |
-| [external AI controller]() | Config-only launcher target and dispersion changes remain active in every mode. Cortex still applies its own live ammunition and backblast safety checks before an owned anti-armour shot. |
+Finite movement leases refuse conflicting active tactics. Completion, cancellation, expiry, locality
+migration and Zeus takeover restore exact prior ownership markers, including originally absent
+values. Specialist actors remain excluded while ordinary rifle squads remain eligible. Config-level
+weapon adjustments stay active; WAIT avoids stacking penalties where an external turret policy owns
+that adjustment. Convoys pause competing driving and crew-return work for registered vehicles only.
+Building orders may delegate to an available public task interface with tracked intent and cleanup.
+Naval delivery yields to an existing external owner.
 
-When external AI controller is loaded, `WAIT_AIPass_external AI controllerMode` decides who owns movement:
-
-- `SPLIT` (default, shown as **Shared ownership**): external AI controller keeps what it is good at in contact:
-  - moment-to-moment unit tactics, fire, anti-armour and vehicle handling;
-  - sharing sightings.
-
-  WMP keeps the state ladder, post-contact search, morale, retreat, surrender, reinforcement,
-  artillery and airborne drops. When a responder accepts a Cortex reinforcement rally or coordinated
-  assault, Cortex first checks external AI controller' own queued/running tactic, forced-movement and explicit-waypoint
-  ownership markers. A busy external AI controller group is left alone and the responder request is rejected so another
-  group can be selected. Once external AI controller is clear, a finite public lease sets
-  `external AI controller_disableGroupAI` for that responder only. Completion, rejection, expiry, locality
-  migration, Zeus takeover and Cortex shutdown restore the exact value seen before the lease. The
-  requester's base of fire stays under external AI controller. A group a mission maker has already set to
-  `external AI controller_disableGroupAI` retains that choice after Cortex releases it.
-- `WMP` (shown as **Cortex only**): WMP runs everything and turns external AI controller group AI off for the squads it
-  manages. external AI controller group AI is turned back on when the pass stops or releases the squad. The three
-  config companions are unaffected.
-
-`WAIT_AIPass_external AI controllerMode` controls the Danger FSM ownership described above. It does not disable the
-external AI controller integration. In either mode, an installed external AI controller supplies the primary
-garrison and CQB implementation. Cortex records the semantic building intent and the spawned CQB
-script handle, terminates it before a Zeus or replacement order, removes only task-owned waypoints
-and state, and reconstructs the public task after a headless-client locality change. Per-call
-`useexternal AI controller=false` remains available for an explicit script-only fallback test or mission override.
-
-This handover was checked against the locally installed Workshop build of external AI controller 2.6.2.1. That build
-sets `external AI controller_isExecutingTactic` before scheduling its delayed flank or assault callback, so the
-busy check covers both queued and already-running group tactics without a new polling loop. Its
-Turrets, Suppression and RPG packages are config-only and remain active.
-
-Cortex remains self-contained when external AI controller is absent. Its scheduler, movement leases, manoeuvre roles,
-withdrawal, reinforcement, morale, vehicle, artillery and recovery controllers do not call external AI controller.
-Its native building controller is also retained as the automatic fallback. The implementation adopts
-useful architectural ideas rather than copying external AI controller code: explicit
-ownership, short asynchronous tactical steps, separate move/cover roles, casualty eligibility and a
-clean return to authored orders. Cortex does not claim script-level equivalents for external AI controller config/FSM
-features that SQF cannot reproduce reliably. external AI controller CQB's forced-position recovery is deliberately not
-adopted because Cortex must never teleport a stuck soldier.
-
-Compatibility acceptance requires two fresh full-pack runs of the dedicated `external AI controller` focus: one
-without optional external AI controller mods and one with `-Includeexternal AI controller -HeadlessClients 2`. The first requires physical Cortex movement
-and a sustained hold. The second also requires busy-group refusal, exact lease-baseline restoration
-across a real HC adoption/release, and physical execution of a Zeus replacement order with no old-route resurrection. Static source
-checks alone do not establish that either handover works in Arma.
-
-WMP calls the installed external AI controller public interface; it does not bundle external AI controller source. external AI controller's
-GPLv2 license includes an additional condition which forbids modified or derivative versions from
-being uploaded to Steam Workshop. Keeping the FSM in its own optional mod also avoids a stale fork and
-lets its engine-level Danger FSM continue to receive upstream fixes.
-
-## Other AI mod compatibility
-
-Cortex uses explicit ownership boundaries for the supplied AI and animation mods. Merely loading a
-mod does not disable Cortex for ordinary infantry. The gate applies to the actor or group whose state
-the other system actually owns.
-
-| Package | Cortex treatment |
-|---|---|
-| [external AI controller V3.4.0]() | A finite Cortex movement lease saves external AI controller's exact group `external_controller` value, pauses external AI controller only for the accepted Cortex move, then restores that value on completion, expiry, Zeus takeover, locality handover or shutdown. Cortex refuses a lease while external AI controller support or medic movement is active. It never changes external AI controller skill, formation, flank or rescue settings. |
-| [external melee controller]() | Actors carrying active external AI controller runtime markers or external AI controller animation state are excluded from Cortex movement, stance and combat commands. Loading external AI controller does not exclude ordinary rifle squads. The current implementation was derived from the locally available external AI controller generation and known external AI controller2 runtime markers; an installed external AI controller2 live arm remains required before acceptance. |
-| [external AI controller Zombies and Creatures]() | Zombies and custom-skeleton actors are treated as external AI controller-owned. Cortex does not issue movement, stance, surrender, garrison or combat commands to them. |
-| [external AI controller Droids]() | Droids identified by their runtime state, faction, movement config or external AI controller author metadata remain under their native controller. Ordinary soldiers in the same mission remain eligible. |
-| [external controller Units external AI controller compatibility patch]() | The patch remains authoritative for the relationship between external AI controller actors and external AI controller. Cortex excludes those actors before requesting a external AI controller/external AI controller lease, so it does not undo the patch or re-enable an incompatible FSM. |
-| [external AI controller]() | When its public flee function is present, the addon exclusively owns unarmed civilians and Cortex installs no civilian danger handlers. Without it, the optional WMP fallback supplies a lightweight event-driven flee response with the same master, radius, distance and cooldown controls used by Cortex. |
-| [external AI controller Advanced Driving AI]() | The locally installed 1.0.0 PBO was inspected. While WMP owns a convoy, it preserves and temporarily sets external AI controller's public `external AI controllerAD_Pause` and `external AI controllerAD_PreventDisembark` variables so external AI controller cannot issue competing steering, unstuck or crew-return actions. Final release restores both exact prior values, including an originally absent variable. external AI controller remains authoritative for every vehicle outside a WMP convoy. WMP does not reproduce external AI controller's teleport, repair, unflip, collision-damage suppression or forced navigable-area path. Its route-memory idea informed a smaller WMP watchdog which may only re-select the same unchanged final MOVE waypoint after premature completion; it never creates a route or bypasses an obstruction. |
-| [external AI controller]() | The locally installed PBO was inspected. Its single runtime file starts two overlapping global loops which scan every group once per second, acquire any boat group near an enemy, repeatedly force dismount/movement and overwrite formation and combat state without Zeus, locality or release arbitration. When that patch is loaded, WMP yields naval control completely. Without it, the gated WMP naval landing adopts the useful high-level ideas through the existing Cortex group job: one bounded shore comparison, one finite native approach, separate crew/passenger ownership, dry-ground egress and casualty-tolerant continuation. No source, global scan, teleport, forced formation or endless controller was copied. Static acceptance is implemented; dependency-loaded and multi-owner physical acceptance remains queued. |
-
-The compatibility gate is read-only: WMP does not clear external variables, terminate external
-scripts, replace custom animations or imitate an externally owned actor. WMP Diagnostics reports
-which integrations are loaded, finite external AI controller leases, external AI controller convoy handover, externally owned actors and active WMP civilian
-responses. Source inspection and static tests establish the ownership contract; dependency-loaded
-dedicated-server, headless-client, JIP and Zeus interruption runs remain required for behavioural
-acceptance.
+Acceptance requires standalone and dependency-loaded physical runs, busy-group refusal, baseline
+restoration, owner migration and replacement orders. Detection alone does not certify compatibility.
 
 ## Which AI are affected
 
@@ -523,32 +451,21 @@ Difficulty settings are listed under [Difficulty and tuning](#difficulty-and-tun
 |---|---|---|
 | `WAIT_AIPass_Enable` | `true` | Master switch. `false` means no pass code runs anywhere. |
 | `WAIT_AIPass_IncludedSides` | `["WEST", "EAST", "GUER"]` | Sides the pass may command. |
-| `WAIT_AIPass_external AI controllerMode` | `"SPLIT"` | Only matters with external AI controller loaded (see above). |
 | `WAIT_AIPass_FactionProfiles` | empty | Per-faction behaviour profile, for example OPF_F to ELITE. |
 | `WAIT_AIPass_TickBudgetMs` | `1` | Milliseconds of work allowed per scheduler tick. |
 | `WAIT_AIPass_Debug` | `false` | Extra RPT lines for contact, flanks, morale and retreats. |
 
-## Zeus control
+## Configuration and targeted orders
 
-- **Cortex Control** combines switches and values on eight purpose pages: General and profiles; Contact and investigation; Movement and cover; Reports and reinforcement; Morale and survivors; Vehicles and convoys; Artillery and counter-battery; Airborne and aircraft. Each page opens on current values and submits named settings. The server validates them and sends one complete revision before changing local workers. Older revisions cannot roll back a later update.
-- **Garrison Buildings** selects a nearby group and building-search radius.
-- **Defend Position** selects a nearby group, line width and facing.
-- **Clear Building** requires an explicitly selected building and a nearby group.
-- **Parachute Passengers** selects the passenger group; an AI-flown aircraft must be at least 120 m over land.
-- **Manage Group Control** releases a WMP garrison/defence/clear order, excludes a group for Zeus, or returns it to the pass. It does not remove separate per-feature exclusions or another controller's ownership flag.
+Use **Options > Addon Options > Waldos AI Tweaks** for global feature gates, profiles and tuning.
+CBA provides mission/server enforcement, persistence and JIP. The shared specification also feeds
+validated script updates; there is no separate ZEN settings panel or configuration store.
 
-Purpose modules list nearby groups, with the explicitly selected unit's group first. They show only the fields relevant to that purpose. All are under **WMP Cortex**.
-
-- **Assign Artillery Spotter**: select an existing AI soldier, then assign or remove its spotter role. No automatic equipment or spawns.
-- **Configure Artillery Battery**: select the exact artillery vehicle or mortar, including an empty gun, then choose support, counter-battery or both.
-- **Configure Counter-battery Radar**: select an existing vehicle or prop, choose the supported side and register/update or remove it. Object faction and supported side are independent.
-- **Create Convoy**: select a crewed AI land vehicle, then configure or stop its convoy.
-
-For artillery setup: assign and equip a spotter with binoculars, set the battery role, then enable the Smart AI Pass
-and artillery in **Cortex Control**. Tune warning/safety settings in **Cortex Control**. Radar acceleration also needs the counter-battery switch. Setup helpers preserve the current switches.
-
-Order success is reported after the current owner accepts it. Missing responses are reported as
-uncertain, rather than presented as successful execution.
+The standalone **Create AI Convoy** ZEN module requires a selected crewed land vehicle. It starts,
+holds/unloads or releases that group's convoy on its authored route. Its speed and separation are
+operation parameters, not replacement global settings. Other targeted operations remain available
+through their public WAIT functions; their former mission-pack ZEN wrappers are not registered by
+this addon. Do not infer a standalone module from a legacy mission-pack procedure.
 
 ## Independent behaviour controls
 
@@ -761,13 +678,11 @@ The tighter rally movement, physical readiness check and attack-order control re
 ---
 [Wiki home](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Tutorials)
 
-## Cortex Control window
+## Configuration interface
 
-**WMP Cortex > Cortex Control** opens a dedicated modal window over Zeus. The left navigation groups settings by purpose; the right panel scrolls through switches, profiles and tuning with inline explanations. Existing mission variables and script functions retain their names for compatibility.
-
-Edits remain pending across pages. **Apply changes** submits only changed settings through the existing curator-authorised server validation. **Cancel** or Escape discards pending edits. If this client has received a newer settings revision while the window was open, Apply asks the curator to reopen it rather than overwriting that revision. The window itself starts no AI workers and creates no polling loop.
-
-The interface uses the shared WMP theme and notification-space reservation, releases its reservation on close, and reopens from current settings. Group orders and artillery/convoy setup remain separate purpose modules. This custom interface still requires in-engine layout, keyboard, Apply/Cancel and aspect-ratio validation; static checks alone do not establish usability.
+CBA Addon Options replaces the former custom control window. The client audit inspects registration
+and effective values without changing settings. Interactive persistence, server enforcement and JIP
+acceptance remain pending. Targeted orders and diagnostics remain separate from configuration.
 
 ### Post-contact consolidation
 

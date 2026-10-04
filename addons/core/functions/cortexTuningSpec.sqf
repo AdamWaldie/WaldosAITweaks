@@ -2,8 +2,8 @@
  * Author: WaldoTheWarfighter
  * The list of Cortex difficulty and tuning settings that can be changed during a mission.
  *
- * One list feeds the AI Control and Tuning Zeus pages, the validation in WAIT_fnc_CortexTuning and the
- * snapshot joining headless clients request, so the three cannot drift apart. Every setting is read
+ * One list feeds the CBA Addon Options, the validation in WAIT_fnc_CortexTuning and the
+ * snapshot joining headless clients request, so the consumers cannot drift apart. Every setting is read
  * live by the behaviours, so a change takes effect on each squad's next step. Defaults are the
  * \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf values.
  * Locality and authority: read-only; callable anywhere.
@@ -22,7 +22,7 @@
  * private _variables = ([] call WAIT_fnc_CortexTuningSpec) apply {_x select 0};
  * Result: every tunable Cortex variable name.
  *
- * Current callers: WAIT_fnc_CortexTuning, WAIT_fnc_FeatureRuntimeZen (AI Control and Tuning) and
+ * Current callers: WAIT_fnc_CortexTuning, WAIT_fnc_AITweaksRegisterSettings and
  * WAIT_fnc_FeatureRuntimeRequestState.
  */
 

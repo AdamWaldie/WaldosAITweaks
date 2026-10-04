@@ -16,7 +16,7 @@ class AIModularityContracts(unittest.TestCase):
         for name in names:
             self.assertIn('"'+name+'"',config)
             self.assertEqual(spec.count('"'+name+'"'),1)
-        self.assertIn('WAIT_fnc_CortexTuningSpec',src('cortexControlOpenLocal'))
+        self.assertIn('WAIT_fnc_CortexTuningSpec',src('aiTweaksRegisterSettings'))
         for path in ['featureRuntimeRequestState']:
             self.assertIn('WAIT_fnc_CortexTuningSpec',(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{path}.sqf').read_text(encoding='utf-8'))
         self.assertIn('"CHECKBOX"',src('cortexTuning'))

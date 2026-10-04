@@ -34,7 +34,7 @@
  * [] call WAIT_fnc_CortexStop;
  * Result: no further pass behaviour runs anywhere until WAIT_fnc_CortexInit is called again.
  *
- * Current callers: the AI Control ZEN module.
+ * Current callers: CBA setting callbacks.
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};

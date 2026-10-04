@@ -7,13 +7,6 @@ BASE = ROOT / 'addons/main/functions/Cortex'
 def source(name): return next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
     def test_cortex_control_deduplicates_settings_and_diagnostics_explain_once(self):
-        page=source('cortexControlPageLocal')
-        self.assertIn('private _seenKeys = createHashMap',page)
-        self.assertIn('_seenKeys getOrDefault [_key,false]',page)
-        self.assertIn('} forEach _pageRows;',page)
-        opened=source('cortexControlOpenLocal')
-        self.assertIn('private _seenKeys = createHashMap',opened)
-        self.assertIn('_display setVariable ["Cortex_Spec",_spec]',opened)
         diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('Expected evidence:',diagnostics)
         self.assertIn('not an action trigger or success result',diagnostics)
@@ -22,8 +15,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_tuningSpec pushBack _x',diagnostics)
         client=(ROOT/'releaseVerificationAndDeployment/cortexQA/runClient.sqf').read_text(encoding='utf-8')
         self.assertIn('UI-01b-canonical-settings',client)
-        self.assertIn('UI-02b-unique-page-',client)
-        self.assertIn('arrayIntersect _editorKeys',client)
+        self.assertIn('UI-registered-',client)
+        self.assertIn('arrayIntersect _keys',client)
+
+    def test_configuration_has_no_duplicate_zen_panel_or_variable_bridge(self):
+        modules=(ROOT/'addons/main/bootstrap/zenRegister.sqf').read_text()
+        exports=(ROOT/'addons/main/CfgFunctions.hpp').read_text()
+        preinit=(ROOT/'addons/main/XEH_preInit.sqf').read_text()
+        self.assertNotIn('"AI Control"',modules)
+        self.assertIn('WAIT_fnc_ZenConvoyModule',modules)
+        for obsolete in ['CortexControlOpenLocal','CortexControlPageLocal','AITweaksSettingsRequestServer']:
+            self.assertNotIn('class '+obsolete+' ',exports)
+        self.assertNotIn('WAIT_AITweaks_SettingsRequest',preinit)
 
     def test_cortex_control_distinguishes_master_gates_from_feature_switches(self):
         spec=source('cortexTuningSpec')
@@ -2502,7 +2505,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_staleAI && {_name in _aiNames}',text)
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_expected_revision_is_sent_and_checked_on_server(self):
-        self.assertIn('__expectedRevision',source('cortexControlOpenLocal'))
+        self.assertIn('WAIT_fnc_CortexTuningSpec',source('aiTweaksRegisterSettings'))
         text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeApply.sqf').read_text(encoding='utf-8')
         self.assertIn('_values deleteAt "__expectedRevision"',text)
         self.assertIn('if !(_expected isEqualTo',text)
@@ -2512,7 +2515,7 @@ class CortexOperations(unittest.TestCase):
         for function in ['CortexOrderDispatch','HeadlessMigrateGroup','SimpleAiConvoy','CortexArtilleryFire']:
             self.assertIn('call WAIT_fnc_'+function,server)
         self.assertIn('addEventHandler ["Fired"',server)
-        self.assertIn('ctrlActivate true',client)
+        self.assertIn('CBA_settings_fnc_get',client)
         self.assertNotIn('setVariable ["WAIT_AIPass_Aggression"',client)
 
     def test_cortex_exports_preserve_legacy_function_aliases(self):

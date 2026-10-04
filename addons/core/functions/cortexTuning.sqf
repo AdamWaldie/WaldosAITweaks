@@ -6,7 +6,7 @@
  * combo values must be one of the listed choices, and anything else is ignored with an RPT line. The
  * accepted values are broadcast, so the server and every headless client use them on each squad's
  * next step. Master/skill changes also update local workers after the complete revision is applied.
- * AI Control and Tuning calls this through the curator bridge.
+ * CBA Addon Options is the configuration UI; scripts use this validated CBA server-layer API.
  * Locality and authority: server-authoritative; a call on a client is forwarded to the server.
  *
  * Repeat/JIP: monotonically ordered local application; joining owners use the full settings snapshot.
@@ -20,7 +20,7 @@
  * [createHashMapFromArray [["WAIT_AIPass_Aggression", 1.5], ["WAIT_AIPass_Cohesion", 0.8]]] call WAIT_fnc_CortexTuning;
  * Result: from a trigger, squads become more aggressive and break sooner for the rest of the mission.
  *
- * Current callers: mission triggers, scripts and the standalone Cortex control request.
+ * Current callers: mission triggers, scripts and disposable server audits.
  */
 
 params [["_settings", createHashMap, [createHashMap]]];
