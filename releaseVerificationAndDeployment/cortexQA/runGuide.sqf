@@ -261,9 +261,9 @@ while {true} do {
     if (isNull _next) then {_next = findDisplay 46};
     if (!isNull _next && {_next != _host}) then {
         {ctrlDelete _x} forEach _controls;
-        ["CORTEX_QA"] call Waldo_fnc_UnregisterUiReservationLocal;
+        if (!isNil "Waldo_fnc_UnregisterUiReservationLocal") then {["CORTEX_QA"] call Waldo_fnc_UnregisterUiReservationLocal};
         _host = _next;
-        private _theme = [] call Waldo_fnc_UiTheme;
+        private _theme = [] call Waldo_fnc_AITweaksUiTheme;
         private _back = _host ctrlCreate ["RscText",-1];
         private _body = _host ctrlCreate ["RscStructuredText",-1];
         private _inspect = _host ctrlCreate ["RscButton",-1];
@@ -288,7 +288,7 @@ while {true} do {
             };
         }];
         _controls = [_back,_body,_inspect];
-        ["CORTEX_QA",_controls,["BOTTOM_CENTER"],true] call Waldo_fnc_RegisterUiReservationLocal;
+        if (!isNil "Waldo_fnc_RegisterUiReservationLocal") then {["CORTEX_QA",_controls,["BOTTOM_CENTER"],true] call Waldo_fnc_RegisterUiReservationLocal};
         _last = "";
     };
     private _phase = missionNamespace getVariable ["Waldo_CortexQA_Phase",["Preparing","Waiting for the client and both headless clients.",[]]];

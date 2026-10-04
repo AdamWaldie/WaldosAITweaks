@@ -63,26 +63,37 @@
         "runtime-20260927-032658: CORE MASTER/GROUP/UNIT/EXTERNAL/SIDE refusal and physical arrival passed.",
         "runtime-20260927-094454: 53 lifecycle checks passed, zero SQF errors, server and client complete. Held-defence Zeus takeover and replacement arrival passed for server and two WMP HC variants after return to server. Added server mid-movement interruption, replacement arrival and 15-second no-resurrection checks passed. Real curator event delivery and interruption during every feature remain unverified; prior HC replacement failure retained."
       ],
-      "automation": "runGates.sqf: five closed-gate refusal and no-movement checks, each followed by reopened physical arrival. All ten passed in runtime-20260927-032658. Player-led, Zeus and locality variants remain outstanding.",
+      "automation": "runGates.sqf: five closed-gate refusal and no-movement checks, each followed by reopened physical arrival. All ten passed in runtime-20260927-032658. Player-led, Zeus and locality variants remain outstanding. Standalone addon readiness and catalogue assertions run in runAddon; ZEN notifications, setting changes, diagnostics and compatibility side effects still require live checks.",
       "executable_sources": [
-        "runGates.sqf"
+        "runGates.sqf",
+        "runAddon.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCombatEffective.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexDiscover.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexFeatureEnabled.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexGroupState.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexGroupTick.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexInit.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexIsEligible.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexKnowledge.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexReleaseGroup.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexRestoreCalm.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSettingsLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexStop.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexTuning.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexTuningSpec.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexInfantrySpeed.sqf"
+        "addons/main/functions/Cortex/cortexCombatEffective.sqf",
+        "addons/main/functions/Cortex/cortexDiscover.sqf",
+        "addons/main/functions/Cortex/cortexFeatureEnabled.sqf",
+        "addons/main/functions/Cortex/cortexGroupState.sqf",
+        "addons/main/functions/Cortex/cortexGroupTick.sqf",
+        "addons/main/functions/Cortex/cortexInit.sqf",
+        "addons/main/functions/Cortex/cortexIsEligible.sqf",
+        "addons/main/functions/Cortex/cortexKnowledge.sqf",
+        "addons/main/functions/Cortex/cortexReleaseGroup.sqf",
+        "addons/main/functions/Cortex/cortexRestoreCalm.sqf",
+        "addons/main/functions/Cortex/cortexSettingsLocal.sqf",
+        "addons/main/functions/Cortex/cortexStop.sqf",
+        "addons/main/functions/Cortex/cortexTuning.sqf",
+        "addons/main/functions/Cortex/cortexTuningSpec.sqf",
+        "addons/main/functions/Cortex/cortexInfantrySpeed.sqf",
+        "addons/main/functions/aiTweaksDetectCompatibility.sqf",
+        "addons/main/functions/aiTweaksDiagnosticReport.sqf",
+        "addons/main/functions/aiTweaksNotifyLocal.sqf",
+        "addons/main/functions/aiTweaksRegisterSettings.sqf",
+        "addons/main/functions/aiTweaksSettingChanged.sqf",
+        "addons/main/functions/aiTweaksSettingsRequestServer.sqf",
+        "addons/main/functions/aiTweaksUiTheme.sqf",
+        "addons/main/functions/headlessResolveSender.sqf",
+        "addons/main/functions/zenConvoyModule.sqf",
+        "addons/main/functions/Cortex/cortexDrillStart.sqf"
       ]
     },
     {
@@ -104,9 +115,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexBuildingBackendRelease.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexBuildingBackendStart.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexOwnershipLease.sqf"
+        "addons/main/functions/Cortex/cortexBuildingBackendRelease.sqf",
+        "addons/main/functions/Cortex/cortexBuildingBackendStart.sqf",
+        "addons/main/functions/Cortex/cortexOwnershipLease.sqf"
       ]
     },
     {
@@ -140,10 +151,10 @@
         "runPerformanceContact.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCooldown.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexIsPaused.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexQueueJob.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSchedulerTick.sqf"
+        "addons/main/functions/Cortex/cortexCooldown.sqf",
+        "addons/main/functions/Cortex/cortexIsPaused.sqf",
+        "addons/main/functions/Cortex/cortexQueueJob.sqf",
+        "addons/main/functions/Cortex/cortexSchedulerTick.sqf"
       ]
     },
     {
@@ -169,7 +180,7 @@
         "runProfiles.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexProfile.sqf"
+        "addons/main/functions/Cortex/cortexProfile.sqf"
       ]
     },
     {
@@ -200,10 +211,10 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/aiApplyProfile.sqf",
-        "MissionScripts/AiScripting/aiRebalanceInit.sqf",
-        "MissionScripts/AiScripting/aiRebalanceStop.sqf",
-        "MissionScripts/AiScripting/AISkillAdjustmentSystem.sqf"
+        "addons/main/functions/aiApplyProfile.sqf",
+        "addons/main/functions/aiRebalanceInit.sqf",
+        "addons/main/functions/aiRebalanceStop.sqf",
+        "addons/main/functions/AISkillAdjustmentSystem.sqf"
       ]
     },
     {
@@ -243,13 +254,13 @@
         "runLanding.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/improvedHelicopterLandingAnchorLocal.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingConfigureServer.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingExecuteLocal.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingInit.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingRestoreLocal.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingSetting.sqf",
-        "MissionScripts/AiScripting/improvedHelicopterLandingTrackLocal.sqf"
+        "addons/main/functions/improvedHelicopterLandingAnchorLocal.sqf",
+        "addons/main/functions/improvedHelicopterLandingConfigureServer.sqf",
+        "addons/main/functions/improvedHelicopterLandingExecuteLocal.sqf",
+        "addons/main/functions/improvedHelicopterLandingInit.sqf",
+        "addons/main/functions/improvedHelicopterLandingRestoreLocal.sqf",
+        "addons/main/functions/improvedHelicopterLandingSetting.sqf",
+        "addons/main/functions/improvedHelicopterLandingTrackLocal.sqf"
       ]
     },
     {
@@ -283,9 +294,9 @@
         "runDeceleration.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/helicopterDecelerationCorrectLocal.sqf",
-        "MissionScripts/AiScripting/helicopterDecelerationInit.sqf",
-        "MissionScripts/AiScripting/helicopterDecelerationTrackLocal.sqf"
+        "addons/main/functions/helicopterDecelerationCorrectLocal.sqf",
+        "addons/main/functions/helicopterDecelerationInit.sqf",
+        "addons/main/functions/helicopterDecelerationTrackLocal.sqf"
       ]
     },
     {
@@ -311,8 +322,8 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexRegroupOnKill.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexRegroupStep.sqf"
+        "addons/main/functions/Cortex/cortexRegroupOnKill.sqf",
+        "addons/main/functions/Cortex/cortexRegroupStep.sqf"
       ]
     },
     {
@@ -332,7 +343,7 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexContactReport.sqf"
+        "addons/main/functions/Cortex/cortexContactReport.sqf"
       ]
     },
     {
@@ -382,10 +393,10 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexFlankEnd.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexFlankStart.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexFlankStep.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSelectAvenue.sqf"
+        "addons/main/functions/Cortex/cortexFlankEnd.sqf",
+        "addons/main/functions/Cortex/cortexFlankStart.sqf",
+        "addons/main/functions/Cortex/cortexFlankStep.sqf",
+        "addons/main/functions/Cortex/cortexSelectAvenue.sqf"
       ]
     },
     {
@@ -403,7 +414,7 @@
         "runCrossing.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexPlanRoute.sqf"
+        "addons/main/functions/Cortex/cortexPlanRoute.sqf"
       ]
     },
     {
@@ -423,8 +434,8 @@
         "runFireControl.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexFireControl.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexLineOfFireClear.sqf"
+        "addons/main/functions/Cortex/cortexFireControl.sqf",
+        "addons/main/functions/Cortex/cortexLineOfFireClear.sqf"
       ]
     },
     {
@@ -447,7 +458,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexMorale.sqf"
+        "addons/main/functions/Cortex/cortexMorale.sqf"
       ]
     },
     {
@@ -468,7 +479,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexSurrender.sqf"
+        "addons/main/functions/Cortex/cortexSurrender.sqf"
       ]
     },
     {
@@ -489,8 +500,8 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexGrenadeCheck.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexThrowGrenade.sqf"
+        "addons/main/functions/Cortex/cortexGrenadeCheck.sqf",
+        "addons/main/functions/Cortex/cortexThrowGrenade.sqf"
       ]
     },
     {
@@ -511,9 +522,9 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCivilianReact.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCivilianSetup.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexExternalOwner.sqf"
+        "addons/main/functions/Cortex/cortexCivilianReact.sqf",
+        "addons/main/functions/Cortex/cortexCivilianSetup.sqf",
+        "addons/main/functions/Cortex/cortexExternalOwner.sqf"
       ]
     },
     {
@@ -532,7 +543,7 @@
         "runFireControl.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAntiArmour.sqf"
+        "addons/main/functions/Cortex/cortexAntiArmour.sqf"
       ]
     },
     {
@@ -555,10 +566,10 @@
         "runNaval.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAircraftEligible.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexNavalAssault.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexNavalRelease.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexVehicles.sqf"
+        "addons/main/functions/Cortex/cortexAircraftEligible.sqf",
+        "addons/main/functions/Cortex/cortexNavalAssault.sqf",
+        "addons/main/functions/Cortex/cortexNavalRelease.sqf",
+        "addons/main/functions/Cortex/cortexVehicles.sqf"
       ]
     },
     {
@@ -576,7 +587,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexOnboardContact.sqf"
+        "addons/main/functions/Cortex/cortexOnboardContact.sqf"
       ]
     },
     {
@@ -594,7 +605,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexPassengerReady.sqf"
+        "addons/main/functions/Cortex/cortexPassengerReady.sqf"
       ]
     },
     {
@@ -614,7 +625,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexRetreat.sqf"
+        "addons/main/functions/Cortex/cortexRetreat.sqf"
       ]
     },
     {
@@ -634,7 +645,7 @@
         "runCover.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexFindCover.sqf"
+        "addons/main/functions/Cortex/cortexFindCover.sqf"
       ]
     },
     {
@@ -654,9 +665,9 @@
         "runConvoyMatrix.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/simpleAiConvoy.sqf",
-        "MissionScripts/AiScripting/convoySync.sqf",
-        "MissionScripts/AiScripting/convoyTick.sqf"
+        "addons/main/functions/simpleAiConvoy.sqf",
+        "addons/main/functions/convoySync.sqf",
+        "addons/main/functions/convoyTick.sqf"
       ]
     },
     {
@@ -674,7 +685,7 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/convoyThreat.sqf"
+        "addons/main/functions/convoyThreat.sqf"
       ]
     },
     {
@@ -726,7 +737,7 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/convoyHaltServer.sqf"
+        "addons/main/functions/convoyHaltServer.sqf"
       ]
     },
     {
@@ -747,9 +758,9 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/convoyCrewLocal.sqf",
-        "MissionScripts/AiScripting/convoyDismountLocal.sqf",
-        "MissionScripts/AiScripting/convoyReleaseLocal.sqf"
+        "addons/main/functions/convoyCrewLocal.sqf",
+        "addons/main/functions/convoyDismountLocal.sqf",
+        "addons/main/functions/convoyReleaseLocal.sqf"
       ]
     },
     {
@@ -767,7 +778,7 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexHearingLocal.sqf"
+        "addons/main/functions/Cortex/cortexHearingLocal.sqf"
       ]
     },
     {
@@ -788,9 +799,9 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCanTransmit.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexReportLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexReportServer.sqf"
+        "addons/main/functions/Cortex/cortexCanTransmit.sqf",
+        "addons/main/functions/Cortex/cortexReportLocal.sqf",
+        "addons/main/functions/Cortex/cortexReportServer.sqf"
       ]
     },
     {
@@ -810,7 +821,7 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexReinforce.sqf"
+        "addons/main/functions/Cortex/cortexReinforce.sqf"
       ]
     },
     {
@@ -840,21 +851,21 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryAim.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryAmmo.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryFire.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryFired.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryMissionStep.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryObserve.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryRejected.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryReport.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryRequest.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryRole.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryScoot.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexArtilleryShot.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSetArtilleryRole.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSetSpotter.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSpotterFix.sqf"
+        "addons/main/functions/Cortex/cortexArtilleryAim.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryAmmo.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryFire.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryFired.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryMissionStep.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryObserve.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryRejected.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryReport.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryRequest.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryRole.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryScoot.sqf",
+        "addons/main/functions/Cortex/cortexArtilleryShot.sqf",
+        "addons/main/functions/Cortex/cortexSetArtilleryRole.sqf",
+        "addons/main/functions/Cortex/cortexSetSpotter.sqf",
+        "addons/main/functions/Cortex/cortexSpotterFix.sqf"
       ]
     },
     {
@@ -881,9 +892,9 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCounterBattery.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCounterObserve.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexRegisterRadar.sqf"
+        "addons/main/functions/Cortex/cortexCounterBattery.sqf",
+        "addons/main/functions/Cortex/cortexCounterObserve.sqf",
+        "addons/main/functions/Cortex/cortexRegisterRadar.sqf"
       ]
     },
     {
@@ -906,10 +917,10 @@
         "runAirborne.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAirborneCheck.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexAirborneDrop.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexAirborneDropStep.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexParachuteJump.sqf"
+        "addons/main/functions/Cortex/cortexAirborneCheck.sqf",
+        "addons/main/functions/Cortex/cortexAirborneDrop.sqf",
+        "addons/main/functions/Cortex/cortexAirborneDropStep.sqf",
+        "addons/main/functions/Cortex/cortexParachuteJump.sqf"
       ]
     },
     {
@@ -918,8 +929,7 @@
       "setup": "Use multiple placed and terrain-native buildings, floors, doors and blocked entries; repeat in-place Dynamic AO assignment.",
       "expected": "Every assigned soldier physically reaches the correct slot/floor and holds; timeout reports failure, break/release restores only owned restrictions.",
       "settings": [
-        "Waldo_AIPass_Garrison_BreakFraction",
-        "Waldo_AIPass_Garrison_DynamicAO"
+        "Waldo_AIPass_Garrison_BreakFraction"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -931,9 +941,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexGarrison.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexGarrisonApplyLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexGarrisonRelease.sqf"
+        "addons/main/functions/Cortex/cortexGarrison.sqf",
+        "addons/main/functions/Cortex/cortexGarrisonApplyLocal.sqf",
+        "addons/main/functions/Cortex/cortexGarrisonRelease.sqf"
       ]
     },
     {
@@ -954,7 +964,7 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexFireCountermeasure.sqf"
+        "addons/main/functions/Cortex/cortexFireCountermeasure.sqf"
       ]
     },
     {
@@ -974,8 +984,8 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexGroupMove.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexGroupMoveClear.sqf"
+        "addons/main/functions/Cortex/cortexGroupMove.sqf",
+        "addons/main/functions/Cortex/cortexGroupMoveClear.sqf"
       ]
     },
     {
@@ -1019,8 +1029,8 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAdvanceStart.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexTacticalStart.sqf"
+        "addons/main/functions/Cortex/cortexAdvanceStart.sqf",
+        "addons/main/functions/Cortex/cortexTacticalStart.sqf"
       ]
     },
     {
@@ -1049,16 +1059,16 @@
         "runCoordinated.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCoordinatedAssault.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportAck.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportApply.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportAssaultServer.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportBoundStart.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportCoordinateStep.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportMaintain.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportServer.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSupportStep.sqf"
+        "addons/main/functions/Cortex/cortexCoordinatedAssault.sqf",
+        "addons/main/functions/Cortex/cortexSupportAck.sqf",
+        "addons/main/functions/Cortex/cortexSupportApply.sqf",
+        "addons/main/functions/Cortex/cortexSupportAssaultServer.sqf",
+        "addons/main/functions/Cortex/cortexSupportBoundStart.sqf",
+        "addons/main/functions/Cortex/cortexSupportCoordinateStep.sqf",
+        "addons/main/functions/Cortex/cortexSupportLocal.sqf",
+        "addons/main/functions/Cortex/cortexSupportMaintain.sqf",
+        "addons/main/functions/Cortex/cortexSupportServer.sqf",
+        "addons/main/functions/Cortex/cortexSupportStep.sqf"
       ]
     },
     {
@@ -1076,7 +1086,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexStance.sqf"
+        "addons/main/functions/Cortex/cortexStance.sqf"
       ]
     },
     {
@@ -1095,9 +1105,9 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAmmoShare.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCapabilities.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexUnitRole.sqf"
+        "addons/main/functions/Cortex/cortexAmmoShare.sqf",
+        "addons/main/functions/Cortex/cortexCapabilities.sqf",
+        "addons/main/functions/Cortex/cortexUnitRole.sqf"
       ]
     },
     {
@@ -1168,10 +1178,10 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexDefend.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexDefendApplyLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexDefendRelease.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexDefendStep.sqf"
+        "addons/main/functions/Cortex/cortexDefend.sqf",
+        "addons/main/functions/Cortex/cortexDefendApplyLocal.sqf",
+        "addons/main/functions/Cortex/cortexDefendRelease.sqf",
+        "addons/main/functions/Cortex/cortexDefendStep.sqf"
       ]
     },
     {
@@ -1189,9 +1199,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexBuildingDoor.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexClearBuilding.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexClearRelease.sqf"
+        "addons/main/functions/Cortex/cortexBuildingDoor.sqf",
+        "addons/main/functions/Cortex/cortexClearBuilding.sqf",
+        "addons/main/functions/Cortex/cortexClearRelease.sqf"
       ]
     },
     {
@@ -1207,9 +1217,9 @@
         "runClient.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexControlOpenLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexControlPageLocal.sqf",
-        "MissionScripts/AiScripting/aiGetDiagnostics.sqf"
+        "addons/main/functions/Cortex/cortexControlOpenLocal.sqf",
+        "addons/main/functions/Cortex/cortexControlPageLocal.sqf",
+        "addons/main/functions/aiGetDiagnostics.sqf"
       ]
     },
     {
@@ -1232,17 +1242,16 @@
         "runLifecycle.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCheckpoint.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexLocality.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexOrderDispatch.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexOrderLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexOrderReason.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexOrderResult.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexReleaseFeatureCrew.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexZeusHeld.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexZeusMark.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexZeusWatchLocal.sqf",
-        "MissionScripts/AiScripting/aiHeadlessAdoptionResultServer.sqf"
+        "addons/main/functions/Cortex/cortexCheckpoint.sqf",
+        "addons/main/functions/Cortex/cortexLocality.sqf",
+        "addons/main/functions/Cortex/cortexOrderDispatch.sqf",
+        "addons/main/functions/Cortex/cortexOrderLocal.sqf",
+        "addons/main/functions/Cortex/cortexOrderReason.sqf",
+        "addons/main/functions/Cortex/cortexOrderResult.sqf",
+        "addons/main/functions/Cortex/cortexZeusHeld.sqf",
+        "addons/main/functions/Cortex/cortexZeusMark.sqf",
+        "addons/main/functions/Cortex/cortexZeusWatchLocal.sqf",
+        "addons/main/functions/aiHeadlessAdoptionResultServer.sqf"
       ]
     },
     {
@@ -1308,8 +1317,8 @@
         "runContact.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexDrillSetStage.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexSetPhase.sqf"
+        "addons/main/functions/Cortex/cortexDrillSetStage.sqf",
+        "addons/main/functions/Cortex/cortexSetPhase.sqf"
       ]
     },
     {
@@ -1380,10 +1389,10 @@
         "runCombinedArms.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexCombinedArmsRequest.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCombinedArmsServer.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCombinedArmsLocal.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexCombinedGroundStep.sqf"
+        "addons/main/functions/Cortex/cortexCombinedArmsRequest.sqf",
+        "addons/main/functions/Cortex/cortexCombinedArmsServer.sqf",
+        "addons/main/functions/Cortex/cortexCombinedArmsLocal.sqf",
+        "addons/main/functions/Cortex/cortexCombinedGroundStep.sqf"
       ]
     },
     {
@@ -1417,7 +1426,7 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAttackRunFlares.sqf"
+        "addons/main/functions/Cortex/cortexAttackRunFlares.sqf"
       ]
     },
     {
@@ -1438,9 +1447,9 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "MissionScripts/AiScripting/Cortex/cortexAirAttack.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexAirAttackPlan.sqf",
-        "MissionScripts/AiScripting/Cortex/cortexAirHandoverRestoreLocal.sqf"
+        "addons/main/functions/Cortex/cortexAirAttack.sqf",
+        "addons/main/functions/Cortex/cortexAirAttackPlan.sqf",
+        "addons/main/functions/Cortex/cortexAirHandoverRestoreLocal.sqf"
       ]
     }
   ]

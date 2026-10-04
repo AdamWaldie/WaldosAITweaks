@@ -148,6 +148,22 @@ def main():
     root = args.runtime.resolve()
     logs = {str(path.relative_to(root)): path.read_text(encoding='utf-8', errors='replace') for path in root.rglob('*.rpt')}
     report = summarize(logs)
+    manifest_path=root/'audit-manifest.json'
+    if manifest_path.is_file():
+        from mod_pipeline import digest, verify
+        manifest=json.loads(manifest_path.read_text())
+        report['focus']=manifest['focus']
+        report['package_commit']=manifest['package']['commit']
+        try:
+            identity=verify(root/'@WaldosAITweaks')
+            if identity['fingerprint'] != manifest['package']['fingerprint'] or identity['fingerprint'] != report['source_fingerprint']:
+                raise ValueError('RPT, package and audit manifest identity disagree')
+            mission=root/'WAIT_Audit.VR'
+            if {p.name:digest(p) for p in mission.iterdir() if p.is_file()} != manifest['mission_files']:
+                raise ValueError('Audit scripts changed after staging')
+        except (ValueError, OSError) as error:
+            report['provenance_issues'].append(str(error))
+            report['status']='FAIL'
     if args.assessments:
         attach_assessments(report, json.loads(args.assessments.read_text(encoding='utf-8')))
     (root/'cortex-results.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
