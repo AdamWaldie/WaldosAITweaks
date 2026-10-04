@@ -9,6 +9,7 @@ PATTERN = re.compile(r'compatibility|alternativeBackend|external controller|exte
 class ReferenceBoundary(unittest.TestCase):
     def test_product_and_production_have_no_source_references(self):
         files = list((ROOT/'addons').rglob('*')) + list((ROOT/'docs').rglob('*'))
+        files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.md'))
         files += [ROOT/'README.md',ROOT/'CONTRIBUTING.md',ROOT/'cortex_defaults.md']
         for path in files:
             if not path.is_file() or 'compatibility' in path.parts:
