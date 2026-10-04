@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Starts the finite scripted FSM which executes one accepted flank, advance or coordinated
- * support bound. The FSM owns only the lifecycle cadence; bounded tactical calculations and actor
+ * support bound. The FSM observes lifecycle completion; the shared scheduler owns tactical cadence; bounded tactical calculations and actor
  * commands remain in CortexFlankStep so one implementation serves every manoeuvre type.
  * Locality / Authority: Runs on the current group owner. It refuses remote groups and the FSM exits
  * when ownership or the drill token changes. No server-global scan is created.
