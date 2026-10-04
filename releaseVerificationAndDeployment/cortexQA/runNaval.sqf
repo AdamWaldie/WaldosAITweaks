@@ -19,20 +19,20 @@
 
 params ["_check","_phase","_wait"];
 [createHashMapFromArray [
-    ["Waldo_AIPass_Enable",true],
-    ["Waldo_AIPass_Contact_Enable",true],
-    ["Waldo_AIPass_NavalAssault_Enable",true],
-    ["Waldo_AIPass_Vehicles_Enable",true],
-    ["Waldo_AIPass_Flank_Enable",false],
-    ["Waldo_AIPass_Advance_Enable",false],
-    ["Waldo_AIPass_CoordinatedAssault_Enable",false],
-    ["Waldo_AIPass_Reinforce_Enable",false],
-    ["Waldo_AIPass_Morale_Enable",false],
-    ["Waldo_AIPass_PostContact_Enable",false]
-]] call Waldo_fnc_CortexTuning;
+    ["WAIT_AIPass_Enable",true],
+    ["WAIT_AIPass_Contact_Enable",true],
+    ["WAIT_AIPass_NavalAssault_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],
+    ["WAIT_AIPass_Flank_Enable",false],
+    ["WAIT_AIPass_Advance_Enable",false],
+    ["WAIT_AIPass_CoordinatedAssault_Enable",false],
+    ["WAIT_AIPass_Reinforce_Enable",false],
+    ["WAIT_AIPass_Morale_Enable",false],
+    ["WAIT_AIPass_PostContact_Enable",false]
+]] call WAIT_fnc_CortexTuning;
 private _pin={
     params ["_group"];
-    _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+    _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _group setVariable ["acex_headless_blacklist",true,true];
     {_x setVariable ["acex_headless_blacklist",true,true]} forEach units _group;
 };
@@ -83,7 +83,7 @@ _coast params ["_shore","_water","_offshore","_inland"];
         _unit allowDamage false;
         _unit assignAsCargo _boat;
         _unit moveInCargo _boat;
-        _unit setVariable ["Waldo_CortexQA_Label",format ["NAVAL %1 P%2",_suffix,_index+1],true];
+        _unit setVariable ["WAIT_CortexQA_Label",format ["NAVAL %1 P%2",_suffix,_index+1],true];
         _passengers pushBack _unit;
     };
     private _enemy=createVehicle ["B_APC_Wheeled_01_cannon_F",_inland getPos [30*_forEachIndex,270],[],0,"NONE"];
@@ -91,10 +91,10 @@ _coast params ["_shore","_water","_offshore","_inland"];
     _crewGroup reveal [_enemy,4];
     _passengerGroup reveal [_enemy,4];
     private _start=getPosATL _boat;
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",(crew _boat)+_passengers+[_enemy],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",(crew _boat)+_passengers+[_enemy],true];
     ["Naval assault: "+toLowerANSI _suffix,"The boat must make a real coastal approach. Operating crew stays aboard; all surviving passengers physically dismount and move onto dry ground. Cyan trails and NAVAL status labels show actual travel and phase.",_shore] call _phase;
-    private _started=[{(_boat getVariable ["Waldo_Cortex_NavalPlan",[]]) isNotEqualTo []},35] call _wait;
-    ["NAVAL-"+_suffix+"-production-start",_started,str (_boat getVariable ["Waldo_Cortex_NavalPlan",[]])] call _check;
+    private _started=[{(_boat getVariable ["WAIT_Cortex_NavalPlan",[]]) isNotEqualTo []},35] call _wait;
+    ["NAVAL-"+_suffix+"-production-start",_started,str (_boat getVariable ["WAIT_Cortex_NavalPlan",[]])] call _check;
     private _travelled=[{_boat distance2D _start >= 100},120] call _wait;
     ["NAVAL-"+_suffix+"-physical-water-travel",_travelled,str [_start,getPosATL _boat,speed _boat]] call _check;
     private _dismounted=[{_passengers findIf {!alive _x || {vehicle _x != _x}} < 0},90] call _wait;
@@ -106,9 +106,9 @@ _coast params ["_shore","_water","_offshore","_inland"];
         alive _x && {!(_x in _passengers)} && {vehicle _x != _boat} && {toUpperANSI _role != "CARGO"}
     } < 0;
     ["NAVAL-"+_suffix+"-crew-retained",_crewRetained,str (crew _boat)] call _check;
-    private _released=[{(_boat getVariable ["Waldo_Cortex_NavalPlan",[]]) isEqualTo []},75] call _wait;
-    ["NAVAL-"+_suffix+"-finite-cleanup",_released,str [_boat getVariable ["Waldo_Cortex_NavalPlan",[]],getForcedSpeed _boat]] call _check;
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+    private _released=[{(_boat getVariable ["WAIT_Cortex_NavalPlan",[]]) isEqualTo []},75] call _wait;
+    ["NAVAL-"+_suffix+"-finite-cleanup",_released,str [_boat getVariable ["WAIT_Cortex_NavalPlan",[]],getForcedSpeed _boat]] call _check;
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     {deleteVehicle _x} forEach ((crew _boat)+_passengers+[_enemy,_boat]);
     deleteGroup _passengerGroup;
     if (_passengerGroup != _crewGroup) then {deleteGroup _crewGroup};

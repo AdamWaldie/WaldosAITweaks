@@ -2,11 +2,11 @@
 
 ## Completed foundation
 
-1. Production code now lives inside one PBO namespace at `z\waldo_ai_tweaks\addons\main`.
+1. Production code now lives inside semantic PBOs beneath `z\waldo_ai_tweaks\addons`.
 2. CBA XEH owns pre-init and post-init. Missions no longer copy folders or call a bootstrap script.
-3. Existing function names are preserved through addon `CfgFunctions` paths.
+3. Functions use the breaking `WAIT_fnc_*` API through addon `CfgFunctions` paths.
 4. Global mission options are registered with CBA Settings, which owns persistence and JIP replay
-   while retaining the existing variable names as the public scripting API.
+   with `WAIT_*` variable names as the public scripting API.
 5. ZEN is a hard dependency and provides the live curator control surface.
 6. Product-specific Dynamic AA, Dynamic AO, transport and paradrop coupling was removed. Other
    systems use `Waldo_AI_ExternalControl` or `Waldo_AI_PrecisionExclude` instead.

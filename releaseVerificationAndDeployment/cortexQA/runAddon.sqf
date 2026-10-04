@@ -9,9 +9,9 @@
 params ["_check"];
 ["ADDON-cba-dependency",isClass (configFile >> "CfgPatches" >> "cba_main")] call _check;
 ["ADDON-zen-dependency",isClass (configFile >> "CfgPatches" >> "zen_main")] call _check;
-["ADDON-settings-ready",missionNamespace getVariable ["Waldo_AITweaks_SettingsReady",false]] call _check;
-["ADDON-postinit-ready",missionNamespace getVariable ["Waldo_AITweaks_PostInitComplete",false]] call _check;
-private _spec=[] call Waldo_fnc_CortexTuningSpec;
+["ADDON-settings-ready",missionNamespace getVariable ["WAIT_AITweaks_SettingsReady",false]] call _check;
+["ADDON-postinit-ready",missionNamespace getVariable ["WAIT_AITweaks_PostInitComplete",false]] call _check;
+private _spec=[] call WAIT_fnc_CortexTuningSpec;
 ["ADDON-setting-values-installed",_spec findIf {isNil {missionNamespace getVariable (_x select 0)}} < 0] call _check;
 private _keys=_spec apply {_x select 0};
 ["ADDON-setting-keys-unique",count _keys == count (_keys arrayIntersect _keys)] call _check;

@@ -78,7 +78,7 @@ def stage(package, destination, focus, root=ROOT):
  */
 '''
         f'diag_log "WMP CORTEX QA SOURCE|fingerprint={record["fingerprint"]}";\n'
-        f'if (isServer) then {{missionNamespace setVariable ["Waldo_CortexQA_Focus","{focus}",true]}};\n')
+        f'if (isServer) then {{missionNamespace setVariable ["WAIT_CortexQA_Focus","{focus}",true]}};\n')
     missing = []
     for path in mission.glob('*.sqf'):
         for name in re.findall(r'(?:execVM|preprocessFileLineNumbers)\s+"(cortexQA[^"\\]+\.sqf)"', path.read_text(encoding='utf-8-sig')):

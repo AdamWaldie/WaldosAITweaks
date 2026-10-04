@@ -14,12 +14,12 @@
  * are transient audit presentation state and are not replayed as production state.
  * Arguments: 0 check <CODE>; 1 phase <CODE>; 2 wait <CODE>. All callbacks are required.
  * Return Value: Nothing.
- * Current callers: cortexQAServer.sqf when Waldo_CortexQA_Focus is "terrain".
+ * Current callers: cortexQAServer.sqf when WAIT_CortexQA_Focus is "terrain".
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATerrain.sqf";
  */
 params ["_check","_phase","_wait"];
 
-private _auditTerrain=missionNamespace getVariable ["Waldo_CortexQA_AuditTerrain",worldName];
+private _auditTerrain=missionNamespace getVariable ["WAIT_CortexQA_AuditTerrain",worldName];
 private _realWorld=toLower worldName != "vr" && {toLower _auditTerrain != "vr"};
 ["TERRAIN-real-world",_realWorld,format ["configured=%1 world=%2",_auditTerrain,worldName]] call _check;
 if (!_realWorld) exitWith {
@@ -60,8 +60,8 @@ private _start=_centre getPos [210,180];
 private _left=_centre getPos [105,255];
 private _right=_centre getPos [105,105];
 private _candidates=[[_centre],[_left,_centre],[_right,_centre]];
-private _infantryRoute=[_start,_candidates,_threat,[],objNull,"INFANTRY"] call Waldo_fnc_CortexSelectAvenue;
-private _vehicleRoute=[_start,_candidates,_threat,[],objNull,"VEHICLE"] call Waldo_fnc_CortexSelectAvenue;
+private _infantryRoute=[_start,_candidates,_threat,[],objNull,"INFANTRY"] call WAIT_fnc_CortexSelectAvenue;
+private _vehicleRoute=[_start,_candidates,_threat,[],objNull,"VEHICLE"] call WAIT_fnc_CortexSelectAvenue;
 ["TERRAIN-infantry-avenue",_infantryRoute isNotEqualTo [],str _infantryRoute] call _check;
 ["TERRAIN-vehicle-avenue",_vehicleRoute isNotEqualTo [],str _vehicleRoute] call _check;
 
@@ -105,12 +105,12 @@ private _routeUsable={
 ["TERRAIN-vehicle-route-usable",[_start,_vehicleRoute,"VEHICLE"] call _routeUsable] call _check;
 
 private _infantryGroup=createGroup [east,true];
-_infantryGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+_infantryGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 private _infantry=[];
 for "_index" from 0 to 5 do {
     private _unit=_infantryGroup createUnit ["O_Soldier_F",_start getPos [3+_index,180],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
-    _unit setVariable ["Waldo_CortexQA_Label",format ["TERRAIN INF %1",_index+1],true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["TERRAIN INF %1",_index+1],true];
     _infantry pushBack _unit;
 };
 private _infantryOrigin=getPosATL leader _infantryGroup;
@@ -125,7 +125,7 @@ private _vehicle=createVehicle ["O_MRAP_02_F",_start getPos [12,210],[],0,"NONE"
 createVehicleCrew _vehicle;
 private _vehicleGroup=group driver _vehicle;
 (driver _vehicle) disableAI "PATH";
-_vehicleGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+_vehicleGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 {_x setVariable ["acex_headless_blacklist",true,true]} forEach crew _vehicle;
 private _vehicleOrigin=getPosATL _vehicle;
 {
@@ -135,10 +135,10 @@ private _vehicleOrigin=getPosATL _vehicle;
     _waypoint setWaypointCompletionRadius 12;
 } forEach _vehicleRoute;
 
-missionNamespace setVariable ["Waldo_CortexQA_Actors",_infantry+(crew _vehicle),true];
-{_x setVariable ["Waldo_CortexQA_Target",_centre,true]} forEach _infantry;
-_vehicle setVariable ["Waldo_CortexQA_Label","TERRAIN VEHICLE",true];
-_vehicle setVariable ["Waldo_CortexQA_Target",_centre,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_infantry+(crew _vehicle),true];
+{_x setVariable ["WAIT_CortexQA_Target",_centre,true]} forEach _infantry;
+_vehicle setVariable ["WAIT_CortexQA_Label","TERRAIN VEHICLE",true];
+_vehicle setVariable ["WAIT_CortexQA_Target",_centre,true];
 ["Uneven-ground route traversal","The infantry and wheeled vehicle must physically traverse the measured uneven sector. Cyan trails show actual travel; a selected avenue or waypoint alone cannot pass.",_centre] call _phase;
 private _infantryMoved=[{alive leader _infantryGroup && {leader _infantryGroup distance2D _infantryOrigin >= 100}},100] call _wait;
 (driver _vehicle) enableAI "PATH";
@@ -147,27 +147,27 @@ private _vehicleMoved=[{alive _vehicle && {canMove _vehicle} && {_vehicle distan
 ["TERRAIN-vehicle-physical-progress",_vehicleMoved,format ["travel=%1 speed=%2",_vehicle distance2D _vehicleOrigin,speed _vehicle]] call _check;
 
 private _defenceGroup=createGroup [east,true];
-_defenceGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+_defenceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 private _defenders=[];
 for "_index" from 0 to 5 do {
     private _unit=_defenceGroup createUnit ["O_Soldier_F",_centre getPos [55+_index*2,180],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
-    _unit setVariable ["Waldo_CortexQA_Label",format ["TERRAIN DEF %1",_index+1],true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["TERRAIN DEF %1",_index+1],true];
     _defenders pushBack _unit;
 };
-["TERRAIN-defence-accepted",[_defenceGroup,_centre,0,70] call Waldo_fnc_CortexDefend] call _check;
+["TERRAIN-defence-accepted",[_defenceGroup,_centre,0,70] call WAIT_fnc_CortexDefend] call _check;
 private _defenceArrived=[{
     _defenders findIf {
-        private _slot=_x getVariable ["Waldo_AIPass_DefendPos",[]];
+        private _slot=_x getVariable ["WAIT_AIPass_DefendPos",[]];
         !alive _x || {_slot isEqualTo []} || {_x distance2D (_slot select 0) > 4}
     } < 0
 },100] call _wait;
 ["TERRAIN-defence-physical-arrival",_defenceArrived,str (_defenders apply {getPosATL _x})] call _check;
-private _slots=_defenders apply {private _slot=_x getVariable ["Waldo_AIPass_DefendPos",[]]; if (_slot isEqualTo []) then {[0,0,0]} else {_slot select 0}};
+private _slots=_defenders apply {private _slot=_x getVariable ["WAIT_AIPass_DefendPos",[]]; if (_slot isEqualTo []) then {[0,0,0]} else {_slot select 0}};
 ["TERRAIN-defence-slots-dry-passable",_slots findIf {surfaceIsWater _x || {((surfaceNormal _x) select 2) < 0.55}} < 0,str _slots] call _check;
 
-[_defenceGroup] call Waldo_fnc_CortexDefendRelease;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+[_defenceGroup] call WAIT_fnc_CortexDefendRelease;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach (_infantry+_defenders+(crew _vehicle));
 deleteVehicle _vehicle;
 {deleteGroup _x} forEach [_infantryGroup,_vehicleGroup,_defenceGroup];
@@ -177,25 +177,25 @@ deleteVehicle _vehicle;
 // air corridor. Cortex receives ordinary objectives and natural contact; the fixture never starts a
 // drill, assigns support roles or protects actors from casualties.
 [createHashMapFromArray [
-    ["Waldo_AIPass_Enable",true],["Waldo_AIPass_Contact_Enable",true],
-    ["Waldo_AIPass_Flank_Enable",true],["Waldo_AIPass_Advance_Enable",true],
-    ["Waldo_AIPass_Assault_Enable",true],["Waldo_AIPass_CoordinatedAssault_Enable",true],
-    ["Waldo_AIPass_Reinforce_Enable",true],["Waldo_AIPass_Regroup_Enable",true],
-    ["Waldo_AIPass_FireControl_Enable",true],["Waldo_AIPass_Morale_Enable",true],
-    ["Waldo_AIPass_Artillery_Enable",false],["Waldo_Cortex_AirAttack_Enable",false]
-]] call Waldo_fnc_CortexTuning;
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
+    ["WAIT_AIPass_Flank_Enable",true],["WAIT_AIPass_Advance_Enable",true],
+    ["WAIT_AIPass_Assault_Enable",true],["WAIT_AIPass_CoordinatedAssault_Enable",true],
+    ["WAIT_AIPass_Reinforce_Enable",true],["WAIT_AIPass_Regroup_Enable",true],
+    ["WAIT_AIPass_FireControl_Enable",true],["WAIT_AIPass_Morale_Enable",true],
+    ["WAIT_AIPass_Artillery_Enable",false],["WAIT_Cortex_AirAttack_Enable",false]
+]] call WAIT_fnc_CortexTuning;
 private _battleGroups=[];
 private _battleUnits=[];
 private _battleOrigins=[];
-missionNamespace setVariable ["Waldo_CortexQA_TerrainBattleEastShots",0,true];
-missionNamespace setVariable ["Waldo_CortexQA_TerrainBattleWestShots",0,true];
+missionNamespace setVariable ["WAIT_CortexQA_TerrainBattleEastShots",0,true];
+missionNamespace setVariable ["WAIT_CortexQA_TerrainBattleWestShots",0,true];
 {
     _x params ["_side","_class","_bearing","_sideKey"];
     for "_squadIndex" from 0 to 1 do {
         private _group=createGroup [_side,true];
-        _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _group setVariable ["acex_headless_blacklist",true,true];
-        _group setVariable ["Waldo_CortexQA_TerrainBattleSide",_sideKey,true];
+        _group setVariable ["WAIT_CortexQA_TerrainBattleSide",_sideKey,true];
         _group setGroupIdGlobal [format ["Terrain battle %1 %2",_sideKey,_squadIndex+1]];
         _group allowFleeing 0;
         private _base=(_centre getPos [90,_bearing]) getPos [28,_bearing+([-90,90] select _squadIndex)];
@@ -204,11 +204,11 @@ missionNamespace setVariable ["Waldo_CortexQA_TerrainBattleWestShots",0,true];
             private _spawn=(_base getPos [(_unitIndex-2.5)*2.5,_bearing+90]);
             private _unit=_group createUnit [_class,_spawn,[],0,"NONE"];
             _unit setVariable ["acex_headless_blacklist",true,true];
-            _unit setVariable ["Waldo_CortexQA_Label",format ["TERRAIN %1.%2",_squadIndex+1,_unitIndex+1],true];
-            _unit setVariable ["Waldo_CortexQA_TerrainBattleSide",_sideKey];
+            _unit setVariable ["WAIT_CortexQA_Label",format ["TERRAIN %1.%2",_squadIndex+1,_unitIndex+1],true];
+            _unit setVariable ["WAIT_CortexQA_TerrainBattleSide",_sideKey];
             _unit addEventHandler ["FiredMan",{
                 params ["_unit"];
-                private _key="Waldo_CortexQA_TerrainBattle"+(_unit getVariable ["Waldo_CortexQA_TerrainBattleSide",""])+"Shots";
+                private _key="WAIT_CortexQA_TerrainBattle"+(_unit getVariable ["WAIT_CortexQA_TerrainBattleSide",""])+"Shots";
                 missionNamespace setVariable [_key,(missionNamespace getVariable [_key,0])+1,true];
             }];
             _battleUnits pushBack _unit;
@@ -227,11 +227,11 @@ missionNamespace setVariable ["Waldo_CortexQA_TerrainBattleWestShots",0,true];
 } forEach [[east,"O_Soldier_F",180,"East"],[west,"B_Soldier_F",0,"West"]];
 private _eastStart={alive _x && {side group _x == east}} count _battleUnits;
 private _westStart={alive _x && {side group _x == west}} count _battleUnits;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",_battleUnits,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_battleUnits,true];
 ["Uneven-terrain equal-force battle","Two equal two-squad forces follow ordinary objectives and fight across the measured slope. Watch natural contact, real fire, casualties and several groups manoeuvring. The test assigns no Cortex role and applies no invulnerability.",_centre] call _phase;
 private _battleCompleted=[{
-    private _eastShots=missionNamespace getVariable ["Waldo_CortexQA_TerrainBattleEastShots",0];
-    private _westShots=missionNamespace getVariable ["Waldo_CortexQA_TerrainBattleWestShots",0];
+    private _eastShots=missionNamespace getVariable ["WAIT_CortexQA_TerrainBattleEastShots",0];
+    private _westShots=missionNamespace getVariable ["WAIT_CortexQA_TerrainBattleWestShots",0];
     private _casualties={!alive _x} count _battleUnits;
     private _movers=0;
     {
@@ -241,16 +241,16 @@ private _battleCompleted=[{
     } forEach _battleGroups;
     _eastShots > 0 && {_westShots > 0} && {_casualties >= 2} && {_movers >= 3}
 },150] call _wait;
-private _eastShots=missionNamespace getVariable ["Waldo_CortexQA_TerrainBattleEastShots",0];
-private _westShots=missionNamespace getVariable ["Waldo_CortexQA_TerrainBattleWestShots",0];
+private _eastShots=missionNamespace getVariable ["WAIT_CortexQA_TerrainBattleEastShots",0];
+private _westShots=missionNamespace getVariable ["WAIT_CortexQA_TerrainBattleWestShots",0];
 private _casualties={!alive _x} count _battleUnits;
 private _movers=0;
 {
     if (!isNull _x && {alive leader _x} && {leader _x distance2D (_battleOrigins select _forEachIndex) >= 30}) then {_movers=_movers+1};
 } forEach _battleGroups;
-private _transitionGroups={(_x getVariable ["Waldo_Cortex_DrillTransitions",[]]) isNotEqualTo []} count _battleGroups;
+private _transitionGroups={(_x getVariable ["WAIT_Cortex_DrillTransitions",[]]) isNotEqualTo []} count _battleGroups;
 private _battleDetail=str [_eastShots,_westShots,_casualties,_movers,_transitionGroups,
-    _battleGroups apply {[_x getVariable ["Waldo_AIPass_PublicPhase",""],_x getVariable ["Waldo_Cortex_DrillResult",[]],
+    _battleGroups apply {[_x getVariable ["WAIT_AIPass_PublicPhase",""],_x getVariable ["WAIT_Cortex_DrillResult",[]],
         if (isNull leader _x) then {[]} else {getPosATL leader _x}]}];
 ["TERRAIN-BATTLE-equal-force-prerequisite",_eastStart == 12 && {_westStart == 12},str [_eastStart,_westStart]] call _check;
 ["TERRAIN-BATTLE-both-sides-actual-fire",_eastShots > 0 && {_westShots > 0},_battleDetail] call _check;
@@ -258,7 +258,7 @@ private _battleDetail=str [_eastShots,_westShots,_casualties,_movers,_transition
 ["TERRAIN-BATTLE-multi-group-physical-progress",_movers >= 3,_battleDetail] call _check;
 ["TERRAIN-BATTLE-production-tactics-observed",_transitionGroups > 0,_battleDetail] call _check;
 ["TERRAIN-BATTLE-composite-outcome",_battleCompleted,_battleDetail] call _check;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach _battleUnits;
 {deleteGroup _x} forEach _battleGroups;
 
@@ -307,12 +307,12 @@ private _airLaneFound=_airLane isNotEqualTo [];
 if (_airLaneFound) then {
     _airLane params ["_airBearing","_airStart","_airTarget","_airEnd","_airRelief","_airTerrainSamples"];
     [createHashMapFromArray [
-        ["Waldo_AIPass_Enable",true],
-        ["Waldo_Cortex_AirAttack_Enable",true],
-        ["Waldo_Cortex_AttackRunFlares_Enable",true],
-        ["Waldo_AIPass_AircraftFlares_Enable",false],
-        ["Waldo_AIPass_AircraftBreak_Enable",false]
-    ]] call Waldo_fnc_CortexTuning;
+        ["WAIT_AIPass_Enable",true],
+        ["WAIT_Cortex_AirAttack_Enable",true],
+        ["WAIT_Cortex_AttackRunFlares_Enable",true],
+        ["WAIT_AIPass_AircraftFlares_Enable",false],
+        ["WAIT_AIPass_AircraftBreak_Enable",false]
+    ]] call WAIT_fnc_CortexTuning;
 
     {
         _x params ["_id","_aircraftClass","_pattern","_height","_speed","_targetClass"];
@@ -322,12 +322,12 @@ if (_airLaneFound) then {
         _aircraft allowDamage false;
         _aircraft setVelocityModelSpace [0,_speed,0];
         _aircraft flyInHeight [_height,false];
-        _aircraft setVariable ["Waldo_Cortex_AirAttackPattern",_pattern,true];
-        _aircraft setVariable ["Waldo_CortexQA_Label",_id,true];
-        _aircraft setVariable ["Waldo_CortexQA_TerrainShots",0,true];
+        _aircraft setVariable ["WAIT_Cortex_AirAttackPattern",_pattern,true];
+        _aircraft setVariable ["WAIT_CortexQA_Label",_id,true];
+        _aircraft setVariable ["WAIT_CortexQA_TerrainShots",0,true];
         private _airCrew=crew _aircraft;
         private _airGroup=group driver _aircraft;
-        _airGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        _airGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _airGroup setVariable ["acex_headless_blacklist",true,true];
         {_x allowDamage false; _x setVariable ["acex_headless_blacklist",true,true]} forEach _airCrew;
 
@@ -336,17 +336,17 @@ if (_airLaneFound) then {
         _target allowDamage true;
         _target setFuel 0;
         _target setVehicleAmmo 0;
-        _target setVariable ["Waldo_CortexQA_Label",_id+" TERRAIN TARGET",true];
+        _target setVariable ["WAIT_CortexQA_Label",_id+" TERRAIN TARGET",true];
         private _targetCrew=crew _target;
         private _targetGroup=group driver _target;
-        _targetGroup setVariable ["Waldo_AIPass_Exclude",true,true];
+        _targetGroup setVariable ["WAIT_AIPass_Exclude",true,true];
         {_x allowDamage false; _x disableAI "PATH"; doStop _x} forEach _targetCrew;
 
         _aircraft addEventHandler ["Fired",{
             params ["_aircraft","_weapon"];
             if (toLowerANSI getText (configFile >> "CfgWeapons" >> _weapon >> "simulation") != "cmlauncher") then {
-                _aircraft setVariable ["Waldo_CortexQA_TerrainShots",
-                    (_aircraft getVariable ["Waldo_CortexQA_TerrainShots",0])+1,true];
+                _aircraft setVariable ["WAIT_CortexQA_TerrainShots",
+                    (_aircraft getVariable ["WAIT_CortexQA_TerrainShots",0])+1,true];
             };
         }];
         _airGroup setCombatMode "RED";
@@ -355,14 +355,14 @@ if (_airLaneFound) then {
         _routeWaypoint setWaypointType "MOVE";
         _routeWaypoint setWaypointBehaviour "COMBAT";
         _routeWaypoint setWaypointSpeed "FULL";
-        missionNamespace setVariable ["Waldo_CortexQA_Actors",[_aircraft,_target],true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",[_aircraft,_target],true];
         [_id,format ["%1 must join and fly the measured %2 m-relief corridor, make a real %3 attack, damage the live target and egress without terrain contact. A plan or Fired event alone cannot pass.",_aircraftClass,round _airRelief,_pattern],_airTarget] call _phase;
 
         private _origin=getPosATL _aircraft;
         private _minimumHeight=1e6;
         private _maximumTravel=0;
-        private _planStarted=[{(_aircraft getVariable ["Waldo_Cortex_AirAttackPlan",[]]) isNotEqualTo []},45] call _wait;
-        private _initialPlan=_aircraft getVariable ["Waldo_Cortex_AirAttackPlan",[]];
+        private _planStarted=[{(_aircraft getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []},45] call _wait;
+        private _initialPlan=_aircraft getVariable ["WAIT_Cortex_AirAttackPlan",[]];
         private _plannedClearance=_initialPlan param [28,0];
         private _plannedSamples=_initialPlan param [29,0];
         private _plannedViable=_initialPlan param [33,false];
@@ -378,10 +378,10 @@ if (_airLaneFound) then {
                 _maximumTravel=_maximumTravel max (_aircraft distance2D _origin);
             };
             serverTime >= _deadline || {!alive _aircraft}
-                || {_planStarted && {(_aircraft getVariable ["Waldo_Cortex_AirAttackPlan",[]]) isEqualTo []}}
+                || {_planStarted && {(_aircraft getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isEqualTo []}}
         };
-        private _shots=_aircraft getVariable ["Waldo_CortexQA_TerrainShots",0];
-        private _outcome=_aircraft getVariable ["Waldo_Cortex_AirAttackOutcome",[]];
+        private _shots=_aircraft getVariable ["WAIT_CortexQA_TerrainShots",0];
+        private _outcome=_aircraft getVariable ["WAIT_Cortex_AirAttackOutcome",[]];
         private _clearance=[45,220] select (_aircraft isKindOf "Plane");
         [_id+"-physical-flight",alive _aircraft && {_maximumTravel >= 1500}
             && {_minimumHeight >= _clearance},str [_maximumTravel,_minimumHeight,_clearance,getPosATL _aircraft,_outcome]] call _check;
@@ -391,7 +391,7 @@ if (_airLaneFound) then {
         [_id+"-finite-egress",_planStarted && {_outcome isNotEqualTo []}
             && {(_outcome param [0,""]) in ["COMPLETE","TARGET_DESTROYED"]},str _outcome] call _check;
 
-        missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
         {deleteVehicle _x} forEach (_airCrew+_targetCrew+[_aircraft,_target]);
         deleteGroup _airGroup;
         deleteGroup _targetGroup;

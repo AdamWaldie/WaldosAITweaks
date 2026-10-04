@@ -80,10 +80,10 @@ private _terrainRight=[cos _terrainHeading,-sin _terrainHeading,0];
 ["CNVM-terrain-scenario",_terrainScenarioReady,
     str [worldName,_terrainOrigin,_terrainHeading,_terrainRelief,_terrainMaximumGrade,_terrainMinimumNormal]] call _check;
 if (!_terrainScenarioReady) exitWith {};
-private _columnOnly=(missionNamespace getVariable ["Waldo_CortexQA_Focus","all"]) in ["convoycolumn","convoytracked"];
-private _trackedOnly=(missionNamespace getVariable ["Waldo_CortexQA_Focus","all"]) == "convoytracked";
-private _followDiagnostic=(missionNamespace getVariable ["Waldo_CortexQA_Focus","all"]) == "convoyfollow";
-private _diagnostic=(missionNamespace getVariable ["Waldo_CortexQA_Focus","all"]) == "convoydiagnostic";
+private _columnOnly=(missionNamespace getVariable ["WAIT_CortexQA_Focus","all"]) in ["convoycolumn","convoytracked"];
+private _trackedOnly=(missionNamespace getVariable ["WAIT_CortexQA_Focus","all"]) == "convoytracked";
+private _followDiagnostic=(missionNamespace getVariable ["WAIT_CortexQA_Focus","all"]) == "convoyfollow";
+private _diagnostic=(missionNamespace getVariable ["WAIT_CortexQA_Focus","all"]) == "convoydiagnostic";
 private _types = [
     ["BASELINE-WHEELED",["O_MRAP_02_F","O_Truck_03_transport_F","O_Truck_03_transport_F"]],
     ["BASELINE-TRACKED",["O_APC_Tracked_02_cannon_F","O_APC_Tracked_02_cannon_F","O_APC_Tracked_02_cannon_F"]],
@@ -109,7 +109,7 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
         private _id = format ["CNVM-%1-%2",_label,_spacing];
         [_id,"This case creates operating crew, no cargo passengers: all must stay aboard. Watch their labelled vehicles and actual tracks on the 1 km straight, then a deliberate halt/resume. Separate cases test corners. BASELINE labels identify engine-only comparisons.",[2500,2500] call _terrainPosition] call _phase;
         private _group = createGroup [east,true];
-        _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _group setVariable ["acex_headless_blacklist",true,true];
         private _vehicles=[];
         private _fixtureCrew=[];
@@ -117,22 +117,22 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
         {
             private _vehicle=createVehicle [_x,[2500,2500-_forEachIndex*_spacing] call _terrainPosition,[],0,"NONE"];
             _vehicle setDir _terrainHeading;
-            _vehicle setVariable ["Waldo_CortexQA_GapBand",[_spacing*0.8,_spacing*1.2],true];
+            _vehicle setVariable ["WAIT_CortexQA_GapBand",[_spacing*0.8,_spacing*1.2],true];
             createVehicleCrew _vehicle;
             private _vehicleNumber=_forEachIndex+1;
             {
                 _fixtureCrew pushBack [_x,_vehicle];
-                _x setVariable ["Waldo_CortexQA_Label",format ["%1 / vehicle %2 crew",_id,_vehicleNumber],true];
+                _x setVariable ["WAIT_CortexQA_Label",format ["%1 / vehicle %2 crew",_id,_vehicleNumber],true];
             } forEach crew _vehicle;
-            _vehicle setVariable ["Waldo_CortexQA_Case",_id,true];
-            _vehicle setVariable ["Waldo_CortexQA_Exits",[],true];
+            _vehicle setVariable ["WAIT_CortexQA_Case",_id,true];
+            _vehicle setVariable ["WAIT_CortexQA_Exits",[],true];
             _vehicle addEventHandler ["GetOut",{
                 params ["_vehicle","_role","_unit"];
                 if (isNull _unit) exitWith {}; // Deleted fixture occupants are cleanup, not physical exits.
-                private _exits=_vehicle getVariable ["Waldo_CortexQA_Exits",[]];
+                private _exits=_vehicle getVariable ["WAIT_CortexQA_Exits",[]];
                 _exits pushBack [netId _unit,_role,serverTime,getPosATL _vehicle];
-                _vehicle setVariable ["Waldo_CortexQA_Exits",_exits,true];
-                diag_log format ["WMP CORTEX QA MATRIX CREW EXIT: case=%1 unit=%2 role=%3 position=%4 assigned=%5 assignedRole=%6 command=%7 convoyActive=%8",_vehicle getVariable ["Waldo_CortexQA_Case",""],netId _unit,_role,getPosATL _unit,assignedVehicle _unit,assignedVehicleRole _unit,currentCommand _unit,_vehicle getVariable ["Waldo_Convoy_Active",false]];
+                _vehicle setVariable ["WAIT_CortexQA_Exits",_exits,true];
+                diag_log format ["WMP CORTEX QA MATRIX CREW EXIT: case=%1 unit=%2 role=%3 position=%4 assigned=%5 assignedRole=%6 command=%7 convoyActive=%8",_vehicle getVariable ["WAIT_CortexQA_Case",""],netId _unit,_role,getPosATL _unit,assignedVehicle _unit,assignedVehicleRole _unit,currentCommand _unit,_vehicle getVariable ["WAIT_Convoy_Active",false]];
             }];
             private _old=group driver _vehicle;
             (crew _vehicle) joinSilent _group;
@@ -140,16 +140,16 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
             {_x setVariable ["acex_headless_blacklist",true,true]} forEach crew _vehicle;
             _vehicles pushBack _vehicle;
         } forEach _classes;
-        missionNamespace setVariable ["Waldo_CortexQA_Actors",_fixtureCrew apply {_x select 0},true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",_fixtureCrew apply {_x select 0},true];
         _group selectLeader driver (_vehicles select 0);
         _group setBehaviour "SAFE";
         _group setCombatMode "BLUE";
         private _wp=_group addWaypoint [[2500,3500] call _terrainPosition,0]; _wp setWaypointType "MOVE";
         _wp=_group addWaypoint [[2900,3500] call _terrainPosition,0]; _wp setWaypointType "MOVE";
         _wp=_group addWaypoint [[2900,3900] call _terrainPosition,0]; _wp setWaypointType "MOVE";
-        missionNamespace setVariable ["Waldo_CortexQA_ConvoyVehicles",_vehicles,true];
+        missionNamespace setVariable ["WAIT_CortexQA_ConvoyVehicles",_vehicles,true];
         if (_baseline) then {
-            _group setVariable ["Waldo_AIPass_Exclude",true,true];
+            _group setVariable ["WAIT_AIPass_Exclude",true,true];
             _group setFormation "COLUMN"; _group enableAttack false;
             {
                 _x limitSpeed 34.5;
@@ -162,7 +162,7 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
             if (_label == "BASELINE-DRIVER-FOLLOW") then {{if (_forEachIndex > 0) then {(driver _x) doFollow leader _group}} forEach _vehicles};
             if (_label == "BASELINE-VEHICLE-FOLLOW") then {{if (_forEachIndex > 0) then {_x doFollow leader _group}} forEach _vehicles};
             [_id+"-fixture",count _vehicles == 3 && {_vehicles findIf {!alive driver _x} < 0}] call _check;
-        } else {[_id+"-start",[_group,30,_spacing,true] call Waldo_fnc_SimpleAiConvoy] call _check};
+        } else {[_id+"-start",[_group,30,_spacing,true] call WAIT_fnc_SimpleAiConvoy] call _check};
         private _origins=_vehicles apply {getPosATL _x};
         private _samples=[0,0,0];
         private _stops=[0,0,0];
@@ -208,7 +208,7 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
                     private _tolerance=(_targetGap*0.2) max 3;
                     private _low=(_targetGap-_tolerance) max (_bodyLengths*0.5+5);
                     private _high=_targetGap+_tolerance;
-                    _x setVariable ["Waldo_CortexQA_GapBand",[_low,_high],true];
+                    _x setVariable ["WAIT_CortexQA_GapBand",[_low,_high],true];
                     if (_gap >= _low && {_gap <= _high}) then {_gapInBand set [_slot,(_gapInBand select _slot)+1]};
                     _minimumGaps set [_slot,(_minimumGaps select _slot) min _gap];
                     _maximumGaps set [_slot,(_maximumGaps select _slot) max _gap];
@@ -242,8 +242,8 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
         [_id+"-physical-progress",_travelled,str (_vehicles apply {getPosATL _x})] call _check;
         if (!_baseline) then {
             diag_log format ["WMP CORTEX QA HALT SEATS BEFORE: case=%1 seats=%2",_id,_vehicles apply {fullCrew [_x,"",false]}];
-            [_group,0,_spacing,true] call Waldo_fnc_SimpleAiConvoy;
-            private _registeredHalt=(missionNamespace getVariable ["Waldo_Convoy_Registry",[]]) select {(_x select 0) == _group};
+            [_group,0,_spacing,true] call WAIT_fnc_SimpleAiConvoy;
+            private _registeredHalt=(missionNamespace getVariable ["WAIT_Convoy_Registry",[]]) select {(_x select 0) == _group};
             diag_log format ["WMP CORTEX QA HALT REQUEST: case=%1 registry=%2",_id,_registeredHalt];
             private _halted=[{_vehicles findIf {abs speed _x > 1} < 0},20] call _wait;
             [_id+"-halt-stationary",_halted,str (_vehicles apply {[speed _x,getForcedSpeed _x,currentCommand driver _x,expectedDestination driver _x,owner _x]})] call _check;
@@ -253,7 +253,7 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
             } forEach _vehicles;
             private _restartOrigins=_vehicles apply {getPosATL _x};
             [_id+" restart","Same straight route after a deliberate stop: every vehicle must resume forwards without a U-turn or long hold. Heading and actual destinations are recorded.",getPosATL (_vehicles select 1)] call _phase;
-            [_id+"-resume-accepted",[_group,30,_spacing,true] call Waldo_fnc_SimpleAiConvoy] call _check;
+            [_id+"-resume-accepted",[_group,30,_spacing,true] call WAIT_fnc_SimpleAiConvoy] call _check;
             private _turned=false;
             private _resumed=[{
                 private _moving=true;
@@ -266,14 +266,14 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
             [_id+"-resume-forward-progress",_resumed] call _check;
             [_id+"-resume-no-turnaround",!_turned] call _check;
         };
-        [_id+"-operating-crew-retained",_fixtureCrew findIf {!alive (_x select 0) || {vehicle (_x select 0) != (_x select 1)}} < 0 && {_vehicles findIf {(_x getVariable ["Waldo_CortexQA_Exits",[]]) isNotEqualTo []} < 0},str (_vehicles apply {_x getVariable ["Waldo_CortexQA_Exits",[]]})] call _check;
-        if (!_baseline) then {[_group,0,_spacing,true,true] call Waldo_fnc_SimpleAiConvoy};
+        [_id+"-operating-crew-retained",_fixtureCrew findIf {!alive (_x select 0) || {vehicle (_x select 0) != (_x select 1)}} < 0 && {_vehicles findIf {(_x getVariable ["WAIT_CortexQA_Exits",[]]) isNotEqualTo []} < 0},str (_vehicles apply {_x getVariable ["WAIT_CortexQA_Exits",[]]})] call _check;
+        if (!_baseline) then {[_group,0,_spacing,true,true] call WAIT_fnc_SimpleAiConvoy};
         // Delete the original fixture roster, including anyone now on foot or in another seat.
         {deleteVehicle (_x select 0)} forEach _fixtureCrew;
         [_id+"-fixture-cleanup",[{_fixtureCrew findIf {!isNull (_x select 0)} < 0},10] call _wait] call _check;
-        missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
         {private _v=_x; {deleteVehicle _x} forEach crew _v; deleteVehicle _v} forEach _vehicles;
         deleteGroup _group;
-        missionNamespace setVariable ["Waldo_CortexQA_ConvoyVehicles",[],true];
+        missionNamespace setVariable ["WAIT_CortexQA_ConvoyVehicles",[],true];
     } forEach (if (_diagnostic) then {[30]} else {if (_columnOnly) then {[30,50]} else {[[15,30,50,75],[50]] select _baseline}});
 } forEach _types;

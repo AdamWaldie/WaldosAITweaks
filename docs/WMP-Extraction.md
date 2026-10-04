@@ -1,6 +1,6 @@
 # WMP extraction boundary
 
-Waldos AI Tweaks preserves the existing `Waldo_fnc_*` API and `Waldo_*` feature flags so missions can
+Waldos AI Tweaks preserves the existing `WAIT_fnc_*` API and `WAIT_*` feature flags so missions can
 move AI settings without rewriting calls. The standalone bootstrap replaces WMP's feature-runtime
 snapshot dependency while retaining guarded defaults, locality ownership and JIP readiness.
 

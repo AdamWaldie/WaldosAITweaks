@@ -6,7 +6,7 @@ class FSM
         class Init
         {
             name = "Init";
-            init = "_group = _this param [0,grpNull,[grpNull]]; _token = _this param [1,"""",[""""]]; _epoch = _group getVariable [""Waldo_AIPass_Epoch"",0]; _job = createHashMapFromArray [[""group"",_group],[""drillToken"",_token],[""done"",false],[""cancelled"",false]]; _finished = false;";
+            init = "_group = _this param [0,grpNull,[grpNull]]; _token = _this param [1,"""",[""""]]; _epoch = _group getVariable [""WAIT_AIPass_Epoch"",0]; _job = createHashMapFromArray [[""group"",_group],[""drillToken"",_token],[""done"",false],[""cancelled"",false]]; _finished = false;";
             precondition = "";
             class Links
             {
@@ -31,7 +31,7 @@ class FSM
         class Step
         {
             name = "Step";
-            init = "[{params [""_job""]; if (_job get ""cancelled"") exitWith {-1}; private _delay = [_job] call Waldo_fnc_CortexFlankStep; if (isNil ""_delay"" || {!(_delay isEqualType 0)} || {_delay < 0}) exitWith {_job set [""done"",true]; -1}; _delay},_job,0] call Waldo_fnc_CortexQueueJob;";
+            init = "[{params [""_job""]; if (_job get ""cancelled"") exitWith {-1}; private _delay = [_job] call WAIT_fnc_CortexFlankStep; if (isNil ""_delay"" || {!(_delay isEqualType 0)} || {_delay < 0}) exitWith {_job set [""done"",true]; -1}; _delay},_job,0] call WAIT_fnc_CortexQueueJob;";
             precondition = "";
             class Links
             {
@@ -65,7 +65,7 @@ class FSM
                     priority = 3.000000;
                     to = "Finished";
                     precondition = "";
-                    condition = "isNull _group || {!local _group} || {(_group getVariable [""Waldo_AIPass_Epoch"",0]) != _epoch} || {!(missionNamespace getVariable [""Waldo_AIPass_Active"",false])}";
+                    condition = "isNull _group || {!local _group} || {(_group getVariable [""WAIT_AIPass_Epoch"",0]) != _epoch} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])}";
                     action = "_finished = true;";
                 };
                 class CompletedJob
@@ -81,7 +81,7 @@ class FSM
         class Finished
         {
             name = "Finished";
-            init = "_job set [""cancelled"",true]; if (!isNull _group) then {private _record = _group getVariable [""Waldo_Cortex_DrillFSM"",[]]; if (count _record == 2 && {(_record select 0) == _token} && {(_record select 1) == _thisFSM}) then {_group setVariable [""Waldo_Cortex_DrillFSM"",nil]}};";
+            init = "_job set [""cancelled"",true]; if (!isNull _group) then {private _record = _group getVariable [""WAIT_Cortex_DrillFSM"",[]]; if (count _record == 2 && {(_record select 0) == _token} && {(_record select 1) == _thisFSM}) then {_group setVariable [""WAIT_Cortex_DrillFSM"",nil]}};";
             precondition = "";
             class Links {};
         };

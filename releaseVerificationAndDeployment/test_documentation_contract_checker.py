@@ -42,10 +42,10 @@ class DocumentationContractTests(unittest.TestCase):
 
     def test_detects_duplicate_settings_and_bypassed_shared_spec(self):
         self.copy_settings_contract()
-        p=self.root/'addons/main/functions/Cortex/cortexTuningSpec.sqf'
-        s=p.read_text(); s=s.replace('["Waldo_HelicopterDeceleration_Enable",','["Waldo_ImprovedHelicopterLanding_Enable",'); p.write_text(s)
-        p=self.root/'addons/main/functions/aiTweaksRegisterSettings.sqf'
-        p.write_text(p.read_text().replace('call Waldo_fnc_CortexTuningSpec','call Waldo_fnc_Unrelated'))
+        p=self.root/'addons/core/functions/cortexTuningSpec.sqf'
+        s=p.read_text(); s=s.replace('["WAIT_HelicopterDeceleration_Enable",','["WAIT_ImprovedHelicopterLanding_Enable",'); p.write_text(s)
+        p=self.root/'addons/core/functions/aiTweaksRegisterSettings.sqf'
+        p.write_text(p.read_text().replace('call WAIT_fnc_CortexTuningSpec','call WAIT_fnc_Unrelated'))
         problems=parity.audit(self.root)
         self.assertTrue(any('duplicate setting' in f for f in problems))
         self.assertTrue(any('bypasses' in f for f in problems))

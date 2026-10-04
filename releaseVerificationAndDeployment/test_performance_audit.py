@@ -19,7 +19,7 @@ class PerformanceAuditTests(unittest.TestCase):
         self.assertEqual(performance_audit.audit_source(source, "sample.sqf"), [])
 
     def test_tight_unbounded_loop_is_high_severity(self):
-        source = "Waldo_fnc_Test = { while {true} do { call Waldo_fnc_Work; }; };"
+        source = "WAIT_fnc_Test = { while {true} do { call WAIT_fnc_Work; }; };"
         findings = performance_audit.audit_source(source, "sample.sqf")
         categories = {(item.category, item.severity) for item in findings}
         self.assertIn(("unbounded_scheduler", "high"), categories)
@@ -27,7 +27,7 @@ class PerformanceAuditTests(unittest.TestCase):
 
     def test_recurring_scan_and_broadcast_are_attributed(self):
         source = '''
-        Waldo_fnc_Test = {
+        WAIT_fnc_Test = {
             while {missionNamespace getVariable ["Running", false]} do {
                 { _x setVariable ["Ready", true, true]; } forEach allPlayers;
                 uiSleep 0.25;
@@ -36,23 +36,23 @@ class PerformanceAuditTests(unittest.TestCase):
         '''
         findings = performance_audit.audit_source(source, "MissionScripts/Test.sqf")
         keyed = {(item.category, item.function) for item in findings}
-        self.assertIn(("recurring_world_scan", "Waldo_fnc_Test"), keyed)
-        self.assertIn(("recurring_broadcast", "Waldo_fnc_Test"), keyed)
+        self.assertIn(("recurring_world_scan", "WAIT_fnc_Test"), keyed)
+        self.assertIn(("recurring_broadcast", "WAIT_fnc_Test"), keyed)
 
     def test_finite_algorithm_loop_is_not_treated_as_scheduler(self):
         source = "while {(count _deck) > 0} do { _deck deleteAt 0; };"
         self.assertEqual(performance_audit.audit_source(source, "cards.sqf"), [])
 
     def test_symbolic_sleep_prevents_tight_loop_finding(self):
-        source = "Waldo_fnc_Test = { while {true} do { sleep Waldo_CFG_TICK; }; };"
+        source = "WAIT_fnc_Test = { while {true} do { sleep WAIT_CFG_TICK; }; };"
         findings = performance_audit.audit_source(source, "sample.sqf")
         self.assertNotIn("tight_loop", {item.category for item in findings})
 
     def test_refresh_call_in_fast_loop_is_reported(self):
         source = '''
-        Waldo_fnc_Open = {
+        WAIT_fnc_Open = {
             while {!isNull _display} do {
-                [_display] call Waldo_fnc_RefreshPanel;
+                [_display] call WAIT_fnc_RefreshPanel;
                 uiSleep 0.1;
             };
         };
@@ -62,24 +62,24 @@ class PerformanceAuditTests(unittest.TestCase):
 
     def test_baseline_rejects_expansion(self):
         finding = performance_audit.Finding(
-            "recurring_broadcast", "high", "a.sqf", "Waldo_fnc_A", 2, (2, 3), "test"
+            "recurring_broadcast", "high", "a.sqf", "WAIT_fnc_A", 2, (2, 3), "test"
         )
         with tempfile.TemporaryDirectory(dir=self.temp_root) as directory:
             baseline = Path(directory) / "baseline.json"
             baseline.write_text(
-                '{"accepted":[{"key":"recurring_broadcast|a.sqf|Waldo_fnc_A|test",'
+                '{"accepted":[{"key":"recurring_broadcast|a.sqf|WAIT_fnc_A|test",'
                 '"max_count":1,"reason":"state is change-gated"}]}'
             )
             self.assertEqual(performance_audit.evaluate([finding], baseline), [finding])
 
     def test_baseline_rejects_placeholder_reason(self):
         finding = performance_audit.Finding(
-            "recurring_broadcast", "high", "a.sqf", "Waldo_fnc_A", 1, (2,), "test"
+            "recurring_broadcast", "high", "a.sqf", "WAIT_fnc_A", 1, (2,), "test"
         )
         with tempfile.TemporaryDirectory(dir=self.temp_root) as directory:
             baseline = Path(directory) / "baseline.json"
             baseline.write_text(
-                '{"accepted":[{"key":"recurring_broadcast|a.sqf|Waldo_fnc_A|test",'
+                '{"accepted":[{"key":"recurring_broadcast|a.sqf|WAIT_fnc_A|test",'
                 '"max_count":1,"reason":"REVIEW REQUIRED: explain this."}]}'
             )
             self.assertEqual(performance_audit.evaluate([finding], baseline), [finding])

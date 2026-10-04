@@ -51,12 +51,12 @@
       "setup": "Use ordinary, excluded, player-led, Zeus-controlled and feature-owned squads. Toggle Cortex and transfer ownership during movement.",
       "expected": "Only eligible squads receive orders; disabled/excluded squads retain authored orders; old-owner jobs stop and one new owner resumes.",
       "settings": [
-        "Waldo_AIPass_Enable",
-        "Waldo_AIPass_IncludedSides",
-        "Waldo_AIPass_ZeusHoldSeconds"
+        "WAIT_AIPass_Enable",
+        "WAIT_AIPass_IncludedSides",
+        "WAIT_AIPass_ZeusHoldSeconds"
       ],
       "controls": [
-        "Waldo_AIPass_Exclude"
+        "WAIT_AIPass_Exclude"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -69,31 +69,35 @@
         "runAddon.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCombatEffective.sqf",
-        "addons/main/functions/Cortex/cortexDiscover.sqf",
-        "addons/main/functions/Cortex/cortexFeatureEnabled.sqf",
-        "addons/main/functions/Cortex/cortexGroupState.sqf",
-        "addons/main/functions/Cortex/cortexGroupTick.sqf",
-        "addons/main/functions/Cortex/cortexInit.sqf",
-        "addons/main/functions/Cortex/cortexIsEligible.sqf",
-        "addons/main/functions/Cortex/cortexKnowledge.sqf",
-        "addons/main/functions/Cortex/cortexReleaseGroup.sqf",
-        "addons/main/functions/Cortex/cortexRestoreCalm.sqf",
-        "addons/main/functions/Cortex/cortexSettingsLocal.sqf",
-        "addons/main/functions/Cortex/cortexStop.sqf",
-        "addons/main/functions/Cortex/cortexTuning.sqf",
-        "addons/main/functions/Cortex/cortexTuningSpec.sqf",
-        "addons/main/functions/Cortex/cortexInfantrySpeed.sqf",
-        "addons/main/functions/aiTweaksDetectCompatibility.sqf",
-        "addons/main/functions/aiTweaksDiagnosticReport.sqf",
-        "addons/main/functions/aiTweaksNotifyLocal.sqf",
-        "addons/main/functions/aiTweaksRegisterSettings.sqf",
-        "addons/main/functions/aiTweaksSettingChanged.sqf",
-        "addons/main/functions/aiTweaksSettingsRequestServer.sqf",
-        "addons/main/functions/aiTweaksUiTheme.sqf",
-        "addons/main/functions/headlessResolveSender.sqf",
-        "addons/main/functions/zenConvoyModule.sqf",
-        "addons/main/functions/Cortex/cortexDrillStart.sqf"
+        "addons/infantry/functions/cortexCombatEffective.sqf",
+        "addons/core/functions/cortexDiscover.sqf",
+        "addons/infantry/functions/cortexFeatureEnabled.sqf",
+        "addons/infantry/functions/cortexGroupState.sqf",
+        "addons/infantry/functions/cortexGroupTick.sqf",
+        "addons/core/functions/cortexInit.sqf",
+        "addons/infantry/functions/cortexIsEligible.sqf",
+        "addons/infantry/functions/cortexKnowledge.sqf",
+        "addons/infantry/functions/cortexReleaseGroup.sqf",
+        "addons/infantry/functions/cortexRestoreCalm.sqf",
+        "addons/core/functions/cortexSettingsLocal.sqf",
+        "addons/core/functions/cortexStop.sqf",
+        "addons/core/functions/cortexTuning.sqf",
+        "addons/core/functions/cortexTuningSpec.sqf",
+        "addons/infantry/functions/cortexInfantrySpeed.sqf",
+        "addons/compatibility/functions/aiTweaksDetectCompatibility.sqf",
+        "addons/core/functions/aiTweaksDiagnosticReport.sqf",
+        "addons/core/functions/aiTweaksNotifyLocal.sqf",
+        "addons/core/functions/aiTweaksRegisterSettings.sqf",
+        "addons/core/functions/aiTweaksSettingChanged.sqf",
+        "addons/core/functions/aiTweaksSettingsRequestServer.sqf",
+        "addons/core/functions/aiTweaksUiTheme.sqf",
+        "addons/core/functions/headlessResolveSender.sqf",
+        "addons/vehicles/functions/zenConvoyModule.sqf",
+        "addons/infantry/functions/cortexDrillStart.sqf",
+        "addons/main/XEH_postInit.sqf",
+        "addons/main/XEH_preInit.sqf",
+        "addons/main/bootstrap/zenRegister.sqf",
+        "addons/main/settings/aiConfig.sqf"
       ]
     },
     {
@@ -102,7 +106,7 @@
       "setup": "Run the same fresh dedicated-server squad audit twice: once without COMPAT and once with -IncludeCompatibility loading Danger, Turrets, Suppression and RPG plus two headless clients. In the loaded arm exercise active-tactic, forced-movement and waypoint-task ownership before a clean Cortex lease, owner migration and Zeus replacement order.",
       "expected": "Without COMPAT, Cortex physically moves and holds the whole squad with no upstream dependency. With COMPAT loaded, its public Waypoints tasks are the primary garrison/CQB backend in both Danger ownership modes. Cortex never steals queued or active COMPAT movement, finite leases restore both false and true group baselines, a new HC owner renews or reconstructs semantic intent, Zeus interruption releases ownership, and every soldier physically follows the replacement order without old-route resurrection.",
       "settings": [
-        "Waldo_AIPass_InfantryOwnership"
+        "WAIT_AIPass_InfantryOwnership"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -115,9 +119,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexBuildingBackendRelease.sqf",
-        "addons/main/functions/Cortex/cortexBuildingBackendStart.sqf",
-        "addons/main/functions/Cortex/cortexOwnershipLease.sqf"
+        "addons/compatibility/functions/cortexBuildingBackendRelease.sqf",
+        "addons/compatibility/functions/cortexBuildingBackendStart.sqf",
+        "addons/compatibility/functions/cortexOwnershipLease.sqf"
       ]
     },
     {
@@ -126,17 +130,17 @@
       "setup": "Use 50 groups as the primary acceptance load, with separate six-soldier infantry and mixed infantry, ground vehicle, helicopter and jet fixtures. Repeat OFF/ON/ON/OFF for the server-only scheduler baseline and under distributed HC ownership, collecting frame-time distributions, queue age and physical response latency. Preserve prior 100-group runs as historical saturation evidence rather than repeating them in the routine full audit.",
       "expected": "All 50 groups must remain responsive without significant overhead versus the matched native baseline. User-confirmed budget: <=5% median and <=10% p95 added frame time at 50 groups, with no stalled AI jobs. No starvation, duplicate controllers, or disabled-feature work. The twelve one-unit queue fixture and historical 100-group results are not primary scale acceptance.",
       "settings": [
-        "Waldo_AIPass_Debug",
-        "Waldo_AIPass_DiscoveryInterval",
-        "Waldo_AIPass_FarRange",
-        "Waldo_AIPass_LowFpsThreshold",
-        "Waldo_AIPass_NearRange",
-        "Waldo_AIPass_ReactionSpeed",
-        "Waldo_AIPass_TickBudgetMs",
-        "Waldo_AIPass_TickContact",
-        "Waldo_AIPass_TickFar",
-        "Waldo_AIPass_TickMid",
-        "Waldo_AIPass_TickNear"
+        "WAIT_AIPass_Debug",
+        "WAIT_AIPass_DiscoveryInterval",
+        "WAIT_AIPass_FarRange",
+        "WAIT_AIPass_LowFpsThreshold",
+        "WAIT_AIPass_NearRange",
+        "WAIT_AIPass_ReactionSpeed",
+        "WAIT_AIPass_TickBudgetMs",
+        "WAIT_AIPass_TickContact",
+        "WAIT_AIPass_TickFar",
+        "WAIT_AIPass_TickMid",
+        "WAIT_AIPass_TickNear"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -151,10 +155,10 @@
         "runPerformanceContact.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCooldown.sqf",
-        "addons/main/functions/Cortex/cortexIsPaused.sqf",
-        "addons/main/functions/Cortex/cortexQueueJob.sqf",
-        "addons/main/functions/Cortex/cortexSchedulerTick.sqf"
+        "addons/infantry/functions/cortexCooldown.sqf",
+        "addons/infantry/functions/cortexIsPaused.sqf",
+        "addons/core/functions/cortexQueueJob.sqf",
+        "addons/core/functions/cortexSchedulerTick.sqf"
       ]
     },
     {
@@ -163,13 +167,13 @@
       "setup": "Exercise each profile, faction override and group override; repeat with aggression zero and maximum.",
       "expected": "Precedence is correct; zero excludes proactive starts; positive flank/advance values choose a tactic instead of independently rejecting action; skill values remain independent.",
       "settings": [
-        "Waldo_AIPass_Aggression",
-        "Waldo_AIPass_BehaviourProfile",
-        "Waldo_AIPass_FactionProfiles",
-        "Waldo_AIPass_ProfileBehaviour"
+        "WAIT_AIPass_Aggression",
+        "WAIT_AIPass_BehaviourProfile",
+        "WAIT_AIPass_FactionProfiles",
+        "WAIT_AIPass_ProfileBehaviour"
       ],
       "controls": [
-        "Waldo_AIPass_Profile"
+        "WAIT_AIPass_Profile"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -180,7 +184,7 @@
         "runProfiles.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexProfile.sqf"
+        "addons/core/functions/cortexProfile.sqf"
       ]
     },
     {
@@ -189,20 +193,20 @@
       "setup": "Spawn eligible and filtered units before/after enabling; sample actual subskills, day/night variants and restoration.",
       "expected": "Expected units receive configured skills once, variance remains stable, excluded/player units retain their values and stop restores captured values.",
       "settings": [
-        "Waldo_AIRebalance_Enable",
-        "Waldo_AIRebalance_Profile",
-        "Waldo_AI_ApplyMode",
-        "Waldo_AI_ExcludedClasses",
-        "Waldo_AI_ExcludedFactions",
-        "Waldo_AI_IncludedFactions",
-        "Waldo_AI_IncludedSides",
-        "Waldo_AI_ProfileDisplayNames",
-        "Waldo_AI_RestoreOnStop",
-        "Waldo_AI_SkillVariance",
-        "Waldo_AI_InfantryDispersion",
-        "Waldo_AI_VehicleCrewAimMultiplier",
-        "Waldo_AI_VehicleCrewDispersion",
-        "Waldo_AI_AirCrewDispersion"
+        "WAIT_AIRebalance_Enable",
+        "WAIT_AIRebalance_Profile",
+        "WAIT_AI_ApplyMode",
+        "WAIT_AI_ExcludedClasses",
+        "WAIT_AI_ExcludedFactions",
+        "WAIT_AI_IncludedFactions",
+        "WAIT_AI_IncludedSides",
+        "WAIT_AI_ProfileDisplayNames",
+        "WAIT_AI_RestoreOnStop",
+        "WAIT_AI_SkillVariance",
+        "WAIT_AI_InfantryDispersion",
+        "WAIT_AI_VehicleCrewAimMultiplier",
+        "WAIT_AI_VehicleCrewDispersion",
+        "WAIT_AI_AirCrewDispersion"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -211,10 +215,10 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/aiApplyProfile.sqf",
-        "addons/main/functions/aiRebalanceInit.sqf",
-        "addons/main/functions/aiRebalanceStop.sqf",
-        "addons/main/functions/AISkillAdjustmentSystem.sqf"
+        "addons/core/functions/aiApplyProfile.sqf",
+        "addons/core/functions/aiRebalanceInit.sqf",
+        "addons/core/functions/aiRebalanceStop.sqf",
+        "addons/core/functions/AISkillAdjustmentSystem.sqf"
       ]
     },
     {
@@ -223,27 +227,27 @@
       "setup": "Fly a crewed helicopter to real LAND/GETOUT waypoints over clear and obstructed terrain; delete/replace the waypoint in flight.",
       "expected": "Aircraft physically approaches, touches down and holds; terrain clearance, bounded go-around and cleanup survive transfer/deletion.",
       "settings": [
-        "Waldo_ImprovedHelicopterLanding_ControlInterval",
-        "Waldo_ImprovedHelicopterLanding_Enable",
-        "Waldo_ImprovedHelicopterLanding_FinalCommitDistance",
-        "Waldo_ImprovedHelicopterLanding_GlideSlopeRatio",
-        "Waldo_ImprovedHelicopterLanding_GoAroundExitDistance",
-        "Waldo_ImprovedHelicopterLanding_GoAroundHeight",
-        "Waldo_ImprovedHelicopterLanding_GoAroundSpeed",
-        "Waldo_ImprovedHelicopterLanding_GoAroundTriggerDistance",
-        "Waldo_ImprovedHelicopterLanding_MaximumClimbRate",
-        "Waldo_ImprovedHelicopterLanding_MaximumDescentRate",
-        "Waldo_ImprovedHelicopterLanding_MaximumGoArounds",
-        "Waldo_ImprovedHelicopterLanding_MaximumTreeHoverHeight",
-        "Waldo_ImprovedHelicopterLanding_MinimumActivationDistance",
-        "Waldo_ImprovedHelicopterLanding_MinimumApproachSpeed",
-        "Waldo_ImprovedHelicopterLanding_TouchdownHoldSeconds",
-        "Waldo_ImprovedHelicopterLanding_TouchdownRadius",
-        "Waldo_ImprovedHelicopterLanding_TransitAltitude",
-        "Waldo_ImprovedHelicopterLanding_TreeSafetyBuffer",
-        "Waldo_ImprovedHelicopterLanding_TreeScanRadius",
-        "Waldo_ImprovedHelicopterLanding_TriggerDistance",
-        "Waldo_ImprovedHelicopterLanding_TriggerSpeedFactor"
+        "WAIT_ImprovedHelicopterLanding_ControlInterval",
+        "WAIT_ImprovedHelicopterLanding_Enable",
+        "WAIT_ImprovedHelicopterLanding_FinalCommitDistance",
+        "WAIT_ImprovedHelicopterLanding_GlideSlopeRatio",
+        "WAIT_ImprovedHelicopterLanding_GoAroundExitDistance",
+        "WAIT_ImprovedHelicopterLanding_GoAroundHeight",
+        "WAIT_ImprovedHelicopterLanding_GoAroundSpeed",
+        "WAIT_ImprovedHelicopterLanding_GoAroundTriggerDistance",
+        "WAIT_ImprovedHelicopterLanding_MaximumClimbRate",
+        "WAIT_ImprovedHelicopterLanding_MaximumDescentRate",
+        "WAIT_ImprovedHelicopterLanding_MaximumGoArounds",
+        "WAIT_ImprovedHelicopterLanding_MaximumTreeHoverHeight",
+        "WAIT_ImprovedHelicopterLanding_MinimumActivationDistance",
+        "WAIT_ImprovedHelicopterLanding_MinimumApproachSpeed",
+        "WAIT_ImprovedHelicopterLanding_TouchdownHoldSeconds",
+        "WAIT_ImprovedHelicopterLanding_TouchdownRadius",
+        "WAIT_ImprovedHelicopterLanding_TransitAltitude",
+        "WAIT_ImprovedHelicopterLanding_TreeSafetyBuffer",
+        "WAIT_ImprovedHelicopterLanding_TreeScanRadius",
+        "WAIT_ImprovedHelicopterLanding_TriggerDistance",
+        "WAIT_ImprovedHelicopterLanding_TriggerSpeedFactor"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -254,13 +258,13 @@
         "runLanding.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/improvedHelicopterLandingAnchorLocal.sqf",
-        "addons/main/functions/improvedHelicopterLandingConfigureServer.sqf",
-        "addons/main/functions/improvedHelicopterLandingExecuteLocal.sqf",
-        "addons/main/functions/improvedHelicopterLandingInit.sqf",
-        "addons/main/functions/improvedHelicopterLandingRestoreLocal.sqf",
-        "addons/main/functions/improvedHelicopterLandingSetting.sqf",
-        "addons/main/functions/improvedHelicopterLandingTrackLocal.sqf"
+        "addons/aircraft/functions/improvedHelicopterLandingAnchorLocal.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingConfigureServer.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingExecuteLocal.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingInit.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingRestoreLocal.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingSetting.sqf",
+        "addons/aircraft/functions/improvedHelicopterLandingTrackLocal.sqf"
       ]
     },
     {
@@ -269,23 +273,23 @@
       "setup": "Brake eligible helicopters and optional VTOL at high/low altitude, including rising terrain ahead.",
       "expected": "Correction occurs only inside the configured envelope, remains bounded and releases; no correction for excluded airframes or unsafe clearance.",
       "settings": [
-        "Waldo_HelicopterDeceleration_ControlInterval",
-        "Waldo_HelicopterDeceleration_Debug",
-        "Waldo_HelicopterDeceleration_Enable",
-        "Waldo_HelicopterDeceleration_IncludeVTOL",
-        "Waldo_HelicopterDeceleration_MaximumClimbRate",
-        "Waldo_HelicopterDeceleration_MaximumCorrectionAcceleration",
-        "Waldo_HelicopterDeceleration_MaximumCorrectionSeconds",
-        "Waldo_HelicopterDeceleration_MinimumAltitude",
-        "Waldo_HelicopterDeceleration_MinimumAltitudeGain",
-        "Waldo_HelicopterDeceleration_MinimumNoseUp",
-        "Waldo_HelicopterDeceleration_MinimumSpeed",
-        "Waldo_HelicopterDeceleration_MinimumSpeedLoss",
-        "Waldo_HelicopterDeceleration_SampleInterval",
-        "Waldo_HelicopterDeceleration_TerrainClearance"
+        "WAIT_HelicopterDeceleration_ControlInterval",
+        "WAIT_HelicopterDeceleration_Debug",
+        "WAIT_HelicopterDeceleration_Enable",
+        "WAIT_HelicopterDeceleration_IncludeVTOL",
+        "WAIT_HelicopterDeceleration_MaximumClimbRate",
+        "WAIT_HelicopterDeceleration_MaximumCorrectionAcceleration",
+        "WAIT_HelicopterDeceleration_MaximumCorrectionSeconds",
+        "WAIT_HelicopterDeceleration_MinimumAltitude",
+        "WAIT_HelicopterDeceleration_MinimumAltitudeGain",
+        "WAIT_HelicopterDeceleration_MinimumNoseUp",
+        "WAIT_HelicopterDeceleration_MinimumSpeed",
+        "WAIT_HelicopterDeceleration_MinimumSpeedLoss",
+        "WAIT_HelicopterDeceleration_SampleInterval",
+        "WAIT_HelicopterDeceleration_TerrainClearance"
       ],
       "controls": [
-        "Waldo_HelicopterDeceleration_Exclude"
+        "WAIT_HelicopterDeceleration_Exclude"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -294,9 +298,9 @@
         "runDeceleration.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/helicopterDecelerationCorrectLocal.sqf",
-        "addons/main/functions/helicopterDecelerationInit.sqf",
-        "addons/main/functions/helicopterDecelerationTrackLocal.sqf"
+        "addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf",
+        "addons/aircraft/functions/helicopterDecelerationInit.sqf",
+        "addons/aircraft/functions/helicopterDecelerationTrackLocal.sqf"
       ]
     },
     {
@@ -305,15 +309,15 @@
       "setup": "Create losses in a full squad near a compatible host, a deliberate two-person team and a full host.",
       "expected": "Only eligible remnants merge; members physically approach or report documented timeout fallback; no oversized or incompatible host merge.",
       "settings": [
-        "Waldo_AIPass_Regroup_Enable",
-        "Waldo_AIPass_Regroup_JoinDistance",
-        "Waldo_AIPass_Regroup_MaxGroupSize",
-        "Waldo_AIPass_Regroup_MaxRemnantSize",
-        "Waldo_AIPass_Regroup_MinimumPeakSize",
-        "Waldo_AIPass_Regroup_SearchRadius",
-        "Waldo_AIPass_Regroup_SettleSeconds",
-        "Waldo_AIPass_Regroup_StuckSeconds",
-        "Waldo_AIPass_Regroup_TimeoutSeconds"
+        "WAIT_AIPass_Regroup_Enable",
+        "WAIT_AIPass_Regroup_JoinDistance",
+        "WAIT_AIPass_Regroup_MaxGroupSize",
+        "WAIT_AIPass_Regroup_MaxRemnantSize",
+        "WAIT_AIPass_Regroup_MinimumPeakSize",
+        "WAIT_AIPass_Regroup_SearchRadius",
+        "WAIT_AIPass_Regroup_SettleSeconds",
+        "WAIT_AIPass_Regroup_StuckSeconds",
+        "WAIT_AIPass_Regroup_TimeoutSeconds"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -322,8 +326,8 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexRegroupOnKill.sqf",
-        "addons/main/functions/Cortex/cortexRegroupStep.sqf"
+        "addons/infantry/functions/cortexRegroupOnKill.sqf",
+        "addons/infantry/functions/cortexRegroupStep.sqf"
       ]
     },
     {
@@ -332,8 +336,8 @@
       "setup": "Expose real enemies, then occlude them; compare live engine knowledge and Cortex phase.",
       "expected": "Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable.",
       "settings": [
-        "Waldo_AIPass_Contact_Enable",
-        "Waldo_AIPass_EngageRange"
+        "WAIT_AIPass_Contact_Enable",
+        "WAIT_AIPass_EngageRange"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -343,7 +347,7 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexContactReport.sqf"
+        "addons/support/functions/cortexContactReport.sqf"
       ]
     },
     {
@@ -352,11 +356,11 @@
       "setup": "Let a contacted enemy leave sight, then reappear during security, search and regroup.",
       "expected": "Correct sequence and timing; search team physically approaches last known position; renewed contact interrupts and cleanup restores orders.",
       "settings": [
-        "Waldo_AIPass_PostContact_Enable",
-        "Waldo_AIPass_PostContact_LostSeconds",
-        "Waldo_AIPass_PostContact_RegroupSeconds",
-        "Waldo_AIPass_PostContact_SearchSeconds",
-        "Waldo_AIPass_PostContact_SecuritySeconds"
+        "WAIT_AIPass_PostContact_Enable",
+        "WAIT_AIPass_PostContact_LostSeconds",
+        "WAIT_AIPass_PostContact_RegroupSeconds",
+        "WAIT_AIPass_PostContact_SearchSeconds",
+        "WAIT_AIPass_PostContact_SecuritySeconds"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -373,14 +377,14 @@
       "setup": "Six-person squad faces a live enemy at eligible range; block one planned bound in a separate failure case.",
       "expected": "Selected element physically reaches successive spots; base of fire remains; a blocked bound ends STALLED without completion credit.",
       "settings": [
-        "Waldo_AIPass_Flank_BoundDistance",
-        "Waldo_AIPass_Flank_BoundPause",
-        "Waldo_AIPass_Flank_BoundTimeout",
-        "Waldo_AIPass_Flank_Cooldown",
-        "Waldo_AIPass_Flank_Enable",
-        "Waldo_AIPass_Flank_MaxRange",
-        "Waldo_AIPass_Flank_MinGroupSize",
-        "Waldo_AIPass_Flank_MinRange"
+        "WAIT_AIPass_Flank_BoundDistance",
+        "WAIT_AIPass_Flank_BoundPause",
+        "WAIT_AIPass_Flank_BoundTimeout",
+        "WAIT_AIPass_Flank_Cooldown",
+        "WAIT_AIPass_Flank_Enable",
+        "WAIT_AIPass_Flank_MaxRange",
+        "WAIT_AIPass_Flank_MinGroupSize",
+        "WAIT_AIPass_Flank_MinRange"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -393,10 +397,10 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexFlankEnd.sqf",
-        "addons/main/functions/Cortex/cortexFlankStart.sqf",
-        "addons/main/functions/Cortex/cortexFlankStep.sqf",
-        "addons/main/functions/Cortex/cortexSelectAvenue.sqf"
+        "addons/infantry/functions/cortexFlankEnd.sqf",
+        "addons/infantry/functions/cortexFlankStart.sqf",
+        "addons/infantry/functions/cortexFlankStep.sqf",
+        "addons/infantry/functions/cortexSelectAvenue.sqf"
       ]
     },
     {
@@ -405,7 +409,7 @@
       "setup": "Place the manoeuvre route across a real road with smoke available, unavailable and friendlies nearby.",
       "expected": "Element reaches near edge, uses permitted smoke and crosses; unsafe throws and disabled crossing add no scripted behaviour.",
       "settings": [
-        "Waldo_AIPass_StreetCrossing_Enable"
+        "WAIT_AIPass_StreetCrossing_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -414,7 +418,7 @@
         "runCrossing.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexPlanRoute.sqf"
+        "addons/infantry/functions/cortexPlanRoute.sqf"
       ]
     },
     {
@@ -423,9 +427,9 @@
       "setup": "Use multiple visible and recently obscured threats, BLUE/YELLOW/RED rules and varying suppressor limits.",
       "expected": "Actual Fired events and assigned targets match limits and rules; suppression does not reveal hidden targets or continue after disable.",
       "settings": [
-        "Waldo_AIPass_FireControl_Enable",
-        "Waldo_AIPass_FireControl_MaxShootersPerTarget",
-        "Waldo_AIPass_FireControl_MaxSuppressors"
+        "WAIT_AIPass_FireControl_Enable",
+        "WAIT_AIPass_FireControl_MaxShootersPerTarget",
+        "WAIT_AIPass_FireControl_MaxSuppressors"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -434,8 +438,8 @@
         "runFireControl.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexFireControl.sqf",
-        "addons/main/functions/Cortex/cortexLineOfFireClear.sqf"
+        "addons/core/functions/cortexFireControl.sqf",
+        "addons/infantry/functions/cortexLineOfFireClear.sqf"
       ]
     },
     {
@@ -444,9 +448,9 @@
       "setup": "Apply controlled casualties and real suppression, then allow recovery; compare cohesive and fragile profiles.",
       "expected": "Broken squads physically withdraw and recover; intentional hold/clear ownership is respected and disabling restores changed controls.",
       "settings": [
-        "Waldo_AIPass_Cohesion",
-        "Waldo_AIPass_Morale_Enable",
-        "Waldo_AIPass_Morale_RetreatDistance"
+        "WAIT_AIPass_Cohesion",
+        "WAIT_AIPass_Morale_Enable",
+        "WAIT_AIPass_Morale_RetreatDistance"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -458,7 +462,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexMorale.sqf"
+        "addons/infantry/functions/cortexMorale.sqf"
       ]
     },
     {
@@ -467,7 +471,7 @@
       "setup": "Leave eligible broken isolated survivors, then repeat with nearby support and the feature off.",
       "expected": "Only eligible survivors surrender; weapons/captive state match design and repeat handling does not duplicate actions.",
       "settings": [
-        "Waldo_AIPass_Surrender_Enable"
+        "WAIT_AIPass_Surrender_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -479,7 +483,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexSurrender.sqf"
+        "addons/infantry/functions/cortexSurrender.sqf"
       ]
     },
     {
@@ -488,7 +492,7 @@
       "setup": "Throw real nearby grenades with and without sight; include mounted, incapacitated and excluded units.",
       "expected": "Eligible infantry physically leaves the danger area; no reaction to unknown or irrelevant projectiles and no permanent movement changes.",
       "settings": [
-        "Waldo_AIPass_GrenadeEvasion_Enable"
+        "WAIT_AIPass_GrenadeEvasion_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -500,8 +504,8 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexGrenadeCheck.sqf",
-        "addons/main/functions/Cortex/cortexThrowGrenade.sqf"
+        "addons/infantry/functions/cortexGrenadeCheck.sqf",
+        "addons/infantry/functions/cortexThrowGrenade.sqf"
       ]
     },
     {
@@ -510,10 +514,10 @@
       "setup": "Use an ordinary unarmed civilian near a threat with reactions disabled and enabled, then replace the active flee order with a Zeus movement order. Repeat under supported external controller, external controller and external civilian controller dependencies when installed.",
       "expected": "Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active external controller actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.",
       "settings": [
-        "Waldo_AIPass_CivilianReaction_Enable",
-        "Waldo_AIPass_CivilianReaction_Radius",
-        "Waldo_AIPass_CivilianReaction_Distance",
-        "Waldo_AIPass_CivilianReaction_Cooldown"
+        "WAIT_AIPass_CivilianReaction_Enable",
+        "WAIT_AIPass_CivilianReaction_Radius",
+        "WAIT_AIPass_CivilianReaction_Distance",
+        "WAIT_AIPass_CivilianReaction_Cooldown"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -522,9 +526,9 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCivilianReact.sqf",
-        "addons/main/functions/Cortex/cortexCivilianSetup.sqf",
-        "addons/main/functions/Cortex/cortexExternalOwner.sqf"
+        "addons/infantry/functions/cortexCivilianReact.sqf",
+        "addons/infantry/functions/cortexCivilianSetup.sqf",
+        "addons/compatibility/functions/cortexExternalOwner.sqf"
       ]
     },
     {
@@ -533,8 +537,8 @@
       "setup": "Provide AT/AA/dual-role launchers and overrides against real vehicles, with a friendly in the backblast corridor.",
       "expected": "Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot.",
       "settings": [
-        "Waldo_AIPass_AmmoCapabilityOverrides",
-        "Waldo_AIPass_AntiArmour_Enable"
+        "WAIT_AIPass_AmmoCapabilityOverrides",
+        "WAIT_AIPass_AntiArmour_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -543,7 +547,7 @@
         "runFireControl.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAntiArmour.sqf"
+        "addons/infantry/functions/cortexAntiArmour.sqf"
       ]
     },
     {
@@ -552,9 +556,9 @@
       "setup": "Use mixed passenger/crew groups in contact, including ground vehicles and separate/combined boat groups on a measured real coastline.",
       "expected": "Only eligible mounted groups receive changes. Boats make a finite shallow-water approach, unload infantry onto dry ground, retain operating crew and restore authored orders; the parent gate and external owner release all controls.",
       "settings": [
-        "Waldo_AIPass_NavalAssault_Enable",
-        "Waldo_AIPass_Vehicles_Enable",
-        "Waldo_AIPass_Vehicles_StandoffDistance"
+        "WAIT_AIPass_NavalAssault_Enable",
+        "WAIT_AIPass_Vehicles_Enable",
+        "WAIT_AIPass_Vehicles_StandoffDistance"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -566,10 +570,10 @@
         "runNaval.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAircraftEligible.sqf",
-        "addons/main/functions/Cortex/cortexNavalAssault.sqf",
-        "addons/main/functions/Cortex/cortexNavalRelease.sqf",
-        "addons/main/functions/Cortex/cortexVehicles.sqf"
+        "addons/aircraft/functions/cortexAircraftEligible.sqf",
+        "addons/vehicles/functions/cortexNavalAssault.sqf",
+        "addons/vehicles/functions/cortexNavalRelease.sqf",
+        "addons/vehicles/functions/cortexVehicles.sqf"
       ]
     },
     {
@@ -578,7 +582,7 @@
       "setup": "Bring moving, stopped, airborne and waterborne carriers into contact with mixed cargo, FFV and operating crew.",
       "expected": "Only safe, capable passengers unload; drivers/gunners remain aboard and moving/airborne/water cases refuse unsafe exits.",
       "settings": [
-        "Waldo_AIPass_VehicleDismount_Enable"
+        "WAIT_AIPass_VehicleDismount_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -587,7 +591,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexOnboardContact.sqf"
+        "addons/infantry/functions/cortexOnboardContact.sqf"
       ]
     },
     {
@@ -596,7 +600,7 @@
       "setup": "End contact after a valid dismount; move/delete/replace the carrier and incapacitate one passenger.",
       "expected": "Only safe capable original passengers board valid available seats; no teleport, unwanted convoy resume or incapacitated boarding.",
       "settings": [
-        "Waldo_AIPass_VehicleRemount_Enable"
+        "WAIT_AIPass_VehicleRemount_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -605,7 +609,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexPassengerReady.sqf"
+        "addons/vehicles/functions/cortexPassengerReady.sqf"
       ]
     },
     {
@@ -614,7 +618,7 @@
       "setup": "Damage a mobile armed vehicle under contact, with and without smoke ammunition.",
       "expected": "Vehicle physically withdraws, uses only available smoke and restores controls; immobilized or deleted vehicles terminate safely.",
       "settings": [
-        "Waldo_AIPass_VehicleWithdraw_Enable"
+        "WAIT_AIPass_VehicleWithdraw_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -625,7 +629,7 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexRetreat.sqf"
+        "addons/infantry/functions/cortexRetreat.sqf"
       ]
     },
     {
@@ -634,7 +638,7 @@
       "setup": "Offer walls, steep slopes, occupied spots, water and open ground to a moving element.",
       "expected": "Chosen spots have usable clearance and appropriate facing; units physically reach them; bounded fallback remains available.",
       "settings": [
-        "Waldo_AIPass_CoverValidation_Enable"
+        "WAIT_AIPass_CoverValidation_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -645,7 +649,7 @@
         "runCover.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexFindCover.sqf"
+        "addons/infantry/functions/cortexFindCover.sqf"
       ]
     },
     {
@@ -654,8 +658,8 @@
       "setup": "Run tracked and wheeled leaders/followers through straight roads, corners, stops, route edits and a blocked leader.",
       "expected": "Each traces its predecessor, maintains spacing and makes progress without wedge formation; recovery is bounded.",
       "settings": [
-        "Waldo_Convoy_DrivingAssist_Enable",
-        "Waldo_Convoy_RouteRecovery_Enable"
+        "WAIT_Convoy_DrivingAssist_Enable",
+        "WAIT_Convoy_RouteRecovery_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -665,9 +669,9 @@
         "runConvoyMatrix.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/simpleAiConvoy.sqf",
-        "addons/main/functions/convoySync.sqf",
-        "addons/main/functions/convoyTick.sqf"
+        "addons/vehicles/functions/simpleAiConvoy.sqf",
+        "addons/vehicles/functions/convoySync.sqf",
+        "addons/vehicles/functions/convoyTick.sqf"
       ]
     },
     {
@@ -676,7 +680,7 @@
       "setup": "Attack a moving mixed convoy from its flank under each fire rule.",
       "expected": "Gunners remain mounted and actually engage valid known threats without stealing driver movement; disabled mode leaves targeting alone.",
       "settings": [
-        "Waldo_Convoy_MountedFire_Enable"
+        "WAIT_Convoy_MountedFire_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -685,7 +689,7 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/convoyThreat.sqf"
+        "addons/vehicles/functions/convoyThreat.sqf"
       ]
     },
     {
@@ -694,7 +698,7 @@
       "setup": "Unload passengers on manual halt, destination and pinned contact, with obstacles nearby.",
       "expected": "Passengers physically move clear of vehicles and take valid available cover; no operating-crew dismount.",
       "settings": [
-        "Waldo_Convoy_Cover_Enable"
+        "WAIT_Convoy_Cover_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -710,7 +714,7 @@
       "setup": "Cross friendly infantry in front of a travelling vehicle, then move them away.",
       "expected": "Vehicle yields inside the short corridor and resumes after clearance; disabled mode adds no WMP avoidance stop.",
       "settings": [
-        "Waldo_Convoy_AvoidInfantry_Enable"
+        "WAIT_Convoy_AvoidInfantry_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -728,7 +732,7 @@
       "setup": "Fire on mobile and immobilized convoys, retaining the configured pinned delay.",
       "expected": "Mobile convoy pushes through; pinned convoy halts/unloads only after delay; combat halt requires explicit resume.",
       "settings": [
-        "Waldo_Convoy_ContactHalt_Enable"
+        "WAIT_Convoy_ContactHalt_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -737,7 +741,7 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/convoyHaltServer.sqf"
+        "addons/vehicles/functions/convoyHaltServer.sqf"
       ]
     },
     {
@@ -746,7 +750,7 @@
       "setup": "Start with assigned and script-seated passengers; travel, halt, resume and reach the final waypoint.",
       "expected": "Cargo stays aboard during travel and unloads at valid halts; crew stay mounted; disabled unload preserves seating.",
       "settings": [
-        "Waldo_Convoy_Unload_Enable"
+        "WAIT_Convoy_Unload_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -758,9 +762,9 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/convoyCrewLocal.sqf",
-        "addons/main/functions/convoyDismountLocal.sqf",
-        "addons/main/functions/convoyReleaseLocal.sqf"
+        "addons/vehicles/functions/convoyCrewLocal.sqf",
+        "addons/vehicles/functions/convoyDismountLocal.sqf",
+        "addons/vehicles/functions/convoyReleaseLocal.sqf"
       ]
     },
     {
@@ -769,7 +773,7 @@
       "setup": "Fire behind an occluder inside/outside hearing range with no line of sight.",
       "expected": "Receivers get an uncertain area, not target reveal; response respects investigation gate and range.",
       "settings": [
-        "Waldo_AIPass_Hearing_Enable"
+        "WAIT_AIPass_Hearing_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -778,7 +782,7 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexHearingLocal.sqf"
+        "addons/infantry/functions/cortexHearingLocal.sqf"
       ]
     },
     {
@@ -787,10 +791,10 @@
       "setup": "Use observing and receiving squads with voice proximity, separated communication and active jamming.",
       "expected": "Reports use permitted communication, preserve uncertainty and do not depend on a vanilla radio item.",
       "settings": [
-        "Waldo_AIPass_ContactReports_Enable",
-        "Waldo_AIPass_ContactReports_Radius",
-        "Waldo_AIPass_ContactReports_RequireRadio",
-        "Waldo_AIPass_ContactReports_VoiceRange"
+        "WAIT_AIPass_ContactReports_Enable",
+        "WAIT_AIPass_ContactReports_Radius",
+        "WAIT_AIPass_ContactReports_RequireRadio",
+        "WAIT_AIPass_ContactReports_VoiceRange"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -799,9 +803,9 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCanTransmit.sqf",
-        "addons/main/functions/Cortex/cortexReportLocal.sqf",
-        "addons/main/functions/Cortex/cortexReportServer.sqf"
+        "addons/infantry/functions/cortexCanTransmit.sqf",
+        "addons/infantry/functions/cortexReportLocal.sqf",
+        "addons/infantry/functions/cortexReportServer.sqf"
       ]
     },
     {
@@ -810,9 +814,9 @@
       "setup": "Contact one squad near idle, busy, excluded and remotely owned friendlies.",
       "expected": "Only eligible squads with at least three combat-effective dismounted infantry accept reinforcement movement; vehicle crews and mounted passenger groups retain their dedicated controllers. Request, acknowledgement, rejection and timeout release ownership cleanly.",
       "settings": [
-        "Waldo_AIPass_Reinforce_Enable",
-        "Waldo_AIPass_Reinforce_MaxResponders",
-        "Waldo_AIPass_Reinforce_Radius"
+        "WAIT_AIPass_Reinforce_Enable",
+        "WAIT_AIPass_Reinforce_MaxResponders",
+        "WAIT_AIPass_Reinforce_Radius"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -821,7 +825,7 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexReinforce.sqf"
+        "addons/support/functions/cortexReinforce.sqf"
       ]
     },
     {
@@ -830,19 +834,19 @@
       "setup": "Assign a visible spotter and battery; observe real impacts over finite bursts, then lose the spotter or move the target.",
       "expected": "Opening aim/impact safety is measured, corrections require observation, last report remains usable, bursts stop at configured count and relocation resets ranging.",
       "settings": [
-        "Waldo_AIPass_Artillery_Bursts",
-        "Waldo_AIPass_Artillery_Cooldown",
-        "Waldo_AIPass_Artillery_DefaultRole",
-        "Waldo_AIPass_Artillery_Enable",
-        "Waldo_AIPass_Artillery_LocationResetDistance",
-        "Waldo_AIPass_Artillery_MaxError",
-        "Waldo_AIPass_Artillery_MinFriendlyDistance",
-        "Waldo_AIPass_Artillery_OpeningBuffer",
-        "Waldo_AIPass_Artillery_OpeningSafeDistance",
-        "Waldo_AIPass_Artillery_RoundInterval",
-        "Waldo_AIPass_Artillery_Rounds",
-        "Waldo_AIPass_Artillery_ShootAndScoot",
-        "Waldo_AIPass_Artillery_WarningInterval"
+        "WAIT_AIPass_Artillery_Bursts",
+        "WAIT_AIPass_Artillery_Cooldown",
+        "WAIT_AIPass_Artillery_DefaultRole",
+        "WAIT_AIPass_Artillery_Enable",
+        "WAIT_AIPass_Artillery_LocationResetDistance",
+        "WAIT_AIPass_Artillery_MaxError",
+        "WAIT_AIPass_Artillery_MinFriendlyDistance",
+        "WAIT_AIPass_Artillery_OpeningBuffer",
+        "WAIT_AIPass_Artillery_OpeningSafeDistance",
+        "WAIT_AIPass_Artillery_RoundInterval",
+        "WAIT_AIPass_Artillery_Rounds",
+        "WAIT_AIPass_Artillery_ShootAndScoot",
+        "WAIT_AIPass_Artillery_WarningInterval"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -851,21 +855,21 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexArtilleryAim.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryAmmo.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryFire.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryFired.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryMissionStep.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryObserve.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryRejected.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryReport.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryRequest.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryRole.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryScoot.sqf",
-        "addons/main/functions/Cortex/cortexArtilleryShot.sqf",
-        "addons/main/functions/Cortex/cortexSetArtilleryRole.sqf",
-        "addons/main/functions/Cortex/cortexSetSpotter.sqf",
-        "addons/main/functions/Cortex/cortexSpotterFix.sqf"
+        "addons/support/functions/cortexArtilleryAim.sqf",
+        "addons/support/functions/cortexArtilleryAmmo.sqf",
+        "addons/support/functions/cortexArtilleryFire.sqf",
+        "addons/support/functions/cortexArtilleryFired.sqf",
+        "addons/support/functions/cortexArtilleryMissionStep.sqf",
+        "addons/support/functions/cortexArtilleryObserve.sqf",
+        "addons/support/functions/cortexArtilleryRejected.sqf",
+        "addons/support/functions/cortexArtilleryReport.sqf",
+        "addons/support/functions/cortexArtilleryRequest.sqf",
+        "addons/support/functions/cortexArtilleryRole.sqf",
+        "addons/support/functions/cortexArtilleryScoot.sqf",
+        "addons/support/functions/cortexArtilleryShot.sqf",
+        "addons/support/functions/cortexSetArtilleryRole.sqf",
+        "addons/infantry/functions/cortexSetSpotter.sqf",
+        "addons/infantry/functions/cortexSpotterFix.sqf"
       ]
     },
     {
@@ -874,16 +878,16 @@
       "setup": "Fire a real enemy gun with no radar, covered radar and destroyed/out-of-range radar; relocate it between missions.",
       "expected": "Measured acquisition is quicker with valid radar; finite bursts start off target at each new location and respect safety/cooldown.",
       "settings": [
-        "Waldo_AIPass_CounterBattery_Delay",
-        "Waldo_AIPass_CounterBattery_Enable",
-        "Waldo_AIPass_CounterBattery_Interval",
-        "Waldo_AIPass_CounterBattery_MaxError",
-        "Waldo_AIPass_CounterBattery_MinFriendlyDistance",
-        "Waldo_AIPass_CounterBattery_Mode",
-        "Waldo_AIPass_CounterBattery_RadarDelay",
-        "Waldo_AIPass_CounterBattery_RadarRange",
-        "Waldo_AIPass_CounterBattery_Rounds",
-        "Waldo_AIPass_CounterBattery_ShootAndScoot"
+        "WAIT_AIPass_CounterBattery_Delay",
+        "WAIT_AIPass_CounterBattery_Enable",
+        "WAIT_AIPass_CounterBattery_Interval",
+        "WAIT_AIPass_CounterBattery_MaxError",
+        "WAIT_AIPass_CounterBattery_MinFriendlyDistance",
+        "WAIT_AIPass_CounterBattery_Mode",
+        "WAIT_AIPass_CounterBattery_RadarDelay",
+        "WAIT_AIPass_CounterBattery_RadarRange",
+        "WAIT_AIPass_CounterBattery_Rounds",
+        "WAIT_AIPass_CounterBattery_ShootAndScoot"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -892,9 +896,9 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCounterBattery.sqf",
-        "addons/main/functions/Cortex/cortexCounterObserve.sqf",
-        "addons/main/functions/Cortex/cortexRegisterRadar.sqf"
+        "addons/support/functions/cortexCounterBattery.sqf",
+        "addons/infantry/functions/cortexCounterObserve.sqf",
+        "addons/infantry/functions/cortexRegisterRadar.sqf"
       ]
     },
     {
@@ -903,12 +907,12 @@
       "setup": "Fly AI cargo and operating crew toward known contact above/below minimum altitude.",
       "expected": "Only eligible passengers jump at correct spacing and land; crew stay aboard, unsafe altitude refuses and transfer does not duplicate jumps.",
       "settings": [
-        "Waldo_AIPass_Airborne_Altitude",
-        "Waldo_AIPass_Airborne_ApproachDistance",
-        "Waldo_AIPass_Airborne_DeployDistance",
-        "Waldo_AIPass_Airborne_Enable",
-        "Waldo_AIPass_Airborne_JumpInterval",
-        "Waldo_AIPass_Airborne_MinAltitude"
+        "WAIT_AIPass_Airborne_Altitude",
+        "WAIT_AIPass_Airborne_ApproachDistance",
+        "WAIT_AIPass_Airborne_DeployDistance",
+        "WAIT_AIPass_Airborne_Enable",
+        "WAIT_AIPass_Airborne_JumpInterval",
+        "WAIT_AIPass_Airborne_MinAltitude"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -917,10 +921,10 @@
         "runAirborne.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAirborneCheck.sqf",
-        "addons/main/functions/Cortex/cortexAirborneDrop.sqf",
-        "addons/main/functions/Cortex/cortexAirborneDropStep.sqf",
-        "addons/main/functions/Cortex/cortexParachuteJump.sqf"
+        "addons/aircraft/functions/cortexAirborneCheck.sqf",
+        "addons/aircraft/functions/cortexAirborneDrop.sqf",
+        "addons/aircraft/functions/cortexAirborneDropStep.sqf",
+        "addons/infantry/functions/cortexParachuteJump.sqf"
       ]
     },
     {
@@ -929,7 +933,7 @@
       "setup": "Use multiple placed and terrain-native buildings, floors, doors and blocked entries; repeat in-place Dynamic AO assignment.",
       "expected": "Every assigned soldier physically reaches the correct slot/floor and holds; timeout reports failure, break/release restores only owned restrictions.",
       "settings": [
-        "Waldo_AIPass_Garrison_BreakFraction"
+        "WAIT_AIPass_Garrison_BreakFraction"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -941,9 +945,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexGarrison.sqf",
-        "addons/main/functions/Cortex/cortexGarrisonApplyLocal.sqf",
-        "addons/main/functions/Cortex/cortexGarrisonRelease.sqf"
+        "addons/infantry/functions/cortexGarrison.sqf",
+        "addons/infantry/functions/cortexGarrisonApplyLocal.sqf",
+        "addons/infantry/functions/cortexGarrisonRelease.sqf"
       ]
     },
     {
@@ -952,7 +956,7 @@
       "setup": "Launch real missiles at supported aircraft with and without countermeasure ammunition.",
       "expected": "Actual countermeasure release responds to valid threats, uses finite ammunition and leaves unsupported/excluded aircraft alone.",
       "settings": [
-        "Waldo_AIPass_AircraftFlares_Enable"
+        "WAIT_AIPass_AircraftFlares_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -964,7 +968,7 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexFireCountermeasure.sqf"
+        "addons/infantry/functions/cortexFireCountermeasure.sqf"
       ]
     },
     {
@@ -973,9 +977,9 @@
       "setup": "Provide a legitimate area report without a sighting at near/far distances and then reveal a real enemy.",
       "expected": "Appropriate team/group physically investigates without perfect enemy knowledge; contact interrupts and timeout releases controls.",
       "settings": [
-        "Waldo_AIPass_Investigate_Enable",
-        "Waldo_AIPass_Investigate_Range",
-        "Waldo_AIPass_Investigate_Seconds"
+        "WAIT_AIPass_Investigate_Enable",
+        "WAIT_AIPass_Investigate_Range",
+        "WAIT_AIPass_Investigate_Seconds"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -984,8 +988,8 @@
         "runSupport.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexGroupMove.sqf",
-        "addons/main/functions/Cortex/cortexGroupMoveClear.sqf"
+        "addons/infantry/functions/cortexGroupMove.sqf",
+        "addons/infantry/functions/cortexGroupMoveClear.sqf"
       ]
     },
     {
@@ -994,8 +998,8 @@
       "setup": "Complete a real flank into assault range with and without grenades/friendlies near the enemy.",
       "expected": "After an eligible advance or flank, troops approach the reported objective, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate the covering element. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.",
       "settings": [
-        "Waldo_AIPass_Assault_Enable",
-        "Waldo_AIPass_Assault_Range"
+        "WAIT_AIPass_Assault_Enable",
+        "WAIT_AIPass_Assault_Range"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1015,9 +1019,9 @@
       "setup": "Give a six-person squad a distant authored waypoint and real contact; isolate advance from flanking.",
       "expected": "After the contact delay, a fire team physically bounds toward the waypoint while others engage; authored route survives.",
       "settings": [
-        "Waldo_AIPass_Advance_Enable",
-        "Waldo_AIPass_Advance_MinContactSeconds",
-        "Waldo_AIPass_Advance_Cooldown"
+        "WAIT_AIPass_Advance_Enable",
+        "WAIT_AIPass_Advance_MinContactSeconds",
+        "WAIT_AIPass_Advance_Cooldown"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1029,8 +1033,8 @@
         "runCombat.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAdvanceStart.sqf",
-        "addons/main/functions/Cortex/cortexTacticalStart.sqf"
+        "addons/infantry/functions/cortexAdvanceStart.sqf",
+        "addons/infantry/functions/cortexTacticalStart.sqf"
       ]
     },
     {
@@ -1039,7 +1043,7 @@
       "setup": "Use two eligible responders on separate owners and a supported squad in real contact.",
       "expected": "Responders accept communicated contact and begin separated approaches from their live positions without an intermediate assembly or all-responder readiness gate; rejection, loss and disable release every affected lease independently.",
       "settings": [
-        "Waldo_AIPass_CoordinatedAssault_Enable"
+        "WAIT_AIPass_CoordinatedAssault_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1059,16 +1063,16 @@
         "runCoordinated.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCoordinatedAssault.sqf",
-        "addons/main/functions/Cortex/cortexSupportAck.sqf",
-        "addons/main/functions/Cortex/cortexSupportApply.sqf",
-        "addons/main/functions/Cortex/cortexSupportAssaultServer.sqf",
-        "addons/main/functions/Cortex/cortexSupportBoundStart.sqf",
-        "addons/main/functions/Cortex/cortexSupportCoordinateStep.sqf",
-        "addons/main/functions/Cortex/cortexSupportLocal.sqf",
-        "addons/main/functions/Cortex/cortexSupportMaintain.sqf",
-        "addons/main/functions/Cortex/cortexSupportServer.sqf",
-        "addons/main/functions/Cortex/cortexSupportStep.sqf"
+        "addons/support/functions/cortexCoordinatedAssault.sqf",
+        "addons/support/functions/cortexSupportAck.sqf",
+        "addons/support/functions/cortexSupportApply.sqf",
+        "addons/support/functions/cortexSupportAssaultServer.sqf",
+        "addons/support/functions/cortexSupportBoundStart.sqf",
+        "addons/support/functions/cortexSupportCoordinateStep.sqf",
+        "addons/support/functions/cortexSupportLocal.sqf",
+        "addons/support/functions/cortexSupportMaintain.sqf",
+        "addons/support/functions/cortexSupportServer.sqf",
+        "addons/support/functions/cortexSupportStep.sqf"
       ]
     },
     {
@@ -1077,7 +1081,7 @@
       "setup": "Fight behind low/high cover and on open ground with initial mission-set stances.",
       "expected": "Stance follows actual cover while eligible; disable/release restores only Cortex changes.",
       "settings": [
-        "Waldo_AIPass_Stance_Enable"
+        "WAIT_AIPass_Stance_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -1086,7 +1090,7 @@
         "runReactions.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexStance.sqf"
+        "addons/infantry/functions/cortexStance.sqf"
       ]
     },
     {
@@ -1095,8 +1099,8 @@
       "setup": "Deplete a recipient beside compatible/incompatible donors inside/outside sharing distance.",
       "expected": "Actual magazine inventories change conservatively with no duplication; unsuitable donors and disabled sharing do nothing.",
       "settings": [
-        "Waldo_AIPass_AmmoShare_Distance",
-        "Waldo_AIPass_AmmoShare_Enable"
+        "WAIT_AIPass_AmmoShare_Distance",
+        "WAIT_AIPass_AmmoShare_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -1105,9 +1109,9 @@
         "runMechanics.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAmmoShare.sqf",
-        "addons/main/functions/Cortex/cortexCapabilities.sqf",
-        "addons/main/functions/Cortex/cortexUnitRole.sqf"
+        "addons/infantry/functions/cortexAmmoShare.sqf",
+        "addons/infantry/functions/cortexCapabilities.sqf",
+        "addons/infantry/functions/cortexUnitRole.sqf"
       ]
     },
     {
@@ -1116,7 +1120,7 @@
       "setup": "Present an armed vehicle with known AT infantry and other enemies at different ranges under each fire rule.",
       "expected": "Real shots/targets follow permitted priority and standoff movement without dismounting operating crew.",
       "settings": [
-        "Waldo_AIPass_VehicleGunnery_Enable"
+        "WAIT_AIPass_VehicleGunnery_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1134,7 +1138,7 @@
       "setup": "Withdraw infantry with a smoke-capable battery, then repeat without ammunition or parent artillery enabled.",
       "expected": "Real finite smoke mission screens withdrawal only when permitted; no accidental HE substitution.",
       "settings": [
-        "Waldo_AIPass_ArtillerySmoke_Enable"
+        "WAIT_AIPass_ArtillerySmoke_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1152,7 +1156,7 @@
       "setup": "Fire real missiles at supported aircraft over safe and unsafe terrain envelopes.",
       "expected": "Aircraft physically changes flight path within limits and returns controls; no effect when disabled or owner changes invalidate the job.",
       "settings": [
-        "Waldo_AIPass_AircraftBreak_Enable"
+        "WAIT_AIPass_AircraftBreak_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1178,10 +1182,10 @@
         "runServer.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexDefend.sqf",
-        "addons/main/functions/Cortex/cortexDefendApplyLocal.sqf",
-        "addons/main/functions/Cortex/cortexDefendRelease.sqf",
-        "addons/main/functions/Cortex/cortexDefendStep.sqf"
+        "addons/infantry/functions/cortexDefend.sqf",
+        "addons/infantry/functions/cortexDefendApplyLocal.sqf",
+        "addons/infantry/functions/cortexDefendRelease.sqf",
+        "addons/infantry/functions/cortexDefendStep.sqf"
       ]
     },
     {
@@ -1199,9 +1203,9 @@
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexBuildingDoor.sqf",
-        "addons/main/functions/Cortex/cortexClearBuilding.sqf",
-        "addons/main/functions/Cortex/cortexClearRelease.sqf"
+        "addons/infantry/functions/cortexBuildingDoor.sqf",
+        "addons/infantry/functions/cortexClearBuilding.sqf",
+        "addons/infantry/functions/cortexClearRelease.sqf"
       ]
     },
     {
@@ -1217,9 +1221,9 @@
         "runClient.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexControlOpenLocal.sqf",
-        "addons/main/functions/Cortex/cortexControlPageLocal.sqf",
-        "addons/main/functions/aiGetDiagnostics.sqf"
+        "addons/core/functions/cortexControlOpenLocal.sqf",
+        "addons/core/functions/cortexControlPageLocal.sqf",
+        "addons/core/functions/aiGetDiagnostics.sqf"
       ]
     },
     {
@@ -1242,16 +1246,16 @@
         "runLifecycle.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCheckpoint.sqf",
-        "addons/main/functions/Cortex/cortexLocality.sqf",
-        "addons/main/functions/Cortex/cortexOrderDispatch.sqf",
-        "addons/main/functions/Cortex/cortexOrderLocal.sqf",
-        "addons/main/functions/Cortex/cortexOrderReason.sqf",
-        "addons/main/functions/Cortex/cortexOrderResult.sqf",
-        "addons/main/functions/Cortex/cortexZeusHeld.sqf",
-        "addons/main/functions/Cortex/cortexZeusMark.sqf",
-        "addons/main/functions/Cortex/cortexZeusWatchLocal.sqf",
-        "addons/main/functions/aiHeadlessAdoptionResultServer.sqf"
+        "addons/infantry/functions/cortexCheckpoint.sqf",
+        "addons/core/functions/cortexLocality.sqf",
+        "addons/infantry/functions/cortexOrderDispatch.sqf",
+        "addons/infantry/functions/cortexOrderLocal.sqf",
+        "addons/infantry/functions/cortexOrderReason.sqf",
+        "addons/infantry/functions/cortexOrderResult.sqf",
+        "addons/infantry/functions/cortexZeusHeld.sqf",
+        "addons/infantry/functions/cortexZeusMark.sqf",
+        "addons/core/functions/cortexZeusWatchLocal.sqf",
+        "addons/core/functions/aiHeadlessAdoptionResultServer.sqf"
       ]
     },
     {
@@ -1317,8 +1321,8 @@
         "runContact.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexDrillSetStage.sqf",
-        "addons/main/functions/Cortex/cortexSetPhase.sqf"
+        "addons/infantry/functions/cortexDrillSetStage.sqf",
+        "addons/infantry/functions/cortexSetPhase.sqf"
       ]
     },
     {
@@ -1327,7 +1331,7 @@
       "setup": "Compare daylight and darkness with unaided AI, NVG-capable mod equipment, ordinary HMDs and active/inactive flashlights. Repeat equipment changes and ownership transfer. Use real opposing targets inside and outside the beam.",
       "expected": "Automatic lighting follows ambient conditions without compounded penalties; NVG capability is classname independent; flashlights do not grant omnidirectional vision. Record actual acquisition and shots independently of skill values.",
       "settings": [
-        "Waldo_AIRebalance_Mode"
+        "WAIT_AIRebalance_Mode"
       ],
       "status": "implemented_partial",
       "automation": "runProfiles.sqf retains direct-application darkness/NVG/day restoration and repeat checks passed in runtime-20260927-115212. runLighting.sqf adds a dedicated dark fixture, dynamically discovered modded NVG and ordinary-HMD controls, HC adoption with original-skill preservation, physical flashlight activation, unchanged global skill, forward-cone acquisition/real fire and an equally distant rear-target control. Saved, not yet live-validated.",
@@ -1380,7 +1384,7 @@
       "setup": "Place an observing infantry squad, two communicating armed ground vehicles and a moving armed aircraft near a naturally observed hostile. Do not inject rally points, role waypoints or readiness flags.",
       "expected": "Fresh contact immediately offers independent finite roles to capable nearby assets. Infantry continues without waiting; one ground vehicle retains its route as direct fire while the second physically manoeuvres on a safe side of that fire lane; aircraft use the finite attack controller. Missing, rejected or interrupted support cannot block infantry action.",
       "settings": [
-        "Waldo_Cortex_CombinedArms_AirRange"
+        "WAIT_Cortex_CombinedArms_AirRange"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -1389,10 +1393,10 @@
         "runCombinedArms.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexCombinedArmsRequest.sqf",
-        "addons/main/functions/Cortex/cortexCombinedArmsServer.sqf",
-        "addons/main/functions/Cortex/cortexCombinedArmsLocal.sqf",
-        "addons/main/functions/Cortex/cortexCombinedGroundStep.sqf"
+        "addons/infantry/functions/cortexCombinedArmsRequest.sqf",
+        "addons/infantry/functions/cortexCombinedArmsServer.sqf",
+        "addons/infantry/functions/cortexCombinedArmsLocal.sqf",
+        "addons/infantry/functions/cortexCombinedGroundStep.sqf"
       ]
     },
     {
@@ -1415,7 +1419,7 @@
       "setup": "Fly an armed helicopter and plane towards an assigned hostile target, with separate enabled and disabled runs.",
       "expected": "Actual countermeasure releases on approach and departure with finite ammunition, no flight-path intervention, and no releases for excluded or interrupted aircraft.",
       "settings": [
-        "Waldo_Cortex_AttackRunFlares_Enable"
+        "WAIT_Cortex_AttackRunFlares_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1426,7 +1430,7 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAttackRunFlares.sqf"
+        "addons/infantry/functions/cortexAttackRunFlares.sqf"
       ]
     },
     {
@@ -1435,7 +1439,7 @@
       "setup": "Launch moving armed helicopters and planes against live ground and airborne hostile targets with forced-pattern, low-threat and observed-AA variants. Interrupt one active run with a replacement Zeus order.",
       "expected": "Aircraft select strafe, hook, offset, standoff, capability-gated helicopter lateral or air-contact intercept geometry from platform, observed AA and live ammunition. Every pattern has distinct three-leg positions, altitude, speed, capture and firing dwell; the aircraft must physically fly ingress/attack/egress, fire real weapons, retain crew and safe clearance, then hand back to an unchanged route. Zeus interruption retires the pattern without reviving it.",
       "settings": [
-        "Waldo_Cortex_AirAttack_Enable"
+        "WAIT_Cortex_AirAttack_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [
@@ -1447,9 +1451,9 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "addons/main/functions/Cortex/cortexAirAttack.sqf",
-        "addons/main/functions/Cortex/cortexAirAttackPlan.sqf",
-        "addons/main/functions/Cortex/cortexAirHandoverRestoreLocal.sqf"
+        "addons/aircraft/functions/cortexAirAttack.sqf",
+        "addons/aircraft/functions/cortexAirAttackPlan.sqf",
+        "addons/infantry/functions/cortexAirHandoverRestoreLocal.sqf"
       ]
     }
   ]

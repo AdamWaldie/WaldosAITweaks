@@ -13,12 +13,12 @@ private _results=[];
 {
     private _enabled=_x;
     private _arm=_forEachIndex;
-    [createHashMapFromArray [["Waldo_AIPass_Enable",_enabled]]] call Waldo_fnc_CortexTuning;
-    private _ready=[{(missionNamespace getVariable ["Waldo_AIPass_Active",false]) == _enabled},20] call _wait;
+    [createHashMapFromArray [["WAIT_AIPass_Enable",_enabled]]] call WAIT_fnc_CortexTuning;
+    private _ready=[{(missionNamespace getVariable ["WAIT_AIPass_Active",false]) == _enabled},20] call _wait;
     private _groups=[]; private _actors=[];
     for "_i" from 0 to 49 do {
         private _g=createGroup [east,true];
-        _g setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        _g setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _g setVariable ["acex_headless_blacklist",true,true];
         private _origin=[800+(_i mod 10)*35,800+floor (_i/10)*35,0];
         for "_j" from 0 to 5 do {
@@ -33,15 +33,15 @@ private _results=[];
         _groups pushBack _g;
         sleep 0.01;
     };
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",_actors select [0,18],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",_actors select [0,18],true];
     [format ["Performance: arm %1 / Cortex %2",_arm+1,["OFF","ON"] select _enabled],"50 six-soldier squads patrol on the server. Only 18 soldiers have overlays to limit UI cost. After warm-up, record 60 seconds of frame times and physical movement. This matched flat baseline isolates scheduler cost; separate terrain and mixed-force audits establish behaviour.",[950,1000,0]] call _phase;
     sleep 20;
     private _managedMinimum=50;
     private _eligibleAll=true;
     private _origins=_groups apply {getPosATL leader _x};
-    missionNamespace setVariable ["Waldo_CortexQA_FrameSamples",[]];
+    missionNamespace setVariable ["WAIT_CortexQA_FrameSamples",[]];
     private _handler=addMissionEventHandler ["EachFrame",{
-        private _samples=missionNamespace getVariable ["Waldo_CortexQA_FrameSamples",[]];
+        private _samples=missionNamespace getVariable ["WAIT_CortexQA_FrameSamples",[]];
         if (count _samples < 120000) then {_samples pushBack (diag_deltaTime*1000)};
     }];
     private _overdue=0;
@@ -49,13 +49,13 @@ private _results=[];
     while {diag_tickTime < _until} do {
         sleep 1;
         // Identical observation cost in both arms; master-off eligibility is not an acceptance gate.
-        _managedMinimum=_managedMinimum min ({_x getVariable ["Waldo_AIPass_Managed",false]} count _groups);
-        private _eligibleCount={[_x] call Waldo_fnc_CortexIsEligible} count _groups;
+        _managedMinimum=_managedMinimum min ({_x getVariable ["WAIT_AIPass_Managed",false]} count _groups);
+        private _eligibleCount={[_x] call WAIT_fnc_CortexIsEligible} count _groups;
         if (_eligibleCount != 50) then {_eligibleAll=false};
-        {_overdue=_overdue max (time-(_x select 0))} forEach (missionNamespace getVariable ["Waldo_AIPass_Jobs",[]]);
+        {_overdue=_overdue max (time-(_x select 0))} forEach (missionNamespace getVariable ["WAIT_AIPass_Jobs",[]]);
     };
     removeMissionEventHandler ["EachFrame",_handler];
-    private _samples=missionNamespace getVariable ["Waldo_CortexQA_FrameSamples",[]];
+    private _samples=missionNamespace getVariable ["WAIT_CortexQA_FrameSamples",[]];
     _samples sort true;
     private _count=count _samples;
     private _median=if (_count > 0) then {_samples select floor ((_count-1)*0.5)} else {1e9};
@@ -68,8 +68,8 @@ private _results=[];
     [format ["PERF-50-patrol-arm-%1-no-starvation",_arm],_overdue <= 10,str _overdue] call _check;
     _results pushBack [_median,_p95,_valid,_overdue];
     {deleteVehicle _x} forEach _actors; {deleteGroup _x} forEach _groups;
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
-    missionNamespace setVariable ["Waldo_CortexQA_FrameSamples",nil];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+    missionNamespace setVariable ["WAIT_CortexQA_FrameSamples",nil];
     sleep 10;
 } forEach [false,true,true,false];
 private _baseMedian=((_results select 0 select 0)+(_results select 3 select 0))/2;

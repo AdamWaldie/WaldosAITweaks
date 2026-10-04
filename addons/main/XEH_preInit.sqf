@@ -9,7 +9,7 @@
  * Example: call compile preprocessFileLineNumbers "\z\waldo_ai_tweaks\addons\main\XEH_preInit.sqf";
  */
 
-if (missionNamespace getVariable ["Waldo_AITweaks_PreInitComplete", false]) exitWith {true};
+if (missionNamespace getVariable ["WAIT_AITweaks_PreInitComplete", false]) exitWith {true};
 
 private _config = call compile preprocessFileLineNumbers "\z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf";
 if !(_config isEqualType createHashMap) exitWith {
@@ -26,19 +26,19 @@ if !(_config isEqualType createHashMap) exitWith {
 
 // CBA Settings owns persisted mission/server configuration. Existing variable names remain the
 // public scripting API because CBA deliberately stores each setting in missionNamespace.
-[] call Waldo_fnc_AITweaksRegisterSettings;
-[] call Waldo_fnc_AITweaksDetectCompatibility;
+[] call WAIT_fnc_AITweaksRegisterSettings;
+[] call WAIT_fnc_AITweaksDetectCompatibility;
 
 // Owner-local startup is allowed only after this machine has loaded every guarded default.
-missionNamespace setVariable ["Waldo_AITweaks_SettingsReady", true];
+missionNamespace setVariable ["WAIT_AITweaks_SettingsReady", true];
 
 if (isServer) then {
-    ["Waldo_AITweaks_SettingsRequest", {
-        _this call Waldo_fnc_AITweaksSettingsRequestServer;
+    ["WAIT_AITweaks_SettingsRequest", {
+        _this call WAIT_fnc_AITweaksSettingsRequestServer;
     }] call CBA_fnc_addEventHandler;
 };
-["Waldo_AITweaks_LandingReconfigure", {
-    [] call Waldo_fnc_ImprovedHelicopterLandingInit;
+["WAIT_AITweaks_LandingReconfigure", {
+    [] call WAIT_fnc_ImprovedHelicopterLandingInit;
 }] call CBA_fnc_addEventHandler;
-missionNamespace setVariable ["Waldo_AITweaks_PreInitComplete", true];
+missionNamespace setVariable ["WAIT_AITweaks_PreInitComplete", true];
 true

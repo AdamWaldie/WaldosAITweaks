@@ -10,27 +10,27 @@
  * Example: call compile preprocessFileLineNumbers "\z\waldo_ai_tweaks\addons\main\XEH_postInit.sqf";
  */
 
-if (missionNamespace getVariable ["Waldo_AITweaks_PostInitComplete", false]) exitWith {true};
-missionNamespace setVariable ["Waldo_AITweaks_PostInitComplete", true];
-[] call Waldo_fnc_AITweaksDetectCompatibility;
+if (missionNamespace getVariable ["WAIT_AITweaks_PostInitComplete", false]) exitWith {true};
+missionNamespace setVariable ["WAIT_AITweaks_PostInitComplete", true];
+[] call WAIT_fnc_AITweaksDetectCompatibility;
 
-if (missionNamespace getVariable ["Waldo_AIRebalance_Enable", true]) then {
+if (missionNamespace getVariable ["WAIT_AIRebalance_Enable", true]) then {
     [
-        missionNamespace getVariable ["Waldo_AIRebalance_Mode", "AUTO"],
-        missionNamespace getVariable ["Waldo_AIRebalance_Profile", "LINE"]
-    ] call Waldo_fnc_AITweak;
+        missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"],
+        missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"]
+    ] call WAIT_fnc_AITweak;
 };
-if (missionNamespace getVariable ["Waldo_ImprovedHelicopterLanding_Enable", true]) then {
-    [] call Waldo_fnc_ImprovedHelicopterLandingInit;
+if (missionNamespace getVariable ["WAIT_ImprovedHelicopterLanding_Enable", true]) then {
+    [] call WAIT_fnc_ImprovedHelicopterLandingInit;
 };
-if (missionNamespace getVariable ["Waldo_HelicopterDeceleration_Enable", false]) then {
-    [] call Waldo_fnc_HelicopterDecelerationInit;
+if (missionNamespace getVariable ["WAIT_HelicopterDeceleration_Enable", false]) then {
+    [] call WAIT_fnc_HelicopterDecelerationInit;
 };
-if (isServer && {missionNamespace getVariable ["Waldo_AIPass_Enable", true]}) then {
-    [] call Waldo_fnc_CortexInit;
+if (isServer && {missionNamespace getVariable ["WAIT_AIPass_Enable", true]}) then {
+    [] call WAIT_fnc_CortexInit;
 };
 if (hasInterface) then {
-    [] call Waldo_fnc_CortexZeusWatchLocal;
+    [] call WAIT_fnc_CortexZeusWatchLocal;
     [] execVM "\z\waldo_ai_tweaks\addons\main\bootstrap\zenRegister.sqf";
 };
 

@@ -102,7 +102,7 @@ private _makeGroup={
     params ["_side","_name"];
     private _group=createGroup [_side,true];
     _group setGroupIdGlobal [_name];
-    _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+    _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _group setVariable ["acex_headless_blacklist",true,true];
     _group allowFleeing 0;
     _groups pushBack _group;
@@ -110,27 +110,27 @@ private _makeGroup={
 };
 private _publish={
     params ["_stage","_requester","_target","_assets",["_note",""]];
-    missionNamespace setVariable ["Waldo_CortexQA_Combined",[
+    missionNamespace setVariable ["WAIT_CortexQA_Combined",[
         "DYNAMIC COMBINED OPERATION",_stage,_requester,_target,_assets,serverTime,_note
     ],true];
 };
 [createHashMapFromArray [
-    ["Waldo_AIPass_Enable",true],["Waldo_AIPass_InfantryOwnership","WMP"],
-    ["Waldo_AIPass_Contact_Enable",true],["Waldo_AIPass_ContactReports_Enable",true],
-    ["Waldo_AIPass_CoordinatedAssault_Enable",true],["Waldo_AIPass_Flank_Enable",true],
-    ["Waldo_AIPass_Advance_Enable",true],["Waldo_AIPass_FireControl_Enable",true],
-    ["Waldo_AIPass_Vehicles_Enable",true],
-    ["Waldo_AIPass_VehicleGunnery_Enable",true],["Waldo_Cortex_AirAttack_Enable",true],
-    ["Waldo_AIPass_Aggression",2],["Waldo_AIPass_Regroup_Enable",true],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_ContactReports_Enable",true],
+    ["WAIT_AIPass_CoordinatedAssault_Enable",true],["WAIT_AIPass_Flank_Enable",true],
+    ["WAIT_AIPass_Advance_Enable",true],["WAIT_AIPass_FireControl_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],
+    ["WAIT_AIPass_VehicleGunnery_Enable",true],["WAIT_Cortex_AirAttack_Enable",true],
+    ["WAIT_AIPass_Aggression",2],["WAIT_AIPass_Regroup_Enable",true],
     // Prove coordinated composition does not silently depend on ordinary reinforcement movement.
-    ["Waldo_AIPass_Reinforce_Enable",false],["Waldo_AIPass_Reinforce_MaxResponders",0],
-    ["Waldo_AIPass_Morale_Enable",false],
-    ["Waldo_AIPass_Artillery_Enable",false]
-]] call Waldo_fnc_CortexTuning;
+    ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_Reinforce_MaxResponders",0],
+    ["WAIT_AIPass_Morale_Enable",false],
+    ["WAIT_AIPass_Artillery_Enable",false]
+]] call WAIT_fnc_CortexTuning;
 ["COMBINED-OP-independent-coordination-gate",
-    missionNamespace getVariable ["Waldo_AIPass_CoordinatedAssault_Enable",false]
-        && {!(missionNamespace getVariable ["Waldo_AIPass_Reinforce_Enable",true])}
-        && {(missionNamespace getVariable ["Waldo_AIPass_Reinforce_MaxResponders",-1]) == 0},
+    missionNamespace getVariable ["WAIT_AIPass_CoordinatedAssault_Enable",false]
+        && {!(missionNamespace getVariable ["WAIT_AIPass_Reinforce_Enable",true])}
+        && {(missionNamespace getVariable ["WAIT_AIPass_Reinforce_MaxResponders",-1]) == 0},
     "Coordinated assault enabled while ordinary reinforcement is disabled and capped at zero"] call _check;
 
 // The squads begin on separate axes and share only the defended objective. The ordinary SAD
@@ -139,7 +139,7 @@ private _starts=([[4820,3600,0],[5000,3540,0],[5180,3600,0]]) apply {[_x] call _
 {
     private _teamIndex=_forEachIndex;
     private _group=[east,format ["Cortex manoeuvre %1",_teamIndex+1]] call _makeGroup;
-    _group setVariable ["Waldo_AIPass_Profile","ELITE",true];
+    _group setVariable ["WAIT_AIPass_Profile","ELITE",true];
     _group setCombatMode "YELLOW";
     _group setFormation (["WEDGE","LINE","WEDGE"] select _teamIndex);
     private _members=[];
@@ -151,16 +151,16 @@ private _starts=([[4820,3600,0],[5000,3540,0],[5180,3600,0]]) apply {[_x] call _
         _unit setSkill ["spotDistance",0.95];
         _unit setSkill ["spotTime",0.95];
         _unit allowDamage false;
-        _unit setVariable ["Waldo_CortexQA_CombinedShots",[]];
+        _unit setVariable ["WAIT_CortexQA_CombinedShots",[]];
         _unit addEventHandler ["FiredMan",{
             params ["_unit","_weapon"];
             if !(_weapon in ["Put"]) then {
-                private _shots=_unit getVariable ["Waldo_CortexQA_CombinedShots",[]];
+                private _shots=_unit getVariable ["WAIT_CortexQA_CombinedShots",[]];
                 _shots pushBack [serverTime,abs speed _unit > 1,_weapon];
-                _unit setVariable ["Waldo_CortexQA_CombinedShots",_shots,true];
+                _unit setVariable ["WAIT_CortexQA_CombinedShots",_shots,true];
             };
         }];
-        _unit setVariable ["Waldo_CortexQA_Label",format ["MANOEUVRE %1.%2",_teamIndex+1,_memberIndex+1],true];
+        _unit setVariable ["WAIT_CortexQA_Label",format ["MANOEUVRE %1.%2",_teamIndex+1,_memberIndex+1],true];
         _members pushBack _unit;
         _objects pushBack _unit;
         _origins pushBack [_unit,getPosATL _unit];
@@ -175,7 +175,7 @@ private _starts=([[4820,3600,0],[5000,3540,0],[5180,3600,0]]) apply {[_x] call _
 } forEach _starts;
 
 private _defenders=[west,"Cortex defended objective"] call _makeGroup;
-_defenders setVariable ["Waldo_AIPass_Exclude",true,true];
+_defenders setVariable ["WAIT_AIPass_Exclude",true,true];
 _defenders setCombatMode "RED";
 private _defenderUnits=[];
 for "_index" from 0 to 7 do {
@@ -187,7 +187,7 @@ for "_index" from 0 to 7 do {
     _unit setUnitPos (["MIDDLE","UP"] select (_index mod 2));
     _unit disableAI "PATH";
     _unit allowDamage false;
-    _unit setVariable ["Waldo_CortexQA_Label",format ["OBJECTIVE DEFENDER %1",_index+1],true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["OBJECTIVE DEFENDER %1",_index+1],true];
     _objects pushBack _unit;
     _defenderUnits pushBack _unit;
 };
@@ -202,23 +202,23 @@ _apc setDir (_apc getDir _objective);
 createVehicleCrew _apc;
 private _apcGroup=group driver _apc;
 _apcGroup setGroupIdGlobal ["Cortex mobile fire support"];
-_apcGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+_apcGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _apcGroup setVariable ["acex_headless_blacklist",true,true];
 _apcGroup setCombatMode "RED";
 _groups pushBackUnique _apcGroup;
 _apc allowDamage false;
 _apc limitSpeed 35;
-_apc setVariable ["Waldo_CortexQA_CombinedShots",[]];
+_apc setVariable ["WAIT_CortexQA_CombinedShots",[]];
 _apc addEventHandler ["Fired",{
     params ["_vehicle","_weapon"];
-    private _shots=_vehicle getVariable ["Waldo_CortexQA_CombinedShots",[]];
+    private _shots=_vehicle getVariable ["WAIT_CortexQA_CombinedShots",[]];
     _shots pushBack [serverTime,_weapon];
-    _vehicle setVariable ["Waldo_CortexQA_CombinedShots",_shots,true];
+    _vehicle setVariable ["WAIT_CortexQA_CombinedShots",_shots,true];
 }];
 private _apcDestination=[[4820,3940,0]] call _place;
 private _apcStartDistance=_apc distance2D _apcDestination;
 (driver _apc) doMove _apcDestination;
-_apc setVariable ["Waldo_CortexQA_Label","MOBILE GROUND FIRE SUPPORT",true];
+_apc setVariable ["WAIT_CortexQA_Label","MOBILE GROUND FIRE SUPPORT",true];
 _objects pushBack _apc;
 _objects append crew _apc;
 
@@ -230,7 +230,7 @@ _air setVelocityModelSpace [0,45,0];
 createVehicleCrew _air;
 private _airGroup=group driver _air;
 _airGroup setGroupIdGlobal ["Cortex air support"];
-_airGroup setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+_airGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _airGroup setVariable ["acex_headless_blacklist",true,true];
 _airGroup setCombatMode "RED";
 _groups pushBackUnique _airGroup;
@@ -241,7 +241,7 @@ private _airOrigin=getPosATL _air;
 private _airDestination=[[5350,3700,0]] call _place;
 _airDestination set [2,160];
 (driver _air) doMove _airDestination;
-_air setVariable ["Waldo_CortexQA_Label","MOVING AIR SUPPORT",true];
+_air setVariable ["WAIT_CortexQA_Label","MOVING AIR SUPPORT",true];
 _objects pushBack _air;
 _objects append crew _air;
 
@@ -250,7 +250,7 @@ private _visualAssets=[];
     _visualAssets pushBack [_x,leader _x,format ["MANOEUVRE AXIS %1",_forEachIndex+1]];
 } forEach _attackGroups;
 _visualAssets append [[_apcGroup,_apc,"MOBILE GROUND FIRE"],[_airGroup,_air,"AIR ATTACK"]];
-missionNamespace setVariable ["Waldo_CortexQA_Actors",(_objects select {_x isKindOf "CAManBase"})+[_apc,_air],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",(_objects select {_x isKindOf "CAManBase"})+[_apc,_air],true];
 
 ["CONTACT",_attackGroups select 1,_defenderUnits select 3,_visualAssets,
     "Three squads approach on separate axes. There is no assembly timer: contact, movement and support may begin independently."] call _publish;
@@ -282,7 +282,7 @@ while {diag_tickTime < _until} do {
     private _infantryShotCount=0;
     {
         private _teamIndex=_forEachIndex;
-        private _state=_x getVariable ["Waldo_AIPass_State",createHashMap];
+        private _state=_x getVariable ["WAIT_AIPass_State",createHashMap];
         private _drill=_state getOrDefault ["drill",createHashMap];
         if (count _drill > 0) then {_drillSeen set [_teamIndex,true]};
         private _moving={alive _x && {abs speed _x > 1.5}} count (_attackTeams select _teamIndex);
@@ -291,10 +291,10 @@ while {diag_tickTime < _until} do {
         {
             private _origin=(_origins select ((_teamIndex*6)+_forEachIndex)) select 1;
             _teamPeak=_teamPeak max (_x distance2D _origin);
-            private _shots=_x getVariable ["Waldo_CortexQA_CombinedShots",[]];
+            private _shots=_x getVariable ["WAIT_CortexQA_CombinedShots",[]];
             _infantryShotCount=_infantryShotCount+count _shots;
             if (_firstInfantryFire < 0 && {_shots isNotEqualTo []}) then {_firstInfantryFire=(_shots select 0) select 0};
-            _x setVariable ["Waldo_CortexQA_Label",format ["M%1.%2 | %3/%4 | %5 | %6 km/h | shots %7",
+            _x setVariable ["WAIT_CortexQA_Label",format ["M%1.%2 | %3/%4 | %5 | %6 km/h | shots %7",
                 _teamIndex+1,_forEachIndex+1,
                 _drill getOrDefault ["type",_state getOrDefault ["phase","CONTACT"]],
                 _drill getOrDefault ["stage","FREE"],stance _x,round abs speed _x,count _shots],true];
@@ -307,20 +307,20 @@ while {diag_tickTime < _until} do {
     if (_movingGroups == 0 && {_infantryShotCount == _lastInfantryShotCount}) then {_idleTicks=_idleTicks+1} else {_idleTicks=0};
     _lastInfantryShotCount=_infantryShotCount;
     _maxIdleTicks=_maxIdleTicks max _idleTicks;
-    private _groundShots=_apc getVariable ["Waldo_CortexQA_CombinedShots",[]];
+    private _groundShots=_apc getVariable ["WAIT_CortexQA_CombinedShots",[]];
     if (_firstGroundFire < 0 && {_groundShots isNotEqualTo []}) then {_firstGroundFire=(_groundShots select 0) select 0};
-    if (_firstAirControl < 0 && {_air getVariable ["Waldo_Cortex_AirAttackJob",false]
-        || {(_air getVariable ["Waldo_Cortex_AirAttackPlan",[]]) isNotEqualTo []}}) then {_firstAirControl=serverTime};
+    if (_firstAirControl < 0 && {_air getVariable ["WAIT_Cortex_AirAttackJob",false]
+        || {(_air getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []}}) then {_firstAirControl=serverTime};
     sleep 2;
 };
 private _squadShots=_attackTeams apply {
     private _total=0;
-    {_total=_total+count (_x getVariable ["Waldo_CortexQA_CombinedShots",[]])} forEach _x;
+    {_total=_total+count (_x getVariable ["WAIT_CortexQA_CombinedShots",[]])} forEach _x;
     _total
 };
 private _movingShots=_attackTeams apply {
     private _total=0;
-    {_total=_total+({_x select 1} count (_x getVariable ["Waldo_CortexQA_CombinedShots",[]]))} forEach _x;
+    {_total=_total+({_x select 1} count (_x getVariable ["WAIT_CortexQA_CombinedShots",[]]))} forEach _x;
     _total
 };
 private _activeFireSquads={_x > 0} count _squadShots;
@@ -334,10 +334,10 @@ private _drillSquads={_x} count _drillSeen;
 ["COMBINED-OP-fire-while-moving",({_x > 0} count _movingShots) >= 1,str _movingShots] call _check;
 ["COMBINED-OP-no-operation-wide-pause",_maxIdleTicks <= 10,format ["longest infantry movement/fire lull=%1 seconds",_maxIdleTicks*2]] call _check;
 ["COMBINED-OP-ground-route-and-fire",_apc distance2D _apcDestination < _apcStartDistance-50
-    && {count (_apc getVariable ["Waldo_CortexQA_CombinedShots",[]]) > 0},
-    str [_apcStartDistance,_apc distance2D _apcDestination,_apc getVariable ["Waldo_CortexQA_CombinedShots",[]]]] call _check;
+    && {count (_apc getVariable ["WAIT_CortexQA_CombinedShots",[]]) > 0},
+    str [_apcStartDistance,_apc distance2D _apcDestination,_apc getVariable ["WAIT_CortexQA_CombinedShots",[]]]] call _check;
 ["COMBINED-OP-air-controller-and-travel",_firstAirControl >= 0 && {_air distance2D _airOrigin >= 100},
-    str [_firstAirControl,_air distance2D _airOrigin,_air getVariable ["Waldo_Cortex_AirAttackPlan",[]]]] call _check;
+    str [_firstAirControl,_air distance2D _airOrigin,_air getVariable ["WAIT_Cortex_AirAttackPlan",[]]]] call _check;
 private _actionTimes=[_firstInfantryFire,_firstGroundFire,_firstAirControl] select {_x >= 0};
 ["COMBINED-OP-concurrent-arms",count _actionTimes == 3 && {(selectMax _actionTimes)-(selectMin _actionTimes) <= 60},str _actionTimes] call _check;
 
@@ -348,16 +348,16 @@ private _actionTimes=[_firstInfantryFire,_firstGroundFire,_firstAirControl] sele
     [[5000,3900,0]] call _place] call _phase;
 private _leaseTokens=[];
 {
-    private _lease=_x getVariable ["Waldo_AIPass_SupportLease",[]];
+    private _lease=_x getVariable ["WAIT_AIPass_SupportLease",[]];
     if (_lease isNotEqualTo []) then {_leaseTokens pushBack (_lease param [0,""])};
 } forEach _attackGroups;
 private _sharedLease=count _leaseTokens > 1 && {{_x == (_leaseTokens select 0)} count _leaseTokens > 1};
 ["COMBINED-OP-no-shared-completion-barrier",!_sharedLease,
     str [_leaseTokens,_attackGroups apply {waypoints _x}]] call _check;
 
-missionNamespace setVariable ["Waldo_CortexQA_Combined",["DYNAMIC COMBINED OPERATION","CLEANUP",grpNull,objNull,[],serverTime,
+missionNamespace setVariable ["WAIT_CortexQA_Combined",["DYNAMIC COMBINED OPERATION","CLEANUP",grpNull,objNull,[],serverTime,
     "The component diagnostic remains separate; all operation fixtures are now being removed."],true];
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {if (!isNull _x) then {deleteVehicle _x}} forEach _objects;
 {if (!isNull _x) then {deleteGroup _x}} forEach _groups;
-missionNamespace setVariable ["Waldo_CortexQA_Combined",[],true];
+missionNamespace setVariable ["WAIT_CortexQA_Combined",[],true];

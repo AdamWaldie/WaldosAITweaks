@@ -17,7 +17,7 @@ private _objects=[];
 private _newGroup={
     params ["_side"];
     private _group=createGroup [_side,true];
-    _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+    _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _group setVariable ["acex_headless_blacklist",true,true];
     _group allowFleeing 0;
     _groups pushBack _group;
@@ -27,7 +27,7 @@ private _newUnit={
     params ["_group","_position","_label"];
     private _unit=_group createUnit [["O_Soldier_F","B_Soldier_F"] select (side _group == west),_position,[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
-    _unit setVariable ["Waldo_CortexQA_Label",_label,true];
+    _unit setVariable ["WAIT_CortexQA_Label",_label,true];
     _objects pushBack _unit;
     _unit
 };
@@ -35,54 +35,54 @@ private _cleanup={
     {deleteVehicle _x} forEach _objects;
     {deleteGroup _x} forEach _groups;
     _objects=[]; _groups=[];
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 };
 private _base=createHashMapFromArray [
-    ["Waldo_AIPass_Enable",true],["Waldo_AIRebalance_Enable",false],
-    ["Waldo_AIPass_Contact_Enable",true],["Waldo_AIPass_InfantryOwnership","WMP"],
-    ["Waldo_AIPass_Regroup_Enable",false],["Waldo_AIPass_Flank_Enable",false],
-    ["Waldo_AIPass_Advance_Enable",false],["Waldo_AIPass_Reinforce_Enable",false],
-    ["Waldo_AIPass_ContactReports_Enable",false],["Waldo_AIPass_CoordinatedAssault_Enable",false],
-    ["Waldo_AIPass_Morale_Enable",false],["Waldo_AIPass_Stance_Enable",false],
-    ["Waldo_AIPass_FireControl_Enable",false],["Waldo_AIPass_Artillery_Enable",false],
-    ["Waldo_AIPass_AmmoShare_Enable",false],["Waldo_AIPass_GrenadeEvasion_Enable",false]
+    ["WAIT_AIPass_Enable",true],["WAIT_AIRebalance_Enable",false],
+    ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],
+    ["WAIT_AIPass_Advance_Enable",false],["WAIT_AIPass_Reinforce_Enable",false],
+    ["WAIT_AIPass_ContactReports_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],
+    ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_Stance_Enable",false],
+    ["WAIT_AIPass_FireControl_Enable",false],["WAIT_AIPass_Artillery_Enable",false],
+    ["WAIT_AIPass_AmmoShare_Enable",false],["WAIT_AIPass_GrenadeEvasion_Enable",false]
 ];
-[_base] call Waldo_fnc_CortexTuning;
+[_base] call WAIT_fnc_CortexTuning;
 private _group=[east] call _newGroup;
 private _soldier=[_group,[1400,1100,0],"COVER STANCE"] call _newUnit;
 private _opposition=[west] call _newGroup;
-_opposition setVariable ["Waldo_AIPass_Exclude",true,true];
+_opposition setVariable ["WAIT_AIPass_Exclude",true,true];
 private _enemy=[_opposition,[1400,1170,0],"VISIBLE THREAT"] call _newUnit;
 {_x setCombatMode "BLUE"} forEach [_group,_opposition];
 {_x disableAI "PATH"; _x allowDamage false} forEach [_soldier,_enemy];
 private _wall=createVehicle ["Land_BagFence_Long_F",[1400,1102,0],[],0,"CAN_COLLIDE"];
 _objects pushBack _wall;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[_soldier,_enemy],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_soldier,_enemy],true];
 ["Cover stance disabled","The soldier faces a low sandbag wall. Cortex must leave the stance setting on Auto while this feature is disabled; ordinary engine animations may still change.",[1400,1100,0]] call _phase;
 sleep 12;
 ["STANCE-disabled-authored-mode",toUpperANSI unitPos _soldier == "AUTO"] call _check;
-[createHashMapFromArray [["Waldo_AIPass_Stance_Enable",true]]] call Waldo_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Stance_Enable",true]]] call WAIT_fnc_CortexTuning;
 ["Cover stance enabled","The soldier must adopt a crouched or prone pose behind the sandbags. The check reads the actual stance as well as the requested posture. No pose is assigned by the test.",[1400,1100,0]] call _phase;
 private _posed=[{toUpperANSI unitPos _soldier in ["DOWN","MIDDLE"] && {stance _soldier in ["PRONE","CROUCH"]}},35] call _wait;
 ["STANCE-physical-pose",_posed,format ["requested=%1 actual=%2",unitPos _soldier,stance _soldier]] call _check;
-[createHashMapFromArray [["Waldo_AIPass_Stance_Enable",false]]] call Waldo_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Stance_Enable",false]]] call WAIT_fnc_CortexTuning;
 ["STANCE-disable-restores-auto",[{toUpperANSI unitPos _soldier == "AUTO"},15] call _wait] call _check;
 {
     private _zeus=_x;
     _soldier setUnitPos "AUTO";
-    [createHashMapFromArray [["Waldo_AIPass_Stance_Enable",true]]] call Waldo_fnc_CortexTuning;
+    [createHashMapFromArray [["WAIT_AIPass_Stance_Enable",true]]] call WAIT_fnc_CortexTuning;
     private _ownedPose=[{toUpperANSI unitPos _soldier in ["DOWN","MIDDLE"]
         && {stance _soldier in ["PRONE","CROUCH"]}
-        && {_soldier getVariable ["Waldo_AIPass_StanceSet",false]}},35] call _wait;
+        && {_soldier getVariable ["WAIT_AIPass_StanceSet",false]}},35] call _wait;
     private _case=["gate","zeus"] select _zeus;
     ["STANCE-"+_case+"-override-stimulus",_ownedPose] call _check;
     _soldier setUnitPos "UP";
     ["Cover stance: preserve later standing order","The soldier has received a later explicit standing order. Watch him remain standing while Cortex releases its previous cover stance. This uses the production takeover endpoint; curator UI event delivery is a separate test.",[1400,1100,0]] call _phase;
-    if (_zeus) then {[_group,true] call Waldo_fnc_CortexZeusMark} else {
-        [createHashMapFromArray [["Waldo_AIPass_Stance_Enable",false]]] call Waldo_fnc_CortexTuning;
+    if (_zeus) then {[_group,true] call WAIT_fnc_CortexZeusMark} else {
+        [createHashMapFromArray [["WAIT_AIPass_Stance_Enable",false]]] call WAIT_fnc_CortexTuning;
     };
     private _standing=[{toUpperANSI unitPos _soldier == "UP" && {stance _soldier == "STAND"}
-        && {!(_soldier getVariable ["Waldo_AIPass_StanceSet",false])}},20] call _wait;
+        && {!(_soldier getVariable ["WAIT_AIPass_StanceSet",false])}},20] call _wait;
     private _held=true;
     for "_sample" from 1 to 12 do {sleep 1; if (toUpperANSI unitPos _soldier != "UP" || {stance _soldier != "STAND"}) then {_held=false}};
     ["STANCE-"+_case+"-preserves-physical-override",_ownedPose && {_standing} && {_held},str [unitPos _soldier,stance _soldier]] call _check;
@@ -93,43 +93,43 @@ call _cleanup;
 {
     private _covered=_x;
     private _case=["open","low-cover"] select _covered;
-    [createHashMapFromArray [["Waldo_AIPass_Stance_Enable",_covered]]] call Waldo_fnc_CortexTuning;
+    [createHashMapFromArray [["WAIT_AIPass_Stance_Enable",_covered]]] call WAIT_fnc_CortexTuning;
     _group=[east] call _newGroup;
     _soldier=[_group,[1450,1100,0],"COVER FIRING SOLDIER"] call _newUnit;
     _soldier setDir 0; _soldier allowDamage false;
     _soldier addEventHandler ["FiredMan",{
         params ["_unit"];
-        _unit setVariable ["Waldo_CortexQA_ActualShots",(_unit getVariable ["Waldo_CortexQA_ActualShots",0])+1,true];
+        _unit setVariable ["WAIT_CortexQA_ActualShots",(_unit getVariable ["WAIT_CortexQA_ActualShots",0])+1,true];
         private _position=getPosATL _unit;
         if (_position distance2D [1450,1100,0] <= 5 && {_position select 1 < 1102}) then {
-            _unit setVariable ["Waldo_CortexQA_CoverShots",(_unit getVariable ["Waldo_CortexQA_CoverShots",0])+1,true];
+            _unit setVariable ["WAIT_CortexQA_CoverShots",(_unit getVariable ["WAIT_CortexQA_CoverShots",0])+1,true];
         };
     }];
     _opposition=[west] call _newGroup;
-    _opposition setVariable ["Waldo_AIPass_Exclude",true,true];
+    _opposition setVariable ["WAIT_AIPass_Exclude",true,true];
     _enemy=[_opposition,[1450,1170,0],"FIRING TARGET"] call _newUnit;
     removeAllWeapons _enemy; _enemy disableAI "PATH";
     _enemy addEventHandler ["HandleDamage",{
         params ["_unit","_selection","_damage","_source","_projectile"];
         if (_projectile != "") then {
-            _unit setVariable ["Waldo_CortexQA_HitEvents",(_unit getVariable ["Waldo_CortexQA_HitEvents",0])+1,true];
+            _unit setVariable ["WAIT_CortexQA_HitEvents",(_unit getVariable ["WAIT_CortexQA_HitEvents",0])+1,true];
         };
         0
     }];
     _group setCombatMode "RED"; _opposition setCombatMode "BLUE";
     if (_covered) then {_objects pushBack (createVehicle ["Land_BagFence_Long_F",[1450,1102,0],[],0,"CAN_COLLIDE"])};
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[_soldier,_enemy],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[_soldier,_enemy],true];
     ["Cover firing: "+_case,"Watch actual shots and projectile hit events at the unarmed target. The soldier starts facing the target and can move naturally. Adopting a stance or aiming alone cannot pass. Compare the open control with the low sandbag wall.",[1450,1100,0]] call _phase;
     private _effective=[{
-        private _shots=_soldier getVariable ["Waldo_CortexQA_ActualShots",0];
-        private _hits=_enemy getVariable ["Waldo_CortexQA_HitEvents",0];
-        _soldier setVariable ["Waldo_CortexQA_Label",format ["FIRING %1 | shots %2 | target hit events %3 | pose %4",_case,_shots,_hits,stance _soldier],true];
+        private _shots=_soldier getVariable ["WAIT_CortexQA_ActualShots",0];
+        private _hits=_enemy getVariable ["WAIT_CortexQA_HitEvents",0];
+        _soldier setVariable ["WAIT_CortexQA_Label",format ["FIRING %1 | shots %2 | target hit events %3 | pose %4",_case,_shots,_hits,stance _soldier],true];
         _shots >= 3 && {_hits > 0}
     },60] call _wait;
-    ["STANCE-"+_case+"-actual-fire-and-hit",_effective,str [_soldier getVariable ["Waldo_CortexQA_ActualShots",0],_enemy getVariable ["Waldo_CortexQA_HitEvents",0],getPosATL _soldier,stance _soldier]] call _check;
+    ["STANCE-"+_case+"-actual-fire-and-hit",_effective,str [_soldier getVariable ["WAIT_CortexQA_ActualShots",0],_enemy getVariable ["WAIT_CortexQA_HitEvents",0],getPosATL _soldier,stance _soldier]] call _check;
     if (_covered) then {
-        ["STANCE-low-cover-fire-from-covered-area",_effective && {(_soldier getVariable ["Waldo_CortexQA_CoverShots",0]) >= 3},
-            format ["shotsBehindCover=%1 finalPosition=%2",_soldier getVariable ["Waldo_CortexQA_CoverShots",0],getPosATL _soldier]] call _check;
+        ["STANCE-low-cover-fire-from-covered-area",_effective && {(_soldier getVariable ["WAIT_CortexQA_CoverShots",0]) >= 3},
+            format ["shotsBehindCover=%1 finalPosition=%2",_soldier getVariable ["WAIT_CortexQA_CoverShots",0],getPosATL _soldier]] call _check;
     };
     call _cleanup;
 } forEach [false,true];
@@ -144,14 +144,14 @@ call _cleanup;
     private _magazine = ["SmokeShell","HandGrenade"] select _frag;
     _soldier addMagazine _magazine;
     if (_frag) then {
-        [createHashMapFromArray [["Waldo_AIPass_Assault_Enable",true]]] call Waldo_fnc_CortexTuning;
+        [createHashMapFromArray [["WAIT_AIPass_Assault_Enable",true]]] call WAIT_fnc_CortexTuning;
     };
-    _soldier setVariable ["Waldo_CortexQA_ThrowCount",0];
+    _soldier setVariable ["WAIT_CortexQA_ThrowCount",0];
     _soldier addEventHandler ["FiredMan",{
         params ["_unit","_weapon"];
-        if (_weapon == "Throw") then {_unit setVariable ["Waldo_CortexQA_ThrowCount",(_unit getVariable ["Waldo_CortexQA_ThrowCount",0])+1,true]};
+        if (_weapon == "Throw") then {_unit setVariable ["WAIT_CortexQA_ThrowCount",(_unit getVariable ["WAIT_CortexQA_ThrowCount",0])+1,true]};
     }];
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[_soldier],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[_soldier],true];
     ["Queued grenade cancellation: "+_case,"A carried grenade is queued, then captivity, Zeus takeover, drill replacement or assault disable must cancel it before execution. No grenade should leave the hand; inventory must stay unchanged.",[1400,1100,0]] call _phase;
     private _before={_x == _magazine} count magazines _soldier;
     private _queued=false;
@@ -159,43 +159,43 @@ call _cleanup;
     isNil {
         // Establish ownership before the stimulus. Discovery must not erase the
         // test generation during the presentation delay or next-frame throw.
-        if !(_group getVariable ["Waldo_AIPass_Adopted",false]) then {
-            [_group,true] call Waldo_fnc_CortexLocality;
+        if !(_group getVariable ["WAIT_AIPass_Adopted",false]) then {
+            [_group,true] call WAIT_fnc_CortexLocality;
         };
         if (_frag) then {
-            private _state=_group getVariable ["Waldo_AIPass_State",createHashMap];
+            private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
             _state set ["drill",createHashMapFromArray [["token","QA-FRAG-CANCEL"]]];
-            _group setVariable ["Waldo_AIPass_State",_state];
+            _group setVariable ["WAIT_AIPass_State",_state];
         };
-        _queuedToken=((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""];
-        _queued=[_soldier,[1400,1125,0],["SMOKE","FRAG"] select _frag] call Waldo_fnc_CortexThrowGrenade;
+        _queuedToken=((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""];
+        _queued=[_soldier,[1400,1125,0],["SMOKE","FRAG"] select _frag] call WAIT_fnc_CortexThrowGrenade;
         switch (_case) do {
-            case "ASSAULT-DISABLED": {[createHashMapFromArray [["Waldo_AIPass_Assault_Enable",false]]] call Waldo_fnc_CortexTuning};
+            case "ASSAULT-DISABLED": {[createHashMapFromArray [["WAIT_AIPass_Assault_Enable",false]]] call WAIT_fnc_CortexTuning};
             case "CAPTIVE": {_soldier setCaptive true};
-            case "ZEUS": {[_group] call Waldo_fnc_CortexZeusMark};
+            case "ZEUS": {[_group] call WAIT_fnc_CortexZeusMark};
             case "DRILL-REPLACED": {
                 // Inject only the replacement generation, never a successful throw/result.
-                private _state=_group getVariable ["Waldo_AIPass_State",createHashMap];
+                private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
                 _state set ["drill",createHashMapFromArray [["token","QA-NEW-GENERATION"]]];
-                _group setVariable ["Waldo_AIPass_State",_state];
+                _group setVariable ["WAIT_AIPass_State",_state];
             };
         };
     };
     sleep 3;
-    private _shots=_soldier getVariable ["Waldo_CortexQA_ThrowCount",0];
+    private _shots=_soldier getVariable ["WAIT_CortexQA_ThrowCount",0];
     private _after={_x == _magazine} count magazines _soldier;
     ["GRENADE-queued-"+_case+"-cancel",_queued && {!_frag || {_queuedToken == "QA-FRAG-CANCEL"}} && {_shots == 0} && {_after == _before},format ["queued=%1 throws=%2 before=%3 after=%4 token=%5",_queued,_shots,_before,_after,_queuedToken]] call _check;
     call _cleanup;
 } forEach ["CAPTIVE","ZEUS","DRILL-REPLACED","ASSAULT-DISABLED"];
 
 // A real projectile enters the production ProjectileCreated path. The test never calls its worker.
-[createHashMapFromArray [["Waldo_AIPass_Contact_Enable",false],["Waldo_AIPass_GrenadeEvasion_Enable",true]]] call Waldo_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_GrenadeEvasion_Enable",true]]] call WAIT_fnc_CortexTuning;
 _group=[east] call _newGroup;
 _soldier=[_group,[1400,1100,0],"GRENADE EVASION"] call _newUnit;
 _soldier setSkill ["general",1];
 _soldier allowDamage false;
 doStop _soldier;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[_soldier],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_soldier],true];
 ["Live grenade evasion","A real grenade appears three metres north of the soldier. Watch for physical movement away before it explodes, then return to normal orders. The soldier is invulnerable for this case.",[1400,1100,0]] call _phase;
 private _start=getPosATL _soldier;
 private _grenadePosition=_start vectorAdd [0,3,0.2];
@@ -214,7 +214,7 @@ _anchor disableAI "PATH";
 {_x allowDamage false} forEach [_anchor,_soldier];
 _soldier setSkill ["general",1];
 doStop _soldier;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[_anchor,_soldier],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_anchor,_soldier],true];
 // A second real grenade creates a fresh pending regroup. Replace its movement
 // before the six-second callback, then require arrival beyond that deadline.
 private _secondStart=getPosATL _soldier;
@@ -234,13 +234,13 @@ private _arrived=[{
     _soldier distance2D _replacement < 4
 },35] call _wait;
 ["GRENADE-replacement-movement",_interrupted && {_arrived},format ["interrupted=%1 remaining=%2",_interrupted,_soldier distance2D _replacement]] call _check;
-[createHashMapFromArray [["Waldo_AIPass_GrenadeEvasion_Enable",false]]] call Waldo_fnc_CortexTuning;
-["GRENADE-handler-disabled",[{isNil {missionNamespace getVariable "Waldo_AIPass_ProjectileHandler"}},10] call _wait] call _check;
+[createHashMapFromArray [["WAIT_AIPass_GrenadeEvasion_Enable",false]]] call WAIT_fnc_CortexTuning;
+["GRENADE-handler-disabled",[{isNil {missionNamespace getVariable "WAIT_AIPass_ProjectileHandler"}},10] call _wait] call _check;
 call _cleanup;
 
 {
     private _surrender=_x;
-    [createHashMapFromArray [["Waldo_AIPass_Contact_Enable",true],["Waldo_AIPass_Morale_Enable",true],["Waldo_AIPass_Surrender_Enable",_surrender],["Waldo_AIPass_Cohesion",0.5],["Waldo_AIPass_Morale_RetreatDistance",80]]] call Waldo_fnc_CortexTuning;
+    [createHashMapFromArray [["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Morale_Enable",true],["WAIT_AIPass_Surrender_Enable",_surrender],["WAIT_AIPass_Cohesion",0.5],["WAIT_AIPass_Morale_RetreatDistance",80]]] call WAIT_fnc_CortexTuning;
     _group=[east] call _newGroup;
     private _squad=[];
     for "_i" from 0 to 5 do {
@@ -249,13 +249,13 @@ call _cleanup;
         _squad pushBack _unit;
     };
     _opposition=[west] call _newGroup;
-    _opposition setVariable ["Waldo_AIPass_Exclude",true,true];
+    _opposition setVariable ["WAIT_AIPass_Exclude",true,true];
     _enemy=[_opposition,[1400,1145,0],"NEARBY OPPOSITION"] call _newUnit;
     _enemy disableAI "PATH"; _enemy allowDamage false;
     {_x setCombatMode "BLUE"} forEach [_group,_opposition];
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",_squad+[_enemy],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",_squad+[_enemy],true];
     [format ["Casualty response: %1",["retreat","surrender"] select _surrender],"The squad first detects its opponent. Five real casualties then leave one isolated survivor. Low cohesion is an explicit test setting; the test does not assign morale or a completed outcome.",[1400,1100,0]] call _phase;
-    private _contact=[{((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["phase",""]) == "CONTACT"},35] call _wait;
+    private _contact=[{((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase",""]) == "CONTACT"},35] call _wait;
     [format ["MORALE-%1-real-contact",_surrender],_contact] call _check;
     private _survivor=_squad select 5;
     _survivor allowDamage false;
@@ -264,26 +264,26 @@ call _cleanup;
     _survivor addEventHandler ["FiredMan",{
         params ["_unit","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
         if (getText (configFile >> "CfgAmmo" >> _ammo >> "simulation") in ["shotSmoke","shotSmokeX"] && {!isNull _projectile}) then {
-            private _records=_unit getVariable ["Waldo_CortexQA_SmokeThrows",[]];
+            private _records=_unit getVariable ["WAIT_CortexQA_SmokeThrows",[]];
             _records pushBack [_ammo,time,getPosATL _projectile];
-            _unit setVariable ["Waldo_CortexQA_SmokeThrows",_records,true];
+            _unit setVariable ["WAIT_CortexQA_SmokeThrows",_records,true];
         };
     }];
     private _originalWeapon=primaryWeapon _survivor;
     private _origin=getPosATL _survivor;
     // Keep the actual state object read-only: surrender cleanup removes the group
     // reference before the presentation card finishes, but does not erase this map.
-    private _observedMoraleState=_group getVariable ["Waldo_AIPass_State",createHashMap];
+    private _observedMoraleState=_group getVariable ["WAIT_AIPass_State",createHashMap];
     {_x setDamage 1} forEach (_squad select [0,5]);
     [format ["MORALE-%1-five-casualties",_surrender],[{({alive _x} count _squad) == 1},10] call _wait] call _check;
-    diag_log format ["WMP CORTEX QA MORALE: contact=%1 peak=%2 survivors=%3 state=%4 courage=%5",_contact,_group getVariable ["Waldo_AIPass_PeakSize",0],_squad apply {[alive _x,lifeState _x]},_group getVariable ["Waldo_AIPass_State",createHashMap],_survivor skill "courage"];
+    diag_log format ["WMP CORTEX QA MORALE: contact=%1 peak=%2 survivors=%3 state=%4 courage=%5",_contact,_group getVariable ["WAIT_AIPass_PeakSize",0],_squad apply {[alive _x,lifeState _x]},_group getVariable ["WAIT_AIPass_State",createHashMap],_survivor skill "courage"];
     [format ["MORALE-%1-living-successor",_surrender],[{alive leader _group && {leader _group == _survivor}},12] call _wait] call _check;
     private _lowestMorale=1;
     private _sawBroken=false;
     private _sawRetreat=false;
     private _nextLabel=0;
     private _sampleMorale={
-        private _live=_group getVariable ["Waldo_AIPass_State",_observedMoraleState];
+        private _live=_group getVariable ["WAIT_AIPass_State",_observedMoraleState];
         _lowestMorale=_lowestMorale min (_live getOrDefault ["morale",1]);
         _sawBroken=_sawBroken || {(_live getOrDefault ["moraleState",""]) == "BROKEN"};
         _sawRetreat=_sawRetreat || {(_live getOrDefault ["phase",""]) == "RETREAT"};
@@ -291,8 +291,8 @@ call _cleanup;
             _nextLabel=time+2;
             diag_log format ["WMP CORTEX QA LEADERSHIP: surrender=%1 leader=%2 alive=%3 survivorLeader=%4 currentWP=%5 phase=%6 destination=%7 hold=%8",
                 _surrender,netId leader _group,alive leader _group,leader _group == _survivor,currentWaypoint _group,
-                _live getOrDefault ["phase",""],expectedDestination _survivor,_group getVariable ["Waldo_AIPass_ZeusHold",[]]];
-            _survivor setVariable ["Waldo_CortexQA_Label",format ["SURVIVOR | morale %1 | %2 | %3 | travel %4 m",(_live getOrDefault ["morale",1]) toFixed 2,_live getOrDefault ["moraleState","NO STATE"],_live getOrDefault ["phase","NO PHASE"],round (_survivor distance2D _origin)],true];
+                _live getOrDefault ["phase",""],expectedDestination _survivor,_group getVariable ["WAIT_AIPass_ZeusHold",[]]];
+            _survivor setVariable ["WAIT_CortexQA_Label",format ["SURVIVOR | morale %1 | %2 | %3 | travel %4 m",(_live getOrDefault ["morale",1]) toFixed 2,_live getOrDefault ["moraleState","NO STATE"],_live getOrDefault ["phase","NO PHASE"],round (_survivor distance2D _origin)],true];
         };
     };
     if (_surrender) then {
@@ -301,13 +301,13 @@ call _cleanup;
         private _holders=nearestObjects [_survivor,["GroundWeaponHolder"],8];
         private _weaponOnGround=_holders findIf {_originalWeapon in ((getWeaponCargo _x) select 0)} >= 0;
         ["SURRENDER-disarm-and-capture",_contact && {_disarmed} && {_weaponOnGround}] call _check;
-        private _surrenderTransition=(_group getVariable ["Waldo_Cortex_PhaseTransitions",[]]) findIf {
+        private _surrenderTransition=(_group getVariable ["WAIT_Cortex_PhaseTransitions",[]]) findIf {
             (_x param [1,""]) == "CONTACT" && {(_x param [2,""]) == "CALM"}
                 && {(_x param [3,""]) == "SURRENDER"}
         };
         ["SURRENDER-terminal-transition",_disarmed && {_surrenderTransition >= 0}
-            && {(_group getVariable ["Waldo_AIPass_PublicPhase",""]) == "CALM"},
-            str (_group getVariable ["Waldo_Cortex_PhaseTransitions",[]])] call _check;
+            && {(_group getVariable ["WAIT_AIPass_PublicPhase",""]) == "CALM"},
+            str (_group getVariable ["WAIT_Cortex_PhaseTransitions",[]])] call _check;
         private _surrenderPosition=getPosATL _survivor;
         private _stable=_disarmed;
         for "_sample" from 1 to 10 do {
@@ -317,7 +317,7 @@ call _cleanup;
                 || {_survivor distance2D _surrenderPosition > 3}) then {_stable=false};
         };
         ["SURRENDER-stays-disarmed-and-held",_stable,str [getPosATL _survivor,primaryWeapon _survivor,captive _survivor]] call _check;
-        private _again=[_group] call Waldo_fnc_CortexSurrender;
+        private _again=[_group] call WAIT_fnc_CortexSurrender;
         private _holdersAfter=nearestObjects [_survivor,["GroundWeaponHolder"],8];
         ["SURRENDER-repeat-no-duplicate-holder",_disarmed && {_again == 0} && {count _holdersAfter == count _holders}] call _check;
         _objects append _holdersAfter;
@@ -326,25 +326,25 @@ call _cleanup;
         private _withdrawn=[{call _sampleMorale; _survivor distance2D _origin >= 30 && {_survivor distance2D _enemy > (_origin distance2D _enemy)+25}},75] call _wait;
         ["MORALE-physical-retreat",_contact && {_withdrawn},str getPosATL _survivor] call _check;
         private _retreatHandover=[{
-            (_group getVariable ["Waldo_Cortex_PhaseTransitions",[]]) findIf {
+            (_group getVariable ["WAIT_Cortex_PhaseTransitions",[]]) findIf {
                 (_x param [1,""]) == "RETREAT" && {(_x param [2,""]) == "REGROUP"}
                     && {(_x param [3,""]) == "WITHDRAWAL_COMPLETE"}
             } >= 0
         },90] call _wait;
         ["RETREAT-regroup-transition",_withdrawn && {_retreatHandover},
-            str (_group getVariable ["Waldo_Cortex_PhaseTransitions",[]])] call _check;
+            str (_group getVariable ["WAIT_Cortex_PhaseTransitions",[]])] call _check;
         ["SURRENDER-disabled-keeps-weapon",primaryWeapon _survivor == _originalWeapon] call _check;
-        ["RETREAT-real-smoke-projectile",(_survivor getVariable ["Waldo_CortexQA_SmokeThrows",[]]) isNotEqualTo [],str (_survivor getVariable ["Waldo_CortexQA_SmokeThrows",[]])] call _check;
+        ["RETREAT-real-smoke-projectile",(_survivor getVariable ["WAIT_CortexQA_SmokeThrows",[]]) isNotEqualTo [],str (_survivor getVariable ["WAIT_CortexQA_SmokeThrows",[]])] call _check;
     };
     [format ["MORALE-%1-broken-trigger",_surrender],_sawBroken,format ["lowest=%1 retreatObserved=%2",_lowestMorale,_sawRetreat]] call _check;
     diag_log format ["WMP CORTEX QA MORALE END: surrender=%1 eligible=%2 hold=%3 state=%4 peak=%5 unit=%6 waypoints=%7 nearbyFriends=%8 knowledge=%9 profile=%10 surrenderGate=%11",
-        _surrender,[_group] call Waldo_fnc_CortexIsEligible,_group getVariable ["Waldo_AIPass_ZeusHold",[]],
-        _group getVariable ["Waldo_AIPass_State",createHashMap],_group getVariable ["Waldo_AIPass_PeakSize",0],
+        _surrender,[_group] call WAIT_fnc_CortexIsEligible,_group getVariable ["WAIT_AIPass_ZeusHold",[]],
+        _group getVariable ["WAIT_AIPass_State",createHashMap],_group getVariable ["WAIT_AIPass_PeakSize",0],
         [currentCommand _survivor,expectedDestination _survivor,behaviour _survivor,_survivor checkAIFeature "PATH",primaryWeapon _survivor],
         (waypoints _group) apply {[_x,waypointPosition _x,waypointDescription _x]},
         (allGroups select {_x != _group && {side _x == side _group} && {leader _x distance2D _survivor < 300}}) apply {[_x,count units _x,getPosATL leader _x]},
-        [_group] call Waldo_fnc_CortexKnowledge,[_group] call Waldo_fnc_CortexProfile,
-        [_group,"Waldo_AIPass_Surrender_Enable",false] call Waldo_fnc_CortexFeatureEnabled];
+        [_group] call WAIT_fnc_CortexKnowledge,[_group] call WAIT_fnc_CortexProfile,
+        [_group,"WAIT_AIPass_Surrender_Enable",false] call WAIT_fnc_CortexFeatureEnabled];
     sleep 12;
     call _cleanup;
 } forEach [false,true];
@@ -353,8 +353,8 @@ call _cleanup;
 // claim of coordinated overwatch; tactical alternation needs separate acceptance. Outside VR the
 // same fixture is rotated onto one bounded, measured escape corridor so a flat northbound strip
 // cannot masquerade as acceptance on hills or rough ground.
-[_base] call Waldo_fnc_CortexTuning;
-[createHashMapFromArray [["Waldo_AIPass_Morale_Enable",true],["Waldo_AIPass_Surrender_Enable",false],["Waldo_AIPass_Cohesion",0.25]]] call Waldo_fnc_CortexTuning;
+[_base] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Morale_Enable",true],["WAIT_AIPass_Surrender_Enable",false],["WAIT_AIPass_Cohesion",0.25]]] call WAIT_fnc_CortexTuning;
 private _withdrawTerrainOrigin=[1432.5,1100,0];
 private _withdrawHeading=0;
 private _withdrawTerrainReady=worldName == "VR";
@@ -434,21 +434,21 @@ for "_teamIndex" from 0 to 1 do {
         _x addEventHandler ["FiredMan",{
             params ["_unit","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
             if (!isNull _projectile && {getText (configFile >> "CfgAmmo" >> _ammo >> "simulation") in ["shotSmoke","shotSmokeX"]}) then {
-                _unit setVariable ["Waldo_CortexQA_MultiSmoke",true,true];
+                _unit setVariable ["WAIT_CortexQA_MultiSmoke",true,true];
             };
         }];
     } forEach _survivors;
     _withdrawSurvivors append _survivors;
     private _enemyGroup=[west] call _newGroup;
-    _enemyGroup setVariable ["Waldo_AIPass_Exclude",true,true];
+    _enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
     _enemyGroup setCombatMode "BLUE";
     private _enemy=[_enemyGroup,[[1400+_teamIndex*65,1180,0]] call _withdrawPosition,format ["SQUAD %1 THREAT",_teamIndex+1]] call _newUnit;
     _enemy disableAI "PATH"; _enemy allowDamage false;
     _withdrawEnemies pushBack _enemy;
 };
-missionNamespace setVariable ["Waldo_CortexQA_Actors",+_objects,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",+_objects,true];
 ["Two squads: casualty-driven withdrawal","Both squads must naturally detect contact across the measured corridor. Four casualties in each leave two survivors. Watch each survivor follow a dry escape avenue, gain ground away from the threat, retain its squad lane and use real smoke. Low cohesion is a declared stimulus; no retreat state is assigned.",[[1435,1100,0]] call _withdrawPosition] call _phase;
-private _bothContact=[{_withdrawTeams findIf {((group (_x select 0) getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["phase",""]) != "CONTACT"} < 0},40] call _wait;
+private _bothContact=[{_withdrawTeams findIf {((group (_x select 0) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase",""]) != "CONTACT"} < 0},40] call _wait;
 ["MULTI-WITHDRAW-natural-contact",_bothContact] call _check;
 private _withdrawOrigins=_withdrawSurvivors apply {getPosATL _x};
 private _originalGroups=_withdrawSurvivors apply {group _x};
@@ -461,7 +461,7 @@ private _allWithdrew=[{
         private _travel=_x distance2D _origin;
         private _gain=(_x distance2D _enemy)-(_origin distance2D _enemy);
         private _escapeProgress=((getPosATL _x) vectorDiff _origin) vectorDotProduct (_withdrawForward vectorMultiply -1);
-        _x setVariable ["Waldo_CortexQA_Label",format ["SQUAD %1 SURVIVOR | travel %2 m | escape %3 m | threat separation +%4 m",1+floor (_forEachIndex/2),round _travel,round _escapeProgress,round _gain],true];
+        _x setVariable ["WAIT_CortexQA_Label",format ["SQUAD %1 SURVIVOR | travel %2 m | escape %3 m | threat separation +%4 m",1+floor (_forEachIndex/2),round _travel,round _escapeProgress,round _gain],true];
         if (!alive _x || {_travel < 30} || {_escapeProgress < 20} || {_gain < 25}) then {_okay=false};
     } forEach _withdrawSurvivors;
     _okay
@@ -479,7 +479,7 @@ private _laneCentres=[];
 ["MULTI-WITHDRAW-distinct-terrain-lanes",_allWithdrew && {abs ((_laneCentres select 1)-(_laneCentres select 0)) >= 35},str _laneCentres] call _check;
 {
     private _survivors=_x select [4,2];
-    [format ["MULTI-WITHDRAW-squad-%1-smoke",_forEachIndex+1],_survivors findIf {_x getVariable ["Waldo_CortexQA_MultiSmoke",false]} >= 0] call _check;
+    [format ["MULTI-WITHDRAW-squad-%1-smoke",_forEachIndex+1],_survivors findIf {_x getVariable ["WAIT_CortexQA_MultiSmoke",false]} >= 0] call _check;
     [format ["MULTI-WITHDRAW-squad-%1-cohesion",_forEachIndex+1],_allWithdrew && {(_survivors select 0) distance2D (_survivors select 1) <= 30},str ((_survivors select 0) distance2D (_survivors select 1))] call _check;
 } forEach _withdrawTeams;
 sleep 12;
@@ -491,46 +491,46 @@ call _cleanup;
 private _civilianGroup=[civilian] call _newGroup;
 private _civilian=_civilianGroup createUnit ["C_man_1",[1600,1100,0],[],0,"NONE"];
 _civilian setVariable ["acex_headless_blacklist",true,true];
-_civilian setVariable ["Waldo_CortexQA_Label","CIVILIAN / DISABLED",true];
+_civilian setVariable ["WAIT_CortexQA_Label","CIVILIAN / DISABLED",true];
 _civilian allowDamage false;
 _objects pushBack _civilian;
 private _civilianThreatGroup=[west] call _newGroup;
-_civilianThreatGroup setVariable ["Waldo_AIPass_Exclude",true,true];
+_civilianThreatGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 private _civilianThreat=[_civilianThreatGroup,[1600,1120,0],"CIVILIAN THREAT"] call _newUnit;
 _civilianThreat disableAI "PATH";
 _civilianThreat allowDamage false;
-missionNamespace setVariable ["Waldo_CortexQA_Actors",[_civilian,_civilianThreat],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_civilian,_civilianThreat],true];
 private _civilianOrigin=getPosATL _civilian;
-[createHashMapFromArray [["Waldo_AIPass_CivilianReaction_Enable",false]]] call Waldo_fnc_CortexTuning;
-[_civilian,true] call Waldo_fnc_CortexCivilianSetup;
+[createHashMapFromArray [["WAIT_AIPass_CivilianReaction_Enable",false]]] call WAIT_fnc_CortexTuning;
+[_civilian,true] call WAIT_fnc_CortexCivilianSetup;
 ["Civilian reaction disabled","An unarmed civilian stands near a threat. The production reaction endpoint must refuse the request and the civilian must remain in place while the feature is disabled.",_civilianOrigin] call _phase;
-private _disabledIssued=[_civilian,_civilianThreat] call Waldo_fnc_CortexCivilianReact;
+private _disabledIssued=[_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact;
 sleep 8;
 ["CIVILIAN-disabled-no-response",!_disabledIssued && {_civilian distance2D _civilianOrigin < 3},format ["issued=%1 travel=%2",_disabledIssued,_civilian distance2D _civilianOrigin]] call _check;
 
 [createHashMapFromArray [
-    ["Waldo_AIPass_CivilianReaction_Enable",true],
-    ["Waldo_AIPass_CivilianReaction_Radius",45],
-    ["Waldo_AIPass_CivilianReaction_Distance",180],
-    ["Waldo_AIPass_CivilianReaction_Cooldown",20]
-]] call Waldo_fnc_CortexTuning;
-[_civilian] call Waldo_fnc_CortexCivilianSetup;
-_civilian setVariable ["Waldo_CortexQA_Label","CIVILIAN / FLEE",true];
+    ["WAIT_AIPass_CivilianReaction_Enable",true],
+    ["WAIT_AIPass_CivilianReaction_Radius",45],
+    ["WAIT_AIPass_CivilianReaction_Distance",180],
+    ["WAIT_AIPass_CivilianReaction_Cooldown",20]
+]] call WAIT_fnc_CortexTuning;
+[_civilian] call WAIT_fnc_CortexCivilianSetup;
+_civilian setVariable ["WAIT_CortexQA_Label","CIVILIAN / FLEE",true];
 ["Civilian reaction enabled","The same civilian receives the production danger response. Watch real movement away from the nearby threat. No FSM, animation or test waypoint is injected.",_civilianOrigin] call _phase;
-private _enabledIssued=[_civilian,_civilianThreat] call Waldo_fnc_CortexCivilianReact;
+private _enabledIssued=[_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact;
 private _fled=[{_civilian distance2D _civilianOrigin >= 25 && {_civilian distance2D _civilianThreat > (_civilianOrigin distance2D _civilianThreat)+20}},35] call _wait;
 ["CIVILIAN-enabled-physical-flee",_enabledIssued && {_fled},format ["issued=%1 travel=%2 separation=%3",_enabledIssued,_civilian distance2D _civilianOrigin,_civilian distance2D _civilianThreat]] call _check;
-private _cooldownRefused=!([_civilian,_civilianThreat] call Waldo_fnc_CortexCivilianReact);
+private _cooldownRefused=!([_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact);
 ["CIVILIAN-cooldown-no-duplicate",_cooldownRefused] call _check;
 
 // A later Zeus order must own the actor immediately and complete physically without the old flee
 // destination returning after the hold expires.
-[_civilianGroup,true] call Waldo_fnc_CortexZeusMark;
+[_civilianGroup,true] call WAIT_fnc_CortexZeusMark;
 private _replacement=(getPosATL _civilian) vectorAdd [0,55,0];
 _civilian doMove _replacement;
-_civilian setVariable ["Waldo_CortexQA_Label","CIVILIAN / ZEUS REPLACEMENT",true];
+_civilian setVariable ["WAIT_CortexQA_Label","CIVILIAN / ZEUS REPLACEMENT",true];
 ["Civilian reaction: Zeus replacement","A later Zeus movement order now owns the civilian. Watch physical arrival at the green replacement destination and no renewed Cortex flee order.",_replacement] call _phase;
 private _replacementArrived=[{_civilian distance2D _replacement < 5},35] call _wait;
-private _blockedDuringZeus=!([_civilian,_civilianThreat] call Waldo_fnc_CortexCivilianReact);
+private _blockedDuringZeus=!([_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact);
 ["CIVILIAN-zeus-replacement-physical",_replacementArrived && {_blockedDuringZeus},format ["remaining=%1 blocked=%2",_civilian distance2D _replacement,_blockedDuringZeus]] call _check;
 call _cleanup;

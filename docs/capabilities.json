@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "acceptance": "partial; no new live evidence",
+  "families": [
+    {
+      "capability": "Infantry danger and contact",
+      "purpose": "Immediate observation, threat response and combat handover",
+      "decision": "repair",
+      "mechanism": "FSM assessment plus bounded scheduled decisions",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Suppression and fire control",
+      "purpose": "Effective fire without synchronised squads or blocked manoeuvres",
+      "decision": "repair",
+      "mechanism": "Local firing events, fire-lane checks and sparse jobs",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Cover and concealment",
+      "purpose": "Useful firing posture and covered avenues of approach",
+      "decision": "repair",
+      "mechanism": "Cached bounded geometry",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Pairs, bounds, flank and assault",
+      "purpose": "Continuous physical advance with covering elements",
+      "decision": "repair",
+      "mechanism": "Finite intent and shared scheduler",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Morale, surrender and withdrawal",
+      "purpose": "Physical fallback and appropriate terminal surrender",
+      "decision": "repair",
+      "mechanism": "Changed-group assessment and finite movement",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Buildings",
+      "purpose": "Enter, progress through rooms/floors and exit with the squad",
+      "decision": "repair",
+      "mechanism": "Topology cache and physical progress",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Coordination and combined arms",
+      "purpose": "Communicating nearby elements exploit support opportunities",
+      "decision": "repair",
+      "mechanism": "Server opportunity registry and finite local roles",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Driving and convoy",
+      "purpose": "Single-file route progress, stable spacing and obstruction handling",
+      "decision": "repair",
+      "mechanism": "Native movement and sparse progress sampling",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Passengers and crew",
+      "purpose": "Safe task-owned dismount/remount without crew leakage",
+      "decision": "repair",
+      "mechanism": "Seat reservations and order generations",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Ground gunnery",
+      "purpose": "Weapon-aware engagement, appropriate precision and threat withdrawal",
+      "decision": "repair",
+      "mechanism": "Owner-local target decisions and optional engine policy",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Ground and air attack",
+      "purpose": "Capability-valid attack selection and real target effects",
+      "decision": "repair",
+      "mechanism": "Native flight/aiming with finite approach intent",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Air defence and countermeasures",
+      "purpose": "Preserve energy, clearance and physical countermeasures",
+      "decision": "repair",
+      "mechanism": "Incoming-threat events and finite responses",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Landing and braking",
+      "purpose": "Terrain-aware natural approach and safe go-around",
+      "decision": "retain",
+      "mechanism": "One flight correction owner",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Artillery",
+      "purpose": "Observed-target support, lethal-only initial warning and battery survival",
+      "decision": "retain",
+      "mechanism": "Authoritative requests and finite burst jobs",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Medical assistance",
+      "purpose": "Maintain squad effectiveness through local treatment",
+      "decision": "implement independently",
+      "mechanism": "Owner-local finite aid job; respect existing medical authority",
+      "implementation_status": "not_implemented",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Survivor reinforcement",
+      "purpose": "Replenish manoeuvre elements without unconditional merging",
+      "decision": "repair",
+      "mechanism": "Casualty events and role replacement",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Civilian reactions",
+      "purpose": "Physical escape from perceived danger",
+      "decision": "retain",
+      "mechanism": "FiredNear/Hit events and finite escape",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Airborne and naval delivery",
+      "purpose": "Deploy embarked infantry safely to useful terrain",
+      "decision": "repair",
+      "mechanism": "Finite vehicle/passenger intent",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Scheduling and update cadence",
+      "purpose": "Bound work while retaining urgent reactions",
+      "decision": "retain",
+      "mechanism": "One shared owner-local budget and cached due times",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Simulation-management methods",
+      "purpose": "Reduce expensive distant simulation without invalidating gameplay",
+      "decision": "assessment pending",
+      "mechanism": "First quantify purpose and owner/multiplayer risks; no new culling yet",
+      "implementation_status": "assessment_pending",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Recovery shortcuts",
+      "purpose": "Resolve engine deadlock without erasing obstructions",
+      "decision": "assessment pending",
+      "mechanism": "Prefer physical retries; no newly introduced teleport or immunity",
+      "implementation_status": "assessment_pending",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    },
+    {
+      "capability": "Specialist controller interoperability",
+      "purpose": "Preserve externally owned actors and animation",
+      "decision": "compatibility-only",
+      "mechanism": "Read-only active ownership and finite leases",
+      "implementation_status": "implemented_partial",
+      "controls": "shared tuning specification; additional gaps remain",
+      "ownership": "current AI owner; server coordinates cross-group requests",
+      "cost": "shared budget; worst-case measurement pending",
+      "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"
+    }
+  ]
+}

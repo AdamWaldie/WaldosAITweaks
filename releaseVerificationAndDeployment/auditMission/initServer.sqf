@@ -7,7 +7,7 @@
  * Example: Launch WAIT_Audit.VR with the checked-in launcher.
  */
 call compile preprocessFileLineNumbers "auditIdentity.sqf";
-if (isNil "Waldo_AITweaks_PostInitComplete") exitWith {diag_log "WAIT AUDIT ERROR: addon absent"};
+if (isNil "WAIT_AITweaks_PostInitComplete") exitWith {diag_log "WAIT AUDIT ERROR: addon absent"};
 private _spawn=createMarker ["respawn_west",[5800,5800,0]];
 _spawn setMarkerType "Empty";
 private _logicGroup=createGroup sideLogic;
@@ -23,10 +23,10 @@ _curator setVariable ["Addons",3,true];
 [] spawn {
     while {true} do {
         private _hcs=allPlayers select {_x isKindOf "HeadlessClient_F"};
-        missionNamespace setVariable ["Waldo_Headless_Clients",_hcs apply {[owner _x,_x]},true];
+        missionNamespace setVariable ["WAIT_Headless_Clients",_hcs apply {[owner _x,_x]},true];
         sleep 2;
     };
 };
 // Audit adapter invokes real ownership transfer. Production owner-local adoption is observed by cases.
-Waldo_fnc_HeadlessMigrateGroup={params ["_group","_owner"]; _group setGroupOwner _owner};
+WAIT_fnc_HeadlessMigrateGroup={params ["_group","_owner"]; _group setGroupOwner _owner};
 diag_log "WAIT AUDIT SERVER READY";

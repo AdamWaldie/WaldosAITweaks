@@ -9,7 +9,7 @@
  */
 params ["_check","_phase","_wait"];
 private _cases = ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE","FLANK-YELLOW","FLANK-AWARE","ADVANCE-AWARE","FLANK","ADVANCE","ADVANCE-YELLOW","ADVANCE-CLOSE","ADVANCE-DISTANT","FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-BLOCKED","ADVANCE-BLOCKED","FLANK-GRENADE","FLANK-ZEUS-CONSOLIDATE","ADVANCE-GRENADE"];
-private _selected = missionNamespace getVariable ["Waldo_CortexQA_CombatCase",""];
+private _selected = missionNamespace getVariable ["WAIT_CortexQA_CombatCase",""];
 if (_selected != "" && {!(_selected in _cases)}) exitWith {["COMBAT-invalid-case",false,_selected] call _check};
 if (_selected != "") then {_cases = [_selected]};
 diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
@@ -23,11 +23,11 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     private _group = createGroup [east,true];
     private _enemyGroup = createGroup [west,true];
     {
-        _x setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        _x setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _x setVariable ["acex_headless_blacklist",true,true];
     } forEach [_group,_enemyGroup];
-    _enemyGroup setVariable ["Waldo_AIPass_Exclude",true,true];
-    _group setVariable ["Waldo_AIPass_Profile","ELITE",true];
+    _enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _group setVariable ["WAIT_AIPass_Profile","ELITE",true];
     _group setGroupIdGlobal [format ["Cortex QA %1",_case]];
     private _members = [];
     private _singleCarrier = objNull;
@@ -42,24 +42,24 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
             } forEach magazines _unit;
         };
         _unit setVariable ["acex_headless_blacklist",true,true];
-        _unit setVariable ["Waldo_CortexQA_Shots",0];
+        _unit setVariable ["WAIT_CortexQA_Shots",0];
         _unit addEventHandler ["FiredMan",{
             params ["_unit","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
             if (_weapon == "Throw" && {getText (configFile >> "CfgAmmo" >> _ammo >> "simulation") == "shotGrenade"}) then {
-                private _records = _unit getVariable ["Waldo_CortexQA_FragShots",[]];
+                private _records = _unit getVariable ["WAIT_CortexQA_FragShots",[]];
                 _records pushBack [_projectile,time,getPosATL _unit];
-                _unit setVariable ["Waldo_CortexQA_FragShots",_records];
+                _unit setVariable ["WAIT_CortexQA_FragShots",_records];
             };
             if (_weapon in ["Throw","Put"]) exitWith {};
-            _unit setVariable ["Waldo_CortexQA_Shots",(_unit getVariable ["Waldo_CortexQA_Shots",0])+1];
-            private _drill=((group _unit) getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+            _unit setVariable ["WAIT_CortexQA_Shots",(_unit getVariable ["WAIT_CortexQA_Shots",0])+1];
+            private _drill=((group _unit) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
             if (abs speed _unit > 1 && {_unit in (_drill getOrDefault ["movers",[]])} && {(_drill getOrDefault ["stage",""]) == "MOVE"}) then {
-                _unit setVariable ["Waldo_CortexQA_MovingShots",(_unit getVariable ["Waldo_CortexQA_MovingShots",0])+1];
+                _unit setVariable ["WAIT_CortexQA_MovingShots",(_unit getVariable ["WAIT_CortexQA_MovingShots",0])+1];
             };
         }];
         _members pushBack _unit;
     } forEach ["O_Soldier_SL_F","O_Soldier_AR_F","O_Soldier_F","O_Soldier_F","O_Soldier_F","O_Soldier_F"];
-    missionNamespace setVariable ["Waldo_CortexQA_Combat",[_group,_case,"WAITING FOR CONTACT",[],[],[],_enemyPosition,-1,[]],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Combat",[_group,_case,"WAITING FOR CONTACT",[],[],[],_enemyPosition,-1,[]],true];
     private _enemies = [];
     for "_i" from 0 to 1 do {
         private _enemy = _enemyGroup createUnit ["B_Soldier_F",(_enemyPosition vectorAdd [_i*8,0,0]),[],0,"NONE"];
@@ -89,53 +89,53 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         _group setCurrentWaypoint _waypoint;
     };
     [createHashMapFromArray [
-        ["Waldo_AIPass_Enable",true],["Waldo_AIPass_Contact_Enable",true],
-        ["Waldo_AIPass_InfantryOwnership","WMP"],["Waldo_AIPass_Aggression",2],
-        ["Waldo_AIPass_Flank_Enable",!_advance],["Waldo_AIPass_Advance_Enable",_advance],
-        ["Waldo_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"],["Waldo_AIPass_Advance_MinContactSeconds",5],
-        ["Waldo_AIPass_FireControl_Enable",!(_case in ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE"])],
-        ["Waldo_AIPass_Morale_Enable",false],["Waldo_AIPass_Regroup_Enable",false],
-        ["Waldo_AIPass_Reinforce_Enable",false],["Waldo_AIPass_CoordinatedAssault_Enable",false],
-        ["Waldo_AIPass_Artillery_Enable",false],["Waldo_AIPass_CounterBattery_Enable",false]
-    ]] call Waldo_fnc_CortexTuning;
+        ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
+        ["WAIT_AIPass_InfantryOwnership","WMP"],["WAIT_AIPass_Aggression",2],
+        ["WAIT_AIPass_Flank_Enable",!_advance],["WAIT_AIPass_Advance_Enable",_advance],
+        ["WAIT_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"],["WAIT_AIPass_Advance_MinContactSeconds",5],
+        ["WAIT_AIPass_FireControl_Enable",!(_case in ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE"])],
+        ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_Regroup_Enable",false],
+        ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],
+        ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CounterBattery_Enable",false]
+    ]] call WAIT_fnc_CortexTuning;
     [format ["%1 real contact",_case],"Six soldiers face two live enemies. They must detect contact, start the enabled manoeuvre, physically move its element, and fire. Invulnerability keeps this movement test independent of casualties.",[1200,1250,0]] call _phase;
     private _prefix = "COMBAT-"+_case;
-    _group setVariable ["Waldo_Cortex_DrillTransitions",[],true];
-    _group setVariable ["Waldo_Cortex_DrillTransition",nil,true];
-    [_prefix+"-requested-contact-delay",(missionNamespace getVariable ["Waldo_AIPass_Advance_MinContactSeconds",-1]) == 5,str (missionNamespace getVariable ["Waldo_AIPass_Advance_MinContactSeconds",-1])] call _check;
+    _group setVariable ["WAIT_Cortex_DrillTransitions",[],true];
+    _group setVariable ["WAIT_Cortex_DrillTransition",nil,true];
+    [_prefix+"-requested-contact-delay",(missionNamespace getVariable ["WAIT_AIPass_Advance_MinContactSeconds",-1]) == 5,str (missionNamespace getVariable ["WAIT_AIPass_Advance_MinContactSeconds",-1])] call _check;
     private _nearestPlayer = 1e9;
     {if (!(_x isKindOf "HeadlessClient_F") && {alive _x}) then {_nearestPlayer=_nearestPlayer min (leader _group distance2D _x)}} forEach allPlayers;
-    [_prefix+"-tactical-range",_nearestPlayer <= (missionNamespace getVariable ["Waldo_AIPass_FarRange",2500]),format ["nearestPlayer=%1 farRange=%2",_nearestPlayer,missionNamespace getVariable ["Waldo_AIPass_FarRange",2500]]] call _check;
-    private _contact = [{((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["phase",""]) == "CONTACT"},60] call _wait;
+    [_prefix+"-tactical-range",_nearestPlayer <= (missionNamespace getVariable ["WAIT_AIPass_FarRange",2500]),format ["nearestPlayer=%1 farRange=%2",_nearestPlayer,missionNamespace getVariable ["WAIT_AIPass_FarRange",2500]]] call _check;
+    private _contact = [{((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase",""]) == "CONTACT"},60] call _wait;
     [_prefix+"-contact",_contact] call _check;
     if (!_contact) then {
-        private _diagnosticState=_group getVariable ["Waldo_AIPass_State",createHashMap];
-        diag_log format ["WMP CORTEX QA CONTACT PREREQUISITE: case=%1 owner=%2 local=%3 eligible=%4 phase=%5 hold=%6 waypointsHeld=%7 knowledge=%8",_case,groupOwner _group,local _group,[_group] call Waldo_fnc_CortexIsEligible,_diagnosticState getOrDefault ["phase","NO STATE"],_group getVariable ["Waldo_AIPass_ZeusHold",[]],_group getVariable ["Waldo_AIPass_ZeusWaypoints",false],[_group] call Waldo_fnc_CortexKnowledge];
+        private _diagnosticState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+        diag_log format ["WMP CORTEX QA CONTACT PREREQUISITE: case=%1 owner=%2 local=%3 eligible=%4 phase=%5 hold=%6 waypointsHeld=%7 knowledge=%8",_case,groupOwner _group,local _group,[_group] call WAIT_fnc_CortexIsEligible,_diagnosticState getOrDefault ["phase","NO STATE"],_group getVariable ["WAIT_AIPass_ZeusHold",[]],_group getVariable ["WAIT_AIPass_ZeusWaypoints",false],[_group] call WAIT_fnc_CortexKnowledge];
     };
     if (_advance) then {{_x enableAI "PATH"} forEach _members};
-    diag_log format ["WMP CORTEX QA COMBAT START CONDITIONS: case=%1 leader=%2 waypoint=%3 remaining=%4 knowledge=%5",_case,getPosATL leader _group,currentWaypoint _group,leader _group distance2D waypointPosition [_group,currentWaypoint _group],[_group] call Waldo_fnc_CortexKnowledge];
-    private _started = [{count ((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) > 0},70] call _wait;
+    diag_log format ["WMP CORTEX QA COMBAT START CONDITIONS: case=%1 leader=%2 waypoint=%3 remaining=%4 knowledge=%5",_case,getPosATL leader _group,currentWaypoint _group,leader _group distance2D waypointPosition [_group,currentWaypoint _group],[_group] call WAIT_fnc_CortexKnowledge];
+    private _started = [{count ((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) > 0},70] call _wait;
     private _startRefusal=[
-        _group getVariable ["Waldo_Cortex_FlankRefusal",[]],
-        _group getVariable ["Waldo_Cortex_AdvanceRefusal",[]],
-        (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
-        [_group] call Waldo_fnc_CortexKnowledge
+        _group getVariable ["WAIT_Cortex_FlankRefusal",[]],
+        _group getVariable ["WAIT_Cortex_AdvanceRefusal",[]],
+        (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
+        [_group] call WAIT_fnc_CortexKnowledge
     ];
     [_prefix+"-started",_started,str _startRefusal] call _check;
-    private _drill = (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+    private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
     private _drillToken = _drill getOrDefault ["token",""];
     if (_case == "ADVANCE-GRENADE" && {_started}) then {
         private _teams = _drill getOrDefault ["teams",[]];
         if (count _teams == 2 && {(_teams select 0) isNotEqualTo []}) then {
             _singleCarrier = (_teams select 0) select 0;
             _singleCarrier addMagazine "HandGrenade";
-            _singleCarrier setVariable ["Waldo_CortexQA_Label","FIRST ELEMENT / ONLY FRAG CARRIER",true];
+            _singleCarrier setVariable ["WAIT_CortexQA_Label","FIRST ELEMENT / ONLY FRAG CARRIER",true];
         };
         [_prefix+"-single-carrier-prerequisite",!isNull _singleCarrier && {"HandGrenade" in magazines _singleCarrier}] call _check;
     };
     if (_started) then {
         private _before = [_drill getOrDefault ["stage",""],_drill getOrDefault ["index",-1],+(_drill getOrDefault ["spots",[]])];
-        private _stale = [createHashMapFromArray [["group",_group],["drillToken","QA-RETIRED-DRILL"]]] call Waldo_fnc_CortexFlankStep;
+        private _stale = [createHashMapFromArray [["group",_group],["drillToken","QA-RETIRED-DRILL"]]] call WAIT_fnc_CortexFlankStep;
         private _after = [_drill getOrDefault ["stage",""],_drill getOrDefault ["index",-1],+(_drill getOrDefault ["spots",[]])];
         [_prefix+"-stale-step-no-mutation",_stale == -1 && {_before isEqualTo _after}] call _check;
     };
@@ -154,13 +154,13 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         if (_case == "FLANK-ZEUS-CONSOLIDATE") then {
             ["Consolidation interruption prerequisite","Watch the assault clear through, then the covering element move forward. Zeus replacement is tested only after support troops physically move in consolidation.",[1200,1300,0]] call _phase;
             [{
-                private _live = (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
-                missionNamespace setVariable ["Waldo_CortexQA_Combat",[_group,_case,_live getOrDefault ["stage","ENDED"],
+                private _live = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+                missionNamespace setVariable ["WAIT_CortexQA_Combat",[_group,_case,_live getOrDefault ["stage","ENDED"],
                     _live getOrDefault ["movers",[]],_live getOrDefault ["spots",[]],_live getOrDefault ["points",[]],
-                    _enemyPosition,_live getOrDefault ["index",-1],_group getVariable ["Waldo_Cortex_DrillResult",[]]],true];
+                    _enemyPosition,_live getOrDefault ["index",-1],_group getVariable ["WAIT_Cortex_DrillResult",[]]],true];
                 count _live == 0 || {_live getOrDefault ["consolidating",false]}
             },600] call _wait;
-            private _live = (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+            private _live = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
             _stageReady = _live getOrDefault ["consolidating",false];
             _interruptionActors = +(_live getOrDefault ["movers",[]]);
             [_prefix+"-consolidation-prerequisite",_stageReady && {_interruptionActors isNotEqualTo []}] call _check;
@@ -170,12 +170,12 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         private _moving = [{
             private _travel = false;
             {if (_x in _interruptionActors && {_x distance2D (_origins select _forEachIndex) >= 8}) then {_travel = true}} forEach _members;
-            _stageReady && {_travel} && {count (((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap])) > 0}
+            _stageReady && {_travel} && {count (((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap])) > 0}
         },45] call _wait;
         [_prefix+"-interrupt-physical-prerequisite",_started && {_moving}] call _check;
         private _oldToken = _drill getOrDefault ["token",""];
         if (_case == "FLANK-ZEUS-ROE") then {
-            private _ownedModes = (((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["combatModes",[]]);
+            private _ownedModes = (((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["combatModes",[]]);
             [_prefix+"-owned-roe-prerequisite",_ownedModes isNotEqualTo []] call _check;
             if (_ownedModes isNotEqualTo []) then {
                 private _actor = (_ownedModes select 0) select 0;
@@ -184,7 +184,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                 if (_row >= 0) then {(_originalModes select _row) set [1,"BLUE"]};
             };
         };
-        [_group,true] call Waldo_fnc_CortexZeusMark;
+        [_group,true] call WAIT_fnc_CortexZeusMark;
         // End the contact stimulus so this isolates old-order cleanup and replacement travel.
         {deleteVehicle _x} forEach _enemies;
         private _destination = (getPosATL leader _group) vectorAdd [-70,0,0];
@@ -193,17 +193,17 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         _wp setWaypointCompletionRadius 3;
         _group setCurrentWaypoint _wp;
         {
-            _x setVariable ["Waldo_CortexQA_Label",format ["Replacement soldier %1",_forEachIndex+1],true];
-            _x setVariable ["Waldo_CortexQA_Target",_destination,true];
+            _x setVariable ["WAIT_CortexQA_Label",format ["Replacement soldier %1",_forEachIndex+1],true];
+            _x setVariable ["WAIT_CortexQA_Target",_destination,true];
         } forEach _members;
-        missionNamespace setVariable ["Waldo_CortexQA_Actors",_members,true];
-        missionNamespace setVariable ["Waldo_CortexQA_Combat",[],true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",_members,true];
+        missionNamespace setVariable ["WAIT_CortexQA_Combat",[],true];
         private _released = [{
-            count ((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) == 0
+            count ((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) == 0
             && {_members findIf {!(_x checkAIFeature "PATH") || {!(_x checkAIFeature "TARGET")} || {!(_x checkAIFeature "AUTOTARGET")}} < 0}
         },15] call _wait;
         [_prefix+"-interrupt-cleanup",_moving && {_released}] call _check;
-        private _staleResult = [createHashMapFromArray [["group",_group],["drillToken",_oldToken]]] call Waldo_fnc_CortexFlankStep;
+        private _staleResult = [createHashMapFromArray [["group",_group],["drillToken",_oldToken]]] call WAIT_fnc_CortexFlankStep;
         [_prefix+"-retired-job-rejected",_oldToken != "" && {_staleResult == -1}] call _check;
         // A MOVE destination belongs to the leader; followers must reach their own
         // formation destinations. A radius around the leader falsely rejects a wedge.
@@ -232,7 +232,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                 if (!alive _x) then {_allAlive=false};
                 _formationDrift = _formationDrift max (_x distance2D (_settledOrigins select _forEachIndex));
             } forEach _members;
-            if (count ((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) > 0) then {_resurrected=true};
+            if (count ((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) > 0) then {_resurrected=true};
         };
         [_prefix+"-replacement-formation-stable",_formationSettled && {_formationDrift <= 3} && {_allAlive} && {!_resurrected},str _formationDrift] call _check;
         [_prefix+"-replacement-no-resurrection",_arrival && {_formationDrift <= 3} && {_allAlive} && {!_resurrected},str [_formationDrift,_resurrected]] call _check;
@@ -278,7 +278,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     if (_started) then {
         waitUntil {
             sleep 0.5;
-            private _live = (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+            private _live = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
             _observedAssault = _observedAssault || {_live getOrDefault ["assaulting",false]};
             if (_live getOrDefault ["assaulting",false]) then {
                 private _objective = _live getOrDefault ["assaultObjective",_enemyPosition];
@@ -286,9 +286,9 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                 _assaultPositionReached = _assaultPositionReached || {count _element >= 2 && {_element findIf {!alive _x || {_x distance2D _objective > 20}} < 0}};
             };
             private _fragRecords = [];
-            {_fragRecords append (_x getVariable ["Waldo_CortexQA_FragShots",[]])} forEach _members;
+            {_fragRecords append (_x getVariable ["WAIT_CortexQA_FragShots",[]])} forEach _members;
             _fragShots = count _fragRecords;
-            private _transitionRows = (_group getVariable ["Waldo_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
+            private _transitionRows = (_group getVariable ["WAIT_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
             private _grenadeQueued = _transitionRows findIf {(_x param [5,""]) == "ASSAULT_GRENADE_QUEUED"} >= 0;
             if (_grenadeQueued) then {
                 if (!_grenadeStageSeen) then {
@@ -330,8 +330,8 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                     if (time >= _releaseAt) then {_blockedActor enableAI "PATH"; _releasedBlock=true};
                 };
             };
-            private _visual = [_group,_case,_live getOrDefault ["stage","ENDED"],_live getOrDefault ["movers",_element],_live getOrDefault ["spots",[]],_live getOrDefault ["points",[]],_enemyPosition,_live getOrDefault ["index",-1],_group getVariable ["Waldo_Cortex_DrillResult",[]],_members apply {[_x,_x getVariable ["Waldo_CortexQA_Shots",0],_x getVariable ["Waldo_CortexQA_MovingShots",0]]}];
-            if (_visual isNotEqualTo _lastVisual) then {missionNamespace setVariable ["Waldo_CortexQA_Combat",_visual,true]; _lastVisual=+_visual};
+            private _visual = [_group,_case,_live getOrDefault ["stage","ENDED"],_live getOrDefault ["movers",_element],_live getOrDefault ["spots",[]],_live getOrDefault ["points",[]],_enemyPosition,_live getOrDefault ["index",-1],_group getVariable ["WAIT_Cortex_DrillResult",[]],_members apply {[_x,_x getVariable ["WAIT_CortexQA_Shots",0],_x getVariable ["WAIT_CortexQA_MovingShots",0]]}];
+            if (_visual isNotEqualTo _lastVisual) then {missionNamespace setVariable ["WAIT_CortexQA_Combat",_visual,true]; _lastVisual=+_visual};
             private _allMoved = count _element >= 2;
             {if (!alive _x || {_x distance2D (_starts select _forEachIndex) < 12}) then {_allMoved=false}} forEach _element;
             _moved = _moved || _allMoved;
@@ -341,14 +341,14 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                 private _cover=(_element-_moving)-((_live getOrDefault ["recovery",[]]) apply {_x select 0});
                 if (_bound isNotEqualTo _roleKey) then {
                     _roleKey=+_bound; _roleTurns pushBack +_bound; _coverAt=time;
-                    _coverStart=_cover apply {[_x,getPosATL _x,_x getVariable ["Waldo_CortexQA_Shots",0]]};
-                    {_x setVariable ["Waldo_CortexQA_Label",format ["BOUND %1 / MOVING ELEMENT %2",(_bound select 0)+1,(_bound select 1)+1],true]} forEach _moving;
-                    {_x setVariable ["Waldo_CortexQA_Label",format ["BOUND %1 / COVERING",(_bound select 0)+1],true]} forEach _cover;
-                    missionNamespace setVariable ["Waldo_CortexQA_Actors",_members+_enemies,true];
+                    _coverStart=_cover apply {[_x,getPosATL _x,_x getVariable ["WAIT_CortexQA_Shots",0]]};
+                    {_x setVariable ["WAIT_CortexQA_Label",format ["BOUND %1 / MOVING ELEMENT %2",(_bound select 0)+1,(_bound select 1)+1],true]} forEach _moving;
+                    {_x setVariable ["WAIT_CortexQA_Label",format ["BOUND %1 / COVERING",(_bound select 0)+1],true]} forEach _cover;
+                    missionNamespace setVariable ["WAIT_CortexQA_Actors",_members+_enemies,true];
                 };
                 if (time-_coverAt >= 3 && {_coverStart isNotEqualTo []}) then {
                     private _held=_coverStart findIf {(_x select 0) distance2D (_x select 1) > 3} < 0;
-                    private _fired=_coverStart findIf {((_x select 0) getVariable ["Waldo_CortexQA_Shots",0]) > (_x select 2)} >= 0;
+                    private _fired=_coverStart findIf {((_x select 0) getVariable ["WAIT_CortexQA_Shots",0]) > (_x select 2)} >= 0;
                     _coverSamples pushBack [+_bound,_held,_fired];
                     // Keep the original cover positions and sample throughout the whole bound.
                     _coverAt=time;
@@ -409,7 +409,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
                 if (_recoveryDetail isNotEqualTo []) then {
                     diag_log format ["WMP CORTEX QA RECOVERY: case=%1 actors=%2",_case,_recoveryDetail];
                 };
-                diag_log format ["WMP CORTEX QA COMBAT: case=%1 phase=%2 stage=%3 index=%4 positions=%5 spots=%6 result=%7",_case,(_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["phase",""],_live getOrDefault ["stage",""],_live getOrDefault ["index",-1],_element apply {[getPosATL _x,currentCommand _x,expectedDestination _x,stance _x,lifeState _x,getSuppression _x,simulationEnabled _x,_x checkAIFeature "PATH",_x checkAIFeature "AUTOCOMBAT",behaviour _x,unitCombatMode _x,attackEnabled _group,_x checkAIFeature "TARGET",_x checkAIFeature "AUTOTARGET",netId assignedTarget _x]},_live getOrDefault ["spots",[]],_group getVariable ["Waldo_Cortex_DrillResult",[]]];
+                diag_log format ["WMP CORTEX QA COMBAT: case=%1 phase=%2 stage=%3 index=%4 positions=%5 spots=%6 result=%7",_case,(_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase",""],_live getOrDefault ["stage",""],_live getOrDefault ["index",-1],_element apply {[getPosATL _x,currentCommand _x,expectedDestination _x,stance _x,lifeState _x,getSuppression _x,simulationEnabled _x,_x checkAIFeature "PATH",_x checkAIFeature "AUTOCOMBAT",behaviour _x,unitCombatMode _x,attackEnabled _group,_x checkAIFeature "TARGET",_x checkAIFeature "AUTOTARGET",netId assignedTarget _x]},_live getOrDefault ["spots",[]],_group getVariable ["WAIT_Cortex_DrillResult",[]]];
             };
             count _live == 0 || {diag_tickTime >= _endTime}
         };
@@ -421,7 +421,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     };
     if (_case == "ADVANCE-GRENADE") then {
         [_prefix+"-first-element-carrier-fired",!isNull _singleCarrier
-            && {count (_singleCarrier getVariable ["Waldo_CortexQA_FragShots",[]]) > 0}] call _check;
+            && {count (_singleCarrier getVariable ["WAIT_CortexQA_FragShots",[]]) > 0}] call _check;
     };
     if (_observedAssault) then {
         [_prefix+"-physical-clear-through",count _clearThroughTeams >= ([1,2] select _advance),str _clearThroughTeams] call _check;
@@ -448,14 +448,14 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
             && {_peers findIf {_blockedActor distance2D _x <= 12} >= 0};
         [_prefix+"-physical-rejoin",_rejoined] call _check;
     };
-    private _remainingDrill=(_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
-    [_prefix+"-observation-completed",_started && {count _remainingDrill == 0},format ["Observed stage=%1 index=%2; controllerFailure=%3",_remainingDrill getOrDefault ["stage","ENDED"],_remainingDrill getOrDefault ["index",-1],_group getVariable ["Waldo_Cortex_DrillFailure",[]]]] call _check;
+    private _remainingDrill=(_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+    [_prefix+"-observation-completed",_started && {count _remainingDrill == 0},format ["Observed stage=%1 index=%2; controllerFailure=%3",_remainingDrill getOrDefault ["stage","ENDED"],_remainingDrill getOrDefault ["index",-1],_group getVariable ["WAIT_Cortex_DrillFailure",[]]]] call _check;
     [_prefix+"-physical-movement",_moved] call _check;
     [_prefix+"-threat-facing-frontage",_haltMeasurements isNotEqualTo [] && {_haltMeasurements findIf {!(_x select 3)} < 0},str _haltMeasurements] call _check;
-    private _ending = _group getVariable ["Waldo_Cortex_DrillResult",[]];
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+    private _ending = _group getVariable ["WAIT_Cortex_DrillResult",[]];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     private _resultStage = ["ENDED","DEADLINE EXCEEDED"] select (count _remainingDrill > 0);
-    missionNamespace setVariable ["Waldo_CortexQA_Combat",[_group,_case,_resultStage,_element,[],[],_enemyPosition,-1,_ending,_members apply {[_x,_x getVariable ["Waldo_CortexQA_Shots",0],_x getVariable ["Waldo_CortexQA_MovingShots",0]]}],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Combat",[_group,_case,_resultStage,_element,[],[],_enemyPosition,-1,_ending,_members apply {[_x,_x getVariable ["WAIT_CortexQA_Shots",0],_x getVariable ["WAIT_CortexQA_MovingShots",0]]}],true];
     if (_case == "ADVANCE-CLOSE") then {
         private _centre = [0,0,0];
         {_centre = _centre vectorAdd getPosATL _x} forEach _element;
@@ -470,8 +470,8 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         [_prefix+"-cover-held-during-bounds",_coverSamples isNotEqualTo [] && {_coverSamples findIf {!(_x select 1)} < 0},str _coverSamples] call _check;
         [_prefix+"-actual-covering-fire",_coverSamples findIf {_x select 2} >= 0,str _coverSamples] call _check;
     };
-    [_prefix+"-fire-while-moving",_members findIf {(_x getVariable ["Waldo_CortexQA_MovingShots",0]) > 0} >= 0,str (_members apply {_x getVariable ["Waldo_CortexQA_MovingShots",0]})] call _check;
-    [_prefix+"-actual-fire",_members findIf {(_x getVariable ["Waldo_CortexQA_Shots",0]) > 0} >= 0] call _check;
+    [_prefix+"-fire-while-moving",_members findIf {(_x getVariable ["WAIT_CortexQA_MovingShots",0]) > 0} >= 0,str (_members apply {_x getVariable ["WAIT_CortexQA_MovingShots",0]})] call _check;
+    [_prefix+"-actual-fire",_members findIf {(_x getVariable ["WAIT_CortexQA_Shots",0]) > 0} >= 0] call _check;
     if (!_advance) then {
         [_prefix+"-assault-entered",_observedAssault] call _check;
         [_prefix+"-assault-position",_assaultPositionReached] call _check;
@@ -482,15 +482,15 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         [format ["%1 late-completion diagnostic",_case],"The original observation deadline failed and remains recorded. Watch for up to two more minutes: does the manoeuvre physically finish, or does it stop progressing?",getPosATL leader _group] call _phase;
         private _lateVisualPrevious = [];
         private _lateEnded = [{
-            private _lateDrill = (_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
-            private _lateVisual = [_group,_case,"LATE: "+(_lateDrill getOrDefault ["stage","ENDED"]),_lateDrill getOrDefault ["movers",_element],_lateDrill getOrDefault ["spots",[]],_lateDrill getOrDefault ["points",[]],_enemyPosition,_lateDrill getOrDefault ["index",-1],_group getVariable ["Waldo_Cortex_DrillResult",[]],_members apply {[_x,_x getVariable ["Waldo_CortexQA_Shots",0],_x getVariable ["Waldo_CortexQA_MovingShots",0]]}];
+            private _lateDrill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+            private _lateVisual = [_group,_case,"LATE: "+(_lateDrill getOrDefault ["stage","ENDED"]),_lateDrill getOrDefault ["movers",_element],_lateDrill getOrDefault ["spots",[]],_lateDrill getOrDefault ["points",[]],_enemyPosition,_lateDrill getOrDefault ["index",-1],_group getVariable ["WAIT_Cortex_DrillResult",[]],_members apply {[_x,_x getVariable ["WAIT_CortexQA_Shots",0],_x getVariable ["WAIT_CortexQA_MovingShots",0]]}];
             if (_lateVisual isNotEqualTo _lateVisualPrevious) then {
-                missionNamespace setVariable ["Waldo_CortexQA_Combat",_lateVisual,true];
+                missionNamespace setVariable ["WAIT_CortexQA_Combat",_lateVisual,true];
                 _lateVisualPrevious = +_lateVisual;
             };
             count _lateDrill == 0
         },120] call _wait;
-        private _lateResult = _group getVariable ["Waldo_Cortex_DrillResult",[]];
+        private _lateResult = _group getVariable ["WAIT_Cortex_DrillResult",[]];
         [_prefix+"-late-controller-ended",_lateEnded,str _lateResult] call _check;
         [_prefix+"-late-completed",_lateEnded && {(_lateResult param [1,""]) == "COMPLETE"},str _lateResult] call _check;
         if (_observedAssault && {_clearedObjective isNotEqualTo []}) then {
@@ -503,12 +503,12 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
         // Original deadline failures above remain recorded; the visible result uses
         // the actual latest ending rather than the empty pre-diagnostic snapshot.
         _ending = +_lateResult;
-        missionNamespace setVariable ["Waldo_CortexQA_Combat",[_group,_case,
+        missionNamespace setVariable ["WAIT_CortexQA_Combat",[_group,_case,
             ["LATE: STILL RUNNING","LATE: ENDED"] select _lateEnded,_members,[],[],_enemyPosition,-1,_ending,
-            _members apply {[_x,_x getVariable ["Waldo_CortexQA_Shots",0],_x getVariable ["Waldo_CortexQA_MovingShots",0]]}],true];
+            _members apply {[_x,_x getVariable ["WAIT_CortexQA_Shots",0],_x getVariable ["WAIT_CortexQA_MovingShots",0]]}],true];
         diag_log format ["WMP CORTEX QA LATE COMPLETION: case=%1 result=%2 actors=%3",_case,_lateResult,_element apply {[netId _x,getPosATL _x,currentCommand _x,expectedDestination _x]}];
     };
-    private _caseTransitions = (_group getVariable ["Waldo_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
+    private _caseTransitions = (_group getVariable ["WAIT_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
     [_prefix+"-transition-assault-committed",!_observedAssault || {_caseTransitions findIf {(_x param [5,""]) == "ASSAULT_COMMITTED"} >= 0},str _caseTransitions] call _check;
     [_prefix+"-transition-clear-through",!_observedAssault || {_caseTransitions findIf {(_x param [5,""]) == "CLEAR_THROUGH_ARRIVED"} >= 0},str _caseTransitions] call _check;
     if (_case in ["FLANK-GRENADE","ADVANCE-GRENADE"]) then {
@@ -517,7 +517,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     [format ["%1 result: %2",_case,_ending param [1,"NO DRILL"]],"Compare actual movement with the route. Completion requires every manoeuvre soldier to reach the bounds; firing or an accepted order alone is insufficient.",getPosATL leader _group] call _phase;
     sleep 20;
     };
-    private _caseTransitions = (_group getVariable ["Waldo_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
+    private _caseTransitions = (_group getVariable ["WAIT_Cortex_DrillTransitions",[]]) select {(_x param [1,""]) == _drillToken};
     private _chronological = true;
     if (count _caseTransitions > 1) then {
         for "_transitionIndex" from 1 to ((count _caseTransitions)-1) do {
@@ -529,13 +529,13 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     [_prefix+"-transition-ended",_caseTransitions findIf {(_x param [4,""]) == "ENDED"} >= 0,str _caseTransitions] call _check;
     [_prefix+"-transition-order",_chronological,str _caseTransitions] call _check;
     // Disable while managed and verify cleanup, without writing successful state into the fixture.
-    [createHashMapFromArray [["Waldo_AIPass_Contact_Enable",false]]] call Waldo_fnc_CortexTuning;
-    [_prefix+"-disabled-cleanup",[{count ((_group getVariable ["Waldo_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) == 0 && {_members findIf {!(_x checkAIFeature "TARGET") || {!(_x checkAIFeature "AUTOTARGET")}} < 0}},15] call _wait] call _check;
-    [_group] call Waldo_fnc_CortexReleaseGroup;
+    [createHashMapFromArray [["WAIT_AIPass_Contact_Enable",false]]] call WAIT_fnc_CortexTuning;
+    [_prefix+"-disabled-cleanup",[{count ((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) == 0 && {_members findIf {!(_x checkAIFeature "TARGET") || {!(_x checkAIFeature "AUTOTARGET")}} < 0}},15] call _wait] call _check;
+    [_group] call WAIT_fnc_CortexReleaseGroup;
     [_prefix+"-combat-mode-restored",_originalModes findIf {alive (_x select 0) && {unitCombatMode (_x select 0) != (_x select 1)}} < 0,str [_originalModes apply {[netId (_x select 0),_x select 1]},_members apply {[netId _x,unitCombatMode _x]}]] call _check;
     {deleteVehicle _x} forEach (_members+_enemies);
     deleteGroup _group;
     deleteGroup _enemyGroup;
-    missionNamespace setVariable ["Waldo_CortexQA_Combat",[],true];
-    missionNamespace setVariable ["Waldo_CortexQA_Actors",[],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Combat",[],true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 } forEach _cases;

@@ -48,9 +48,9 @@ class PackagePipelineTests(unittest.TestCase):
     def test_fsm_is_config_syntax_and_budgeted(self):
         fsm = (ROOT/'addons/main/fsm/tacticalDrill.fsm').read_text()
         self.assertNotIn('\\"', fsm)
-        self.assertIn('call Waldo_fnc_CortexQueueJob', fsm)
+        self.assertIn('call WAIT_fnc_CortexQueueJob', fsm)
         self.assertNotIn('class TokenChanged', fsm)
-        launcher = (ROOT/'addons/main/functions/Cortex/cortexDrillStart.sqf').read_text()
+        launcher = (ROOT/'addons/infantry/functions/cortexDrillStart.sqf').read_text()
         self.assertIn('}) exitWith {true};', launcher)
 
     def test_launcher_keeps_packaged_content_and_resolution(self):

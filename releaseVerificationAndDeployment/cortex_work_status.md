@@ -379,7 +379,7 @@ The installed Turrets, Suppression and RPG PBOs confirm they are configuration c
 
 The canonical full-pack launcher now supports `-CortexFocus compatibility` and an explicit `-IncludeCompatibility` arm that loads the installed Danger, Turrets, Suppression and RPG packages on every audit process. Omitting the switch runs the same Cortex fallback fixture without COMPAT.
 
-The standalone arm requires every soldier to physically move to and hold an assigned defence position. The loaded arm additionally refuses queued/running COMPAT tactics, forced movement and COMPAT waypoint tasks; checks false and true baseline restoration; transfers the public lease to a real headless-client owner for renewal and release; returns the group to the server; then interrupts a live Cortex lease with Zeus and requires every soldier to execute the ordinary replacement waypoint without route resurrection. `Waldo_AIPass_InfantryOwnership` now has its own 57th coverage case.
+The standalone arm requires every soldier to physically move to and hold an assigned defence position. The loaded arm additionally refuses queued/running COMPAT tactics, forced movement and COMPAT waypoint tasks; checks false and true baseline restoration; transfers the public lease to a real headless-client owner for renewal and release; returns the group to the server; then interrupts a live Cortex lease with Zeus and requires every soldier to execute the ordinary replacement waypoint without route resurrection. `WAIT_AIPass_InfantryOwnership` now has its own 57th coverage case.
 
 The first rebuilt standalone attempt at `runtime-20261001-105254` is invalid evidence: the audit's
 arrival predicate omitted parentheses around `findIf`, producing repeated SQF type errors before an

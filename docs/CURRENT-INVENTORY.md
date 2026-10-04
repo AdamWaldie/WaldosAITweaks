@@ -9,18 +9,18 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 - 126 Cortex functions for tactical state, movement, support, vehicles, aircraft and compatibility.
 - 38 SQF files in the retained Cortex QA suites, plus standalone mission initialization.
 - About 1.14 MB of production SQF and 3.06 MB in the repository excluding Git metadata.
-- One addon PBO at `addons/main`, packaged under `z\waldo_ai_tweaks` by HEMTT.
+- Seven mandatory addon PBOs: bootstrap, core, infantry, vehicles, aircraft, support and compatibility, packaged under `z\waldo_ai_tweaks` by HEMTT.
 
 ## Implemented domains
 
 | Domain | Current implementation | Primary control |
 | --- | --- | --- |
-| Skill and lethality | Day/night/AUTO profiles, equipment heuristics, infantry and operating-crew dispersion, locality adoption | `Waldo_AIRebalance_*`, `Waldo_AI_*Dispersion` |
-| Infantry state | Contact reporting, investigation, cover, suppression reactions, morale, retreat, surrender, regroup and calm restoration | `Waldo_AIPass_*` |
+| Skill and lethality | Day/night/AUTO profiles, equipment heuristics, infantry and operating-crew dispersion, locality adoption | `WAIT_AIRebalance_*`, `WAIT_AI_*Dispersion` |
+| Infantry state | Contact reporting, investigation, cover, suppression reactions, morale, retreat, surrender, regroup and calm restoration | `WAIT_AIPass_*` |
 | Manoeuvre | Finite flank, advance, assault, bounding, route planning, stance and casualty reinforcement | Cortex group scheduler |
 | Coordination | Support-by-fire, reinforcement, coordinated assault and combined-arms opportunity exchange | Server opportunity coordinator plus owner-local action |
-| Buildings | Garrison, defend, clear, COMPAT Waypoints lease and physical progress tracking | Explicit order or enabled tactical opportunity |
-| Convoys | Predecessor spacing, road look-ahead, mixed-vehicle pacing, contact halt, dismount, remount, recovery and Zeus notification | `Waldo_fnc_SimpleAiConvoy` |
+| Buildings | Garrison, defend, clear, external AI controller lease and physical progress tracking | Explicit order or enabled tactical opportunity |
+| Convoys | Predecessor spacing, road look-ahead, mixed-vehicle pacing, contact halt, dismount, remount, recovery and Zeus notification | `WAIT_fnc_SimpleAiConvoy` |
 | Vehicles | Passenger decisions, gunnery priorities, standoff, smoke/withdrawal and crew retention | Cortex vehicle jobs |
 | Aircraft | Attack planning, weapon capability, ingress/release/egress, missile reaction, attack-run flares, landing and deceleration | Cortex aircraft jobs and landing handlers |
 | Fires | Artillery roles, warning smoke, finite bursts, observation, counter-battery and shoot-and-scoot | Server mission authority plus gun owner |
@@ -29,12 +29,9 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 
 ## Foundation and optional integrations
 
-COMPAT Danger and its Waypoints component are the required infantry foundation. The code also
-detects COMPAT companions, external controller AI, external controller/external controller, external civilian controller, external controller, external controller,
-Smart Aircraft/Combat/Merge, helicopter deceleration, BHL, DiGii, AI Culler and Scorpions AI.
-Integrations must use public variables or
-functions, take a finite lease, and restore the exact prior state. Addon presence alone must not
-disable unrelated AI.
+CBA and ZEN are required infrastructure. Native engine danger remains the baseline. Optional external
+controllers receive explicit ownership checks; detection alone is not proof of compatibility.
+Each operation uses finite ownership and exact restoration, without disabling unrelated behaviour.
 
 ## Known tuning and acceptance work
 
