@@ -11,7 +11,7 @@
 6. Product-specific Dynamic AA, Dynamic AO, transport and paradrop coupling was removed. Other
    systems use `Waldo_AI_ExternalControl` or `Waldo_AI_PrecisionExclude` instead.
 7. Accepted flank, advance and coordinated-bound lifecycles now run in a finite scripted FSM. The
-   FSM exists only for the active manoeuvre and delegates bounded decisions to SQF; it does not add
+   FSM exists only for the active manoeuvre and queues decisions through the shared SQF budget; it does not add
    a permanent per-group controller or an unbounded scan.
 
 ## Next conversion steps
@@ -22,8 +22,8 @@
    file count alone is not a reason to create more scheduler or packaging overhead.
 3. Replace cross-owner commands with named CBA events where that improves restrictive mission
    `CfgRemoteExec` compatibility. Preserve server validation and owner locality.
-4. Add signed release packaging, version macros and CI build artifacts.
-5. Rebuild the audit as an addon-loaded disposable mission and run live cases in batches.
+4. Exercise the signed candidate and exact-package release promotion workflows.
+5. Run the addon-loaded disposable audit in batches and retain physical acceptance evidence.
 
 ## Runtime rules
 

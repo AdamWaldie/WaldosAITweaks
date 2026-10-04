@@ -60,3 +60,6 @@ batched runs. Static success is not an in-engine acceptance claim.
 
 See [the current inventory](docs/CURRENT-INVENTORY.md), [the CBA migration plan](docs/CBA-MIGRATION.md)
 and [the WMP extraction boundary](docs/WMP-Extraction.md).
+
+See [modding and operations](docs/MODDING-AND-OPERATIONS.md) for packaged local audits,
+signed release promotion and the execution-method assessment.

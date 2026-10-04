@@ -1,0 +1,43 @@
+name: Publish tested WAIT package
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: arma-actions/hemtt@v1
+        with:
+          version: v1.22.0
+      # Promote the exact candidate tested locally. Rebuilding changes signed PBO identity.
+      - name: Download tested candidate and evidence attached to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release download "$TAG" -p wait-candidate.zip -p cortex-results.json -D incoming
+      - run: unzip incoming/wait-candidate.zip -d candidate
+      - run: python releaseVerificationAndDeployment/mod_pipeline.py release-gate candidate incoming/cortex-results.json
+      - run: python releaseVerificationAndDeployment/check_cortex_coverage.py --require-accepted
+      - name: Verify every addon signature
+        run: |
+          for pbo in candidate/addons/*.pbo; do
+            verified=false
+            for key in candidate/keys/*.bikey; do
+              if hemtt utils verify "$pbo" "$key"; then verified=true; break; fi
+            done
+            "$verified" || exit 1
+          done
+      - name: Check release identity and publish installable package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python -c 'import json,os,subprocess; r=json.load(open("candidate/wait-build.json")); assert os.environ["TAG"] == "v"+r["version"]; assert r["commit"] == subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()'
+          cp incoming/wait-candidate.zip "WaldosAITweaks-$TAG.zip"
+          gh release upload "$TAG" "WaldosAITweaks-$TAG.zip" --clobber

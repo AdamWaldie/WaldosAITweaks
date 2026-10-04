@@ -5,9 +5,9 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 
 ## Size and shape
 
-- 160 production SQF files, including CBA pre/post init and five standalone support functions.
+- 164 production SQF files, including CBA pre/post init and standalone support functions.
 - 126 Cortex functions for tactical state, movement, support, vehicles, aircraft and compatibility.
-- 37 SQF files in the retained Cortex QA mission.
+- 38 SQF files in the retained Cortex QA suites, plus standalone mission initialization.
 - About 1.14 MB of production SQF and 3.06 MB in the repository excluding Git metadata.
 - One addon PBO at `addons/main`, packaged under `z\waldo_ai_tweaks` by HEMTT.
 
@@ -25,7 +25,7 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 | Aircraft | Attack planning, weapon capability, ingress/release/egress, missile reaction, attack-run flares, landing and deceleration | Cortex aircraft jobs and landing handlers |
 | Fires | Artillery roles, warning smoke, finite bursts, observation, counter-battery and shoot-and-scoot | Server mission authority plus gun owner |
 | Other actors | Civilian reactions, airborne insertion and naval assault | Event-driven or finite group job |
-| Operator support | Diagnostics, ZEN control and convoy module, visible QA overlays | Optional ZEN and audit mission |
+| Operator support | Diagnostics, ZEN control and convoy module, visible QA overlays | Required ZEN and audit mission |
 
 ## Optional integrations
 
@@ -42,6 +42,7 @@ handover and casualty continuation remain priority live-test areas. Performance 
 batched comparison against native AI at 50 mixed groups, with the agreed budget of no more than 5%
 added median frame time and 10% added p95 frame time.
 
-The CBA settings UI is still represented by guarded missionNamespace defaults. Converting the public
-settings catalogue to `CBA_fnc_addSetting`, replacing remaining remote execution with CBA events where
-appropriate, and versioned multiplayer settings replay are the next packaging tasks.
+The public settings catalogue is registered through CBA Settings. Legacy variable names remain the
+scripting interface. The packaged build, audit and signed-release promotion paths are documented in
+[Modding and operations](MODDING-AND-OPERATIONS.md). Behavioural acceptance remains pending;
+successful packaging and mapped coverage do not certify the inherited tactical implementations.
