@@ -89,7 +89,6 @@
         "addons/core/functions/aiTweaksNotifyLocal.sqf",
         "addons/core/functions/aiTweaksRegisterSettings.sqf",
         "addons/core/functions/aiTweaksSettingChanged.sqf",
-        "addons/core/functions/aiTweaksSettingsRequestServer.sqf",
         "addons/core/functions/aiTweaksUiTheme.sqf",
         "addons/core/functions/headlessResolveSender.sqf",
         "addons/vehicles/functions/zenConvoyModule.sqf",
@@ -1210,19 +1209,17 @@
     },
     {
       "id": "UI",
-      "title": "Cortex UI and purpose modules",
-      "setup": "Operate every page/module through actual controls, apply invalid/stale payloads and reconnect a client.",
-      "expected": "Selected objects/settings match server results; explanatory gates, draft retention, cancellation and state replay are correct.",
+      "title": "CBA configuration and diagnostics",
+      "setup": "Inspect registered CBA options and compare their effective values with the shared specification after server checks.",
+      "expected": "Every option is registered once with the correct type and a valid effective value. Server enforcement, persistence and JIP require separate multiplayer acceptance.",
       "settings": [],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runClient.sqf UI-*; functional pass; mouse and layout acceptance pending",
+      "automation": "runClient.sqf UI-* checks CBA registration and effective-state validity; interactive Addon Options, persistence and JIP acceptance pending",
       "executable_sources": [
         "runClient.sqf"
       ],
       "production_sources": [
-        "addons/core/functions/cortexControlOpenLocal.sqf",
-        "addons/core/functions/cortexControlPageLocal.sqf",
         "addons/core/functions/aiGetDiagnostics.sqf"
       ]
     },

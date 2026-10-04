@@ -17,7 +17,6 @@ class CfgFunctions {
             class AITweaksDetectCompatibility {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\aiTweaksDetectCompatibility.sqf";};
             class AITweaksRegisterSettings {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksRegisterSettings.sqf";};
             class AITweaksSettingChanged {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksSettingChanged.sqf";};
-            class AITweaksSettingsRequestServer {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksSettingsRequestServer.sqf";};
             class AITweaksUiTheme {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksUiTheme.sqf";};
             class HeadlessResolveSender {file = "\z\waldo_ai_tweaks\addons\core\functions\headlessResolveSender.sqf";};
             class ConvoyThreat {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyThreat.sqf";};
@@ -67,8 +66,6 @@ class CfgFunctions {
             class CortexSettingsLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexSettingsLocal.sqf";};
             class CortexTuning {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuning.sqf";};
             class CortexOrderReason {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexOrderReason.sqf";};
-            class CortexControlOpenLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexControlOpenLocal.sqf";};
-            class CortexControlPageLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexControlPageLocal.sqf";};
             class CortexTuningSpec {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuningSpec.sqf";};
             class CortexArtilleryRole {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryRole.sqf";};
             class CortexSetArtilleryRole {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSetArtilleryRole.sqf";};

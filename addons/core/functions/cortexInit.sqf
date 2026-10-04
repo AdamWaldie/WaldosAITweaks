@@ -36,7 +36,7 @@
  * [] call WAIT_fnc_CortexInit;
  * Result: on the server, the pass starts and every connected or later headless client starts it too.
  *
- * Current callers: addon postInit, CBA setting callbacks, the AI Control ZEN module and JIP replay.
+ * Current callers: addon postInit, CBA setting callbacks, CBA setting callbacks and JIP replay.
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};

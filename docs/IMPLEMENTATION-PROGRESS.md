@@ -5,6 +5,7 @@
 - Breaking WAIT function, setting, state and event namespace migration without forwarding aliases.
 - Only CBA and ZEN as required external infrastructure; native danger stays active.
 - Core, infantry, vehicles, aircraft, support and compatibility PBOs with one shared scheduler.
+- Settings-only ZEN panel and its independent variable-writing bridge removed; CBA is the configuration UI.
 - Runtime tuning uses the CBA server layer instead of independently publishing effective values.
 - Behaviour-based capability registry; source inventory and fingerprints removed from tracked content.
 - Cross-product detection and ownership markers preserved within interoperability boundaries.

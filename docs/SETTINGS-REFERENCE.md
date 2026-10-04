@@ -1,6 +1,6 @@
 # Settings reference
 
-Generated from `CortexTuningSpec`; edit that source and regenerate this page. These global options are available through CBA Addon Options and the Zeus tuning control. CBA owns persistence and JIP synchronization. The variable keys remain the script API. Custom tactical and skill profiles extend the listed built-in choices at runtime. Server validation clamps slider input and rejects unsupported selections.
+Generated from `CortexTuningSpec`; edit that source and regenerate this page. These global options are available through CBA Addon Options. CBA owns persistence and JIP synchronization. The variable keys remain the script API. Custom tactical and skill profiles extend the listed built-in choices at runtime. Server validation clamps slider input and rejects unsupported selections.
 
 Defaults describe configuration, not confirmed behavioural acceptance. See [current inventory](CURRENT-INVENTORY.md) and [operations](MODDING-AND-OPERATIONS.md) for validation limits.
 
