@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Repeated input updates the current hold marker; newer commands supersede earlier ownership. Public group state survives JIP.
  * Marks an AI group as under Zeus control so the Smart AI Pass steps back from it.
  *
  * Called on the curator's own machine by the handlers Waldo_fnc_CortexZeusWatchLocal installs. Any
