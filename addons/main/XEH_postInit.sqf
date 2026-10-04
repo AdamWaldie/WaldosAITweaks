@@ -12,6 +12,7 @@
 
 if (missionNamespace getVariable ["Waldo_AITweaks_PostInitComplete", false]) exitWith {true};
 missionNamespace setVariable ["Waldo_AITweaks_PostInitComplete", true];
+[] call Waldo_fnc_AITweaksDetectCompatibility;
 
 if (missionNamespace getVariable ["Waldo_AIRebalance_Enable", true]) then {
     [
@@ -30,10 +31,7 @@ if (isServer && {missionNamespace getVariable ["Waldo_AIPass_Enable", true]}) th
 };
 if (hasInterface) then {
     [] call Waldo_fnc_CortexZeusWatchLocal;
-    [
-        {!(isNil "zen_custom_modules_fnc_register")},
-        {[] execVM "\z\waldo_ai_tweaks\addons\main\bootstrap\zenRegister.sqf";}
-    ] call CBA_fnc_waitUntilAndExecute;
+    [] execVM "\z\waldo_ai_tweaks\addons\main\bootstrap\zenRegister.sqf";
 };
 
 diag_log format ["[Waldos AI Tweaks] Started on owner %1 (server=%2 interface=%3 HC=%4).",

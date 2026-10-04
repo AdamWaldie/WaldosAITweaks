@@ -3,8 +3,8 @@
  * Runs one reserved squad bound as two successive balanced fire-team movements.
  * Locality/authority: group owner consumes the current server role and matching lease.
  * Repeat/JIP: sequence prevents duplicate starts; migration restores mover leases before
- * the new owner consumes the durable role. Uses the existing bounded movement scheduler and
- * publishes a heartbeat so GroupTick can fail and restore a lost or starved bound job.
+ * the new owner consumes the durable role. Uses the finite tactical-drill FSM and publishes a
+ * heartbeat so GroupTick can fail and restore a lost or starved controller.
  * Arguments: 0: group <GROUP>; 1: state <HASHMAP>; 2: role <ARRAY>, required.
  * Return: Boolean, true if a finite bound starts. Current caller: CortexSupportMaintain.
  * Example: [_group,_state,_role] call Waldo_fnc_CortexSupportBoundStart;
@@ -46,5 +46,5 @@ _state set ["drill",createHashMapFromArray [
 _state set ["supportBoundSequence",_sequence];
 _group setVariable ["Waldo_Cortex_SupportBoundResult",[],true];
 _group setVariable ["Waldo_Cortex_DrillReinforcements",[],true];
-[Waldo_fnc_CortexFlankStep,createHashMapFromArray [["group",_group],["drillToken",_token]],0] call Waldo_fnc_CortexQueueJob;
+[_group,_token] call Waldo_fnc_CortexDrillStart;
 true

@@ -142,7 +142,7 @@ _group setVariable ["Waldo_Cortex_AdvanceRefusal",nil,true];
 // Direct fire-team bounds are a group movement owner even though they do not
 // create a WMP waypoint. Other behaviours must wait until CortexFlankEnd releases it.
 _state set ["movementLease",["TACTICAL_DRILL",time+90]];
-[Waldo_fnc_CortexFlankStep, createHashMapFromArray [["group", _group],["drillToken",_token]], 0] call Waldo_fnc_CortexQueueJob;
+[_group,_token] call Waldo_fnc_CortexDrillStart;
 if (missionNamespace getVariable ["Waldo_AIPass_Debug", false]) then {
     diag_log format ["[WMP CORTEX] %1 ADVANCE element=%2 points=%3", _group, count _element, count _points];
 };

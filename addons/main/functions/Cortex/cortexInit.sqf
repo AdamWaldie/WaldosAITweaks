@@ -107,22 +107,9 @@ if (isNil {missionNamespace getVariable "Waldo_AIPass_ArtilleryHandler"}) then {
         if (missionNamespace getVariable ["Waldo_AIPass_Active", false]) then {[_vehicle, _gunner] call Waldo_fnc_CortexCounterBattery};
     }]];
 };
-missionNamespace setVariable ["Waldo_AIPass_DangerBackendLoaded", isClass (configFile >> "CfgPatches" >> "lambs_danger")];
-missionNamespace setVariable ["Waldo_AIPass_AlternativeBackendLoaded",
-    isClass (configFile >> "CfgPatches" >> "VCOM_AI") || {!isNil "VCM_fnc_SQUADBEH"}];
-missionNamespace setVariable ["Waldo_AIPass_NavalBackendLoaded",
-    isClass (configFile >> "CfgPatches" >> "PROTOCOL_AI_NAVY_SEAL")];
-missionNamespace setVariable ["Waldo_AIPass_MeleeBackendLoaded",
-    !isNil "IMS_Melee_Weapons" || {isClass (configFile >> "CfgPatches" >> "WBK_IMS")}
-        || {isClass (configFile >> "CfgPatches" >> "WBK_IMS2")}];
-missionNamespace setVariable ["Waldo_AIPass_SpecialistBackendLoaded",
-    !isNil "WBK_LoadAIThroughEden" || {!isNil "WBK_Droid_B1_Load"}];
-missionNamespace setVariable ["Waldo_AIPass_CivilianBackendLoaded",!isNil "WBK_CivilianFlee"];
-// The companion packages are config layers. Record them for diagnostics, but never disable them
-// when Cortex takes movement ownership from LAMBS_Danger.
-missionNamespace setVariable ["Waldo_Cortex_TurretPolicyLoaded", isClass (configFile >> "CfgPatches" >> "lambs_turrets")];
-missionNamespace setVariable ["Waldo_Cortex_SuppressionPolicyLoaded", isClass (configFile >> "CfgPatches" >> "lambs_suppression")];
-missionNamespace setVariable ["Waldo_Cortex_LauncherPolicyLoaded", isClass (configFile >> "CfgPatches" >> "lambs_rpg")];
+// Optional addon public APIs can appear during postInit, so refresh the capability map before the
+// first owner-local behaviour is accepted. Detection never changes another addon's state.
+[] call Waldo_fnc_AITweaksDetectCompatibility;
 if (missionNamespace getVariable ["Waldo_AIPass_CivilianReaction_Enable",true]) then {
     {if (local _x) then {[_x] call Waldo_fnc_CortexCivilianSetup}} forEach (allUnits select {side group _x == civilian});
     if (isNil {missionNamespace getVariable "Waldo_Cortex_CivilianCreatedHandler"}) then {
