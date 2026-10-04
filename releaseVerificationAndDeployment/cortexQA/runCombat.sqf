@@ -90,7 +90,7 @@ diag_log format ["WMP CORTEX QA COMBAT SCOPE: %1",_cases];
     };
     [createHashMapFromArray [
         ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
-        ["WAIT_AIPass_InfantryOwnership","WMP"],["WAIT_AIPass_Aggression",2],
+        ["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Aggression",2],
         ["WAIT_AIPass_Flank_Enable",!_advance],["WAIT_AIPass_Advance_Enable",_advance],
         ["WAIT_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"],["WAIT_AIPass_Advance_MinContactSeconds",5],
         ["WAIT_AIPass_FireControl_Enable",!(_case in ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE"])],

@@ -45,7 +45,7 @@ private _lease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
 private _alternativeBackendLease=_group getVariable ["WAIT_Cortex_AlternativeLease",[]];
 private _blanket = _group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false];
 private _mode = toUpperANSI (missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"]);
-private _wmpMode = _mode in ["WAIT", "WMP"]; // WMP remains a legacy saved-settings value.
+private _wmpMode = _mode == "WAIT";
 
 if (_acquire) exitWith {
     if (_owner == "") exitWith {false};

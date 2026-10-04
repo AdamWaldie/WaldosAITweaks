@@ -11,7 +11,7 @@
  */
 params ["_check","_phase","_wait"];
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
     ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_ContactReports_Enable",false],
     ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],
@@ -268,7 +268,7 @@ if (_hcOwners isNotEqualTo []) then {
         ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleWithdraw_Enable",true],
         ["WAIT_AIPass_VehicleDismount_Enable",false],["WAIT_AIPass_VehicleGunnery_Enable",false],
         ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_PostContact_Enable",false],
-        ["WAIT_AIPass_InfantryOwnership","WMP"]
+        ["WAIT_AIPass_InfantryOwnership","WAIT"]
     ]] call WAIT_fnc_CortexTuning;
     private _migrateArmour=createVehicle ["O_APC_Tracked_02_cannon_F",[2300,1100,0],[],0,"NONE"];
     createVehicleCrew _migrateArmour;

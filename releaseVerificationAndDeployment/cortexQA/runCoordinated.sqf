@@ -125,7 +125,7 @@ WAIT_fnc_CortexQASetCombatMode = {
 };
 publicVariable "WAIT_fnc_CortexQASetCombatMode";
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],["WAIT_AIPass_Contact_Enable",true],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Contact_Enable",true],
     ["WAIT_AIPass_Reinforce_Enable",true],["WAIT_AIPass_Reinforce_MaxResponders",2],
     ["WAIT_AIPass_CoordinatedAssault_Enable",false],["WAIT_AIPass_Aggression",2],
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],

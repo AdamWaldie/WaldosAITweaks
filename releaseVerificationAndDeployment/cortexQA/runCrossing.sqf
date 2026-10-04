@@ -29,7 +29,7 @@ private _dry=!surfaceIsWater _start && {!surfaceIsWater _goal} && {!surfaceIsWat
 ["CROSS-dry-approach-prerequisite",_dry] call _check;
 if (!_dry) exitWith {};
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],
     ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Advance_Enable",true],
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Assault_Enable",false],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Morale_Enable",false],

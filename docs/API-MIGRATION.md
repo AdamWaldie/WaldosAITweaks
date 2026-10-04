@@ -8,6 +8,9 @@ This is a breaking addon update. There are no forwarding aliases.
 | `Waldo_<SettingOrState>` | `WAIT_<SettingOrState>` |
 | `Waldo_AI_Tweaks_Main` addon identifier | `WAIT_AI_Tweaks_Main` |
 
+Infantry controller ownership uses `WAIT_AIPass_InfantryOwnership` with `SPLIT` or `WAIT`.
+There is no saved-setting alias for its former source-oriented key or the former `WMP` value.
+
 Update mission calls, remote-execution allowlists, overrides and saved CBA settings before upgrading.
 The legacy addon-detection marker and cross-product `Waldo_AI_ExternalControl` and
 `Waldo_AI_PrecisionExclude` markers remain for
