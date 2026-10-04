@@ -68,6 +68,15 @@ def stage(package, destination, focus, root=ROOT):
         shutil.copyfile(path, mission/f'cortexQA{ALIASES.get(suffix, suffix)}.sqf')
     # Preserve the established reporter marker while proving the packaged addon identity.
     (mission/'auditIdentity.sqf').write_text(
+        '''/*
+ * Author: WaldoTheWarfighter
+ * Purpose: Identify the packaged audit and select its batch.
+ * Locality: Every audit machine; server publishes focus. Repeat-safe; JIP reads server focus.
+ * Arguments: None. Return: Nothing.
+ * Callers: audit initServer.sqf and initPlayerLocal.sqf.
+ * Example: call compile preprocessFileLineNumbers "auditIdentity.sqf";
+ */
+'''
         f'diag_log "WMP CORTEX QA SOURCE|fingerprint={record["fingerprint"]}";\n'
         f'if (isServer) then {{missionNamespace setVariable ["Waldo_CortexQA_Focus","{focus}",true]}};\n')
     missing = []
