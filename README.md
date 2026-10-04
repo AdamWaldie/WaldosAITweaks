@@ -10,20 +10,20 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 
 - CBA extended pre-init loads guarded defaults on every machine;
 - CBA extended post-init starts only the systems enabled for that owner;
-- the established `Waldo_fnc_*` API remains available through `CfgFunctions`;
+- the established `WAIT_fnc_*` API remains available through `CfgFunctions`;
 - CBA Settings owns global addon configuration and JIP synchronization;
 - ZEN is a required operator dependency and supplies the live control surface;
 - the standalone settings request uses a CBA server event and validates the requesting curator;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. CBA_A3, ZEN and COMPAT Danger
-(including its Waypoints component) are hard runtime dependencies. COMPAT supplies the infantry
-danger FSM and building-task foundation; WAIT adds finite tactical operations around that base.
-Optional combat, civilian and vehicle controllers retain explicit ownership of their active tasks.
-Dependency code is installed separately and is not bundled or modified in this package.
+Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+, CBA_A3 and
+ZEN are required. Native engine danger behaviour remains active until an original WAIT replacement
+passes acceptance. No external AI addon is required or bundled.
 
-See [addon lifecycle and feature integration](docs/ADDON-LIFECYCLE.md) for how existing WAIT
-improvements fit the mod runtime.
+The new function and settings API uses `WAIT_*` with no forwarding aliases. See
+[API migration](docs/API-MIGRATION.md), [addon lifecycle](docs/ADDON-LIFECYCLE.md) and the
+[capability registry](docs/CAPABILITY-REGISTRY.md).
+
 ## Product boundary
 
 This repository owns AI behaviour:
@@ -44,7 +44,7 @@ may set `Waldo_AI_PrecisionExclude` when they intentionally own lethality. AI Tw
 Dynamic AA or Dynamic AO implementation and does not inspect their private state.
 
 WMP may keep its mission-level AI skill values for missions that do not load this addon. When
-`Waldo_AI_Tweaks_Main` is present, WMP must not start a second skill, convoy, landing, deceleration or
+`WAIT_AI_Tweaks_Main` is present, WMP must not start a second skill, convoy, landing, deceleration or
 Cortex controller.
 
 ## Authority and Zeus

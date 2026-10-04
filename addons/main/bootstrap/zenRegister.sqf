@@ -11,14 +11,14 @@
  */
 
 if (!hasInterface || {isNil "zen_custom_modules_fnc_register"}) exitWith {false};
-if (missionNamespace getVariable ["Waldo_AITweaks_ZenRegisteredLocal", false]) exitWith {true};
-missionNamespace setVariable ["Waldo_AITweaks_ZenRegisteredLocal", true];
+if (missionNamespace getVariable ["WAIT_AITweaks_ZenRegisteredLocal", false]) exitWith {true};
+missionNamespace setVariable ["WAIT_AITweaks_ZenRegisteredLocal", true];
 
 ["Waldos AI Tweaks", "AI Control", {
-    [] call Waldo_fnc_CortexControlOpenLocal;
+    [] call WAIT_fnc_CortexControlOpenLocal;
 }] call zen_custom_modules_fnc_register;
 
 ["Waldos AI Tweaks", "Create AI Convoy", {
-    _this call Waldo_fnc_ZenConvoyModule;
+    _this call WAIT_fnc_ZenConvoyModule;
 }] call zen_custom_modules_fnc_register;
 true

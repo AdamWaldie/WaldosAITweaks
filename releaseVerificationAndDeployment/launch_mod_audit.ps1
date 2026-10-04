@@ -20,7 +20,7 @@ if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyConti
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
 if (!$Mods.Count) {
-    $Mods=@('!Workshop/@CBA_A3','!Workshop/@Zeus Enhanced','!Workshop/@LAMBS_Danger.fsm') | ForEach-Object {Join-Path $ArmaPath $_}
+    $Mods=@('!Workshop/@CBA_A3','!Workshop/@Zeus Enhanced') | ForEach-Object {Join-Path $ArmaPath $_}
 }
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))

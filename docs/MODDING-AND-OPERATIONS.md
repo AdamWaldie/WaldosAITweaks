@@ -1,11 +1,7 @@
 # Mod build, testing and architecture
 
-WAIT requires Arma 3 2.18+, CBA, ZEN and COMPAT Danger with its Waypoints component. ACE,
-COMPAT companion addons, external controller and specialist unit mods remain optional. COMPAT is installed separately;
-WAIT does not redistribute its source or replace its danger FSM.
-The production addon is `addons/main`, with the virtual path `z\waldo_ai_tweaks\addons\main`.
-Missions load the packaged mod. CBA XEH runs initialization and CBA Settings exposes the existing
-feature names. Dynamic AA/AO and WMP mission systems remain outside this repository.
+WAIT requires Arma 3 2.18+, CBA and ZEN. Other controllers are optional. Native danger remains
+active while the original standalone danger implementation awaits acceptance.
 
 ## Change validation and local deployment
 
@@ -73,13 +69,13 @@ directly from a per-frame condition. This change needs a live A/B measurement.
 
 | Domain | Preferred method | Conversion and acceptance decision |
 | --- | --- | --- |
-| Immediate danger and contact | Engine danger events/FSM with small owner-local decisions | Examine COMPAT danger causes and interrupts; introduce an original fallback only after native movement and Zeus handover tests |
+| Immediate danger and contact | Engine danger events/FSM with small owner-local decisions | Use original danger-cause assessment; introduce the FSM only after native movement and Zeus handover tests |
 | Squad tactics and combined arms | Event-fed shared opportunity registry, budgeted decisions, finite leases | Keep communication opportunistic; no compulsory rally or assembly barrier; casualty replacements update roles without restarting the whole attack |
-| CQB and garrison | Cached building topology and engine navigation; finite team movement | COMPAT task integration remains preferred when loaded. Validate rooms, floors, doorway traversal and exit across different buildings before replacing the fallback |
-| Turret and launcher policy | Config where supported, owner-local skills for runtime settings | Config cannot be reversed by a CBA toggle. Any new config component must document that distinction and avoid stacking installed COMPAT companion changes |
-| Vehicle driving | Native route commands plus sparse progress/obstruction events | Use external controller route-memory ideas; preserve intentional roadblocks, crew ownership and Zeus orders; recovery cannot teleport, repair or remove obstacles |
+| CQB and garrison | Cached building topology and engine navigation; finite team movement | Native WAIT task implementation remains the standalone path. Validate rooms, floors, doorway traversal and exit across different buildings before replacing the fallback |
+| Turret and launcher policy | Config where supported, owner-local skills for runtime settings | Config cannot be reversed by a CBA toggle. Any new config component must document that distinction and avoid stacking installed external AI controller companion changes |
+| Vehicle driving | Native route commands plus sparse progress/obstruction events | Use sparse route-memory and obstruction sampling; preserve intentional roadblocks, crew ownership and Zeus orders; recovery cannot teleport, repair or remove obstacles |
 | Air combat | Native flight, weapon-config capabilities and sparse finite attack intent | Match weapon, envelope and terrain clearance; aircraft own aiming and actual ordnance. Avoid fixed-angle projectile creation or repeated short steering points |
-| Civilians and specialist actors | Local danger events and explicit external ownership | external controller/external controller animations and combat own their actors; WAIT yields instead of layering a competing tactical controller |
+| Civilians and specialist actors | Local danger events and explicit external ownership | Externally owned animations and combat retain their actors; WAIT yields instead of layering a competing tactical controller |
 | Skills, lighting and dispersion | CBA settings plus equipment/locality events and cached profiles | Avoid rescanning every unit every frame; preserve WMP authored skill values where ownership is delegated |
 
 Retain feature gates, intent, locality, cancellation, casualty continuation and diagnostics through
@@ -94,8 +90,6 @@ An isolated fast showcase is insufficient evidence for scale.
 - [Bohemia: FSM](https://community.bohemia.net/wiki/FSM) and [execFSM](https://community.bohemia.net/wiki/execFSM): state execution and scripted lifecycle semantics.
 - [HEMTT configuration](https://hemtt.dev/configuration/index.html), [version](https://hemtt.dev/configuration/version.html), [build](https://hemtt.dev/commands/build.html) and [release](https://hemtt.dev/commands/release.html): project layout, package outputs and signing.
 - [CBA settings implementation](https://github.com/CBATeam/CBA_A3/blob/master/addons/settings/fnc_addSetting.sqf): global settings and callback contract.
-- [COMPAT danger integration](https://github.com/nk3nny/external controllerDanger/blob/master/addons/danger/CfgVehicles.hpp): engine `fsmDanger` replacement on soldier and civilian bases.
-- [COMPAT source](https://github.com/nk3nny/external controllerDanger): inspect ownership, tasks and licensing before implementation or adaptation.
 - WMP local `releaseVerificationAndDeployment/launch_pr_review_audit.ps1`, `testing.yml` and `deploy.yml`: fresh staging, readiness, dedicated/client operation and published-release flow examined for this pipeline.
 
 These references guide original implementation. Existing compatibility detection does not mean a

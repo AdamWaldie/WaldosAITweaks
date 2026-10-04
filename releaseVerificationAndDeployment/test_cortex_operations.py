@@ -4,7 +4,7 @@ import json
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'addons/main/functions/Cortex'
-def source(name): return (BASE / (name + '.sqf')).read_text(encoding='utf-8')
+def source(name): return next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
     def test_cortex_control_deduplicates_settings_and_diagnostics_explain_once(self):
         page=source('cortexControlPageLocal')
@@ -14,7 +14,7 @@ class CortexOperations(unittest.TestCase):
         opened=source('cortexControlOpenLocal')
         self.assertIn('private _seenKeys = createHashMap',opened)
         self.assertIn('_display setVariable ["Cortex_Spec",_spec]',opened)
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('Expected evidence:',diagnostics)
         self.assertIn('not an action trigger or success result',diagnostics)
         self.assertNotIn('Trigger/inspection:',diagnostics)
@@ -44,7 +44,7 @@ class CortexOperations(unittest.TestCase):
     def test_cortex_control_spec_has_one_canonical_row_per_setting(self):
         import re
         spec=source('cortexTuningSpec')
-        keys=re.findall(r'^\s*\["(Waldo_[A-Za-z0-9_]+)"\s*,',spec,re.MULTILINE)
+        keys=re.findall(r'^\s*\["(WAIT_[A-Za-z0-9_]+)"\s*,',spec,re.MULTILINE)
         self.assertGreater(len(keys),40)
         duplicates=sorted({key for key in keys if keys.count(key)>1})
         self.assertEqual([],duplicates)
@@ -53,47 +53,47 @@ class CortexOperations(unittest.TestCase):
         import re
         defaults=(ROOT/'cortex_defaults.md').read_text(encoding='utf-8')
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
-        shipped=dict(re.findall(r'^\s*\["(Waldo_[^"]+)",\s*(.+?)\],(?:\s*//.*)?$',config,re.MULTILINE))
+        shipped=dict(re.findall(r'^\s*\["(WAIT_[^"]+)",\s*(.+?)\],(?:\s*//.*)?$',config,re.MULTILINE))
         published=dict(re.findall(r'^\| `([^`]+)` \| `([^`]+)` \|',defaults,re.MULTILINE))
         self.assertGreater(len(shipped),100)
         self.assertEqual([],sorted(set(shipped)-set(published)))
         self.assertEqual({}, {key:(value.strip(),published[key]) for key,value in shipped.items() if published[key] != value.strip()})
-        for key in ['Waldo_AIPass_CounterBattery_Enable','Waldo_AIPass_CounterBattery_RadarRange',
-                    'Waldo_AIPass_CounterBattery_Delay','Waldo_AIPass_CounterBattery_RadarDelay',
-                    'Waldo_AIPass_CounterBattery_Rounds']:
+        for key in ['WAIT_AIPass_CounterBattery_Enable','WAIT_AIPass_CounterBattery_RadarRange',
+                    'WAIT_AIPass_CounterBattery_Delay','WAIT_AIPass_CounterBattery_RadarDelay',
+                    'WAIT_AIPass_CounterBattery_Rounds']:
             self.assertIn(key,published)
 
     def test_counter_battery_diagnostics_report_the_automatic_default(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        expected='missionNamespace getVariable ["Waldo_AIPass_CounterBattery_Mode", "AUTO"]'
-        self.assertIn('["Waldo_AIPass_CounterBattery_Mode", "AUTO"]',config)
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        expected='missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]'
+        self.assertIn('["WAIT_AIPass_CounterBattery_Mode", "AUTO"]',config)
         self.assertIn(expected,diagnostics)
-        self.assertNotIn('missionNamespace getVariable ["Waldo_AIPass_CounterBattery_Mode", "KNOWN"]',diagnostics)
+        self.assertNotIn('missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "KNOWN"]',diagnostics)
 
     def test_diagnostics_master_fallbacks_match_enabled_defaults(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        for key in ['Waldo_AIRebalance_Enable','Waldo_AIPass_Enable']:
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        for key in ['WAIT_AIRebalance_Enable','WAIT_AIPass_Enable']:
             self.assertIn(f'["{key}", true]',config)
             self.assertIn(f'missionNamespace getVariable ["{key}", true]',diagnostics)
             self.assertNotIn(f'missionNamespace getVariable ["{key}", false]',diagnostics)
 
     def test_replacement_clear_retires_old_movement_after_validation(self):
         text=source('cortexClearBuilding')
-        marker='if (!_resume && {_previous isNotEqualTo []}) then {[_group] call Waldo_fnc_CortexClearRelease};'
+        marker='if (!_resume && {_previous isNotEqualTo []}) then {[_group] call WAIT_fnc_CortexClearRelease};'
         self.assertIn(marker,text)
         self.assertLess(text.index('if (_positions isEqualTo [])'),text.index(marker))
         self.assertLess(text.index('if (_team isEqualTo [])'),text.index(marker))
-        self.assertLess(text.index(marker),text.index('_group setVariable ["Waldo_AIPass_ClearOrder", [_building'))
+        self.assertLess(text.index(marker),text.index('_group setVariable ["WAIT_AIPass_ClearOrder", [_building'))
 
     def test_door_audit_uses_clearance_and_measures_animation_and_entry(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8').split('// Exercise door handling',1)[1]
-        self.assertIn('call Waldo_fnc_CortexClearBuilding',text)
+        self.assertIn('call WAIT_fnc_CortexClearBuilding',text)
         self.assertIn('CLEAR-door-lock-preserved',text)
         self.assertIn('CLEAR-door-unlocked-physical-entry',text)
         self.assertIn('vectorDistance (AGLToASL _position) <= 1.5',text)
-        self.assertNotIn('call Waldo_fnc_CortexBuildingDoor',text)
+        self.assertNotIn('call WAIT_fnc_CortexBuildingDoor',text)
         self.assertNotIn('call BIS_fnc_door',text)
         self.assertNotIn('animateSource [',text)
 
@@ -111,7 +111,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_lock isEqualTo 0',text)
         self.assertIn('vectorDistance _position <= 12',text)
         self.assertIn('serverTime+2',text)
-        self.assertIn('isNil {_building getVariable "Waldo_Cortex_DoorDefinitions"}',text)
+        self.assertIn('isNil {_building getVariable "WAIT_Cortex_DoorDefinitions"}',text)
         self.assertLess(text.index('private _requested=false'),text.index('private _lock='))
         self.assertIn('call BIS_fnc_door',text)
         self.assertNotIn('animateSource',text)
@@ -130,7 +130,7 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexClearRelease')
         self.assertIn('params [["_group", grpNull, [grpNull]],["_restore",true,[true]]]',release)
         tick=source('cortexGroupTick')
-        self.assertIn('[_group,false] call Waldo_fnc_CortexClearRelease',tick)
+        self.assertIn('[_group,false] call WAIT_fnc_CortexClearRelease',tick)
 
     def test_clearance_timeout_cannot_clear_rooms_or_abort_other_workers(self):
         text=source('cortexClearBuilding')
@@ -162,8 +162,8 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('_restore || {_ownedHold',release)
             self.assertIn('_x doFollow _leader',release)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',release)
-        self.assertIn('[_group,false] call Waldo_fnc_CortexGarrisonRelease',tick)
-        self.assertIn('[_group,false] call Waldo_fnc_CortexDefendRelease',tick)
+        self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease',tick)
+        self.assertIn('[_group,false] call WAIT_fnc_CortexDefendRelease',tick)
 
     def test_clearance_rotates_failed_position_between_workers(self):
         text=source('cortexClearBuilding')
@@ -208,7 +208,7 @@ class CortexOperations(unittest.TestCase):
         text=source('cortexClearBuilding')
         self.assertIn('private _reserves=(units _group) select',text)
         self.assertIn('_pair set [_slot,_replacement]',text)
-        self.assertIn('Waldo_Cortex_ClearReinforcements',text)
+        self.assertIn('WAIT_Cortex_ClearReinforcements',text)
         self.assertIn('lifeState _member == "INCAPACITATED"',text)
 
     def test_clearance_egresses_before_terminal_handover(self):
@@ -233,10 +233,10 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexReleaseGroup')
         restore=source('cortexRestoreCalm')
         flank_end=source('cortexFlankEnd')
-        self.assertIn('private _yieldToExternal=local _group && {[_group] call Waldo_fnc_CortexZeusHeld}',release)
+        self.assertIn('private _yieldToExternal=local _group && {[_group] call WAIT_fnc_CortexZeusHeld}',release)
         self.assertIn('private _externalTakeover=_yieldToExternal || {_reason == "ZEUS_TAKEOVER"}',release)
         self.assertIn('["RELEASE","ZEUS"] select _externalTakeover',release)
-        self.assertIn('[_group, _state, false, _externalTakeover, _reason] call Waldo_fnc_CortexRestoreCalm',release)
+        self.assertIn('[_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm',release)
         self.assertIn('["RELEASED","ZEUS_TAKEOVER"] select _yieldToExternal',release)
         self.assertIn('["_yieldToExternal",false,[true]]',restore)
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]}',restore)
@@ -248,10 +248,10 @@ class CortexOperations(unittest.TestCase):
         order=source('cortexGarrison')
         apply=source('cortexGarrisonApplyLocal')
         release=source('cortexGarrisonRelease')
-        self.assertIn('Waldo_Cortex_GarrisonCandidates',order)
-        self.assertIn('Waldo_Cortex_GarrisonCandidates',release)
+        self.assertIn('WAIT_Cortex_GarrisonCandidates',order)
+        self.assertIn('WAIT_Cortex_GarrisonCandidates',release)
         self.assertIn('_reassignments < 2',apply)
-        self.assertIn('_x setVariable ["Waldo_AIPass_GarrisonPos",_replacement,true]',apply)
+        self.assertIn('_x setVariable ["WAIT_AIPass_GarrisonPos",_replacement,true]',apply)
         self.assertIn('!(_key in _attempted)',apply)
         self.assertIn('for "_index" from 0 to 31 do',apply)
         self.assertIn('Garrison trying alternate entrance',apply)
@@ -269,7 +269,7 @@ class CortexOperations(unittest.TestCase):
         order=source('cortexDefend')
         reserve=source('cortexDefendStep')
         self.assertIn('forEach [0.75,0.5,0.25,0]',order)
-        self.assertIn('[_centre,_rearCandidates,_threat] call Waldo_fnc_CortexSelectAvenue',order)
+        self.assertIn('[_centre,_rearCandidates,_threat] call WAIT_fnc_CortexSelectAvenue',order)
         self.assertIn('forEach [0.65,0.35,0]',reserve)
         self.assertIn('surfaceNormal _position',reserve)
         text=source('cortexDefendApplyLocal')
@@ -290,10 +290,10 @@ class CortexOperations(unittest.TestCase):
     def test_clearance_preserves_failure_evidence_after_release(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        self.assertIn('_group setVariable ["Waldo_Cortex_ClearEvidence",[+(_job get "cleared")',clear)
-        self.assertIn('_group setVariable ["Waldo_Cortex_ClearEvidence",[+(_order param [1,[]])',release)
-        self.assertIn('_group getVariable ["Waldo_Cortex_ClearEvidence",[]]',diagnostics)
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        self.assertIn('_group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared")',clear)
+        self.assertIn('_group setVariable ["WAIT_Cortex_ClearEvidence",[+(_order param [1,[]])',release)
+        self.assertIn('_group getVariable ["WAIT_Cortex_ClearEvidence",[]]',diagnostics)
         self.assertIn('_clearEvidence param [3,[]]',diagnostics)
 
     def test_building_scale_cases_use_fresh_groups_and_observed_room_visits(self):
@@ -302,26 +302,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[2,"Land_i_House_Small_01_V1_F"]',cases)
         self.assertIn('[6,"Land_i_House_Big_01_V1_F"]',cases)
         self.assertIn('[12,"Land_i_House_Big_02_V1_F"]',cases)
-        self.assertIn('call Waldo_fnc_CortexClearBuilding',cases)
+        self.assertIn('call WAIT_fnc_CortexClearBuilding',cases)
         self.assertIn('vectorDistance (AGLToASL _room) <= 1.5',cases)
         self.assertIn('private _clearingMembers=+_members',cases)
         self.assertNotIn('_members select [1,2]',text)
         self.assertNotIn('setPos',cases)
-        self.assertNotIn('call Waldo_fnc_CortexGarrison',cases)
+        self.assertNotIn('call WAIT_fnc_CortexGarrison',cases)
 
     def test_cqb_casualty_uses_real_reserve_and_physical_movement(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8')
         case=text.split('// A casualty inside the clearing element',1)[1].split('// Exercise door handling',1)[0]
         self.assertIn('for "_i" from 0 to 9 do',case)
         self.assertIn('_casualty setDamage 1',case)
-        self.assertIn('Waldo_Cortex_ClearReinforcements',case)
+        self.assertIn('WAIT_Cortex_ClearReinforcements',case)
         self.assertIn('CLEAR-casualty-reserve-assigned',case)
         self.assertIn('CLEAR-casualty-reserve-physical-movement',case)
         self.assertNotIn('setPos',case)
         self.assertNotIn('moveIn',case)
 
     def test_building_entry_controls_cover_four_distinct_models(self):
-        text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8').split('missionNamespace setVariable ["Waldo_CortexQA_Actors"',1)[0]
+        text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8').split('missionNamespace setVariable ["WAIT_CortexQA_Actors"',1)[0]
         for building in ['Land_i_House_Small_03_V1_F','Land_i_House_Small_01_V1_F','Land_i_House_Big_01_V1_F','Land_i_House_Big_02_V1_F']:
             self.assertIn(building,text)
 
@@ -335,7 +335,7 @@ class CortexOperations(unittest.TestCase):
         case=text.split('if (_replacementOrder) then {',1)[1].split('["Vehicle calm remount:',1)[0]
         self.assertIn('assignAsCargo _replacement',case)
         self.assertNotIn('moveInCargo',case)
-        self.assertNotIn('call Waldo_fnc_CortexRestoreCalm',case)
+        self.assertNotIn('call WAIT_fnc_CortexRestoreCalm',case)
         self.assertIn('REMOUNT-replacement-assignment-preserved',case)
         self.assertIn('REMOUNT-replacement-physically-boarded',case)
         self.assertIn('_ownedExit && {_replacementBoarded}',case)
@@ -380,12 +380,12 @@ class CortexOperations(unittest.TestCase):
     def test_cortex_stop_invalidates_delayed_vehicle_actions(self):
         stop=source('cortexStop')
         self.assertIn('} forEach vehicles;',stop)
-        for variable in ['Waldo_Cortex_ArtilleryScootToken','Waldo_Cortex_ArtilleryScootDeadline','Waldo_Cortex_ArtilleryScootPurpose','Waldo_Cortex_AttackFlarePhase','Waldo_Cortex_AttackFlareCooldown']:
+        for variable in ['WAIT_Cortex_ArtilleryScootToken','WAIT_Cortex_ArtilleryScootDeadline','WAIT_Cortex_ArtilleryScootPurpose','WAIT_Cortex_AttackFlarePhase','WAIT_Cortex_AttackFlareCooldown']:
             self.assertIn('setVariable ["'+variable+'",nil,true]',stop)
         self.assertIn('old CBA callback cannot become valid again after a quick restart',stop)
 
     def test_ai_diagnostics_feature_depth_and_queue_scope(self):
-        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostic=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         for feature in ['Regroup','Contact','PostContact','Flank','StreetCrossing','FireControl','Morale','Surrender','GrenadeEvasion','AntiArmour','Vehicles','ContactReports','Reinforce','Artillery','CounterBattery','Airborne','AircraftFlares','Investigate','Assault','Advance','CoordinatedAssault','Stance','AmmoShare','VehicleGunnery','ArtillerySmoke','AircraftBreak','VehicleDismount','VehicleRemount','VehicleWithdraw','CoverValidation','Hearing','MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']:
             self.assertIn('["'+feature+'",',diagnostic)
         self.assertIn('private _parents=+(_dependencies',diagnostic)
@@ -396,14 +396,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('deadlineCacheConsistent=',diagnostic)
         self.assertIn('private _queueState=if (_cacheConsistent) then {"LOADED"} else {"ERROR"}',diagnostic)
         self.assertIn('tuning [label,current,default]',diagnostic)
-        self.assertNotIn('call Waldo_fnc_CortexIsEligible',diagnostic)
+        self.assertNotIn('call WAIT_fnc_CortexIsEligible',diagnostic)
 
     def test_ai_diagnostics_are_bounded_read_only_snapshots(self):
-        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        self.assertNotIn('call Waldo_fnc_CortexZeusHeld',diagnostic)
+        diagnostic=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        self.assertNotIn('call WAIT_fnc_CortexZeusHeld',diagnostic)
         self.assertNotIn('setVariable',diagnostic)
         self.assertNotIn('smart-ai-pass',diagnostic)
-        self.assertIn('call Waldo_fnc_CortexTuningSpec',diagnostic)
+        self.assertIn('call WAIT_fnc_CortexTuningSpec',diagnostic)
         self.assertIn('(_localGroups select [0,20])',diagnostic)
         self.assertIn('(units _group) select [0,8]',diagnostic)
         self.assertIn('HC private action/queue state is unavailable here, not zero',diagnostic)
@@ -447,7 +447,7 @@ class CortexOperations(unittest.TestCase):
         hold=end.split('if (_holdFailedBound) then {',1)[1].split('} else {',1)[0]
         self.assertIn('_state set ["supportHeld",_held]',hold)
         self.assertIn('_x disableAI "PATH"',hold)
-        self.assertIn('Waldo_Cortex_SupportPathHold',hold)
+        self.assertIn('WAIT_Cortex_SupportPathHold',hold)
         self.assertNotIn('_x doFollow',hold)
         self.assertIn('[_supportToken,_drill get "supportSequence",_reason]',end)
         maintain=source('cortexSupportMaintain')
@@ -479,7 +479,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_literal_qa_tuning_requests_have_transport_entries(self):
         import re
-        spec = set(re.findall(r'\["(Waldo_[^"]+)"', source('cortexTuningSpec')))
+        spec = set(re.findall(r'\["(WAIT_[^"]+)"', source('cortexTuningSpec')))
         for path in (ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.sqf'):
             text = path.read_text(encoding='utf-8')
             for match in re.finditer(r'\[createHashMapFromArray\s*\[', text):
@@ -496,13 +496,13 @@ class CortexOperations(unittest.TestCase):
                     elif not quoted:
                         depth += (char == '[') - (char == ']')
                     end += 1
-                if not re.match(r'\s*call\s+Waldo_fnc_CortexTuning\b', text[end:]):
+                if not re.match(r'\s*call\s+WAIT_fnc_CortexTuning\b', text[end:]):
                     continue
-                requested = set(re.findall(r'\["(Waldo_[^"]+)"', text[match.start():end]))
+                requested = set(re.findall(r'\["(WAIT_[^"]+)"', text[match.start():end]))
                 self.assertFalse(requested-spec, f'{path.name}: unknown runtime settings {requested-spec}')
 
     def test_advance_contact_delay_is_in_authoritative_transport(self):
-        self.assertIn('"Waldo_AIPass_Advance_MinContactSeconds"', source('cortexTuningSpec'))
+        self.assertIn('"WAIT_AIPass_Advance_MinContactSeconds"', source('cortexTuningSpec'))
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
         self.assertIn('-requested-contact-delay', qa)
 
@@ -543,7 +543,7 @@ class CortexOperations(unittest.TestCase):
         text = source('cortexFlankStep')
         for stage in ['FINAL','CONSOLIDATE','CLEAR']:
             block = text.split('case "'+stage+'": {')[1].split('case ')[0]
-            self.assertIn('Waldo_AIPass_Flank_BoundPause', block)
+            self.assertIn('WAIT_AIPass_Flank_BoundPause', block)
         self.assertIn('!_support &&', text)
         self.assertIn('_drill set ["grenadeActionUntil",[_now,_now+2] select _queued]', text)
         self.assertNotIn('case "GRENADE": {', text)
@@ -553,10 +553,10 @@ class CortexOperations(unittest.TestCase):
         route=source('cortexPlanRoute')
         advance=source('cortexAdvanceStart')
         step=source('cortexFlankStep')
-        self.assertIn('["Waldo_AIPass_Flank_BoundDistance", 55]',config)
-        self.assertIn('["Waldo_AIPass_Flank_BoundPause", 2]',config)
-        self.assertIn('getVariable ["Waldo_AIPass_Flank_BoundDistance", 55]',route)
-        self.assertIn('getVariable ["Waldo_AIPass_Flank_BoundDistance", 55]',advance)
+        self.assertIn('["WAIT_AIPass_Flank_BoundDistance", 55]',config)
+        self.assertIn('["WAIT_AIPass_Flank_BoundPause", 2]',config)
+        self.assertIn('getVariable ["WAIT_AIPass_Flank_BoundDistance", 55]',route)
+        self.assertIn('getVariable ["WAIT_AIPass_Flank_BoundDistance", 55]',advance)
         self.assertIn('private _depth = 0;',step)
         self.assertNotIn('formation _group == "WEDGE"',step)
         self.assertNotIn('private _rank = ceil (_forEachIndex / 2)',step)
@@ -565,14 +565,14 @@ class CortexOperations(unittest.TestCase):
         server = source('cortexSupportServer')
         step = source('cortexSupportStep')
         self.assertIn('forEach [[80,0],[80,-30],[80,30],[80,-60],[80,60],[60,0],[100,0]]', server)
-        self.assertIn('[_requesterPosition,_rallyCandidates,_enemy] call Waldo_fnc_CortexSelectAvenue', server)
+        self.assertIn('[_requesterPosition,_rallyCandidates,_enemy] call WAIT_fnc_CortexSelectAvenue', server)
         self.assertIn('["enemy",+_enemy]', server)
         self.assertIn('for "_slot" from 0 to 5 do', step)
         self.assertIn('(_other select 3) distance2D _centre < 109', step)
         self.assertIn('!surfaceIsWater _centre', step)
         self.assertIn('((surfaceNormal _centre) select 2) >= 0.55', step)
         self.assertIn('getPosATL leader _helper,_rallyCandidates', step)
-        self.assertIn('call Waldo_fnc_CortexSelectAvenue', step)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue', step)
         self.assertIn('if (_rally isNotEqualTo []) then {', step)
         self.assertIn('_job get "expiry",_rally,_job get "at"', step)
         self.assertNotIn('_job get "expiry",+(_job get "rally")', step)
@@ -596,13 +596,13 @@ class CortexOperations(unittest.TestCase):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text()
         fired=qa.split('addEventHandler ["FiredMan",{')[1].split('    }];')[0]
         self.assertIn('abs speed _unit > 2',fired)
-        self.assertIn('Waldo_Cortex_SupportTeams',fired)
+        self.assertIn('WAIT_Cortex_SupportTeams',fired)
         self.assertIn('_unit in (_teams select 5)',fired)
         self.assertIn('COORD-moving-roe-fire-at-will-disengaged',qa)
         self.assertIn('combatMode _g != "YELLOW"',qa)
         self.assertIn('_movementRoeSamples',qa)
         self.assertIn('_movementRoeViolations',qa)
-        self.assertIn('Waldo_CortexQA_MovingShots',fired)
+        self.assertIn('WAIT_CortexQA_MovingShots',fired)
         self.assertIn('COORD-no-prolonged-empty-range-idle',qa)
         self.assertNotIn('"COORD-no-prolonged-empty-range-idle",_advanced &&',qa)
         self.assertIn('COORD-full-fire-team-physical-bounds',qa)
@@ -611,27 +611,27 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_x distance2D _destination > 3',qa)
         self.assertIn('empty-range limit=18 s',qa)
         self.assertIn('currentCommand _x == "ATTACK"',qa)
-        self.assertIn('Waldo_fnc_CortexQAInstallShotCounter',qa)
-        self.assertIn('remoteExecCall ["Waldo_fnc_CortexQAInstallShotCounter",_owner]',qa)
+        self.assertIn('WAIT_fnc_CortexQAInstallShotCounter',qa)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexQAInstallShotCounter",_owner]',qa)
 
     def test_zeus_mark_releases_cortex_immediately_on_group_owner(self):
-        mark=(ROOT/'addons/main/functions/Cortex/cortexZeusMark.sqf').read_text()
+        mark=(ROOT/'addons/infantry/functions/cortexZeusMark.sqf').read_text()
         executable=mark.split('params [',1)[1]
-        self.assertLess(executable.index('setVariable ["Waldo_AIPass_ZeusHold"'),executable.index('Waldo_fnc_CortexReleaseGroup'))
-        self.assertIn('[_group,false,"ZEUS_TAKEOVER"] call Waldo_fnc_CortexReleaseGroup',mark)
-        self.assertIn('[_group,false,"ZEUS_TAKEOVER"] remoteExecCall ["Waldo_fnc_CortexReleaseGroup",groupOwner _group]',mark)
-        self.assertIn('Waldo_Cortex_CombinedRole',mark)
-        self.assertIn('Waldo_Cortex_CombinedOpportunity',mark)
-        self.assertIn('Waldo_Cortex_CombinedApplied',mark)
-        self.assertIn('Waldo_Cortex_ZeusOrderSnapshot',mark)
+        self.assertLess(executable.index('setVariable ["WAIT_AIPass_ZeusHold"'),executable.index('WAIT_fnc_CortexReleaseGroup'))
+        self.assertIn('[_group,false,"ZEUS_TAKEOVER"] call WAIT_fnc_CortexReleaseGroup',mark)
+        self.assertIn('[_group,false,"ZEUS_TAKEOVER"] remoteExecCall ["WAIT_fnc_CortexReleaseGroup",groupOwner _group]',mark)
+        self.assertIn('WAIT_Cortex_CombinedRole',mark)
+        self.assertIn('WAIT_Cortex_CombinedOpportunity',mark)
+        self.assertIn('WAIT_Cortex_CombinedApplied',mark)
+        self.assertIn('WAIT_Cortex_ZeusOrderSnapshot',mark)
         self.assertIn('_hold select 0',mark)
         self.assertIn('["_waypointIndex",-1,[0]]',mark)
-        self.assertLess(executable.index('setVariable ["Waldo_Cortex_ZeusOrderSnapshot"'),
-                        executable.index('Waldo_fnc_CortexReleaseGroup'))
-        watch=(ROOT/'addons/main/functions/Cortex/cortexZeusWatchLocal.sqf').read_text()
+        self.assertLess(executable.index('setVariable ["WAIT_Cortex_ZeusOrderSnapshot"'),
+                        executable.index('WAIT_fnc_CortexReleaseGroup'))
+        watch=(ROOT/'addons/core/functions/cortexZeusWatchLocal.sqf').read_text()
         self.assertIn('params ["", "_group", "_waypointID"]',watch)
-        self.assertIn('[_group,true,_waypointID] call Waldo_fnc_CortexZeusMark',watch)
-        self.assertIn('[_waypoint select 0,true,_waypoint select 1] call Waldo_fnc_CortexZeusMark',watch)
+        self.assertIn('[_group,true,_waypointID] call WAIT_fnc_CortexZeusMark',watch)
+        self.assertIn('[_waypoint select 0,true,_waypoint select 1] call WAIT_fnc_CortexZeusMark',watch)
 
     def test_handover_visuals_do_not_keep_stale_rally_labels(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text()
@@ -639,15 +639,15 @@ class CortexOperations(unittest.TestCase):
                                   ('QA ZEUS REPLACEMENT','ZEUS ORDER'),
                                   ('QA UNOPPOSED HANDOVER DIAGNOSTIC','UNOPPOSED ORDER')]:
             stage=qa.split('setWaypointDescription "'+description+'";')[1].split('} forEach _teams;')[0]
-            self.assertIn('Waldo_CortexQA_Label',stage)
+            self.assertIn('WAIT_CortexQA_Label',stage)
             self.assertIn(label,stage)
 
     def test_coordinated_handover_marks_the_exact_replacement_order(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text()
         zeus=qa.split('private _zeusOrigins=',1)[1].split('private _unopposedOrigins=',1)[0]
-        self.assertIn('[_g,true,_wp select 1] call Waldo_fnc_CortexZeusMark',zeus)
+        self.assertIn('[_g,true,_wp select 1] call WAIT_fnc_CortexZeusMark',zeus)
         self.assertLess(zeus.index('_g setCurrentWaypoint _wp'),
-                        zeus.index('[_g,true,_wp select 1] call Waldo_fnc_CortexZeusMark'))
+                        zeus.index('[_g,true,_wp select 1] call WAIT_fnc_CortexZeusMark'))
         self.assertIn('_arrived < 4',zeus)
         self.assertIn('_progressed < 4',zeus)
         for setting in ['setWaypointBehaviour "AWARE"','setWaypointCombatMode "YELLOW"',
@@ -666,12 +666,12 @@ class CortexOperations(unittest.TestCase):
 
     def test_multi_manoeuvre_keeps_both_squads_in_tactical_range(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runMultiManoeuvre.sqf').read_text()
-        self.assertIn('setVariable ["Waldo_AIPass_NearRange",5000]',qa)
-        self.assertIn('setVariable ["Waldo_AIPass_FarRange",5000]',qa)
-        self.assertIn('setVariable ["Waldo_AIPass_NearRange",_savedNearRange]',qa)
-        self.assertIn('setVariable ["Waldo_AIPass_FarRange",_savedFarRange]',qa)
-        self.assertIn('Waldo_Cortex_FlankRefusal',qa)
-        self.assertIn('Waldo_Cortex_AdvanceRefusal',qa)
+        self.assertIn('setVariable ["WAIT_AIPass_NearRange",5000]',qa)
+        self.assertIn('setVariable ["WAIT_AIPass_FarRange",5000]',qa)
+        self.assertIn('setVariable ["WAIT_AIPass_NearRange",_savedNearRange]',qa)
+        self.assertIn('setVariable ["WAIT_AIPass_FarRange",_savedFarRange]',qa)
+        self.assertIn('WAIT_Cortex_FlankRefusal',qa)
+        self.assertIn('WAIT_Cortex_AdvanceRefusal',qa)
 
     def test_support_release_retires_owned_hold_after_engine_combat_relabels_it(self):
         maintain=source('cortexSupportMaintain')
@@ -679,10 +679,10 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_x != leader _group',maintain)
         self.assertIn('supportHeld is the ownership record',maintain)
         self.assertIn('group _x == _group',maintain)
-        self.assertIn('Waldo_Cortex_SupportPathHold',maintain)
+        self.assertIn('WAIT_Cortex_SupportPathHold',maintain)
         restore=source('cortexRestoreCalm')
         self.assertIn('group _unit == _group',restore)
-        self.assertIn('Waldo_Cortex_SupportPathHold',restore)
+        self.assertIn('WAIT_Cortex_SupportPathHold',restore)
         for text in [maintain,restore]:
             self.assertNotIn('currentCommand _x == "STOP"',text)
 
@@ -691,7 +691,7 @@ class CortexOperations(unittest.TestCase):
         release_hold=restore.split('private _releaseOwnedHold={',1)[1].split('};\n{',1)[0]
         self.assertIn('if (_restorePath) then {',release_hold)
         self.assertIn('_unit enableAI "PATH"',release_hold)
-        self.assertIn('_unit setVariable ["Waldo_Cortex_SupportPathHold",nil,true]',release_hold)
+        self.assertIn('_unit setVariable ["WAIT_Cortex_SupportPathHold",nil,true]',release_hold)
         self.assertIn('_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]',release_hold)
         self.assertIn('_returnSearchTeam && {!_yieldToExternal}',release_hold)
         self.assertIn('_unit doFollow leader _group',release_hold)
@@ -747,10 +747,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_heli flyInHeight 140',combined)
         self.assertIn('_heli limitSpeed 170',combined)
         self.assertIn('(driver _heli) doMove ([3900,3900,140] call _terrainPosition)',combined)
-        self.assertIn('Waldo_HelicopterDeceleration_Enable',combined)
-        self.assertIn('Waldo_CortexQA_Combined',combined)
+        self.assertIn('WAIT_HelicopterDeceleration_Enable',combined)
+        self.assertIn('WAIT_CortexQA_Combined',combined)
         guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
-        self.assertIn('Waldo_CortexQA_Combined',guide)
+        self.assertIn('WAIT_CortexQA_Combined',guide)
         self.assertIn('phase %2 | tactic %3/%4 | movement %5 | support %6',guide)
         operation=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombinedOperation.sqf').read_text()
         for marker in ['COMBINED-OP-terrain-layout','worldName == "VR"','surfaceNormal _x',
@@ -761,13 +761,13 @@ class CortexOperations(unittest.TestCase):
                        'COMBINED-OP-air-controller-and-travel','COMBINED-OP-concurrent-arms',
                        'COMBINED-OP-no-shared-completion-barrier']:
             self.assertIn(marker,operation)
-        for forbidden in ['Waldo_fnc_CortexFlank','Waldo_fnc_CortexAdvance',
-                          'Waldo_fnc_CortexCoordinatedAssault','Waldo_CortexQA_Readiness']:
+        for forbidden in ['WAIT_fnc_CortexFlank','WAIT_fnc_CortexAdvance',
+                          'WAIT_fnc_CortexCoordinatedAssault','WAIT_CortexQA_Readiness']:
             self.assertNotIn(forbidden,operation)
         self.assertIn('setWaypointType "SAD"',operation)
-        self.assertIn('Waldo_AIPass_Flank_Enable",true',operation)
-        self.assertIn('Waldo_AIPass_Advance_Enable",true',operation)
-        self.assertIn('Waldo_AIPass_CoordinatedAssault_Enable",true',operation)
+        self.assertIn('WAIT_AIPass_Flank_Enable",true',operation)
+        self.assertIn('WAIT_AIPass_Advance_Enable",true',operation)
+        self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable",true',operation)
         combined_server=source('cortexCombinedArmsServer')
         combined_local=source('cortexCombinedArmsLocal')
         for implementation in [combined_server,combined_local]:
@@ -784,7 +784,7 @@ class CortexOperations(unittest.TestCase):
                        'COMPAT-lease-survives-headless-adoption','COMPAT-new-owner-restores-baseline',
                        'COMPAT-zeus-replacement-physical-arrival','COMPAT-zeus-clean-release']:
             self.assertIn(marker,compatibility)
-        self.assertIn('private _assignment=_x getVariable ["Waldo_AIPass_DefendPos",[]];',compatibility)
+        self.assertIn('private _assignment=_x getVariable ["WAIT_AIPass_DefendPos",[]];',compatibility)
         self.assertIn('_x distance2D (_assignment select 0)',compatibility)
         self.assertIn('} forEach _units;',compatibility)
         self.assertNotIn('findIf {_x distance2D (_starts select _forEachIndex)',compatibility)
@@ -822,7 +822,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('from 0 to 99',server_baseline)
         for marker in ['["PERF-CONTACT","PERF-MIXED"]','two-headless-prerequisite','comparable-arms',
                        'balanced-ownership','physical-workload','median-budget','p95-budget',
-                       'Waldo_CortexQA_PerformanceContactCompleted']:
+                       'WAIT_CortexQA_PerformanceContactCompleted']:
             self.assertIn(marker,distributed)
         self.assertIn('private _contactGroups=[];',distributed)
         self.assertIn('(_index mod 4) == 0',distributed)
@@ -837,8 +837,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_mixed && {_index >= 40}) then {2}',distributed)
         self.assertIn('for "_retry" from 0 to 4',distributed)
         self.assertIn('groupOwner _x != _desiredOwner',distributed)
-        self.assertIn('Waldo_CortexQA_PerformanceStarted',distributed)
-        self.assertIn('Waldo_CortexQA_PerformanceFired',distributed)
+        self.assertIn('WAIT_CortexQA_PerformanceStarted',distributed)
+        self.assertIn('WAIT_CortexQA_PerformanceFired',distributed)
         self.assertIn('owner-prerequisite',distributed)
         self.assertIn('owner-survival',distributed)
         self.assertIn('owner-responsive',distributed)
@@ -848,14 +848,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(units _x) apply {[_x,getPosATL _x]}',distributed)
         self.assertNotIn('_leader ammo (primaryWeapon _leader)',distributed)
         self.assertIn('forEach _sampleOwners',distributed)
-        self.assertIn('["Waldo_AIPass_InfantryOwnership","SPLIT"]',distributed)
+        self.assertIn('["WAIT_AIPass_InfantryOwnership","SPLIT"]',distributed)
         server_runner=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text()
         self.assertIn('PERF-CONTACT-run-completed',server_runner)
-        self.assertIn('Waldo_CortexQA_PerformanceStartGroup',owner_sampler)
-        self.assertIn('Waldo_CortexQA_PerformanceDeleteGroup',owner_sampler)
+        self.assertIn('WAIT_CortexQA_PerformanceStartGroup',owner_sampler)
+        self.assertIn('WAIT_CortexQA_PerformanceDeleteGroup',owner_sampler)
         self.assertIn('units _x isNotEqualTo []',owner_sampler)
         self.assertIn('addEventHandler ["FiredMan"',owner_sampler)
-        for marker in ['diag_deltaTime*1000','Waldo_CortexQA_PerformanceGroup','[0.99] call _percentile']:
+        for marker in ['diag_deltaTime*1000','WAIT_CortexQA_PerformanceGroup','[0.99] call _percentile']:
             self.assertIn(marker,owner_sampler)
         self.assertIn('PerformanceHeartbeat_',owner_sampler)
         self.assertIn('serverTime,true',owner_sampler)
@@ -866,7 +866,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('flyInHeight 90',owner_sampler)
         self.assertIn('flyInHeight 250',owner_sampler)
         self.assertGreaterEqual(owner_sampler.count('allowDamage false'),2)
-        self.assertIn('remoteExecCall ["Waldo_CortexQA_PerformanceDeleteGroup",_ownedBy]',distributed)
+        self.assertIn('remoteExecCall ["WAIT_CortexQA_PerformanceDeleteGroup",_ownedBy]',distributed)
         guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
         self.assertIn('player allowDamage false',guide)
         self.assertIn('player setCaptive true',guide)
@@ -878,7 +878,7 @@ class CortexOperations(unittest.TestCase):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         terrain=(ROOT/'releaseVerificationAndDeployment/cortexQA/runTerrain.sqf').read_text(encoding='utf-8')
         self.assertIn('"buildings", "terrain"',launcher)
-        self.assertIn('Waldo_CortexQA_AuditTerrain',launcher)
+        self.assertIn('WAIT_CortexQA_AuditTerrain',launcher)
         self.assertIn('runTerrain.sqf") -Destination (Join-Path $missionRoot "cortexQATerrain.sqf")',launcher)
         self.assertIn('if (_focus == "terrain")',server)
         self.assertIn('cortexQATerrain.sqf',server)
@@ -886,8 +886,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_relief >= 7',terrain)
         self.assertIn('_roughness >= 0.025',terrain)
         self.assertIn('surfaceIsWater _x',terrain)
-        self.assertIn('"INFANTRY"] call Waldo_fnc_CortexSelectAvenue',terrain)
-        self.assertIn('"VEHICLE"] call Waldo_fnc_CortexSelectAvenue',terrain)
+        self.assertIn('"INFANTRY"] call WAIT_fnc_CortexSelectAvenue',terrain)
+        self.assertIn('"VEHICLE"] call WAIT_fnc_CortexSelectAvenue',terrain)
         self.assertIn('TERRAIN-infantry-physical-progress',terrain)
         self.assertIn('TERRAIN-vehicle-physical-progress',terrain)
         self.assertIn('TERRAIN-defence-physical-arrival',terrain)
@@ -907,8 +907,8 @@ class CortexOperations(unittest.TestCase):
                            '-terrain-plan','-physical-flight','-real-weapon-release',
                            '-target-damaged','-finite-egress']:
             self.assertIn(air_marker,terrain)
-        self.assertNotIn('call Waldo_fnc_CortexAirAttackPlan',terrain)
-        self.assertNotIn('call Waldo_fnc_CortexAirAttack;',terrain)
+        self.assertNotIn('call WAIT_fnc_CortexAirAttackPlan',terrain)
+        self.assertNotIn('call WAIT_fnc_CortexAirAttack;',terrain)
         coverage=json.loads((ROOT/'releaseVerificationAndDeployment/cortexQA/coverage.json').read_text(encoding='utf-8'))
         terrain_case=next(case for case in coverage['cases'] if case['id']=='TERRAIN')
         self.assertEqual(terrain_case['executable_sources'],['runTerrain.sqf'])
@@ -959,7 +959,7 @@ class CortexOperations(unittest.TestCase):
     def test_live_contact_immediately_retires_stale_transition_intent(self):
         tick=source('cortexGroupTick')
         enter=tick.split('private _enterContact = {',1)[1].split('};\nprivate _beginContact',1)[0]
-        self.assertIn('setVariable ["Waldo_Cortex_TransitionIntent",nil,true]',enter)
+        self.assertIn('setVariable ["WAIT_Cortex_TransitionIntent",nil,true]',enter)
 
     def test_native_waypoint_return_uses_bounded_recovery_without_editing_waypoints(self):
         text = source('cortexFlankStep')
@@ -970,7 +970,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(required, guard)
         self.assertNotIn('setWaypoint', text)
         self.assertNotIn('deleteWaypoint', text)
-        self.assertLess(text.index('Waldo_fnc_CortexIsEligible'), text.index('private _returnedToWaypoint'))
+        self.assertLess(text.index('WAIT_fnc_CortexIsEligible'), text.index('private _returnedToWaypoint'))
 
     def test_bound_handoff_does_not_issue_competing_formation_orders(self):
         text = source('cortexFlankStep')
@@ -982,24 +982,24 @@ class CortexOperations(unittest.TestCase):
 
     def test_cancelled_throw_does_not_block_assault_progression(self):
         throw = source('cortexThrowGrenade')
-        self.assertIn('setVariable ["Waldo_Cortex_FragCancelled",_drillToken]', throw)
+        self.assertIn('setVariable ["WAIT_Cortex_FragCancelled",_drillToken]', throw)
         self.assertIn('exitWith {call _cancel}', throw)
         self.assertIn('if (_thrown) exitWith {};', throw)
         self.assertNotIn('if (_thrown) exitWith {call _cancel}', throw)
         step = source('cortexFlankStep')
-        self.assertNotIn('getVariable ["Waldo_Cortex_FragCancelled",""]) == _token', step)
+        self.assertNotIn('getVariable ["WAIT_Cortex_FragCancelled",""]) == _token', step)
         self.assertNotIn('"GRENADE_UNRESOLVED" call _end', step)
-        self.assertIn('"ASSAULT_GRENADE_QUEUED"] select _queued] call Waldo_fnc_CortexDrillSetStage', step)
+        self.assertIn('"ASSAULT_GRENADE_QUEUED"] select _queued] call WAIT_fnc_CortexDrillSetStage', step)
 
     def test_flank_routes_avoid_friendly_support_fire_corridors(self):
         start = source('cortexFlankStart')
         selector = source('cortexSelectAvenue')
         for marker in ['private _supportOrigins = []', 'private _supportCandidates = []',
-                       'Waldo_AIPass_PublicPhase','Waldo_Cortex_SupportRole',
+                       'WAIT_AIPass_PublicPhase','WAIT_Cortex_SupportRole',
                        '(_supportRole select 2) == "COVER"','knowsAbout _target > 0.5',
                        '(count _supportCandidates) min 4',
                        'private _avenueCandidates=[]','[1,110,90]',
-                       'call Waldo_fnc_CortexSelectAvenue']:
+                       'call WAIT_fnc_CortexSelectAvenue']:
             self.assertIn(marker, start)
         for marker in ['_lateral < 30','_pointSide*_startSide < 0',
                        'forEach [0.25,0.5,0.75]',
@@ -1026,37 +1026,37 @@ class CortexOperations(unittest.TestCase):
         for reason in ['SUPPORT_OWNS_MOVEMENT','MOVEMENT_LEASE','MORALE','INSUFFICIENT_ACTORS',
                        'NO_TARGET_IN_RANGE','NO_MANOEUVRE_ELEMENT','NO_SAFE_AVENUE']:
             self.assertIn(reason,flank)
-        self.assertIn('Waldo_Cortex_FlankRefusal',flank)
+        self.assertIn('WAIT_Cortex_FlankRefusal',flank)
         self.assertNotIn('CBA_fnc_addPerFrameHandler',flank)
         advance=source('cortexAdvanceStart')
         for reason in ['SUPPORT_OWNS_MOVEMENT','MOVEMENT_LEASE','CONTACT_DELAY','NO_TARGET',
                        'TARGET_TOO_CLOSE','AUTHORED_OBJECTIVE_TYPE','STALE_CONTACT','OBJECTIVE_REACHED',
                        'NO_MANOEUVRE_ELEMENT','NO_COVER_ELEMENT','NO_SAFE_AVENUE']:
             self.assertIn(reason,advance)
-        self.assertIn('Waldo_Cortex_AdvanceRefusal',advance)
+        self.assertIn('WAIT_Cortex_AdvanceRefusal',advance)
         self.assertNotIn('CBA_fnc_addPerFrameHandler',advance)
-        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
+        diagnostic=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('cortex-tactical-refusal-',diagnostic)
-        self.assertIn('Waldo_Cortex_FlankRefusal',diagnostic)
-        self.assertIn('Waldo_Cortex_AdvanceRefusal',diagnostic)
+        self.assertIn('WAIT_Cortex_FlankRefusal',diagnostic)
+        self.assertIn('WAIT_Cortex_AdvanceRefusal',diagnostic)
 
     def test_group_phases_change_atomically_and_publish_bounded_history(self):
         setter=source('cortexSetPhase')
         functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text()
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('class CortexSetPhase',functions)
         for marker in ['_state set ["phase",_next]','_state set ["phaseStart",_phaseStart]',
-                       'setVariable ["Waldo_AIPass_PublicPhase",_next,true]',
-                       'Waldo_Cortex_PhaseTransition','Waldo_Cortex_PhaseTransitions',
+                       'setVariable ["WAIT_AIPass_PublicPhase",_next,true]',
+                       'WAIT_Cortex_PhaseTransition','WAIT_Cortex_PhaseTransitions',
                        'if (count _history > 32)']:
             self.assertIn(marker,setter)
         self.assertIn('["_force",false,[true]]',setter)
-        self.assertIn('getVariable ["Waldo_AIPass_PublicPhase",_localPrevious]',setter)
+        self.assertIn('getVariable ["WAIT_AIPass_PublicPhase",_localPrevious]',setter)
         self.assertNotIn('CBA_fnc_addPerFrameHandler',setter)
         self.assertIn('cortex-phase-transition-',diagnostics)
         self.assertIn('phase state changed outside the atomic transition path',diagnostics)
         for name in ['cortexGroupTick','cortexRestoreCalm','cortexRetreat','cortexVehicles','cortexLocality']:
-            self.assertIn('call Waldo_fnc_CortexSetPhase',source(name))
+            self.assertIn('call WAIT_fnc_CortexSetPhase',source(name))
             self.assertNotIn('_state set ["phase"',source(name))
         tick=source('cortexGroupTick')
         for reason in ['VISIBLE_CONTACT','AREA_REPORT','KNOWN_CONTACT','CONTACT_LOST',
@@ -1092,15 +1092,15 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(vehicle_marker,selector)
         self.assertNotIn('nearObjects',selector)
         self.assertNotIn('nearestTerrainObjects',selector)
-        self.assertIn('call Waldo_fnc_CortexSelectAvenue',advance)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',advance)
         self.assertIn('forEach [90,-90,55,-55]',advance)
-        self.assertIn('call Waldo_fnc_CortexSelectAvenue',flank)
-        self.assertIn('call Waldo_fnc_CortexSelectAvenue',retreat)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',flank)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',retreat)
         self.assertIn('forEach [0, 30, -30, 60, -60]',retreat)
         flank_step=source('cortexFlankStep')
         self.assertIn('forEach [0.65,0.35,0]',flank_step)
         self.assertIn('forEach [0,-15,15,-30,30]',flank_step)
-        self.assertIn('[_centroid,_assaultCandidates,_enemyPos] call Waldo_fnc_CortexSelectAvenue',flank_step)
+        self.assertIn('[_centroid,_assaultCandidates,_enemyPos] call WAIT_fnc_CortexSelectAvenue',flank_step)
 
     def test_multi_manoeuvre_audit_requires_real_drills_and_contact(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runMultiManoeuvre.sqf').read_text()
@@ -1164,13 +1164,13 @@ class CortexOperations(unittest.TestCase):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text()
         spec=source('cortexTuningSpec')
         advance=source('cortexAdvanceStart')
-        self.assertIn('["Waldo_AIPass_Advance_MinContactSeconds", 5]',config)
-        self.assertIn('["Waldo_AIPass_Advance_Cooldown", 20]',config)
-        self.assertIn('"Waldo_AIPass_Advance_MinContactSeconds", "Advance contact delay"',spec)
+        self.assertIn('["WAIT_AIPass_Advance_MinContactSeconds", 5]',config)
+        self.assertIn('["WAIT_AIPass_Advance_Cooldown", 20]',config)
+        self.assertIn('"WAIT_AIPass_Advance_MinContactSeconds", "Advance contact delay"',spec)
         self.assertIn('"SLIDER", [0,300,0], 5]',spec)
-        self.assertIn('"Waldo_AIPass_Advance_Cooldown", "Advance repeat delay"',spec)
+        self.assertIn('"WAIT_AIPass_Advance_Cooldown", "Advance repeat delay"',spec)
         self.assertIn('"SLIDER", [0,180,0], 20]',spec)
-        self.assertIn('getVariable ["Waldo_AIPass_Advance_MinContactSeconds", 5]',advance)
+        self.assertIn('getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 5]',advance)
 
     def test_bounding_advance_uses_fresh_contact_when_no_waypoint_remains(self):
         advance=source('cortexAdvanceStart')
@@ -1187,7 +1187,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_advance_uses_its_own_shorter_repeat_cooldown(self):
         end=source('cortexFlankEnd')
-        self.assertIn('["Waldo_AIPass_Flank_Cooldown", "Waldo_AIPass_Advance_Cooldown"] select (_type == "ADVANCE")',end)
+        self.assertIn('["WAIT_AIPass_Flank_Cooldown", "WAIT_AIPass_Advance_Cooldown"] select (_type == "ADVANCE")',end)
         self.assertIn('[90, 20] select (_type == "ADVANCE")',end)
         self.assertIn('getVariable [_cooldownName, _cooldownDefault]',end)
 
@@ -1210,9 +1210,9 @@ class CortexOperations(unittest.TestCase):
     def test_coordinated_report_fire_requires_live_matching_lease(self):
         text = source('cortexFireControl')
         for guard in ['(_role select 0) == (_lease select 0)', 'serverTime < (_lease select 2)',
-                      '"supportToken"', 'Waldo_AIPass_CoordinatedAssault_Enable',
+                      '"supportToken"', 'WAIT_AIPass_CoordinatedAssault_Enable',
                       '_enemies isEqualTo [] && {_reported isEqualTo []}',
-                      'Waldo_fnc_CortexLineOfFireClear']:
+                      'WAIT_fnc_CortexLineOfFireClear']:
             self.assertIn(guard, text)
         self.assertNotIn(' reveal ', text)
         self.assertIn('private _suppressPos = +_reported;', text)
@@ -1244,9 +1244,9 @@ class CortexOperations(unittest.TestCase):
     def test_active_support_assignment_is_adopted_by_the_new_local_owner(self):
         locality=source('cortexLocality')
         apply=source('cortexSupportApply')
-        for marker in ['Waldo_AIPass_SupportLease','Waldo_AIPass_SupportStatus',
+        for marker in ['WAIT_AIPass_SupportLease','WAIT_AIPass_SupportStatus',
                        'serverTime < (_supportLease select 2)','["adopt",true]',
-                       'call Waldo_fnc_CortexSupportApply']:
+                       'call WAIT_fnc_CortexSupportApply']:
             self.assertIn(marker,locality)
         self.assertIn('_job getOrDefault ["adopt",false]',apply)
         self.assertIn('_state set ["supportBoundSequence",-1]',apply)
@@ -1261,31 +1261,31 @@ class CortexOperations(unittest.TestCase):
 
     def test_suppressive_fire_talks_inside_squad_and_desynchronises_squads(self):
         fire = source("cortexFireControl")
-        for token in ['Waldo_AIPass_NextSuppress', '0.25 + random 2',
-                      'Waldo_AIPass_SuppressCursor', '_now + 2.5 + random 1.5']:
+        for token in ['WAIT_AIPass_NextSuppress', '0.25 + random 2',
+                      'WAIT_AIPass_SuppressCursor', '_now + 2.5 + random 1.5']:
             self.assertIn(token, fire)
         suppression = fire.split('// Disciplined suppression', 1)[1]
         self.assertIn('if (_issued) exitWith {}', suppression)
         self.assertIn('_cursor + 1', suppression)
-        self.assertGreaterEqual(fire.count('_group setVariable ["Waldo_AIPass_NextSuppress",nil]'), 2)
+        self.assertGreaterEqual(fire.count('_group setVariable ["WAIT_AIPass_NextSuppress",nil]'), 2)
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runFireControl.sqf').read_text()
         for token in ['FIRE-talking-guns-rotated-suppressors',
                       'FIRE-squads-not-global-volley',
                       'FIRE-multi-squad-actual-suppression',
-                      'Waldo_CortexQA_SuppressOrders',
-                      'Waldo_CortexQA_SuppressShots']:
+                      'WAIT_CortexQA_SuppressOrders',
+                      'WAIT_CortexQA_SuppressShots']:
             self.assertIn(token,qa)
         self.assertIn('Land_CncWall4_F',qa)
         self.assertIn('_suppressionEnemy setPosATL [2100,1460,0]',qa)
         self.assertIn('_x doTarget objNull; _x doWatch objNull',qa)
-        self.assertNotIn('call Waldo_fnc_CortexFireControl',qa)
+        self.assertNotIn('call WAIT_fnc_CortexFireControl',qa)
 
     def test_group_ticks_use_low_cost_zero_mean_jitter(self):
         tick=source("cortexGroupTick")
         self.assertIn('private _cadence = _delay / _reaction;',tick)
         self.assertIn('(_cadence + random 0.7 - 0.35) max 0.5',tick)
         self.assertIn('adding no scheduler job or polling loop',tick)
-        self.assertNotIn('Waldo_fnc_CortexQueueJob, createHashMapFromArray [["group", _group]',tick)
+        self.assertNotIn('WAIT_fnc_CortexQueueJob, createHashMapFromArray [["group", _group]',tick)
 
     def test_recovery_qa_measures_continuation_after_separation(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
@@ -1302,7 +1302,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('!(_x in _recovering)', text)
         text = source('cortexFireControl')
         self.assertIn('in ["START","MOVE"]', text)
-        self.assertIn('Waldo_fnc_CortexCombatEffective', text)
+        self.assertIn('WAIT_fnc_CortexCombatEffective', text)
 
     def test_stragglers_remain_tracked_after_live_element_quorum(self):
         step = source('cortexFlankStep')
@@ -1322,8 +1322,8 @@ class CortexOperations(unittest.TestCase):
     def test_manoeuvre_elements_reinforce_and_rebalance_after_casualties(self):
         step=source('cortexFlankStep')
         for marker in ['private _fitSquad=', 'private _rankCandidates=',
-                       'Waldo_Cortex_DrillReinforcements', 'TEAM_1_REBALANCE',
-                       'TEAM_2_REBALANCE', '"START","CASUALTY_REINFORCEMENT"] call Waldo_fnc_CortexDrillSetStage',
+                       'WAIT_Cortex_DrillReinforcements', 'TEAM_1_REBALANCE',
+                       'TEAM_2_REBALANCE', '"START","CASUALTY_REINFORCEMENT"] call WAIT_fnc_CortexDrillSetStage',
                        'private _ownedPathUnits=']:
             self.assertIn(marker,step)
         self.assertIn('_x checkAIFeature "PATH" || {_x in _ownedPathUnits}',step)
@@ -1339,18 +1339,18 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('private _riflemen=',start)
         self.assertNotIn('CortexUnitRole',start)
         maintain=source('cortexSupportMaintain')
-        self.assertIn('private _started=[_group,_state,_role] call Waldo_fnc_CortexSupportBoundStart',maintain)
+        self.assertIn('private _started=[_group,_state,_role] call WAIT_fnc_CortexSupportBoundStart',maintain)
         self.assertIn('[_token,_role select 1,"NOT_READY"]',maintain)
         self.assertIn('_state set ["supportBoundSequence",_role select 1]',maintain)
 
     def test_wmp_diagnostics_explain_coordinated_failures_and_flare_modes(self):
-        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        diagnostic=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         for marker in ['cortex-coordination-health','recordedBoundFailures=',
-                       'boundFailuresByToken','Waldo_Cortex_SupportBoundResult',
-                       'Waldo_Cortex_SupportAbort','groupSpeed=%8',
+                       'boundFailuresByToken','WAIT_Cortex_SupportBoundResult',
+                       'WAIT_Cortex_SupportAbort','groupSpeed=%8',
                        'withdrawal=[status,travel,replans]=%16',
                        'reactiveFlares=%8 attackRunFlares=%9',
-                       'Waldo_Cortex_AttackRunFlares_Enable']:
+                       'WAIT_Cortex_AttackRunFlares_Enable']:
             self.assertIn(marker,diagnostic)
 
     def test_bound_retry_is_finite_and_does_not_fabricate_progress(self):
@@ -1366,29 +1366,29 @@ class CortexOperations(unittest.TestCase):
     def test_anti_armour_respects_movement_and_holding_ownership(self):
         text = source('cortexAntiArmour')
         self.assertIn('!(_x in _moving)', text)
-        self.assertIn('getVariable ["Waldo_Cortex_ActorMove",[]]',text)
+        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',text)
         self.assertIn('_now >= (_actorMove select 2)',text)
-        self.assertIn('Waldo_fnc_CortexCombatEffective', text)
+        self.assertIn('WAIT_fnc_CortexCombatEffective', text)
         blocked = text.split('// Holding/clearing owns the destination')[1]
         for guard in ['checkAIFeature "PATH"', 'checkAIFeature "MOVE"',
                       '_gunner in (_drill getOrDefault ["units",[]])',
-                      'Waldo_AIPass_Garrison', 'Waldo_AIPass_Defend', 'Waldo_AIPass_ClearBuilding']:
+                      'WAIT_AIPass_Garrison', 'WAIT_AIPass_Defend', 'WAIT_AIPass_ClearBuilding']:
             self.assertLess(blocked.index(guard), blocked.index('_gunner doMove'))
         self.assertIn('getOrDefault ["antiArmourRelocation",[]]',text)
         self.assertIn('expectedDestination _relocating',text)
-        self.assertIn('setVariable ["Waldo_Cortex_ActorMove",["ANTI_ARMOUR"',text)
+        self.assertIn('setVariable ["WAIT_Cortex_ActorMove",["ANTI_ARMOUR"',text)
         self.assertIn('_state set ["antiArmourRelocation"',text)
         support=source('cortexSupportBoundStart')
-        self.assertIn('getVariable ["Waldo_Cortex_ActorMove",[]]',support)
+        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',support)
         self.assertIn('time >= (_actorMove select 2)',support)
         for cleanup in [source('cortexRestoreCalm'),source('cortexLocality')]:
-            self.assertIn('setVariable ["Waldo_Cortex_ActorMove",nil]',cleanup)
+            self.assertIn('setVariable ["WAIT_Cortex_ActorMove",nil]',cleanup)
 
     def test_calm_ends_drill_before_discarding_restoration_checkpoint(self):
         text = source('cortexRestoreCalm')
-        end = text.index('[_group,_state,"CALM"] call Waldo_fnc_CortexFlankEnd')
-        self.assertLess(end, text.index('call Waldo_fnc_CortexGroupMoveClear'))
-        self.assertLess(end, text.index('setVariable ["Waldo_AIPass_Checkpoint", [], true]'))
+        end = text.index('[_group,_state,"CALM"] call WAIT_fnc_CortexFlankEnd')
+        self.assertLess(end, text.index('call WAIT_fnc_CortexGroupMoveClear'))
+        self.assertLess(end, text.index('setVariable ["WAIT_AIPass_Checkpoint", [], true]'))
         cleanup = source('cortexFlankEnd')
         self.assertIn('_unit enableAI _feature', cleanup)
         self.assertIn('_state deleteAt "drill"', cleanup)
@@ -1397,9 +1397,9 @@ class CortexOperations(unittest.TestCase):
         text = source('cortexStop')
         cleanup = text.split('if (local _x) then {\n')[1].split('};')[0]
         for function in ['CortexDefendRelease', 'CortexGarrisonRelease', 'CortexClearRelease']:
-            self.assertIn('call Waldo_fnc_' + function, cleanup)
+            self.assertIn('call WAIT_fnc_' + function, cleanup)
         for name, assignment in [('cortexDefendRelease', 'Defend'), ('cortexGarrisonRelease', 'Garrison')]:
-            self.assertIn('setVariable ["Waldo_AIPass_' + assignment + '", nil, true]', source(name))
+            self.assertIn('setVariable ["WAIT_AIPass_' + assignment + '", nil, true]', source(name))
         qa = (ROOT/'releaseVerificationAndDeployment/cortexQA/runLifecycle.sqf').read_text(encoding='utf-8')
         self.assertIn('LIFE-no-old-order-resurrection', qa)
         self.assertIn('_drift <= 12', qa)
@@ -1439,17 +1439,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state getOrDefault ["assaulting",false]',transition)
         self.assertIn('_state getOrDefault ["responding",false]',transition)
         self.assertIn('if (!_manoeuvreActive',transition)
-        self.assertLess(transition.index('if (!_manoeuvreActive'),transition.index('Waldo_AIPass_PostContact_LostSeconds'))
+        self.assertLess(transition.index('if (!_manoeuvreActive'),transition.index('WAIT_AIPass_PostContact_LostSeconds'))
 
     def test_security_phase_preserves_and_finishes_prepared_coordinated_assault(self):
         tick=source('cortexGroupTick')
         security=tick.split('case "SECURITY": {',1)[1].split('case "SEARCH": {',1)[0]
         coordinated=source('cortexCoordinatedAssault')
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text(encoding='utf-8')
-        self.assertIn('call Waldo_fnc_CortexCoordinatedAssault',security)
+        self.assertIn('call WAIT_fnc_CortexCoordinatedAssault',security)
         self.assertIn('if (_coordinatedOwnsSecurity) exitWith {_delay = 2}',security)
-        self.assertLess(security.index('call Waldo_fnc_CortexCoordinatedAssault'),security.index('Waldo_AIPass_PostContact_SecuritySeconds'))
-        self.assertIn('private _publicResponders = _group getVariable ["Waldo_Cortex_SupportResponders",[]]',coordinated)
+        self.assertLess(security.index('call WAIT_fnc_CortexCoordinatedAssault'),security.index('WAIT_AIPass_PostContact_SecuritySeconds'))
+        self.assertIn('private _publicResponders = _group getVariable ["WAIT_Cortex_SupportResponders",[]]',coordinated)
         self.assertIn('serverTime < (_lease select 2)',coordinated)
         self.assertIn('_status select 3',coordinated)
         self.assertIn('_state deleteAt "coordinated"',coordinated)
@@ -1461,8 +1461,8 @@ class CortexOperations(unittest.TestCase):
         checkpoint=source('cortexCheckpoint')
         repair=checkpoint.split('private _phase = _state getOrDefault ["phase","CALM"]',1)[1].split('// Engine MOVE commands',1)[0]
         self.assertIn('"CHECKPOINT_REPAIR"',repair)
-        self.assertIn('call Waldo_fnc_CortexSetPhase',repair)
-        self.assertNotIn('setVariable ["Waldo_AIPass_PublicPhase"',checkpoint)
+        self.assertIn('call WAIT_fnc_CortexSetPhase',repair)
+        self.assertNotIn('setVariable ["WAIT_AIPass_PublicPhase"',checkpoint)
 
     def test_empty_coordinated_dispatch_releases_planning_hold_immediately(self):
         server=source('cortexSupportAssaultServer')
@@ -1471,15 +1471,15 @@ class CortexOperations(unittest.TestCase):
         empty=server.split('// Route geometry is evaluated from live positions.',1)[1]
         self.assertIn('_job set ["expiry",serverTime]',empty)
         self.assertIn('_requests deleteAt (_job get "key")',empty)
-        self.assertIn('_requester setVariable ["Waldo_Cortex_SupportResponders",nil,true]',empty)
-        self.assertIn('_helper setVariable ["Waldo_AIPass_SupportLease",nil,true]',empty)
+        self.assertIn('_requester setVariable ["WAIT_Cortex_SupportResponders",nil,true]',empty)
+        self.assertIn('_helper setVariable ["WAIT_AIPass_SupportLease",nil,true]',empty)
         self.assertNotIn('remains retryable',server)
         requester=source('cortexCoordinatedAssault')
         self.assertIn('if (_status select 3) then {_acknowledged = true}', requester)
         self.assertIn('if (_acknowledged) exitWith {_state set ["coordinated",true]; _state deleteAt "coordinatedPendingUntil"; true}', requester)
         self.assertIn('time < _pendingUntil && {_publicResponders isNotEqualTo []}',requester)
         self.assertIn('_pendingUntil > 0 && {_publicResponders isEqualTo []}',requester)
-        self.assertIn('[_state,"coordinated",10] call Waldo_fnc_CortexCooldown', requester)
+        self.assertIn('[_state,"coordinated",10] call WAIT_fnc_CortexCooldown', requester)
 
     def test_coordinated_assault_dispatches_from_accepted_shared_contact(self):
         requester=source('cortexCoordinatedAssault')
@@ -1492,22 +1492,22 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('private _rally=+(_lease select 3)',server)
         self.assertNotIn('(_status select 1) >= 0',server)
         self.assertIn('[_routeOrigin,_candidateRoutes,_enemy,[_supportOrigin]]',server)
-        self.assertIn('[leader _helper] call Waldo_fnc_CortexCanTransmit',server)
-        self.assertIn('[leader _x] call Waldo_fnc_CortexCanTransmit',source('cortexSupportServer'))
-        self.assertIn('[leader _group] call Waldo_fnc_CortexCanTransmit',source('cortexSupportApply'))
+        self.assertIn('[leader _helper] call WAIT_fnc_CortexCanTransmit',server)
+        self.assertIn('[leader _x] call WAIT_fnc_CortexCanTransmit',source('cortexSupportServer'))
+        self.assertIn('[leader _group] call WAIT_fnc_CortexCanTransmit',source('cortexSupportApply'))
         self.assertIn('private _directCoordinationPending = _attack isEqualTo []',source('cortexSupportApply'))
         self.assertIn('if (!_directCoordinationPending) then {',source('cortexSupportApply'))
         self.assertIn('private _dispatched=[]',server)
         self.assertIn('_job set ["leases",_dispatched]',server)
-        self.assertIn('_helper setVariable ["Waldo_AIPass_SupportLease",nil,true]',server)
-        self.assertIn('_requester setVariable ["Waldo_Cortex_SupportResponders",_dispatched apply',server)
+        self.assertIn('_helper setVariable ["WAIT_AIPass_SupportLease",nil,true]',server)
+        self.assertIn('_requester setVariable ["WAIT_Cortex_SupportResponders",_dispatched apply',server)
 
     def test_coordinated_approaches_do_not_cross_support_fire_lane(self):
         server=source('cortexSupportAssaultServer')
         selector=source('cortexSelectAvenue')
         self.assertNotIn('([90,-90] select (_sent mod 2 == 1))',server)
         self.assertNotIn('private _crossesSupportLane=',server)
-        self.assertIn('call Waldo_fnc_CortexSelectAvenue',server)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',server)
         self.assertIn('[_routeOrigin,_candidateRoutes,_enemy,[_supportOrigin]]',server)
         self.assertIn('_lateral < 30',selector)
         self.assertIn('private _originSide=',server)
@@ -1525,10 +1525,10 @@ class CortexOperations(unittest.TestCase):
     def test_coordinated_assault_owns_requester_movement_before_local_tactics(self):
         tick=source('cortexGroupTick')
         coordinated=source('cortexCoordinatedAssault')
-        self.assertLess(tick.index('private _coordinatedOwnsMovement = _vehicleOwnsMovement'),tick.index('call Waldo_fnc_CortexTacticalStart'))
+        self.assertLess(tick.index('private _coordinatedOwnsMovement = _vehicleOwnsMovement'),tick.index('call WAIT_fnc_CortexTacticalStart'))
         self.assertIn('if (!_ordered && {!_coordinatedOwnsMovement} && {!_dangerCombat})',tick)
-        self.assertIn('["Waldo_AIPass_Flank_Enable", true] call _get',tick)
-        self.assertIn('["Waldo_AIPass_Advance_Enable", true] call _get',tick)
+        self.assertIn('["WAIT_AIPass_Flank_Enable", true] call _get',tick)
+        self.assertIn('["WAIT_AIPass_Advance_Enable", true] call _get',tick)
         self.assertIn('_state set ["coordinatedPendingUntil",time+15]',coordinated)
         self.assertIn('if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {true}',coordinated)
         self.assertIn('"coordinatedPendingUntil"',source('cortexRestoreCalm'))
@@ -1544,8 +1544,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (!_started && {_flankEnabled})',selector)
         self.assertNotIn('CortexProfile',selector)
         self.assertNotIn('random _totalWeight',selector)
-        self.assertEqual(2,selector.count('call Waldo_fnc_CortexFlankStart'))
-        self.assertEqual(2,selector.count('call Waldo_fnc_CortexAdvanceStart'))
+        self.assertEqual(2,selector.count('call WAIT_fnc_CortexFlankStart'))
+        self.assertEqual(2,selector.count('call WAIT_fnc_CortexAdvanceStart'))
         self.assertNotIn('random 1 >= ([_group, "flankChance"]',flank)
         self.assertNotIn('random 1 >= ([_group, "advanceChance"]',advance)
         self.assertNotIn('coordinatedChance',coordinated)
@@ -1568,18 +1568,18 @@ class CortexOperations(unittest.TestCase):
         server=source('cortexSupportServer')
         step=source('cortexSupportStep')
         self.assertNotIn('allGroups',coordinated)
-        self.assertIn('Waldo_Cortex_SupportResponders',coordinated)
-        self.assertIn('_requester setVariable ["Waldo_Cortex_SupportResponders",[],true]',server)
+        self.assertIn('WAIT_Cortex_SupportResponders',coordinated)
+        self.assertIn('_requester setVariable ["WAIT_Cortex_SupportResponders",[],true]',server)
         self.assertIn('private _responders = _kept apply {[_x select 0,_x select 1]}',step)
-        self.assertIn('_requester setVariable ["Waldo_Cortex_SupportResponders",_responders,true]',step)
-        self.assertIn('_requester setVariable ["Waldo_Cortex_SupportResponders",nil,true]',step)
+        self.assertIn('_requester setVariable ["WAIT_Cortex_SupportResponders",_responders,true]',step)
+        self.assertIn('_requester setVariable ["WAIT_Cortex_SupportResponders",nil,true]',step)
 
     def test_support_request_failure_has_one_bounded_retry(self):
         reinforce=source('cortexReinforce')
         server=source('cortexSupportServer')
         step=source('cortexSupportStep')
         assault=source('cortexSupportAssaultServer')
-        self.assertIn('Waldo_Cortex_SupportRequestState',reinforce)
+        self.assertIn('WAIT_Cortex_SupportRequestState',reinforce)
         self.assertIn('_requests == 1',reinforce)
         self.assertIn('time >= _lastDispatch+20',reinforce)
         self.assertIn('_requests >= 2',reinforce)
@@ -1589,15 +1589,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"NO_SAFE_ROUTE"',assault)
         self.assertIn('_job get "expiry"',assault)
         stop=source('cortexStop')
-        self.assertIn('Waldo_Cortex_SupportRequestState',stop)
-        self.assertIn('Waldo_Cortex_SupportResponders',stop)
+        self.assertIn('WAIT_Cortex_SupportRequestState',stop)
+        self.assertIn('WAIT_Cortex_SupportResponders',stop)
 
     def test_infantry_support_never_routes_mounted_vehicle_crews_as_bounders(self):
         server=source('cortexSupportServer')
         step=source('cortexSupportStep')
         apply=source('cortexSupportApply')
         assault=source('cortexSupportAssaultServer')
-        dismount_guard='[_x] call Waldo_fnc_CortexCombatEffective && {vehicle _x == _x}'
+        dismount_guard='[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}'
         self.assertIn(dismount_guard,server)
         self.assertGreaterEqual(step.count(dismount_guard),2)
         self.assertIn('private _footFit = _fit select {vehicle _x == _x}',apply)
@@ -1612,12 +1612,12 @@ class CortexOperations(unittest.TestCase):
         ground_step=source('cortexCombinedGroundStep')
         tick=source('cortexGroupTick')
         self.assertIn('serverTime+20+random 8',request)
-        self.assertIn('remoteExecCall ["Waldo_fnc_CortexCombinedArmsServer",2]',request)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexCombinedArmsServer",2]',request)
         self.assertIn('private _ground=0',server)
         self.assertIn('private _air=0',server)
-        self.assertIn('Waldo_AIPass_ContactReports_Radius',server)
-        self.assertIn('Waldo_AIPass_ContactReports_VoiceRange',server)
-        self.assertIn('Waldo_Cortex_CombinedArms_AirRange',server)
+        self.assertIn('WAIT_AIPass_ContactReports_Radius',server)
+        self.assertIn('WAIT_AIPass_ContactReports_VoiceRange',server)
+        self.assertIn('WAIT_Cortex_CombinedArms_AirRange',server)
         self.assertIn('_distance <= _airRange',server)
         self.assertIn('_distance <= _groundRange',server)
         self.assertIn('_senderRadio && {_candidateRadio}',server)
@@ -1631,46 +1631,46 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('waitUntil',server+local)
         self.assertNotIn('addWaypoint',server+local)
         self.assertIn('CBA_fnc_waitAndExecute',server)
-        self.assertIn('setVariable ["Waldo_Cortex_CombinedRole",nil,true]',server)
+        self.assertIn('setVariable ["WAIT_Cortex_CombinedRole",nil,true]',server)
         self.assertIn('"DISPATCHED"',server)
         self.assertIn('"EXPIRED"',server)
         self.assertIn('["GROUND_FIRE","GROUND_MANOEUVRE"]',server)
         self.assertIn('_role in ["GROUND_FIRE","GROUND_MANOEUVRE","AIR_ATTACK"]',local)
-        self.assertIn('Waldo_fnc_CortexCombinedGroundStep',local)
-        self.assertIn('Waldo_fnc_CortexSelectAvenue',local)
+        self.assertIn('WAIT_fnc_CortexCombinedGroundStep',local)
+        self.assertIn('WAIT_fnc_CortexSelectAvenue',local)
         self.assertIn('_target,"VEHICLE"',local)
         self.assertIn('"NO_SAFE_ROUTE"',local)
         self.assertIn('forEach [260,320,380]',local)
         self.assertIn('forEach [180,240]',local)
         self.assertIn('"COMBINED_GROUND"',local+ground_step)
-        self.assertIn('Waldo_fnc_CortexZeusHeld',ground_step)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',ground_step)
         self.assertIn('if (_stalls >= 1)',ground_step)
         self.assertNotIn('setPos',ground_step)
         self.assertNotIn('setVelocity',ground_step)
         self.assertNotIn('CortexCanTransmit',local)
         self.assertGreaterEqual(local.count('"APPLIED"'),2)
-        self.assertIn('Waldo_Cortex_CombinedApplied',tick)
+        self.assertIn('WAIT_Cortex_CombinedApplied',tick)
         self.assertIn('(_combinedApplied param [1,-1]) != clientOwner',tick)
         self.assertIn('_group reveal [_target,2.5]',local)
-        self.assertIn('Waldo_fnc_CortexAirAttack',local)
+        self.assertIn('WAIT_fnc_CortexAirAttack',local)
         self.assertIn('["target",_target]',local)
-        self.assertIn(']],0.5] call Waldo_fnc_CortexQueueJob',local)
-        self.assertNotIn('Waldo_AIPass_CoordinatedAssault_Enable',server)
-        self.assertIn('Waldo_fnc_CortexCombinedArmsRequest',tick)
+        self.assertIn(']],0.5] call WAIT_fnc_CortexQueueJob',local)
+        self.assertNotIn('WAIT_AIPass_CoordinatedAssault_Enable',server)
+        self.assertIn('WAIT_fnc_CortexCombinedArmsRequest',tick)
         begin_contact=tick.split('private _beginContact = {',1)[1].split('};\n\nif (_visible',1)[0]
-        self.assertIn('Waldo_fnc_CortexCombinedArmsRequest',begin_contact)
+        self.assertIn('WAIT_fnc_CortexCombinedArmsRequest',begin_contact)
         first_contact_share=begin_contact.rsplit('// The first fresh contact',1)[1]
-        self.assertNotIn('if (_nearTier',first_contact_share.split('Waldo_fnc_CortexCombinedArmsRequest',1)[0])
-        self.assertNotIn('Waldo_AIPass_CoordinatedAssault_Enable',
-                         first_contact_share.split('Waldo_fnc_CortexCombinedArmsRequest',1)[0])
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        self.assertNotIn('if (_nearTier',first_contact_share.split('WAIT_fnc_CortexCombinedArmsRequest',1)[0])
+        self.assertNotIn('WAIT_AIPass_CoordinatedAssault_Enable',
+                         first_contact_share.split('WAIT_fnc_CortexCombinedArmsRequest',1)[0])
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('cortex-combined-role-',diagnostics)
         self.assertIn('Combined roles share an opportunity only',diagnostics)
 
     def test_helicopter_locality_pin_does_not_disable_cortex_flight_behaviour(self):
         eligible=source('cortexIsEligible')
-        self.assertIn('Waldo_ImprovedHelicopterLanding_Active',eligible)
-        self.assertNotIn('_vehicles findIf {_x getVariable ["Waldo_Headless_HelicopterPinned"',eligible)
+        self.assertIn('WAIT_ImprovedHelicopterLanding_Active',eligible)
+        self.assertNotIn('_vehicles findIf {_x getVariable ["WAIT_Headless_HelicopterPinned"',eligible)
         self.assertIn('The permanent helicopter pin prevents unstable HC transfer',eligible)
 
     def test_external_ai_owners_are_detected_without_blanket_mod_exclusion(self):
@@ -1681,14 +1681,14 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,owner)
         self.assertIn('CfgmovesMaleSdr',owner)
         self.assertIn('getText (_config >> "author")',owner)
-        self.assertIn('[_unit] call Waldo_fnc_CortexExternalOwner != ""',eligible)
+        self.assertIn('[_unit] call WAIT_fnc_CortexExternalOwner != ""',eligible)
         self.assertNotIn('isClass (configFile >> "CfgPatches"',eligible)
 
     def test_alternativeBackend_and_danger_receive_finite_exact_state_movement_leases(self):
         lease=source('cortexOwnershipLease')
-        compat=(ROOT/'addons/main/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
-        for text in ['Waldo_AIPass_AlternativeBackendLoaded','Waldo_Cortex_AlternativeLease','Vcm_Disable',
-                     'VCM_MOVE2SUP','VCM_MBUSY','Waldo_Cortex_OwnershipLease']:
+        compat=(ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
+        for text in ['WAIT_AIPass_AlternativeBackendLoaded','WAIT_Cortex_AlternativeLease','Vcm_Disable',
+                     'VCM_MOVE2SUP','VCM_MBUSY','WAIT_Cortex_OwnershipLease']:
             self.assertIn(text,lease)
         self.assertIn('_group setVariable ["Vcm_Disable",_baselineVcom,true]',lease)
         self.assertIn('"VCOM_AI" call _patch',compat)
@@ -1705,18 +1705,18 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(event,setup)
         self.assertNotIn('CBA_fnc_addPerFrameHandler',setup+react)
         self.assertNotIn('while {',setup+react)
-        self.assertIn('Waldo_fnc_CortexExternalOwner',setup)
-        self.assertIn('Waldo_fnc_CortexZeusHeld',react)
+        self.assertIn('WAIT_fnc_CortexExternalOwner',setup)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',react)
         self.assertIn('BIS_fnc_findSafePos',react)
         self.assertIn('forEach [0,-45,45]',react)
-        self.assertGreaterEqual(react.count('call Waldo_fnc_CortexSelectAvenue'),2)
+        self.assertGreaterEqual(react.count('call WAIT_fnc_CortexSelectAvenue'),2)
         self.assertIn('if (_route isEqualTo []) exitWith {false}',react)
         self.assertIn('doMove _destination',react)
         self.assertNotIn('switchMove',react)
         self.assertIn('"EntityCreated"',init)
-        self.assertIn('Waldo_Cortex_CivilianCreatedHandler',stop)
+        self.assertIn('WAIT_Cortex_CivilianCreatedHandler',stop)
         settings=source('cortexSettingsLocal')
-        self.assertIn('Waldo_AIPass_CivilianReaction_Enable',settings)
+        self.assertIn('WAIT_AIPass_CivilianReaction_Enable',settings)
         self.assertIn('_effects select [3,3]',settings)
 
     def test_aircraft_occupants_have_one_dedicated_movement_owner(self):
@@ -1727,11 +1727,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('["_groundPass",false,[true]]',eligible)
         self.assertIn('_groundPass && {_alive findIf {',eligible)
         self.assertIn('_vehicle isKindOf "Air"',eligible)
-        self.assertIn('[_group,false,true] call Waldo_fnc_CortexIsEligible',discover)
-        self.assertIn('private _generallyEligible=[_group] call Waldo_fnc_CortexIsEligible',tick)
-        self.assertIn('private _groundPassEligible=[_group,false,true] call Waldo_fnc_CortexIsEligible',tick)
-        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call Waldo_fnc_CortexReleaseGroup',tick)
-        self.assertIn('_stage != "" || {[_group] call Waldo_fnc_CortexIsEligible}',attack)
+        self.assertIn('[_group,false,true] call WAIT_fnc_CortexIsEligible',discover)
+        self.assertIn('private _generallyEligible=[_group] call WAIT_fnc_CortexIsEligible',tick)
+        self.assertIn('private _groundPassEligible=[_group,false,true] call WAIT_fnc_CortexIsEligible',tick)
+        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call WAIT_fnc_CortexReleaseGroup',tick)
+        self.assertIn('_stage != "" || {[_group] call WAIT_fnc_CortexIsEligible}',attack)
         self.assertIn('private _explicitlyExcluded=',attack)
 
     def test_combined_roles_use_owned_fire_team_drills_and_restore_holds(self):
@@ -1748,7 +1748,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_job set ["coordinationAborted",true]',coordinator)
         self.assertIn('private _boundLength=(_remaining*0.35) max 45 min 70',coordinator)
         self.assertIn('forEach [0,-18,18]',coordinator)
-        self.assertIn('Waldo_fnc_CortexSelectAvenue',coordinator)
+        self.assertIn('WAIT_fnc_CortexSelectAvenue',coordinator)
         self.assertIn('_job get "assaultEnemy",_supportOrigins',coordinator)
         self.assertIn('"INSUFFICIENT_STRENGTH"',coordinator)
         self.assertIn('[_token,serverTime,"BOUND_FAILURES",_failures]',coordinator)
@@ -1763,16 +1763,16 @@ class CortexOperations(unittest.TestCase):
         start=source('cortexSupportBoundStart')
         self.assertIn('["teams",[_first,_second]]',start)
         self.assertIn('["SUPPORT_BOUND","FINAL"] select _final',start)
-        self.assertIn('Waldo_fnc_CortexDrillStart',start)
+        self.assertIn('WAIT_fnc_CortexDrillStart',start)
         self.assertIn('"supportHeld"',source('cortexCheckpoint'))
         for name in ['cortexRetreat','cortexRestoreCalm']:
             self.assertIn('"supportHeld"',source(name))
-            self.assertIn('Waldo_fnc_CortexSupportAck',source(name))
+            self.assertIn('WAIT_fnc_CortexSupportAck',source(name))
         maintain=source('cortexSupportMaintain')
-        self.assertIn('private _abort = _group getVariable ["Waldo_Cortex_SupportAbort",[]]',maintain)
+        self.assertIn('private _abort = _group getVariable ["WAIT_Cortex_SupportAbort",[]]',maintain)
         self.assertIn('count _abort == 4 && {(_abort select 0) == _token}',maintain)
         self.assertIn('call _releaseSupport;',maintain)
-        self.assertIn('_helper setVariable ["Waldo_Cortex_SupportAbort",nil,true]',source('cortexSupportStep'))
+        self.assertIn('_helper setVariable ["WAIT_Cortex_SupportAbort",nil,true]',source('cortexSupportStep'))
 
     def test_contacted_peer_can_join_coordinated_assault_without_calm_rally_gate(self):
         apply=source('cortexSupportApply')
@@ -1781,29 +1781,29 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[0.2,0.65] select _contactPeer',apply)
         self.assertNotIn('(_state getOrDefault ["phase","CALM"]) == "CALM"',apply)
         self.assertIn('private _supportEnabled',apply)
-        self.assertIn('Waldo_AIPass_Reinforce_Enable',apply)
-        self.assertIn('Waldo_AIPass_CoordinatedAssault_Enable',apply)
+        self.assertIn('WAIT_AIPass_Reinforce_Enable',apply)
+        self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable',apply)
         server=source('cortexSupportServer')
         support_step=source('cortexSupportStep')
         maintain=source('cortexSupportMaintain')
         for text in [server,support_step,maintain]:
-            self.assertIn('Waldo_AIPass_Reinforce_Enable',text)
-            self.assertIn('Waldo_AIPass_CoordinatedAssault_Enable',text)
+            self.assertIn('WAIT_AIPass_Reinforce_Enable',text)
+            self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable',text)
         self.assertIn('|| {!_supportEnabled}',maintain)
         tick=source('cortexGroupTick')
         self.assertIn('// Shared support discovery is needed by either ordinary reinforcement or coordinated assault.',tick)
         self.assertIn('if (!_nearTier && {!_ordered}',tick)
         step=source('cortexFlankStep')
         self.assertIn('(_supportRole select 1) == (_drill get "supportSequence")',step)
-        self.assertIn('Waldo_AIPass_CoordinatedAssault_Enable',step)
+        self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable',step)
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text(encoding='utf-8')
         for check in ['COORD-inter-squad-role-exchange','COORD-concurrent-squad-bounds','COORD-concurrent-lanes-separated','COORD-inter-squad-physical-cover','COORD-intra-squad-physical-cover']:
             self.assertIn(check,qa)
         self.assertIn('abs speed _x > 2',qa)
         self.assertIn('_shots-(_shotCounts select _i)',qa)
         operation=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombinedOperation.sqf').read_text(encoding='utf-8')
-        self.assertIn('["Waldo_AIPass_Reinforce_Enable",false]',operation)
-        self.assertIn('["Waldo_AIPass_Reinforce_MaxResponders",0]',operation)
+        self.assertIn('["WAIT_AIPass_Reinforce_Enable",false]',operation)
+        self.assertIn('["WAIT_AIPass_Reinforce_MaxResponders",0]',operation)
         self.assertIn('COMBINED-OP-independent-coordination-gate',operation)
         self.assertIn('private _lastInfantryShotCount=0',operation)
         self.assertIn('_movingGroups == 0 && {_infantryShotCount == _lastInfantryShotCount}',operation)
@@ -1844,41 +1844,41 @@ class CortexOperations(unittest.TestCase):
 
     def test_zeus_takeover_releases_explicit_orders_without_waypoint(self):
         text=source('cortexGroupTick').split('if (!_generallyEligible)')[1].split('// Survivor regroup')[0]
-        self.assertIn('if ([_group] call Waldo_fnc_CortexZeusHeld) then', text)
+        self.assertIn('if ([_group] call WAIT_fnc_CortexZeusHeld) then', text)
         for name in ['CortexGarrisonRelease','CortexDefendRelease','CortexClearRelease']:
-            self.assertIn('call Waldo_fnc_'+name, text)
-        self.assertNotIn('getVariable ["Waldo_AIPass_ZeusWaypoints"', text)
+            self.assertIn('call WAIT_fnc_'+name, text)
+        self.assertNotIn('getVariable ["WAIT_AIPass_ZeusWaypoints"', text)
 
     def test_garrison_duck_cleanup_preserves_later_stance(self):
         apply=source('cortexGarrisonApplyLocal')
         release=source('cortexGarrisonRelease')
-        self.assertIn('if (unitPos _unit == (_unit getVariable ["Waldo_Cortex_GarrisonDuckStance", ""]))', apply)
-        self.assertIn('if (unitPos _x == (_x getVariable ["Waldo_Cortex_GarrisonDuckStance", ""]))', release)
-        self.assertIn('!([group _unit] call Waldo_fnc_CortexIsEligible)', apply)
+        self.assertIn('if (unitPos _unit == (_unit getVariable ["WAIT_Cortex_GarrisonDuckStance", ""]))', apply)
+        self.assertIn('if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""]))', release)
+        self.assertIn('!([group _unit] call WAIT_fnc_CortexIsEligible)', apply)
         delayed=apply.split('params ["_unit", "_until"];')[1].split('}, [_unit, _until]')[0]
-        self.assertIn('&& {[group _unit] call Waldo_fnc_CortexIsEligible}', delayed)
+        self.assertIn('&& {[group _unit] call WAIT_fnc_CortexIsEligible}', delayed)
         for text in [apply, release]:
-            self.assertIn('setVariable ["Waldo_Cortex_GarrisonDuckStance",nil,true]', text)
+            self.assertIn('setVariable ["WAIT_Cortex_GarrisonDuckStance",nil,true]', text)
 
     def test_surrender_releases_orders_before_captive_handover(self):
         text=source('cortexSurrender')
-        for guard in ['!local _group','Waldo_fnc_CortexIsEligible','Waldo_AIPass_Surrender_Enable']:
+        for guard in ['!local _group','WAIT_fnc_CortexIsEligible','WAIT_AIPass_Surrender_Enable']:
             self.assertLess(text.index(guard),text.index('createVehicle'))
         for release in ['CortexGarrisonRelease','CortexDefendRelease','CortexClearRelease','CortexReleaseGroup']:
             self.assertLess(text.index(release),text.index('call ace_captives_fnc_setSurrendered'))
-        self.assertIn('Waldo_fnc_CortexCombatEffective',text)
+        self.assertIn('WAIT_fnc_CortexCombatEffective',text)
 
     def test_grenade_evasion_regroup_does_not_overwrite_new_actions(self):
         text=source('cortexGrenadeCheck')
         callback=text.split('params ["_unit","_group","_spot","_hold"];')[1].split('private _grenade =',1)[0]
-        for guard in ['GRENADE_EVASION','group _unit != _group','vehicle _unit != _unit','Waldo_fnc_CortexCombatEffective','Waldo_AIPass_ZeusHold','expectedDestination _unit','_unit in (_drill']:
+        for guard in ['GRENADE_EVASION','group _unit != _group','vehicle _unit != _unit','WAIT_fnc_CortexCombatEffective','WAIT_AIPass_ZeusHold','expectedDestination _unit','_unit in (_drill']:
             normalized=callback.replace('group _unit == _group','group _unit != _group').replace('vehicle _unit == _unit','vehicle _unit != _unit')
             self.assertLess(normalized.index(guard),normalized.index('doFollow'))
-        self.assertIn('setVariable ["Waldo_Cortex_ActorMove",["GRENADE_EVASION"',text)
+        self.assertIn('setVariable ["WAIT_Cortex_ActorMove",["GRENADE_EVASION"',text)
         self.assertIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
-        self.assertIn('setVariable ["Waldo_Cortex_ActorMove",nil]',callback)
-        self.assertIn('[Waldo_fnc_CortexGrenadeCheck,createHashMapFromArray [["regroup",_regroupActors]],6] call Waldo_fnc_CortexQueueJob',text)
-        self.assertIn('"Waldo_AIPass_GrenadeEvasion_Enable",true] call Waldo_fnc_CortexFeatureEnabled',text)
+        self.assertIn('setVariable ["WAIT_Cortex_ActorMove",nil]',callback)
+        self.assertIn('[WAIT_fnc_CortexGrenadeCheck,createHashMapFromArray [["regroup",_regroupActors]],6] call WAIT_fnc_CortexQueueJob',text)
+        self.assertIn('"WAIT_AIPass_GrenadeEvasion_Enable",true] call WAIT_fnc_CortexFeatureEnabled',text)
         self.assertNotIn('CBA_fnc_waitAndExecute',text)
 
     def test_grenade_evasion_temporarily_outranks_support_cover_hold(self):
@@ -1888,26 +1888,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit enableAI "PATH"',grenade)
         self.assertIn('_state set ["supportHeld",_supportHeld-[_unit]]',grenade)
         maintain=source('cortexSupportMaintain')
-        self.assertIn('getVariable ["Waldo_Cortex_ActorMove",[]]',maintain)
+        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',maintain)
         self.assertIn('time >= (_actorMove select 2)',maintain)
 
     def test_tactical_drills_do_not_consume_reserved_actors(self):
         for name in ['cortexFlankStart','cortexAdvanceStart']:
             text=source(name)
-            self.assertIn('getVariable ["Waldo_Cortex_ActorMove",[]]',text)
+            self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',text)
             self.assertIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
 
     def test_queued_grenade_rechecks_takeover_and_frag_safety(self):
         text=source('cortexThrowGrenade')
         callback=text.split('params ["_unit", "_muzzle", "_magazine"')[1]
-        for guard in ['Waldo_fnc_CortexCombatEffective','Waldo_fnc_CortexIsEligible','Waldo_AIPass_ZeusHold','_magazine in magazines _unit','_distance < 8','_distance > 40','nearEntities ["CAManBase",12]']:
+        for guard in ['WAIT_fnc_CortexCombatEffective','WAIT_fnc_CortexIsEligible','WAIT_AIPass_ZeusHold','_magazine in magazines _unit','_distance < 8','_distance > 40','nearEntities ["CAManBase",12]']:
             self.assertIn(guard,callback)
-        self.assertLess(callback.index('Waldo_AIPass_ZeusHold'),callback.index('forceWeaponFire'))
+        self.assertLess(callback.index('WAIT_AIPass_ZeusHold'),callback.index('forceWeaponFire'))
         self.assertLess(callback.index('!= _drillToken'),callback.index('forceWeaponFire'))
 
     def test_retreat_releases_drill_before_capturing_attack_control(self):
         text=source('cortexRetreat')
-        self.assertLess(text.index('call Waldo_fnc_CortexFlankEnd'),text.index('set ["baseAttack"'))
+        self.assertLess(text.index('call WAIT_fnc_CortexFlankEnd'),text.index('set ["baseAttack"'))
         self.assertIn('_group enableAttack false',text)
         self.assertIn('_state set ["behaviourChanged",true]',text)
         self.assertIn('_state set ["baseBehaviour",behaviour _leader]',text)
@@ -1930,9 +1930,9 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         block=tick.split('private _retreatStarted=false',1)[1].split('_state set ["armourSeen"',1)[0]
         for release in ['CortexGarrisonRelease','CortexDefendRelease','CortexClearRelease']:
-            self.assertIn(f'call Waldo_fnc_{release}',block)
-        self.assertEqual(1,block.count('call Waldo_fnc_CortexRetreat'))
-        self.assertGreater(block.index('call Waldo_fnc_CortexRetreat'),block.index('switch (true)'))
+            self.assertIn(f'call WAIT_fnc_{release}',block)
+        self.assertEqual(1,block.count('call WAIT_fnc_CortexRetreat'))
+        self.assertGreater(block.index('call WAIT_fnc_CortexRetreat'),block.index('switch (true)'))
         self.assertIn('if (_retreatStarted) exitWith {}',block)
 
     def test_infantry_withdrawal_releases_support_holds_and_owns_its_route(self):
@@ -1940,7 +1940,7 @@ class CortexOperations(unittest.TestCase):
         support=retreat.split('private _supportHeld=',1)[1].split('{_state deleteAt _x}',1)[0]
         self.assertIn('_x enableAI "PATH"',support)
         self.assertIn('_x doFollow _leader',support)
-        self.assertIn('Waldo_Cortex_SupportPathHold',support)
+        self.assertIn('WAIT_Cortex_SupportPathHold',support)
         self.assertIn('_state set ["movementLease",["INFANTRY_WITHDRAW",time+_remaining]]',retreat)
         self.assertLess(retreat.index('CortexGroupMove'),retreat.index('["INFANTRY_WITHDRAW",time+_remaining]'))
 
@@ -1955,12 +1955,12 @@ class CortexOperations(unittest.TestCase):
         retreat_case=tick.split('case "RETREAT":')[1]
         for marker in ['_travel < 30','_now-_progressAt >= 15','_travel >= _bestTravel+3','_replans < 4',
                        'forEach [30,-30,60,-60]','_candidate distance2D _target >= 20',
-                       'call Waldo_fnc_CortexSelectAvenue','Waldo_fnc_CortexGroupMove',
-                       'Waldo_Cortex_Withdrawal']:
+                       'call WAIT_fnc_CortexSelectAvenue','WAIT_fnc_CortexGroupMove',
+                       'WAIT_Cortex_Withdrawal']:
             self.assertIn(marker,retreat_case)
         self.assertNotIn('setPos',retreat_case)
         self.assertIn('"retreatStart", "retreatTarget", "retreatProgress"',restore)
-        self.assertIn('setVariable ["Waldo_Cortex_Withdrawal",nil,true]',restore)
+        self.assertIn('setVariable ["WAIT_Cortex_Withdrawal",nil,true]',restore)
 
     def test_trapped_withdrawal_uses_bounded_dry_fallback_and_keeps_fighting(self):
         retreat=source('cortexRetreat')
@@ -1980,7 +1980,7 @@ class CortexOperations(unittest.TestCase):
         locality=source('cortexLocality')
         tick=source('cortexGroupTick')
         restore=source('cortexRestoreCalm')
-        self.assertIn('Waldo_Cortex_WithdrawalIntent',retreat)
+        self.assertIn('WAIT_Cortex_WithdrawalIntent',retreat)
         self.assertIn('["INFANTRY",_origin,_point,_enemyPos,_startedAt,_replans,_bestTravel]',retreat)
         self.assertIn('if (!_resuming) then {',retreat)
         effects=retreat.split('if (!_resuming) then {',2)[2]
@@ -1988,17 +1988,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('CortexArtilleryFire',effects)
         self.assertIn('private _withdrawalIntent',locality)
         self.assertGreater(locality.index('CortexRetreat'),locality.index('CortexRestoreCalm'))
-        self.assertIn('[_group,_adopted,_withdrawalIntent] call Waldo_fnc_CortexRetreat',locality)
-        self.assertIn('time-_elapsed,_resuming] call Waldo_fnc_CortexSetPhase',retreat)
+        self.assertIn('[_group,_adopted,_withdrawalIntent] call WAIT_fnc_CortexRetreat',locality)
+        self.assertIn('time-_elapsed,_resuming] call WAIT_fnc_CortexSetPhase',retreat)
         self.assertIn('_intent set [5,_replans]',tick)
         self.assertIn('_intent set [6,_bestTravel]',tick)
-        self.assertIn('setVariable ["Waldo_Cortex_WithdrawalIntent",nil,true]',restore)
+        self.assertIn('setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true]',restore)
 
     def test_withdrawal_smoke_cannot_leave_the_route_owner_staring_at_the_screen(self):
         text=source('cortexRetreat')
         self.assertIn('_smokers=(_smokers select {_x != _leader})+(_smokers select {_x == _leader});',text)
-        self.assertIn('Waldo_Cortex_WithdrawalIntent",[]]) isNotEqualTo _intent',text)
-        self.assertIn('Waldo_AIPass_ZeusHold",[]]) isNotEqualTo []',text)
+        self.assertIn('WAIT_Cortex_WithdrawalIntent",[]]) isNotEqualTo _intent',text)
+        self.assertIn('WAIT_AIPass_ZeusHold",[]]) isNotEqualTo []',text)
         self.assertIn('(_lease select 0) == "INFANTRY_WITHDRAW"',text)
         self.assertIn('if (_smoker == leader _group) then {_smoker doMove _target} else {_smoker doFollow leader _group};',text)
 
@@ -2006,18 +2006,18 @@ class CortexOperations(unittest.TestCase):
         checkpoint=source('cortexCheckpoint')
         locality=source('cortexLocality')
         restore=source('cortexRestoreCalm')
-        for marker in ['Waldo_Cortex_TransitionIntent','["INVESTIGATE","SEARCH"]','_startedAt+_duration','searchTeam']:
+        for marker in ['WAIT_Cortex_TransitionIntent','["INVESTIGATE","SEARCH"]','_startedAt+_duration','searchTeam']:
             self.assertIn(marker,checkpoint)
         self.assertIn('serverTime < (_transitionIntent select 3)',locality)
         self.assertIn('_withdrawalIntent isEqualTo []',locality)
         self.assertIn('CortexZeusHeld',locality)
         self.assertIn('private _transitionResumeEligible=',locality)
         self.assertIn('!(_transitionResumeEligible || {_withdrawalResumeEligible})',locality)
-        self.assertIn('[_group,_adopted,_transitionPhase,"OWNERSHIP_RESUME",time-((serverTime-_startedAt) max 0),true] call Waldo_fnc_CortexSetPhase',locality)
+        self.assertIn('[_group,_adopted,_transitionPhase,"OWNERSHIP_RESUME",time-((serverTime-_startedAt) max 0),true] call WAIT_fnc_CortexSetPhase',locality)
         self.assertIn('CortexGroupMove',locality)
         self.assertIn('doMove',locality)
         self.assertNotIn('CBA_fnc_waitAndExecute',locality)
-        self.assertIn('setVariable ["Waldo_Cortex_TransitionIntent",nil,true]',restore)
+        self.assertIn('setVariable ["WAIT_Cortex_TransitionIntent",nil,true]',restore)
 
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_vehicle_withdrawal_records_and_resumes_physical_progress(self):
@@ -2030,12 +2030,12 @@ class CortexOperations(unittest.TestCase):
                        '["VEHICLE",_origin,_away,_enemyPos,serverTime,0,0]']:
             self.assertIn(marker,vehicles)
         for terrain_marker in ['private _selectVehicleEscape = {','forEach [0,-25,25,-45,45]',
-                               'Waldo_fnc_CortexSelectAvenue','_threatObject,"VEHICLE"']:
+                               'WAIT_fnc_CortexSelectAvenue','_threatObject,"VEHICLE"']:
             self.assertIn(terrain_marker,vehicles)
         vehicle_resume=locality.split('== "VEHICLE"',1)[1]
         self.assertIn('CortexGroupMove',vehicle_resume)
         self.assertIn('["VEHICLE_WITHDRAW",time+((120-_elapsed) max 3)]',vehicle_resume)
-        self.assertIn('[_group,_adopted,"RETREAT","VEHICLE_OWNERSHIP_RESUME",time-_elapsed,true] call Waldo_fnc_CortexSetPhase',vehicle_resume)
+        self.assertIn('[_group,_adopted,"RETREAT","VEHICLE_OWNERSHIP_RESUME",time-_elapsed,true] call WAIT_fnc_CortexSetPhase',vehicle_resume)
         self.assertNotIn('CortexFireCountermeasure',vehicle_resume)
         for marker in [
             'WITHDRAW-MIGRATION-headless-prerequisite',
@@ -2047,7 +2047,7 @@ class CortexOperations(unittest.TestCase):
             'WITHDRAW-MIGRATION-crew-retained',
             'WITHDRAW-MIGRATION-zeus-physical-replacement',
             'WITHDRAW-MIGRATION-zeus-no-resurrection',
-            'Waldo_fnc_HeadlessMigrateGroup',
+            'WAIT_fnc_HeadlessMigrateGroup',
             'VEHICLE_OWNERSHIP_RESUME',
         ]:
             self.assertIn(marker,audit)
@@ -2060,12 +2060,12 @@ class CortexOperations(unittest.TestCase):
         morale=source('cortexMorale')
         self.assertIn('private _allOnFoot = _alive findIf {vehicle _x != _x} < 0',morale)
         surrender=morale.split('if (_allOnFoot',1)[1]
-        self.assertIn('Waldo_AIPass_Surrender_Enable',surrender)
+        self.assertIn('WAIT_AIPass_Surrender_Enable',surrender)
 
     def test_replacement_orders_release_owned_garrison_and_defence_holds(self):
         for name,marker in [
-            ('cortexDefendRelease','Waldo_AIPass_DefendHolding'),
-            ('cortexGarrisonRelease','Waldo_AIPass_GarrisonDisabledPath')]:
+            ('cortexDefendRelease','WAIT_AIPass_DefendHolding'),
+            ('cortexGarrisonRelease','WAIT_AIPass_GarrisonDisabledPath')]:
             code=source(name)
             self.assertIn(marker,code)
             self.assertIn('toUpperANSI currentCommand _x',code)
@@ -2105,7 +2105,7 @@ class CortexOperations(unittest.TestCase):
         target_change=vehicles.index('if (assignedTarget _gunner != _target) then {')
         target_change_end=vehicles.index('};',target_change)
         fire=vehicles.index('_gunner doFire _target;',target_change)
-        hold=vehicles.index('_gunner setVariable ["Waldo_AIPass_TargetHold", time + 8]',fire)
+        hold=vehicles.index('_gunner setVariable ["WAIT_AIPass_TargetHold", time + 8]',fire)
         self.assertGreater(fire,target_change_end)
         self.assertGreater(hold,fire)
 
@@ -2114,16 +2114,16 @@ class CortexOperations(unittest.TestCase):
         scoot=source('cortexArtilleryScoot')
         locality=source('cortexLocality')
         tick=source('cortexGroupTick')
-        self.assertIn('setVariable ["Waldo_Cortex_ArtilleryScootToken",_scootToken,true]',mission)
-        self.assertIn('setVariable ["Waldo_Cortex_ArtilleryScootDeadline",serverTime+120,true]',mission)
-        self.assertIn('[_battery,_scootToken] remoteExecCall ["Waldo_fnc_CortexArtilleryScoot", owner _battery]',mission)
-        self.assertIn('getVariable ["Waldo_Cortex_ArtilleryScootToken",""] != _token',scoot)
+        self.assertIn('setVariable ["WAIT_Cortex_ArtilleryScootToken",_scootToken,true]',mission)
+        self.assertIn('setVariable ["WAIT_Cortex_ArtilleryScootDeadline",serverTime+120,true]',mission)
+        self.assertIn('[_battery,_scootToken] remoteExecCall ["WAIT_fnc_CortexArtilleryScoot", owner _battery]',mission)
+        self.assertIn('getVariable ["WAIT_Cortex_ArtilleryScootToken",""] != _token',scoot)
         self.assertIn('if (_busy) exitWith {',scoot)
         self.assertIn('CBA_fnc_waitAndExecute',scoot)
         self.assertIn('_state set ["movementLease",["ARTILLERY_SCOOT",time+120]]',scoot)
-        self.assertIn('Waldo_fnc_CortexSelectAvenue',scoot)
+        self.assertIn('WAIT_fnc_CortexSelectAvenue',scoot)
         self.assertIn('objNull,"VEHICLE"',scoot)
-        self.assertIn('[_vehicle,_scootToken] call Waldo_fnc_CortexArtilleryScoot',locality)
+        self.assertIn('[_vehicle,_scootToken] call WAIT_fnc_CortexArtilleryScoot',locality)
         self.assertLess(locality.index('CortexRestoreCalm'),locality.index('CortexArtilleryScoot'))
         self.assertIn('if (!_groupMovementOwned && {!(_state getOrDefault ["responding", false])',tick)
         self.assertGreaterEqual(tick.count('!_groupMovementOwned'),3)
@@ -2190,9 +2190,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state set ["movementLease",["TACTICAL_DRILL",time+90]]',step)
         self.assertIn('["lastStep",time]',support)
         self.assertIn('time-_lastDrillStep > _drillWatchdog',tick)
-        self.assertIn('[_group,_state,"SCHEDULER_STALLED"] call Waldo_fnc_CortexFlankEnd',tick)
-        self.assertIn('Waldo_AIPass_ResumeGraceUntil',tick)
-        self.assertIn('Waldo_AIPass_ResumeGraceUntil',scheduler)
+        self.assertIn('[_group,_state,"SCHEDULER_STALLED"] call WAIT_fnc_CortexFlankEnd',tick)
+        self.assertIn('WAIT_AIPass_ResumeGraceUntil',tick)
+        self.assertIn('WAIT_AIPass_ResumeGraceUntil',scheduler)
         self.assertIn('SCHEDULER_STALLED',end)
 
     def test_finite_tactical_drills_use_one_owner_local_fsm(self):
@@ -2200,15 +2200,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!local _group',launcher)
         self.assertIn('execFSM "\\z\\waldo_ai_tweaks\\addons\\main\\fsm\\tacticalDrill.fsm"',launcher)
         self.assertIn('completedFSM _existingHandle',launcher)
-        self.assertIn('Waldo_Cortex_DrillFSM',launcher)
-        self.assertIn('call Waldo_fnc_CortexQueueJob',launcher)
+        self.assertIn('WAIT_Cortex_DrillFSM',launcher)
+        self.assertIn('call WAIT_fnc_CortexQueueJob',launcher)
         for name in ['cortexFlankStart','cortexAdvanceStart','cortexSupportBoundStart']:
             start=source(name)
-            self.assertIn('call Waldo_fnc_CortexDrillStart',start)
-            self.assertNotIn('Waldo_fnc_CortexFlankStep,',start)
+            self.assertIn('call WAIT_fnc_CortexDrillStart',start)
+            self.assertNotIn('WAIT_fnc_CortexFlankStep,',start)
         fsm=(ROOT/'addons/main/fsm/tacticalDrill.fsm').read_text(encoding='utf-8')
         self.assertIn('fsmName = "WAIT finite tactical drill"',fsm)
-        self.assertIn('call Waldo_fnc_CortexFlankStep',fsm)
+        self.assertIn('call WAIT_fnc_CortexFlankStep',fsm)
         self.assertIn('!local _group',fsm)
         self.assertIn('_thisFSM',fsm)
         self.assertNotIn('allGroups',fsm)
@@ -2217,7 +2217,7 @@ class CortexOperations(unittest.TestCase):
     def test_calm_requester_fully_releases_responder_reservation(self):
         tick=source('cortexGroupTick')
         calm=tick.split('case "CALM": {',1)[1].split('if (_visible isNotEqualTo [])',1)[0]
-        self.assertIn('remoteExecCall ["Waldo_fnc_CortexSupportAck",2]',calm)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexSupportAck",2]',calm)
         self.assertIn('["SUPPORT_RALLY","COORDINATED_ASSAULT"]',calm)
         self.assertIn('_state deleteAt "movementLease"',calm)
         for key in ['supportToken','responding','respondingTo','respondUntil','arrivedAt','assaulting']:
@@ -2226,7 +2226,7 @@ class CortexOperations(unittest.TestCase):
     def test_live_actor_escape_survives_contact_transition(self):
         tick=source('cortexGroupTick')
         begin=tick.split('private _beginContact = {',1)[1].split('switch (_state get "phase")',1)[0]
-        self.assertIn('getVariable ["Waldo_Cortex_ActorMove",[]]',begin)
+        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',begin)
         self.assertIn('count _actorMove != 3 || {_now >= (_actorMove select 2)}',begin)
         self.assertLess(begin.index('count _actorMove'),begin.index('_x doFollow _leader'))
 
@@ -2248,16 +2248,16 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         gates=tick.split('// Runtime switches are authoritative permissions',1)[1].split('// Soldiers holding ground',1)[0]
         self.assertIn('_activePhase == "INVESTIGATE"',gates)
-        self.assertIn('Waldo_AIPass_Investigate_Enable',gates)
+        self.assertIn('WAIT_AIPass_Investigate_Enable',gates)
         for phase in ['SECURITY','SEARCH','REGROUP']:
             self.assertIn(f'"{phase}"',gates)
-        self.assertIn('Waldo_AIPass_PostContact_Enable',gates)
-        self.assertIn('[_group,_state,true,false,_closedReason] call Waldo_fnc_CortexRestoreCalm',gates)
+        self.assertIn('WAIT_AIPass_PostContact_Enable',gates)
+        self.assertIn('[_group,_state,true,false,_closedReason] call WAIT_fnc_CortexRestoreCalm',gates)
         self.assertIn('["POSTCONTACT_DISABLED","INVESTIGATION_DISABLED"]',gates)
         self.assertIn('_activePhase = "CALM"',gates)
         restore=source('cortexRestoreCalm')
         self.assertIn('_state getOrDefault ["searchTeam", []]',restore)
-        self.assertIn('[_group] call Waldo_fnc_CortexGroupMoveClear',restore)
+        self.assertIn('[_group] call WAIT_fnc_CortexGroupMoveClear',restore)
 
     def test_calm_handover_reasons_distinguish_completion_control_and_gate_closure(self):
         tick=source('cortexGroupTick')
@@ -2273,7 +2273,7 @@ class CortexOperations(unittest.TestCase):
         lifecycle=(ROOT/'releaseVerificationAndDeployment/cortexQA/runLifecycle.sqf').read_text()
         self.assertIn('LIFE-stop-transition-reason',lifecycle)
         self.assertIn('LIFE-zeus-transition-reason',lifecycle)
-        self.assertIn('Waldo_Cortex_PhaseTransition',lifecycle)
+        self.assertIn('WAIT_Cortex_PhaseTransition',lifecycle)
 
     def test_lifecycle_audit_migrates_active_semantic_state_and_yields_to_zeus(self):
         lifecycle=(ROOT/'releaseVerificationAndDeployment/cortexQA/runLifecycle.sqf').read_text()
@@ -2303,16 +2303,16 @@ class CortexOperations(unittest.TestCase):
             'LIFE-retreat-zeus-no-resurrection',
         ]:
             self.assertIn(marker,lifecycle)
-        self.assertIn('call Waldo_fnc_CortexRetreat',lifecycle)
-        self.assertIn('Waldo_AIPass_AreaReport',lifecycle)
+        self.assertIn('call WAIT_fnc_CortexRetreat',lifecycle)
+        self.assertIn('WAIT_AIPass_AreaReport',lifecycle)
 
     def test_withdrawal_migration_respects_zeus_and_feature_gates(self):
         locality=source('cortexLocality')
-        self.assertIn('Waldo_AIPass_Morale_Enable',locality)
-        self.assertIn('Waldo_AIPass_Vehicles_Enable',locality)
-        self.assertIn('Waldo_AIPass_VehicleWithdraw_Enable',locality)
+        self.assertIn('WAIT_AIPass_Morale_Enable',locality)
+        self.assertIn('WAIT_AIPass_Vehicles_Enable',locality)
+        self.assertIn('WAIT_AIPass_VehicleWithdraw_Enable',locality)
         self.assertIn('switch (_withdrawalKind)',locality)
-        self.assertIn('!([_group] call Waldo_fnc_CortexZeusHeld)',locality)
+        self.assertIn('!([_group] call WAIT_fnc_CortexZeusHeld)',locality)
         self.assertIn('(_withdrawalIntent select 0) in ["INFANTRY","VEHICLE"]',locality)
 
     def test_reaction_audit_requires_terminal_retreat_and_surrender_handoffs(self):
@@ -2330,25 +2330,25 @@ class CortexOperations(unittest.TestCase):
         release=text.split('private _releaseSupport={',1)[1].split('if (_lease isEqualTo []',1)[0]
         self.assertIn('count _lease == 6',release)
         self.assertIn('_token == (_lease select 0)',release)
-        self.assertIn('remoteExecCall ["Waldo_fnc_CortexSupportAck",2]',release)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexSupportAck",2]',release)
         for key in ['supportToken','responding','respondingTo','respondUntil','arrivedAt','assaulting']:
             self.assertIn(f'"{key}"',release)
         invalid=text.split('if (_lease isEqualTo []',1)[1].split('if (_state getOrDefault ["assaulting"',1)[0]
         self.assertIn('call _releaseSupport',invalid)
         coordinated=text.split('if (_state getOrDefault ["assaulting"',1)[1].split('// Contact can begin',1)[0]
-        self.assertIn('Waldo_AIPass_CoordinatedAssault_Enable',coordinated)
+        self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable',coordinated)
         self.assertIn('call _releaseSupport',coordinated)
 
     def test_pending_remount_survives_locality_change_without_extending_deadline(self):
         text=source('cortexLocality')
-        self.assertIn('private _remountIntent = _group getVariable ["Waldo_Cortex_Remount",[]]',text)
+        self.assertIn('private _remountIntent = _group getVariable ["WAIT_Cortex_Remount",[]]',text)
         resume=text.split('// Restore semantic boarding intent',1)[1].split('// Rebuild semantic post-contact intent',1)[0]
         self.assertIn('serverTime < (_remountIntent select 0)',resume)
-        self.assertIn('!([_group] call Waldo_fnc_CortexZeusHeld)',resume)
+        self.assertIn('!([_group] call WAIT_fnc_CortexZeusHeld)',resume)
         self.assertIn('assignedVehicle _unit == _vehicle',resume)
         self.assertIn('local _unit',resume)
-        self.assertIn('Waldo_AIPass_Vehicles_Enable',resume)
-        self.assertIn('Waldo_AIPass_VehicleRemount_Enable',resume)
+        self.assertIn('WAIT_AIPass_Vehicles_Enable',resume)
+        self.assertIn('WAIT_AIPass_VehicleRemount_Enable',resume)
         self.assertIn('[_remountIntent select 0,+_pendingRemount]',resume)
         self.assertNotIn('serverTime+',resume)
 
@@ -2356,23 +2356,23 @@ class CortexOperations(unittest.TestCase):
         text=source('cortexLocality')
         resume=text.split('// Rebuild semantic post-contact intent',1)[1].split('// The old owner',1)[0]
         gate=resume.split('private _transitionGateOpen',1)[1].split('if (_transitionGateOpen',1)[0]
-        self.assertIn('Waldo_AIPass_Investigate_Enable',gate)
-        self.assertIn('Waldo_AIPass_ContactReports_Enable',gate)
-        self.assertIn('Waldo_AIPass_Hearing_Enable',gate)
-        self.assertIn('Waldo_AIPass_PostContact_Enable',gate)
+        self.assertIn('WAIT_AIPass_Investigate_Enable',gate)
+        self.assertIn('WAIT_AIPass_ContactReports_Enable',gate)
+        self.assertIn('WAIT_AIPass_Hearing_Enable',gate)
+        self.assertIn('WAIT_AIPass_PostContact_Enable',gate)
         self.assertLess(resume.index('if (_transitionGateOpen'),resume.index('doMove'))
-        self.assertIn('setVariable ["Waldo_Cortex_TransitionIntent",nil,true]',resume)
+        self.assertIn('setVariable ["WAIT_Cortex_TransitionIntent",nil,true]',resume)
 
     def test_delayed_counterbattery_and_scoot_recheck_live_owner_gates(self):
         counter=source('cortexCounterBattery')
         delayed=counter.split('params ["_vehicle", "_side", "_position", "_generation"]',1)[1]
-        self.assertIn('Waldo_AIPass_CounterBattery_Enable',delayed)
+        self.assertIn('WAIT_AIPass_CounterBattery_Enable',delayed)
         mission=source('cortexArtilleryMissionStep')
-        self.assertIn('setVariable ["Waldo_Cortex_ArtilleryScootPurpose",_mission get "purpose",true]',mission)
+        self.assertIn('setVariable ["WAIT_Cortex_ArtilleryScootPurpose",_mission get "purpose",true]',mission)
         scoot=source('cortexArtilleryScoot')
-        for item in ['Waldo_Cortex_ArtilleryScootPurpose','Waldo_AIPass_Artillery_Enable',
-                     'Waldo_AIPass_CounterBattery_Enable','Waldo_AIPass_Artillery_ShootAndScoot',
-                     'Waldo_AIPass_CounterBattery_ShootAndScoot','call _clear; false']:
+        for item in ['WAIT_Cortex_ArtilleryScootPurpose','WAIT_AIPass_Artillery_Enable',
+                     'WAIT_AIPass_CounterBattery_Enable','WAIT_AIPass_Artillery_ShootAndScoot',
+                     'WAIT_AIPass_CounterBattery_ShootAndScoot','call _clear; false']:
             self.assertIn(item,scoot)
         self.assertLess(scoot.index('missionNamespace getVariable [_scootSetting,true]'),scoot.index('CortexGroupMove'))
 
@@ -2396,7 +2396,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('{abs speed _unit < 1}',text)
         self.assertIn('if (_sampled >= 2) exitWith {}', text)
         self.assertIn('set ["stanceCursor",(_index+1) mod _count]', text)
-        self.assertIn('setVariable ["Waldo_AIPass_StanceAt", _now + 10]', text)
+        self.assertIn('setVariable ["WAIT_AIPass_StanceAt", _now + 10]', text)
         self.assertEqual(3,text.count('call _blocked;'))
 
     def test_cover_stance_requires_clearance_above_protection(self):
@@ -2408,10 +2408,10 @@ class CortexOperations(unittest.TestCase):
 
     def test_stance_cleanup_preserves_external_override(self):
         for name in ['cortexRestoreCalm','cortexGroupTick']:
-            self.assertIn('if (toUpperANSI (unitPos _x) == (_x getVariable ["Waldo_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"}', source(name))
+            self.assertIn('if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"}', source(name))
         stance=source('cortexStance')
-        self.assertIn('_currentStance != (_unit getVariable ["Waldo_Cortex_AppliedStance",""])', stance)
-        self.assertIn('setVariable ["Waldo_Cortex_AppliedStance",_stance,true]', stance)
+        self.assertIn('_currentStance != (_unit getVariable ["WAIT_Cortex_AppliedStance",""])', stance)
+        self.assertIn('setVariable ["WAIT_Cortex_AppliedStance",_stance,true]', stance)
 
     def test_support_movement_has_priority_over_new_drills(self):
         for name in ['cortexFlankStart', 'cortexAdvanceStart']:
@@ -2438,7 +2438,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('if (_arrived ||', move)
         end = source('cortexFlankEnd')
         self.assertIn('if (_reason == "COMPLETE") then', end)
-        self.assertIn('Waldo_Cortex_DrillResult', end)
+        self.assertIn('WAIT_Cortex_DrillResult', end)
 
     def test_recovery_cannot_launch_a_one_soldier_bound(self):
         text = source('cortexFlankStep')
@@ -2460,15 +2460,15 @@ class CortexOperations(unittest.TestCase):
     def test_every_ai_setting_has_an_acceptance_case(self):
         import re, json
         data=json.loads((ROOT/'releaseVerificationAndDeployment/cortexQA/coverage.json').read_text(encoding='utf-8'))
-        actual=set(re.findall(r'^\s*\["(Waldo_[^"]+)"\s*,',(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8'),re.M))
+        actual=set(re.findall(r'^\s*\["(WAIT_[^"]+)"\s*,',(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8'),re.M))
         declared=[key for case in data['cases'] for key in case['settings']]
         self.assertEqual(actual,set(declared))
         self.assertEqual(len(declared),len(set(declared)))
         controls=[key for case in data['cases'] for key in case.get('controls',[])]
         self.assertEqual({
-            'Waldo_AIPass_Exclude',
-            'Waldo_AIPass_Profile',
-            'Waldo_HelicopterDeceleration_Exclude',
+            'WAIT_AIPass_Exclude',
+            'WAIT_AIPass_Profile',
+            'WAIT_HelicopterDeceleration_Exclude',
         },set(controls))
         self.assertEqual(len(controls),len(set(controls)))
         self.assertEqual(len(data['cases']),len({case['id'] for case in data['cases']}))
@@ -2479,26 +2479,26 @@ class CortexOperations(unittest.TestCase):
 
     def test_preflight_runs_before_order_state_changes(self):
         text = source('cortexOrderLocal')
-        self.assertLess(text.index('call Waldo_fnc_CortexOrderReason'),text.index('setVariable ["Waldo_AIPass_ZeusWaypoints"'))
+        self.assertLess(text.index('call WAIT_fnc_CortexOrderReason'),text.index('setVariable ["WAIT_AIPass_ZeusWaypoints"'))
         self.assertIn('_oldHold',text)
         self.assertIn('false, clientOwner, "The squad changed owner',text)
     def test_exclude_cleans_all_posted_orders_immediately(self):
         text=source('cortexOrderLocal').split('case "EXCLUDE":')[1].split('case "RETURN":')[0]
         for name in ['ClearRelease','GarrisonRelease','DefendRelease','ReleaseGroup']:
-            self.assertIn('Waldo_fnc_Cortex'+name,text)
+            self.assertIn('WAIT_fnc_Cortex'+name,text)
     def test_no_building_garrison_cannot_report_success(self):
         text=source('cortexGarrison')
-        self.assertLess(text.index('Refuse an empty search'),text.index('call Waldo_fnc_CortexClearRelease'))
+        self.assertLess(text.index('Refuse an empty search'),text.index('call WAIT_fnc_CortexClearRelease'))
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_selection_requires_choice_and_has_no_distance_cutoff(self):
         text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeZen.sqf').read_text(encoding='utf-8')
         self.assertIn('private _groups = [grpNull]',text)
         self.assertNotIn('_leader distance2D _modulePos <= 250',text)
-        self.assertIn('call Waldo_fnc_CortexOrderReason',text)
+        self.assertIn('call WAIT_fnc_CortexOrderReason',text)
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_snapshot_cannot_rollback_applied_ai_revision(self):
         text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeReceiveState.sqf').read_text(encoding='utf-8')
-        self.assertIn('Waldo_AIPass_SettingsApplied',text)
+        self.assertIn('WAIT_AIPass_SettingsApplied',text)
         self.assertIn('_staleAI && {_name in _aiNames}',text)
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_expected_revision_is_sent_and_checked_on_server(self):
@@ -2510,10 +2510,10 @@ class CortexOperations(unittest.TestCase):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         client=(ROOT/'releaseVerificationAndDeployment/cortexQA/runClient.sqf').read_text(encoding='utf-8')
         for function in ['CortexOrderDispatch','HeadlessMigrateGroup','SimpleAiConvoy','CortexArtilleryFire']:
-            self.assertIn('call Waldo_fnc_'+function,server)
+            self.assertIn('call WAIT_fnc_'+function,server)
         self.assertIn('addEventHandler ["Fired"',server)
         self.assertIn('ctrlActivate true',client)
-        self.assertNotIn('setVariable ["Waldo_AIPass_Aggression"',client)
+        self.assertNotIn('setVariable ["WAIT_AIPass_Aggression"',client)
 
     def test_cortex_exports_preserve_legacy_function_aliases(self):
         import re
@@ -2526,12 +2526,12 @@ class CortexOperations(unittest.TestCase):
             local_path=path.replace('\\','/').removeprefix('/z/waldo_ai_tweaks/')
             self.assertTrue((ROOT/local_path).is_file(),path)
         for path in (ROOT/'addons/main/functions/Cortex').glob('*.sqf'):
-            self.assertNotIn('Waldo_fnc_AIPass',path.read_text(encoding='utf-8'))
+            self.assertNotIn('WAIT_fnc_AIPass',path.read_text(encoding='utf-8'))
 
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_headless_overlay_reads_one_coherent_snapshot(self):
         text=(ROOT/'MissionScripts/Headless/headlessDebugDisplayLocal.sqf').read_text(encoding='utf-8')
-        self.assertNotIn('getVariable ["Waldo_Headless_ManagedGroups"',text)
+        self.assertNotIn('getVariable ["WAIT_Headless_ManagedGroups"',text)
         self.assertIn('TRANSFERRING',text)
         self.assertIn('private _mismatch = !_pending',text)
 
@@ -2577,7 +2577,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_x doFollow _leader',text)
         self.assertIn('["CONSOLIDATING", "INCOMPLETE"] select _expired',text)
         self.assertIn('_gathered == count _members',text)
-        self.assertIn('call Waldo_fnc_CortexClearRelease',text)
+        self.assertIn('call WAIT_fnc_CortexClearRelease',text)
         self.assertNotIn('distance2D _leader > 60',text)
 
     def test_bound_progress_uses_its_own_explicit_index(self):
@@ -2596,7 +2596,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(case,server)
 
     def test_convoy_resume_keeps_local_trails_and_does_not_project_recovery(self):
-        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text()
+        text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text()
         self.assertIn('["frontTrails", _resumeTrails]',text)
         self.assertIn('["followers", _resumeFollowers]',text)
         self.assertNotIn('_front getPos [_desiredGap',text)
@@ -2612,13 +2612,13 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('unitCombatMode _x in ["YELLOW","RED"]',text)
 
     def test_convoy_spacing_does_not_trim_navigation_to_a_short_stop(self):
-        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text()
+        text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text()
         self.assertNotIn('_frontDistance > _desiredGap * 0.7',text)
         self.assertNotIn('_frontDistance < _gap',text)
         self.assertIn('private _limit = (_frontSpeed + (_controlGap-_desiredGap)*0.4) max 0;',text)
 
     def test_convoy_spacing_cannot_stabilize_a_lateral_wedge(self):
-        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         self.assertIn('private _controlGap = _gap;',text)
         self.assertIn('_controlGap=(_delta vectorDotProduct _direction) max 0;',text)
         self.assertIn('private _lateralOffset = 0;',text)
@@ -2626,27 +2626,27 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_pairGap=(_delta vectorDotProduct _direction) max 0;',text)
 
     def test_convoy_snapshot_preserves_navigation_before_release(self):
-        text=(ROOT/'addons/main/functions/convoySync.sqf').read_text()
+        text=(ROOT/'addons/vehicles/functions/convoySync.sqf').read_text()
         self.assertLess(text.index('private _navigation ='),text.index('[_group, true, _configuration select 7'))
         self.assertIn('_keepCrew isEqualTo (_configuration select 4)',text)
-        self.assertIn('setVariable ["Waldo_Convoy_LocalState",_navigation]',text)
+        self.assertIn('setVariable ["WAIT_Convoy_LocalState",_navigation]',text)
 
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
-        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
-        for marker in ['Waldo_Convoy_RouteRecovery_Enable','["routeWatch",',
+        tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        for marker in ['WAIT_Convoy_RouteRecovery_Enable','["routeWatch",',
                        'currentWaypoint _group >= count waypoints _group',
                        'waypointPosition _watchedWaypoint distance2D _watchedPosition < 2',
                        '_watchedRadius max 20)+75','_group setCurrentWaypoint _watchedWaypoint',
-                       'Waldo_Convoy_RouteRecoveries']:
+                       'WAIT_Convoy_RouteRecoveries']:
             self.assertIn(marker,tick)
         recovery=tick.split('private _routeWatch=',1)[1].split('private _routeDone',1)[0]
         for forbidden in ['addWaypoint','deleteWaypoint','setPos','setVelocity','setDamage','setFuel']:
             self.assertNotIn(forbidden,recovery)
 
     def test_convoy_temporarily_yields_driving_vehicle_workers_and_restores_exact_state(self):
-        start=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
-        release=(ROOT/'addons/main/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        start=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
+        release=(ROOT/'addons/vehicles/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('CfgPatches" >> "hbq_advanced_driving_ai',start)
         for variable in ['HBQAD_Pause','HBQAD_PreventDisembark']:
             self.assertIn('isNil {_vehicle getVariable "'+variable+'"}',start)
@@ -2658,8 +2658,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
 
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
-        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
-        for marker in ['Waldo_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',
+        tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        for marker in ['WAIT_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',
                        'roadsConnectedTo _road','_travel >= 70','["roadAssist",',
                        '["leadSpeedLimit",[_leadLimit,time]]','private _pathTurn=0;',
                        'private _pathGrade=0;']:
@@ -2680,7 +2680,7 @@ class CortexOperations(unittest.TestCase):
                        '-single-file']:
             self.assertIn(marker,matrix)
         self.assertIn('_maxLateral <= 8',matrix)
-        text=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text()
+        text=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text()
         self.assertIn('getAssignedCuratorUnit',text)
         self.assertIn('pushBackUnique owner _curator',text)
         self.assertIn('CORTEX CONVOY STOPPED',text)
@@ -2731,9 +2731,9 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('moveInCargo',tick)
 
     def test_stalled_convoy_halt_preserves_passengers_and_validates_vehicle(self):
-        tick=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
-        halt=(ROOT/'addons/main/functions/convoyHaltServer.sqf').read_text(encoding='utf-8')
-        api=(ROOT/'addons/main/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
+        tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        halt=(ROOT/'addons/vehicles/functions/convoyHaltServer.sqf').read_text(encoding='utf-8')
+        api=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         self.assertEqual(tick.count('if (_attempts > 3)'),2)
         self.assertNotIn('doFollow driver _front',tick)
         self.assertIn('_blockedVehicle in (_configuration select 4)',halt)
@@ -2742,7 +2742,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('disableCollisionWith',tick)
 
     def test_convoy_can_acquire_forward_trail_beyond_initial_capture_radius(self):
-        text=(ROOT/'addons/main/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         self.assertIn('if (_nearest < 0)',text)
         self.assertIn('(_delta vectorDotProduct _heading) > _length*0.5',text)
         self.assertIn('_nearest + ([1,0] select _joining)',text)
@@ -2750,7 +2750,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('driver _lead doMove (waypointPosition',text)
 
     def test_convoy_retains_actual_seat_for_crew_and_both_cargo_group_layouts(self):
-        text=(ROOT/'addons/main/functions/convoyCrewLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/vehicles/functions/convoyCrewLocal.sqf').read_text(encoding='utf-8')
         self.assertIn('_assignedOccupant != _unit',text)
         for role in ['assignAsDriver','assignAsCommander','assignAsGunner','assignAsCargoIndex','assignAsTurret']:
             self.assertIn(role,text)
@@ -2763,14 +2763,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('{deleteVehicle _x} forEach _actors',qa)
 
     def test_deceleration_old_owner_cannot_clear_new_worker(self):
-        base=ROOT/'addons/main/functions'
+        base=ROOT/'addons/aircraft/functions'
         init=(base/'helicopterDecelerationInit.sqf').read_text(encoding='utf-8')
         self.assertIn('GenerationLocal",0])+1',init)
-        self.assertIn('GenerationLocal",0]] spawn Waldo_fnc_HelicopterDecelerationTrackLocal',init)
+        self.assertIn('GenerationLocal",0]] spawn WAIT_fnc_HelicopterDecelerationTrackLocal',init)
         for name in ['helicopterDecelerationTrackLocal.sqf','helicopterDecelerationCorrectLocal.sqf']:
             text=(base/name).read_text(encoding='utf-8')
             self.assertIn('["_generation",-1,[0]]',text)
-            self.assertIn('Waldo_Cortex_AirAttackJob',text)
+            self.assertIn('WAIT_Cortex_AirAttackJob',text)
             cleanup=text[text.rindex('if (!isNull _aircraft'):]
             self.assertIn('local _aircraft',cleanup)
             self.assertIn('== _generation',cleanup)
@@ -2779,7 +2779,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(after_sleep.index('!= _generation'),after_sleep.index('private _speed'))
 
     def test_air_attack_reads_driver_weapons_outside_turret_inventory(self):
-        text=(ROOT/'addons/main/functions/Cortex/cortexAirAttackPlan.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/aircraft/functions/cortexAirAttackPlan.sqf').read_text(encoding='utf-8')
         self.assertIn('(weapons _aircraft)+(_aircraft weaponsTurret [-1])',text)
         self.assertIn('_driverWeapons arrayIntersect _driverWeapons',text)
         self.assertIn('private _loadedMagazines=magazinesAllTurrets _aircraft',text)
@@ -2792,7 +2792,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_airGroup createUnit',qa)
 
     def test_deceleration_releases_changed_order_before_impulse(self):
-        text=(ROOT/'addons/main/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         for marker in ['waypointPosition _wp','waypointType _wp','waypointScript _wp','waypointSpeed _wp',
                        'currentPilot _aircraft == _entryPilot','Waldo_AI_ExternalControl','ORDER_CHANGED']:
             self.assertIn(marker,text)
@@ -2800,7 +2800,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('&& {call _ownsOrder}'),text.index('_aircraft addForce'))
 
     def test_deceleration_impulse_uses_elapsed_simulation_time(self):
-        text=(ROOT/'addons/main/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        text=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         self.assertIn('time - _lastImpulseTime',text)
         self.assertIn('min 0.1',text)
         self.assertIn('min ((_climbRate - _maximumClimbRate) max 0)',text)
@@ -2811,16 +2811,16 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('private _startSpeed=abs speed'), text.index('_wp setWaypointPosition'))
         self.assertLess(text.index('_id+": braking"'), text.index('private _startSpeed=abs speed'))
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal']:
-            code=(ROOT/'addons/main/functions'/f'{name}.sqf').read_text(encoding='utf-8')
-            self.assertIn('Waldo_HelicopterDeceleration_IncludeVTOL',code)
+            code=next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
+            self.assertIn('WAIT_HelicopterDeceleration_IncludeVTOL',code)
 
     def test_deceleration_exclusion_uses_a_live_braking_envelope(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runDeceleration.sqf').read_text(encoding='utf-8')
         exclusion=text.split('// A per-aircraft opt-out',1)[1]
-        self.assertIn('Waldo_HelicopterDeceleration_Exclude",true,true',exclusion)
+        self.assertIn('WAIT_HelicopterDeceleration_Exclude",true,true',exclusion)
         self.assertIn('speed _excludedAircraft >= 120',exclusion)
         self.assertIn('_excludedWp setWaypointSpeed "LIMITED"',exclusion)
-        self.assertIn('Waldo_HelicopterDeceleration_Active',exclusion)
+        self.assertIn('WAIT_HelicopterDeceleration_Active',exclusion)
         self.assertIn('DECEL-aircraft-exclusion-live-envelope',exclusion)
         self.assertIn('DECEL-aircraft-exclusion-route-preserved',exclusion)
 
@@ -2842,8 +2842,8 @@ class CortexOperations(unittest.TestCase):
         for name in ['cortexFlankStart','cortexAdvanceStart']:
             code=source(name)
             self.assertIn('["token",_token]',code)
-            self.assertIn('[_group,_token] call Waldo_fnc_CortexDrillStart',code)
-            self.assertIn('Waldo_Cortex_DrillSerial',code)
+            self.assertIn('[_group,_token] call WAIT_fnc_CortexDrillStart',code)
+            self.assertIn('WAIT_Cortex_DrillSerial',code)
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
         self.assertIn('-stale-step-no-mutation',qa)
         self.assertIn('_before isEqualTo _after',qa)
@@ -2852,7 +2852,7 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexFlankStep')
         self.assertIn('["TIME_LIMIT","STALLED"] select _stalled',step)
         self.assertIn('(_last select 0)-_remaining >= 0.5',step)
-        self.assertIn('Waldo_Cortex_DrillFailure',step)
+        self.assertIn('WAIT_Cortex_DrillFailure',step)
         self.assertIn('currentCommand _unit,expectedDestination _unit',step)
         self.assertIn('_now-(_last select 3) > _timeout',step)
         self.assertIn('_unit distance2D (_last select 2) >= 0.5',step)
@@ -2874,12 +2874,12 @@ class CortexOperations(unittest.TestCase):
         coordinated=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCoordinated.sqf').read_text()
         for marker in ['COORD-base-actual-supporting-fire','COORD-team-%1-actual-fire','from 0 to 5','from 1 to 5']:
             self.assertIn(marker,coordinated)
-        for marker in ['Waldo_fnc_CortexQASetCombatMode','Waldo_CortexQA_CombatModeReceipt',
-                       'Waldo_CortexQA_FiredManOwner','COORD-shot-sampler-',
-                       'Waldo_Cortex_DrillTransition']:
+        for marker in ['WAIT_fnc_CortexQASetCombatMode','WAIT_CortexQA_CombatModeReceipt',
+                       'WAIT_CortexQA_FiredManOwner','COORD-shot-sampler-',
+                       'WAIT_Cortex_DrillTransition']:
             self.assertIn(marker,coordinated)
         self.assertNotIn('{_x setCombatMode "RED"} forEach',coordinated)
-        self.assertNotIn('private _state=_g getVariable ["Waldo_AIPass_State"',coordinated)
+        self.assertNotIn('private _state=_g getVariable ["WAIT_AIPass_State"',coordinated)
 
     def test_successive_advance_exchanges_only_after_arrival(self):
         start=source('cortexAdvanceStart')
@@ -2902,7 +2902,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('== "FLANK"',hold.split('private _assault =')[1].split('private _assaultDirection')[0])
         self.assertIn('_enemyPos getPos [20,_crossingDirection]',hold)
         self.assertIn('forEach [0,-15,15,-30,30]',hold)
-        self.assertIn('[_centroid,_assaultCandidates,_enemyPos] call Waldo_fnc_CortexSelectAvenue',hold)
+        self.assertIn('[_centroid,_assaultCandidates,_enemyPos] call WAIT_fnc_CortexSelectAvenue',hold)
         self.assertIn('["assaultObjective",+_enemyPos]',hold)
         self.assertIn('_drill get "assaultDirection"',step)
         self.assertIn('if (_assaulting && {!_assaultEnabled})',step)
@@ -2918,7 +2918,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('case "ASSAULT": {',step)
         self.assertNotIn('case "GRENADE": {',step)
         self.assertNotIn('"GRENADE_UNRESOLVED" call _end',step)
-        self.assertIn('"PAUSE","ASSAULT_COMMITTED"] call Waldo_fnc_CortexDrillSetStage',step)
+        self.assertIn('"PAUSE","ASSAULT_COMMITTED"] call WAIT_fnc_CortexDrillSetStage',step)
         self.assertIn('_drill set ["pauseUntil", _now + 1]',step)
         self.assertIn('_drill set ["pauseUntil",_now + ([1,2] select _queued)]',step)
         self.assertIn('_drill set ["grenadeActionUntil",[_now,_now+2] select _queued]',step)
@@ -2933,15 +2933,15 @@ class CortexOperations(unittest.TestCase):
                        '_records pushBack [_projectile,time,getPosATL _unit]', '_grenadeHoldDrift <= 3',
                        'time-(_x select 1) < 8']:
             self.assertIn(marker,qa)
-        self.assertIn('["Waldo_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"]',qa)
+        self.assertIn('["WAIT_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"]',qa)
 
     def test_manoeuvre_transitions_are_public_bounded_and_audited(self):
         helper=source('cortexDrillSetStage')
         functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text(encoding='utf-8')
         self.assertIn('class CortexDrillSetStage',functions)
-        for marker in ['Waldo_Cortex_DrillTransition','Waldo_Cortex_DrillTransitions',
-                       'count _history > 64','setVariable ["Waldo_Cortex_DrillTransitions",_history,true]']:
+        for marker in ['WAIT_Cortex_DrillTransition','WAIT_Cortex_DrillTransitions',
+                       'count _history > 64','setVariable ["WAIT_Cortex_DrillTransitions",_history,true]']:
             self.assertIn(marker,helper)
         for name,reason in [('cortexFlankStart','FLANK_ACCEPTED'),
                             ('cortexAdvanceStart','ADVANCE_ACCEPTED'),
@@ -2949,8 +2949,8 @@ class CortexOperations(unittest.TestCase):
             text=source(name)
             self.assertIn('["stage",""]',text.replace(' ',''))
             self.assertIn(reason,text)
-            self.assertIn('call Waldo_fnc_CortexDrillSetStage',text)
-        self.assertIn('"ENDED",_reason] call Waldo_fnc_CortexDrillSetStage',source('cortexFlankEnd'))
+            self.assertIn('call WAIT_fnc_CortexDrillSetStage',text)
+        self.assertIn('"ENDED",_reason] call WAIT_fnc_CortexDrillSetStage',source('cortexFlankEnd'))
         self.assertNotIn('_drill set ["stage"',source('cortexFlankStep'))
         for marker in ['-transition-start','-transition-move','-transition-ended','-transition-order',
                        '-transition-assault-committed','-transition-clear-through','-transition-grenade-queued']:
@@ -2966,18 +2966,18 @@ class CortexOperations(unittest.TestCase):
     def test_pending_assault_frag_rechecks_gate_and_migration_retires_listener(self):
         grenade=source('cortexThrowGrenade')
         callback=grenade[grenade.index('params ["_unit", "_muzzle"'):]
-        self.assertIn('Waldo_AIPass_Assault_Enable',callback)
-        self.assertLess(callback.index('Waldo_AIPass_Assault_Enable'),callback.index('forceWeaponFire'))
+        self.assertIn('WAIT_AIPass_Assault_Enable',callback)
+        self.assertLess(callback.index('WAIT_AIPass_Assault_Enable'),callback.index('forceWeaponFire'))
         locality=source('cortexLocality')
         self.assertIn('removeEventHandler ["FiredMan",_fragHandler]',locality)
-        self.assertLess(locality.index('Waldo_Cortex_FragHandler'),locality.index('if (!_gained'))
+        self.assertLess(locality.index('WAIT_Cortex_FragHandler'),locality.index('if (!_gained'))
 
     def test_reaction_qa_keeps_previous_cancellations_and_adds_assault_disable(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runReactions.sqf').read_text()
         self.assertIn('["CAPTIVE","ZEUS","DRILL-REPLACED","ASSAULT-DISABLED"]',qa)
         self.assertIn('_shots == 0',qa)
         self.assertIn('_after == _before',qa)
-        self.assertIn('["Waldo_AIPass_Assault_Enable",false]',qa)
+        self.assertIn('["WAIT_AIPass_Assault_Enable",false]',qa)
 
     def test_multi_withdrawal_audit_uses_separate_measured_terrain_lanes(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runReactions.sqf').read_text()
@@ -3103,7 +3103,7 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexFlankStep')
         assault=step[step.index('case "ASSAULT": {'):step.index('case "CONSOLIDATE": {')]
         self.assertIn('private _throwers = _fit select',assault)
-        self.assertIn('call Waldo_fnc_CortexThrowGrenade) exitWith',assault)
+        self.assertIn('call WAIT_fnc_CortexThrowGrenade) exitWith',assault)
         self.assertNotIn('selectRandom',assault)
 
     def test_advance_grenade_case_requires_first_element_actual_throw(self):
@@ -3112,36 +3112,36 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_singleCarrier = (_teams select 0) select 0',qa)
         self.assertIn('_unit removeMagazine _x',qa)
         self.assertIn('-first-element-carrier-fired',qa)
-        self.assertIn('count (_singleCarrier getVariable ["Waldo_CortexQA_FragShots",[]]) > 0',qa)
+        self.assertIn('count (_singleCarrier getVariable ["WAIT_CortexQA_FragShots",[]]) > 0',qa)
 
     def test_event_jobs_adopt_before_reserving_and_queuing(self):
         for name, reservation in [
-            ('cortexRegroupOnKill', '_group setVariable ["Waldo_AIPass_RegroupQueued", true]'),
-            ('cortexAirborneCheck', '_aircraft setVariable ["Waldo_AIPass_DropUntil", time + 30')]:
+            ('cortexRegroupOnKill', '_group setVariable ["WAIT_AIPass_RegroupQueued", true]'),
+            ('cortexAirborneCheck', '_aircraft setVariable ["WAIT_AIPass_DropUntil", time + 30')]:
             text = source(name)
-            adoption = text.index('[_group,true] call Waldo_fnc_CortexLocality')
+            adoption = text.index('[_group,true] call WAIT_fnc_CortexLocality')
             self.assertLess(adoption, text.index(reservation))
-            self.assertLess(adoption, text.index('] call Waldo_fnc_CortexQueueJob'))
+            self.assertLess(adoption, text.index('] call WAIT_fnc_CortexQueueJob'))
 
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_attack_run_flares_are_separate_gated_owner_job(self):
         text=source('cortexAttackRunFlares')
-        for requirement in ['local _aircraft','CortexIsEligible','CortexAircraftEligible','Waldo_Cortex_AttackRunFlares_Enable','isTouchingGround','vectorDotProduct','closest','APPROACH','DEPARTURE','serverTime+30','CortexFireCountermeasure','effectiveCommander _aircraft','gunner _aircraft','commander _aircraft','crew _aircraft','assignedTarget _x']:
+        for requirement in ['local _aircraft','CortexIsEligible','CortexAircraftEligible','WAIT_Cortex_AttackRunFlares_Enable','isTouchingGround','vectorDotProduct','closest','APPROACH','DEPARTURE','serverTime+30','CortexFireCountermeasure','effectiveCommander _aircraft','gunner _aircraft','commander _aircraft','crew _aircraft','assignedTarget _x']:
             self.assertIn(requirement,text)
         self.assertNotIn('reveal ',text)
         self.assertNotIn('setVelocity',text)
         self.assertNotIn('addWaypoint',text)
         self.assertIn('burstExpires',text)
         self.assertIn('burstNext',text)
-        self.assertIn('if ([_aircraft] call Waldo_fnc_CortexFireCountermeasure)',text)
+        self.assertIn('if ([_aircraft] call WAIT_fnc_CortexFireCountermeasure)',text)
         for name in ['featureRuntimeApply','featureRuntimeRequestState']:
             transport=(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{name}.sqf').read_text()
-            self.assertIn('Waldo_Cortex_AttackRunFlares_Enable',transport)
+            self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',transport)
 
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_adaptive_air_attack_is_bounded_physical_and_zeus_safe(self):
         planner=source('cortexAirAttackPlan')
-        for requirement in ['nearTargets ([8000,5000]','select [0,16]','Waldo_Cortex_AirAmmoFacts',
+        for requirement in ['nearTargets ([8000,5000]','select [0,16]','WAIT_Cortex_AirAmmoFacts',
                             'magazinesAllTurrets','airLock','aiAmmoUsageFlags','STANDOFF','OFFSET','HOOK','STRAFE','BOMB','LATERAL',
                             'INTERCEPT','_airToAir','airWeapon','airWeaponTurret','pylonWeapon','hardpoints','indirectHit']:
             self.assertIn(requirement,planner)
@@ -3160,9 +3160,9 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('allUnits',planner)
         self.assertNotIn('nearEntities',planner)
         for requirement in ['fullCrew _aircraft','_aircraft weaponsTurret _turret','_personTurret',
-                            'Waldo_Cortex_AirAttackPattern','_lateralTurret','_lateralTurretPath',
+                            'WAIT_Cortex_AirAttackPattern','_lateralTurret','_lateralTurretPath',
                             'toLowerANSI _role in ["gunner","commander","turret"]',
-                            'standoffWeapon','Waldo_Cortex_AirStandoffBlockedUntil',
+                            'standoffWeapon','WAIT_Cortex_AirStandoffBlockedUntil',
                             '[-1200,750]','[900,750]','[2200,1100]','[-8500,-4500]',
                             '["BOMB",[0.08,0.22] select _armouredTarget]',
                             'private _forwardIngress=(_toIngress vectorDotProduct _deliveryAxis) >= 100',
@@ -3171,13 +3171,13 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(requirement,planner)
         self.assertNotIn('private _choices=["STRAFE",0.3,"LATERAL"',planner)
         controller=source('cortexAirAttack')
-        for requirement in ['local _aircraft','Waldo_Cortex_AirAttack_Enable','CortexZeusHeld',
+        for requirement in ['local _aircraft','WAIT_Cortex_AirAttack_Enable','CortexZeusHeld',
                             'addEventHandler ["Fired"','ownedWaypointName','setWaypointPosition',
                             'limitSpeed','INGRESS','ATTACK','EGRESS','GROUND_CLEARANCE','EGRESS_NONPROGRESS',
-                            'routeSignature','AUTHORED_ROUTE_CHANGED','CortexFireCountermeasure','Waldo_Cortex_AirAttackOutcome',
+                            'routeSignature','AUTHORED_ROUTE_CHANGED','CortexFireCountermeasure','WAIT_Cortex_AirAttackOutcome',
                             'aimedAtTarget','fireAtTarget','NO_FIRE_SOLUTION','attackStartedAt',
                             'stageBestDistance','stageProgressAt','INGRESS_NONPROGRESS','ATTACK_NONPROGRESS',
-                            'weaponDirection _weapon','Waldo_Cortex_AirFireSolution','private _validSolution=',
+                            'weaponDirection _weapon','WAIT_Cortex_AirFireSolution','private _validSolution=',
                             '_range >= _minimumRange','private _nativeFixedBasket=']:
             self.assertIn(requirement,controller)
         self.assertNotIn('_pilot doMove _destination',controller)
@@ -3276,7 +3276,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _effectiveCapture=_captureRadius+([0,150] select !_isPlane)',controller)
         self.assertIn('private _lateralWeaponEntry=!_isPlane',controller)
         self.assertIn('_pattern == "LATERAL" || {_forwardAlignment > 0.35}',controller)
-        self.assertIn('_stage != "" || {[_group] call Waldo_fnc_CortexIsEligible}',controller)
+        self.assertIn('_stage != "" || {[_group] call WAIT_fnc_CortexIsEligible}',controller)
         self.assertIn('_aircraft selectWeaponTurret [_weapon,_turret]',controller)
         self.assertIn('_operator doWatch _fireTarget',controller)
         self.assertIn('private _nativeFixedBasket=',controller)
@@ -3320,7 +3320,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_job set ["terrainLift",_plan getOrDefault ["terrainLift",0]]',controller)
         self.assertIn('"TARGET_DESTROYED"',controller)
         self.assertIn('_job set ["targetDestroyed",true]',controller)
-        self.assertIn('private _liveShots=_aircraft getVariable ["Waldo_Cortex_AirAttackShots",0]',controller)
+        self.assertIn('private _liveShots=_aircraft getVariable ["WAIT_Cortex_AirAttackShots",0]',controller)
         self.assertIn('(!isNull _target && {!alive _target}) || {_liveShots > 0}',controller)
         self.assertIn('[_group,_job,"EGRESS","TARGET_DESTROYED"]',controller)
         self.assertIn('if (_reason == "COMPLETE") then {',controller)
@@ -3353,10 +3353,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_id+"-terrain-scenario-relief"',aircraft_qa)
         self.assertIn('worldName == "VR" || {_terrainRelief >= 30}',aircraft_qa)
         self.assertIn('_id+"-terrain-aware-terminal-delivery"',aircraft_qa)
-        self.assertIn('_sampleAircraft getVariable ["Waldo_Cortex_AirFireSolution",[]]',aircraft_qa)
+        self.assertIn('_sampleAircraft getVariable ["WAIT_Cortex_AirFireSolution",[]]',aircraft_qa)
         self.assertIn('count _x >= 23 && {_x param [21,false]}',aircraft_qa)
         self.assertNotIn('_solution >= 0.35',controller)
-        self.assertIn('Waldo_Cortex_ZeusOrderSnapshot',controller)
+        self.assertIn('WAIT_Cortex_ZeusOrderSnapshot',controller)
         self.assertIn('private _snapshot=',controller)
         self.assertIn('private _handoverWaypoints=waypoints _handoverGroup',controller)
         self.assertIn('_handoverGroup setCurrentWaypoint _authoredWaypoint',controller)
@@ -3369,7 +3369,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_handoverPilot doFollow leader _handoverGroup',controller)
         self.assertNotIn('(driver _aircraft) doMove _handoverPosition',controller)
         self.assertNotIn('(crew _aircraft) doFollow leader _group',controller)
-        self.assertIn('Waldo_Cortex_AirHandoverLease',controller)
+        self.assertIn('WAIT_Cortex_AirHandoverLease',controller)
         self.assertNotIn('private _deadline=serverTime+90',controller)
         self.assertNotIn('_handoverPilot setUnitCombatMode "BLUE"',controller)
         self.assertNotIn('_handoverGroup setBehaviourStrong "CARELESS"',controller)
@@ -3394,18 +3394,18 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('"FORCE_REPLAN"',controller)
         self.assertNotIn('"FORWARD_IMPULSE"',controller)
         self.assertNotIn('_handoverAircraft setVelocity [',controller)
-        self.assertIn('Waldo_Cortex_AirHandoverRecovery',controller)
-        self.assertIn('Waldo_Cortex_AirHandoverResult',controller)
+        self.assertIn('WAIT_Cortex_AirHandoverRecovery',controller)
+        self.assertIn('WAIT_Cortex_AirHandoverResult',controller)
         self.assertIn('expectedDestination _handoverPilot',controller)
         self.assertNotIn('"ZEUS_TRANSIT_GUARD"',controller)
         self.assertIn('egressStartPosition',controller)
         self.assertIn('private _egressTravel=',controller)
         self.assertIn('private _awayFromTarget=',controller)
-        self.assertIn('Waldo_Cortex_AirAttackBlockedUntil',controller)
+        self.assertIn('WAIT_Cortex_AirAttackBlockedUntil',controller)
         self.assertNotIn('createVehicle [_laserClass,getPosATL _target,[],0,"CAN_COLLIDE"]',controller)
         self.assertNotIn('_guidanceTarget attachTo [_target,[0,0,0]]',controller)
         self.assertIn('_job set ["fireTarget",_target]',controller)
-        self.assertIn('Waldo_Cortex_AirAttackGuidanceTarget',controller)
+        self.assertIn('WAIT_Cortex_AirAttackGuidanceTarget',controller)
         self.assertIn('private _requestPending=',controller)
         self.assertEqual(controller.count('fireAtTarget [_fireTarget,_weapon]'),1)
         self.assertEqual(controller.count('forceWeaponFire [_weapon,_mode]'),0)
@@ -3415,20 +3415,20 @@ class CortexOperations(unittest.TestCase):
         self.assertEqual(controller.count('deleteWaypoint'),1)
         self.assertIn('setWaypointName _ownedWaypointName',controller)
         self.assertIn('waypointName _x != _ownedWaypointName',controller)
-        self.assertIn('Waldo_Cortex_AirAttackJob',discover)
-        self.assertIn('Waldo_fnc_CortexAirAttack',discover)
+        self.assertIn('WAIT_Cortex_AirAttackJob',discover)
+        self.assertIn('WAIT_fnc_CortexAirAttack',discover)
         self.assertIn('_pilot nearTargets ([8000,5000] select !(_vehicle isKindOf "Plane"))',discover)
         self.assertIn('["target",_airAttackTarget]',discover)
-        self.assertIn('serverTime >= (_vehicle getVariable ["Waldo_Cortex_AirAttackBlockedUntil",0])',discover)
+        self.assertIn('serverTime >= (_vehicle getVariable ["WAIT_Cortex_AirAttackBlockedUntil",0])',discover)
         stop=source('cortexStop')
-        for requirement in ['Waldo_Cortex_AirAttackPlan','Waldo_Cortex_AirAttackJob','Waldo_Cortex_AirFireSolution',
-                            'Waldo_Cortex_AirAttackTarget','Waldo_Cortex_AirAttackGuidedWeapon',
+        for requirement in ['WAIT_Cortex_AirAttackPlan','WAIT_Cortex_AirAttackJob','WAIT_Cortex_AirFireSolution',
+                            'WAIT_Cortex_AirAttackTarget','WAIT_Cortex_AirAttackGuidedWeapon',
                             'removeEventHandler ["Fired"','limitSpeed -1','previousAttackEnabled']:
             self.assertIn(requirement,stop)
         for name in ['featureRuntimeApply','featureRuntimeRequestState']:
             transport=(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{name}.sqf').read_text()
-            self.assertIn('Waldo_Cortex_AirAttack_Enable',transport)
-        diagnostics=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
+            self.assertIn('WAIT_Cortex_AirAttack_Enable',transport)
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text()
         for requirement in ['adaptiveAirAttacks','activeAirAttacks','cortex-air-attack-',
                             'lastCountermeasureRequest','actualShots','observedAA']:
             self.assertIn(requirement,diagnostics)
@@ -3438,13 +3438,13 @@ class CortexOperations(unittest.TestCase):
                             'AIR-HANDOVER-NATIVE-CONTROL-replacement-travel',
                             'AIR-HANDOVER-NATIVE-CONTROL-no-cortex-owner',
                             '-immediate-zeus-handover',
-                            '-dedicated-aircraft-owner','Waldo_AIPass_Managed',
-                            'Waldo_AIPass_State']:
+                            '-dedicated-aircraft-owner','WAIT_AIPass_Managed',
+                            'WAIT_AIPass_State']:
             self.assertIn(requirement,audit)
         native=audit.split('// Paired native waypoint-replacement control.',1)[1].split(
             '// Adaptive attacks remain separate',1)[0]
-        self.assertIn('["Waldo_Cortex_AirAttack_Enable",false]',native)
-        self.assertIn('["Waldo_AIPass_Exclude",true,true]',native)
+        self.assertIn('["WAIT_Cortex_AirAttack_Enable",false]',native)
+        self.assertIn('["WAIT_AIPass_Exclude",true,true]',native)
         self.assertIn('distance2D _nativeReplacement <= 350',native)
 
     def test_aircraft_crew_never_acquire_generic_group_ownership(self):
@@ -3453,56 +3453,56 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_groundPass && {_alive findIf',eligibility)
         self.assertIn('_vehicle isKindOf "Air"',eligibility)
         discover=source('cortexDiscover')
-        self.assertIn('private _groundEligible = [_group,false,true] call Waldo_fnc_CortexIsEligible',discover)
-        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call Waldo_fnc_CortexReleaseGroup',discover)
+        self.assertIn('private _groundEligible = [_group,false,true] call WAIT_fnc_CortexIsEligible',discover)
+        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call WAIT_fnc_CortexReleaseGroup',discover)
         self.assertIn('private _eligible = _groundEligible',discover)
         tick=source('cortexGroupTick')
-        self.assertIn('private _groundPassEligible=[_group,false,true] call Waldo_fnc_CortexIsEligible',tick)
-        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call Waldo_fnc_CortexReleaseGroup',tick)
+        self.assertIn('private _groundPassEligible=[_group,false,true] call WAIT_fnc_CortexIsEligible',tick)
+        self.assertIn('[_group,true,"AIRCRAFT_DEDICATED"] call WAIT_fnc_CortexReleaseGroup',tick)
         locality=source('cortexLocality')
-        air_guard=locality.split('call Waldo_fnc_CortexRestoreCalm;',1)[1].split('// A delegated building task',1)[0]
+        air_guard=locality.split('call WAIT_fnc_CortexRestoreCalm;',1)[1].split('// A delegated building task',1)[0]
         self.assertIn('vehicle _x isKindOf "Air"',air_guard)
         self.assertIn('exitWith {}',air_guard)
 
     def test_cortex_air_leases_exclude_other_flight_controllers(self):
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal']:
-            path = ROOT / 'addons' / 'main' / 'functions' / (name + '.sqf')
+            path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')
-            self.assertIn('Waldo_Cortex_AirAttackToken',text,name)
-            self.assertIn('Waldo_Cortex_MissileDefenceActive',text,name)
+            self.assertIn('WAIT_Cortex_AirAttackToken',text,name)
+            self.assertIn('WAIT_Cortex_MissileDefenceActive',text,name)
 
     def test_direct_zeus_aircraft_orders_exclude_auxiliary_flight_controllers(self):
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal','improvedHelicopterLandingExecuteLocal']:
-            path = ROOT / 'addons' / 'main' / 'functions' / (name + '.sqf')
-            self.assertIn('Waldo_fnc_CortexZeusHeld', path.read_text(encoding='utf-8'), name)
+            path = next((ROOT/'addons').rglob(name+'.sqf'))
+            self.assertIn('WAIT_fnc_CortexZeusHeld', path.read_text(encoding='utf-8'), name)
 
     def test_attack_run_flare_jobs_are_not_queued_for_ineligible_aircraft(self):
         discover=source('cortexDiscover')
         block=discover.split('private _attackFlareEligible',1)[1].split('if (_attackFlareEligible',1)[0]
         for requirement in ['!isNull _pilot','alive _pilot','!isPlayer _pilot','!unitIsUAV _vehicle',
-                            'Waldo_Cortex_AttackRunFlares_Enable','CortexFeatureEnabled',
+                            'WAIT_Cortex_AttackRunFlares_Enable','CortexFeatureEnabled',
                             'CortexIsEligible','CortexAircraftEligible']:
             self.assertIn(requirement,block)
 
     def test_delayed_missile_flare_bursts_are_generation_owned(self):
         discover=source('cortexDiscover')
-        for requirement in ['Waldo_Cortex_FlareBurstGeneration',
-                            'Waldo_Cortex_MissileDefenceActive',
+        for requirement in ['WAIT_Cortex_FlareBurstGeneration',
+                            'WAIT_Cortex_MissileDefenceActive',
                             'params ["_vehicle","_missile","_generation","_side"]',
                             '!= _generation',
                             'for "_step" from 0 to 11',
                             '_step in [0,4]',
                             '!isNull _missile} && {!alive _missile',
-                            'Waldo_Cortex_LastIncomingMissile']:
+                            'WAIT_Cortex_LastIncomingMissile']:
             self.assertIn(requirement,discover)
         self.assertEqual(discover.count('_vehicle setVelocityModelSpace _candidate'),1)
         stop=source('cortexStop')
-        self.assertIn('Waldo_Cortex_FlareBurstGeneration',stop)
-        self.assertIn('Waldo_Cortex_MissileDefenceActive',stop)
-        self.assertLess(stop.index('Waldo_Cortex_FlareBurstGeneration'),
-                        stop.index('Waldo_AIPass_FlaresHandler", nil'))
+        self.assertIn('WAIT_Cortex_FlareBurstGeneration',stop)
+        self.assertIn('WAIT_Cortex_MissileDefenceActive',stop)
+        self.assertLess(stop.index('WAIT_Cortex_FlareBurstGeneration'),
+                        stop.index('WAIT_AIPass_FlaresHandler", nil'))
 
     def test_attack_flare_audit_preserves_missile_cases_and_uses_real_flight(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runAircraft.sqf').read_text()
@@ -3513,11 +3513,11 @@ class CortexOperations(unittest.TestCase):
                      '-approach-release','-departure-release','-ammunition-consumed','-no-cortex-release',
                      'addEventHandler ["Fired"','_group reveal [_target,4]']:
             self.assertIn(item,text)
-        self.assertIn('["Waldo_Cortex_AirAttack_Enable",false]',text)
-        self.assertNotIn('call Waldo_fnc_CortexAttackRunFlares',text)
-        self.assertNotIn('call Waldo_fnc_CortexFireCountermeasure',text)
+        self.assertIn('["WAIT_Cortex_AirAttack_Enable",false]',text)
+        self.assertNotIn('call WAIT_fnc_CortexAttackRunFlares',text)
+        self.assertNotIn('call WAIT_fnc_CortexFireCountermeasure',text)
         stop=source('cortexStop')
-        self.assertLess(stop.index('Waldo_Cortex_AttackFlareJob'),stop.index('if (!isNull _group) then',stop.index('private _jobs')))
+        self.assertLess(stop.index('WAIT_Cortex_AttackFlareJob'),stop.index('if (!isNull _group) then',stop.index('private _jobs')))
 
     def test_air_attack_audit_proves_patterns_fire_flares_and_handover(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runAircraft.sqf').read_text()
@@ -3532,38 +3532,38 @@ class CortexOperations(unittest.TestCase):
                       '-physical-profile-change','AIR-ATTACK-distinct-fixed-wing-profiles',
                      '-continuous-useful-flight',
                      '-visible-countermeasures','-safe-crew-egress','CortexZeusMark',
-                     'Waldo_CortexQA_AttackStageShots','Waldo_CortexQA_AdaptiveShots",0]) > 0',
-                     'Waldo_Cortex_AirAttackBlockedUntil",serverTime+300',
+                     'WAIT_CortexQA_AttackStageShots','WAIT_CortexQA_AdaptiveShots",0]) > 0',
+                     'WAIT_Cortex_AirAttackBlockedUntil",serverTime+300',
                      '-zeus-snapshot-exact','-zeus-replacement-travel','-no-old-plan-resurrection','-explicit-state-flow',
                      '-explicit-interruption-transition','-pilot-features-restored','-lateral-capable-turret','setVelocityModelSpace']:
             self.assertIn(item,text)
-        for item in ['Waldo_Cortex_AirHandoverRecovery','Waldo_ImprovedHelicopterLanding_Active',
-                     'Waldo_ImprovedHelicopterLanding_LastResult','Waldo_HelicopterDeceleration_Active',
-                     'Waldo_HelicopterDeceleration_LastResult','checkAIFeature _x','unitReady _handoverPilot',
+        for item in ['WAIT_Cortex_AirHandoverRecovery','WAIT_ImprovedHelicopterLanding_Active',
+                     'WAIT_ImprovedHelicopterLanding_LastResult','WAIT_HelicopterDeceleration_Active',
+                     'WAIT_HelicopterDeceleration_LastResult','checkAIFeature _x','unitReady _handoverPilot',
                      'canMove _aircraft','isEngineOn _aircraft','fuel _aircraft','damage _aircraft']:
             self.assertIn(item,text)
-        self.assertIn('Waldo_CortexQA_ReleaseSamplesStarted',text)
+        self.assertIn('WAIT_CortexQA_ReleaseSamplesStarted',text)
         self.assertIn('"O_Truck_03_transport_F"',text)
         self.assertNotIn('"O_Quadbike_01_F"',text)
-        self.assertIn('[_group,true,_replacementWaypoint select 1] call Waldo_fnc_CortexZeusMark',text)
+        self.assertIn('[_group,true,_replacementWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
         self.assertIn('private _replacementWaypoint=_group addWaypoint [_replacement,0]',text)
         self.assertIn('_group setCurrentWaypoint _replacementWaypoint',text)
         self.assertLess(text.index('_group setCurrentWaypoint _replacementWaypoint'),
-                        text.index('[_group,true,_replacementWaypoint select 1] call Waldo_fnc_CortexZeusMark'))
+                        text.index('[_group,true,_replacementWaypoint select 1] call WAIT_fnc_CortexZeusMark'))
         self.assertIn('setWaypointSpeed "FULL"',text)
         self.assertIn('findIf {(_x select 1) == "DEPARTURE"}',text)
-        self.assertNotIn('missionNamespace getVariable ["Waldo_AIPass_ZeusHoldSeconds",120]',text)
-        self.assertNotIn('call Waldo_fnc_CortexAirAttack;',text)
-        self.assertNotIn('call Waldo_fnc_CortexAirAttackPlan;',text)
+        self.assertNotIn('missionNamespace getVariable ["WAIT_AIPass_ZeusHoldSeconds",120]',text)
+        self.assertNotIn('call WAIT_fnc_CortexAirAttack;',text)
+        self.assertNotIn('call WAIT_fnc_CortexAirAttackPlan;',text)
         guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
-        for item in ['Waldo_Cortex_AirAttackPlan','actual shots','observed AA','CountermeasureLastRequest']:
+        for item in ['WAIT_Cortex_AirAttackPlan','actual shots','observed AA','CountermeasureLastRequest']:
             self.assertIn(item,guide)
-        diagnostic=(ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text()
+        diagnostic=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text()
         self.assertIn('cortex-air-attack-snapshot-limits',diagnostic)
 
     def test_onboard_reports_are_expiring_owner_validated_cargo_only(self):
         text=source('cortexOnboardContact')
-        for item in ['groupOwner _reporter == _owner','group effectiveCommander _vehicle == _reporter','serverTime < _expiry','serverTime+35','CortexPassengerReady','CortexIsEligible','CortexRestoreCalm','Waldo_Cortex_DismountStopRequest']:
+        for item in ['groupOwner _reporter == _owner','group effectiveCommander _vehicle == _reporter','serverTime < _expiry','serverTime+35','CortexPassengerReady','CortexIsEligible','CortexRestoreCalm','WAIT_Cortex_DismountStopRequest']:
             self.assertIn(item,text)
         self.assertLess(text.index('_state set ["dismounted"'),text.index('doGetOut'))
         self.assertNotIn(' reveal ',text)
@@ -3573,16 +3573,16 @@ class CortexOperations(unittest.TestCase):
 
     def test_cross_group_dismount_safe_stop_is_owner_validated_and_reversible(self):
         vehicles=source('cortexVehicles')
-        for item in ['Waldo_Cortex_DismountStopRequest','groupOwner _passengerGroup == _passengerOwner',
+        for item in ['WAIT_Cortex_DismountStopRequest','groupOwner _passengerGroup == _passengerOwner',
                      'effectiveCommander _vehicle in units _group','getForcedSpeed _vehicle',
-                     '_vehicle forceSpeed 0','Waldo_Cortex_DismountForcedSpeed',
+                     '_vehicle forceSpeed 0','WAIT_Cortex_DismountForcedSpeed',
                      '[_group,groupOwner _group,serverTime+30]']:
             self.assertIn(item,vehicles)
         release=source('cortexReleaseGroup')
         stop=source('cortexStop')
         for text in [release,stop]:
-            self.assertIn('Waldo_Cortex_DismountForcedSpeed',text)
-            self.assertIn('Waldo_Cortex_DismountStopRequest',text)
+            self.assertIn('WAIT_Cortex_DismountForcedSpeed',text)
+            self.assertIn('WAIT_Cortex_DismountStopRequest',text)
 
     def test_countermeasure_inventory_includes_modded_person_turrets(self):
         for name in ['cortexFireCountermeasure','cortexVehicles']:
@@ -3622,14 +3622,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_x param [2,""]) == "CONTACT"',text)
         self.assertNotIn('_state set ["phase"',text)
         self.assertIn('TRANS-published-phase-ledger',text)
-        self.assertIn('Waldo_Cortex_PhaseTransitions',text)
+        self.assertIn('WAIT_Cortex_PhaseTransitions',text)
         self.assertIn('count _phaseHistory <= 32',text)
-        self.assertNotIn('call Waldo_fnc_CortexRestoreCalm',text)
+        self.assertNotIn('call WAIT_fnc_CortexRestoreCalm',text)
 
     def test_combat_start_failure_reports_independent_tactical_refusals(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
-        self.assertIn('Waldo_Cortex_FlankRefusal',text)
-        self.assertIn('Waldo_Cortex_AdvanceRefusal',text)
+        self.assertIn('WAIT_Cortex_FlankRefusal',text)
+        self.assertIn('WAIT_Cortex_AdvanceRefusal',text)
         self.assertIn('getOrDefault ["movementLease",[]]',text)
         self.assertIn('[_prefix+"-started",_started,str _startRefusal]',text)
 
@@ -3649,23 +3649,23 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexNavalRelease')
         tick=source('cortexGroupTick')
         vehicles=source('cortexVehicles')
-        compat=(ROOT/'addons/main/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
-        for marker in ['Waldo_AIPass_NavalAssault_Enable','PROTOCOL_AI_NAVY_SEAL',
-                       'Waldo_AIPass_NavalBackendLoaded']:
+        compat=(ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
+        for marker in ['WAIT_AIPass_NavalAssault_Enable','PROTOCOL_AI_NAVY_SEAL',
+                       'WAIT_AIPass_NavalBackendLoaded']:
             self.assertIn(marker,compat + naval)
-        self.assertIn('Waldo_Cortex_NavalOperation',naval)
-        self.assertIn('Waldo_Cortex_NavalOperation',source('cortexLocality'))
+        self.assertIn('WAIT_Cortex_NavalOperation',naval)
+        self.assertIn('WAIT_Cortex_NavalOperation',source('cortexLocality'))
         for marker in ['surfaceIsWater _landing','surfaceIsWater _approach',
                        'surfaceNormal _shore','CortexOwnershipLease','NAVAL_ASSAULT',
-                       'Waldo_Cortex_NavalPlan','doGetOut _unit','NAVAL_LANDING']:
+                       'WAIT_Cortex_NavalPlan','doGetOut _unit','NAVAL_LANDING']:
             self.assertIn(marker,naval)
         implementation=naval.split('*/',1)[1]
         for forbidden in ['allGroups','allUnits','while {','waitUntil','setPos','setVelocity','setDamage','setFuel','setDriveOnPath']:
             self.assertNotIn(forbidden,implementation)
-        self.assertIn('call Waldo_fnc_CortexNavalAssault',tick)
-        self.assertIn('call Waldo_fnc_CortexNavalRelease',source('cortexReleaseGroup'))
-        self.assertIn('Waldo_Cortex_NavalForcedSpeed',release)
-        self.assertIn('Waldo_Cortex_NavalOperation',release)
+        self.assertIn('call WAIT_fnc_CortexNavalAssault',tick)
+        self.assertIn('call WAIT_fnc_CortexNavalRelease',source('cortexReleaseGroup'))
+        self.assertIn('WAIT_Cortex_NavalForcedSpeed',release)
+        self.assertIn('WAIT_Cortex_NavalOperation',release)
         self.assertIn('_vehicle isKindOf "LandVehicle"',vehicles)
 
     def test_naval_release_is_token_scoped_and_never_forces_boarding(self):
@@ -3691,7 +3691,7 @@ class CortexOperations(unittest.TestCase):
                        'NAVAL-"+_suffix+"-finite-cleanup']:
             self.assertIn(marker,audit)
         post_setup=audit.split('} forEach [false,true];',1)[0].split('private _start=getPosATL _boat;',1)[1]
-        for forbidden in ['setPos','moveInCargo','addWaypoint','setVariable ["Waldo_Cortex_NavalPlan"']:
+        for forbidden in ['setPos','moveInCargo','addWaypoint','setVariable ["WAIT_Cortex_NavalPlan"']:
             self.assertNotIn(forbidden,post_setup)
         self.assertIn('cortexQANaval.sqf',runner)
         self.assertIn('cortexQA/runNaval.sqf',launcher)

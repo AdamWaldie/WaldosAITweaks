@@ -10,11 +10,11 @@ REFERENCE = 'docs/SETTINGS-REFERENCE.md'
 
 def settings(root=ROOT):
     rows=[]
-    source=(root/'addons/main/functions/Cortex/cortexTuningSpec.sqf').read_text()
+    source=(root/'addons/core/functions/cortexTuningSpec.sqf').read_text()
     arrays={name:json.loads(raw) for name,raw in re.findall(r'private\s+(_\w+)\s*=\s*(\[[^;]+\]);', source) if name in {'_profiles','_profileLabels','_skillProfiles'}}
     arrays['_skillLabels']=arrays['_skillProfiles']
-    for line in (root/'addons/main/functions/Cortex/cortexTuningSpec.sqf').read_text().splitlines():
-        if re.match(r'\s*\["Waldo_',line):
+    for line in (root/'addons/core/functions/cortexTuningSpec.sqf').read_text().splitlines():
+        if re.match(r'\s*\["WAIT_',line):
             line=re.sub(r'_(?:profiles|profileLabels|skillProfiles|skillLabels)\b', lambda m: json.dumps(arrays[m.group(0)]), line)
             rows.append(json.loads(line.strip().rstrip(',')))
     if not rows:
@@ -48,8 +48,8 @@ def audit(root=ROOT):
         if kind=='SLIDER': valid=len(options)==3 and options[0]<=default<=options[1]
         if kind=='COMBO': valid=len(options)==2 and len(options[0])==len(options[1]) and default in options[0]
         if not valid: problems.append('invalid setting type/options/default: '+key)
-    for name in ['functions/aiTweaksRegisterSettings.sqf','functions/Cortex/cortexControlOpenLocal.sqf','functions/Cortex/cortexTuning.sqf']:
-        if 'call Waldo_fnc_CortexTuningSpec' not in (root/'addons/main'/name).read_text():
+    for name in ['aiTweaksRegisterSettings.sqf','cortexControlOpenLocal.sqf','cortexTuning.sqf']:
+        if 'call WAIT_fnc_CortexTuningSpec' not in next((root/'addons').rglob(name)).read_text():
             problems.append('settings consumer bypasses shared specification: '+name)
     config=(root/'addons/main/CfgFunctions.hpp').read_text()
     exports=re.findall(r'class\s+(\w+)\s*\{\s*file\s*=\s*"([^"]+)"',config)

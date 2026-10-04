@@ -300,7 +300,7 @@ def main():
     parser.add_argument('-m','--module', help='only search specified module addon folder', required=False, default="")
     args = parser.parse_args()
 
-    for folder in ['addons/main', 'releaseVerificationAndDeployment/cortexQA', 'releaseVerificationAndDeployment/auditMission']:
+    for folder in ['addons', 'releaseVerificationAndDeployment/cortexQA', 'releaseVerificationAndDeployment/auditMission']:
         # Allow running from root directory as well as from inside the tools directory
         rootDir = "../" + folder
         if (os.path.exists(folder)):

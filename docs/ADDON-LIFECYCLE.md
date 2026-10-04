@@ -11,8 +11,8 @@ initialization. The server coordinates cross-group decisions; the current AI own
 fire and local handlers. Interface clients provide Zeus controls and interruption monitoring.
 
 Retained function and setting names are compatibility identifiers. Changing display text must not
-rename them or invalidate mission overrides. The required infantry foundation owns the base danger
-FSM; WAIT adds finite operations rather than a second permanent movement controller.
+rename them or invalidate mission overrides. Native engine danger remains active; WAIT adds finite operations rather than a second permanent
+movement controller. An original danger replacement must pass acceptance before it is enabled.
 
 ## Existing improvements remain in scope
 
@@ -20,7 +20,7 @@ FSM; WAIT adds finite operations rather than a second permanent movement control
 | --- | --- | --- |
 | Skills and visibility | Profiles, ambient light, equipment heuristics, operator/cargo distinction and dispersion | Local creation/locality events plus bounded refresh |
 | Infantry | Contact, cover, fire control, advance, flank, assault, withdrawal, morale, surrender and recovery | Shared budgeted scheduler, finite drill FSM and sparse danger events |
-| Buildings | Garrison, clearance, casualty replacement and task handover | Required building-task backend with ownership checks; fallback remains subject to live acceptance |
+| Buildings | Garrison, clearance, casualty replacement and task handover | Owner-local building tasks with ownership checks; traversal remains subject to live acceptance |
 | Coordination | Contact communication, support by fire, multi-squad and combined-arms responder roles | Server decisions and expiring owner-local operations |
 | Vehicles | Convoy, passengers, gunnery, obstruction and non-teleport recovery | Native commands with bounded progress jobs and seat ownership |
 | Aircraft | Weapon-aware attack choices, defence, countermeasures, landing and braking | Finite owner-local jobs, missile events and terrain checks |
@@ -50,9 +50,10 @@ sparse stimuli, finite FSMs for transitions, and the existing scheduler for boun
 change that cannot be undone at runtime must never be presented as a reversible setting. Do not put
 terrain queries, global scans or movement reissue loops in unconditional FSM transitions.
 
-Keep semantic subsystems and existing feature gates. Split addon components only where dependency,
-configuration or independent loading boundaries justify it; creating one PBO per behaviour adds no
-performance benefit by itself.
+Core, infantry, vehicles, aircraft, support and compatibility are separate mandatory PBOs. The
+bootstrap registers the function catalogue and starts enabled owner-local systems after its component
+dependencies load. Components do not add schedulers. Engine-policy PBOs remain a separate pending
+implementation and must not be advertised as available until packaged and validated.
 
 ## Validation
 

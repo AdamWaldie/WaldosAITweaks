@@ -1,11 +1,11 @@
 #include "script_component.hpp"
 
 class CfgPatches {
-    class Waldo_AI_Tweaks_Main {
+    class WAIT_AI_Tweaks_Main {
         name = "Waldos AI Tweaks";
         author = "WaldoTheWarfighter";
         requiredVersion = 2.18;
-        requiredAddons[] = {"cba_main", "cba_xeh", "zen_main", "lambs_danger", "lambs_wp"};
+        requiredAddons[] = {"cba_main", "cba_xeh", "zen_main", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"};
         units[] = {};
         weapons[] = {};
         version = "0.1.0";
@@ -15,13 +15,13 @@ class CfgPatches {
 };
 
 class Extended_PreInit_EventHandlers {
-    class Waldo_AI_Tweaks_Main {
+    class WAIT_AI_Tweaks_Main {
         init = "call compile preprocessFileLineNumbers '\z\waldo_ai_tweaks\addons\main\XEH_preInit.sqf'";
     };
 };
 
 class Extended_PostInit_EventHandlers {
-    class Waldo_AI_Tweaks_Main {
+    class WAIT_AI_Tweaks_Main {
         init = "call compile preprocessFileLineNumbers '\z\waldo_ai_tweaks\addons\main\XEH_postInit.sqf'";
     };
 };
