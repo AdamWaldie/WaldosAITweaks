@@ -139,11 +139,11 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('Waldo_AIPass_LambsBaseline',src('cortexDiscover'))
         self.assertIn('Waldo_AIPass_LambsBaseline',src('cortexReleaseGroup'))
     def test_lambs_config_companions_are_detected_but_never_disabled(self):
-        init = src('cortexInit')
+        compat = (ROOT/'addons/main/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         diagnostics = (ROOT/'addons/main/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         lease = src('cortexLambsLease')
         for patch in ['lambs_turrets','lambs_suppression','lambs_rpg']:
-            self.assertIn(patch,init)
+            self.assertIn(patch,compat)
             self.assertIn(patch,diagnostics)
             self.assertNotIn(patch+' setVariable',lease)
         self.assertIn('config companions remain active in every mode',diagnostics)

@@ -11,12 +11,13 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - CBA extended pre-init loads guarded defaults on every machine;
 - CBA extended post-init starts only the systems enabled for that owner;
 - the established `Waldo_fnc_*` API remains available through `CfgFunctions`;
-- ZEN is optional and registered only after its public API exists;
+- CBA Settings owns global addon configuration and JIP synchronization;
+- ZEN is a required operator dependency and supplies the live control surface;
 - the standalone settings request uses a CBA server event and validates the requesting curator;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. CBA_A3 is the only hard runtime
-dependency. ZEN, ACE, LAMBS, VCOM AI, WebKnight systems, HBQ and supported Protocol AI packages are
+Run `hemtt build` from the repository root to create the mod package. CBA_A3 and ZEN are hard runtime
+dependencies. ACE, LAMBS, VCOM AI, WebKnight systems, HBQ and supported Protocol AI packages are
 detected only when present.
 
 ## Product boundary

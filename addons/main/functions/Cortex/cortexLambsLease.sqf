@@ -44,7 +44,8 @@ if (!_lambsLoaded && {!_vcomLoaded}) exitWith {true};
 private _lease = _group getVariable ["Waldo_Cortex_LambsLease", []];
 private _vcomLease=_group getVariable ["Waldo_Cortex_VcomLease",[]];
 private _blanket = _group getVariable ["Waldo_AIPass_LambsDisabledByPass", false];
-private _wmpMode = toUpperANSI (missionNamespace getVariable ["Waldo_AIPass_LambsMode", "SPLIT"]) == "WMP";
+private _mode = toUpperANSI (missionNamespace getVariable ["Waldo_AIPass_LambsMode", "SPLIT"]);
+private _wmpMode = _mode in ["WAIT", "WMP"]; // WMP remains a legacy saved-settings value.
 
 if (_acquire) exitWith {
     if (_owner == "") exitWith {false};

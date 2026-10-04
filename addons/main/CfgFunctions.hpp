@@ -14,6 +14,9 @@ class CfgFunctions {
         {
             class AITweaksNotifyLocal {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksNotifyLocal.sqf";};
             class AITweaksDiagnosticReport {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksDiagnosticReport.sqf";};
+            class AITweaksDetectCompatibility {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksDetectCompatibility.sqf";};
+            class AITweaksRegisterSettings {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksRegisterSettings.sqf";};
+            class AITweaksSettingChanged {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksSettingChanged.sqf";};
             class AITweaksSettingsRequestServer {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksSettingsRequestServer.sqf";};
             class AITweaksUiTheme {file = "\z\waldo_ai_tweaks\addons\main\functions\aiTweaksUiTheme.sqf";};
             class HeadlessResolveSender {file = "\z\waldo_ai_tweaks\addons\main\functions\headlessResolveSender.sqf";};
@@ -118,6 +121,7 @@ class CfgFunctions {
             class CortexFlankEnd {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexFlankEnd.sqf";};
             class CortexFlankStart {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexFlankStart.sqf";};
             class CortexFlankStep {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexFlankStep.sqf";};
+            class CortexDrillStart {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexDrillStart.sqf";};
             class CortexDrillSetStage {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexDrillSetStage.sqf";};
             class CortexSetPhase {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexSetPhase.sqf";};
             class CortexGarrison {file = "\z\waldo_ai_tweaks\addons\main\functions\Cortex\cortexGarrison.sqf";};

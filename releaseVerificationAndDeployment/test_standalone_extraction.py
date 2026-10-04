@@ -25,7 +25,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
         pre = (ROOT / "addons/main/XEH_preInit.sqf").read_text(encoding="utf-8")
         post = (ROOT / "addons/main/XEH_postInit.sqf").read_text(encoding="utf-8")
-        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh"}', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "zen_main"}', config)
         self.assertIn("Extended_PreInit_EventHandlers", config)
         self.assertIn("Extended_PostInit_EventHandlers", config)
         self.assertIn("addons\\main\\settings\\aiConfig.sqf", pre)
@@ -65,7 +65,22 @@ class StandaloneExtractionContracts(unittest.TestCase):
         )
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
         self.assertIn("class Waldo_AI_Tweaks_Main", config)
-        self.assertNotIn("zen_main", config)
+        self.assertIn("zen_main", config)
+
+    def test_cba_settings_and_compatibility_are_native_addon_services(self):
+        pre = (ROOT / "addons/main/XEH_preInit.sqf").read_text(encoding="utf-8")
+        functions = (ROOT / "addons/main/CfgFunctions.hpp").read_text(encoding="utf-8")
+        settings = (ROOT / "addons/main/functions/aiTweaksRegisterSettings.sqf").read_text(encoding="utf-8")
+        compat = (ROOT / "addons/main/functions/aiTweaksDetectCompatibility.sqf").read_text(encoding="utf-8")
+        self.assertIn("Waldo_fnc_AITweaksRegisterSettings", pre)
+        self.assertIn("Waldo_fnc_AITweaksDetectCompatibility", pre)
+        self.assertIn("AITweaksRegisterSettings", functions)
+        self.assertIn("CBA_fnc_addSetting", settings)
+        self.assertIn("_this] call Waldo_fnc_AITweaksSettingChanged", settings)
+        self.assertNotIn("params ['_value']", settings)
+        self.assertIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
+        for capability in ("lambsDanger", "vcom", "ims", "webKnight", "hbqDriving", "protocolNavy"):
+            self.assertIn(f'"{capability}"', compat)
 
     def test_product_boundary_is_documented(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
