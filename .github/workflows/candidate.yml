@@ -1,0 +1,27 @@
+name: Signed release candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: arma-actions/hemtt@v1
+        with:
+          version: v1.22.0
+      - run: python -m unittest discover -s releaseVerificationAndDeployment -p 'test_*.py'
+      - run: python releaseVerificationAndDeployment/sqf_validator.py
+      - run: python releaseVerificationAndDeployment/check_cortex_coverage.py
+      - run: hemtt release --no-bin
+      - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
+      - run: python releaseVerificationAndDeployment/mod_pipeline.py seal .hemttout/release
+      - run: cd .hemttout/release && zip -r ../../wait-candidate.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WAIT-signed-candidate
+          path: wait-candidate.zip

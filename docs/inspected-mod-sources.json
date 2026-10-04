@@ -1,0 +1,44 @@
+[
+  {
+    "sha256": "252066f2c36108f55cbfea3506543f9583345d74e1351028f6269bdf2a7a0269",
+    "mod": "LAMBS Danger",
+    "examined": "2026-10-04",
+    "pbo": "lambs_danger.pbo"
+  },
+  {
+    "sha256": "a0b5663bc87ccde314e97762f3ffe4c9e02cd8352482acdf7217243bead93f49",
+    "mod": "LAMBS Turrets",
+    "examined": "2026-10-04",
+    "pbo": "lambs_turrets.pbo"
+  },
+  {
+    "sha256": "615eb36a24598593dd3f0ddb097850ec8f9479441195004fd291bab264131341",
+    "mod": "LAMBS RPG",
+    "examined": "2026-10-04",
+    "pbo": "lambs_rpg.pbo"
+  },
+  {
+    "sha256": "a777d7f7f9b6a6cb7dae4fb3acc4fcd4e977b4c84a895dd773c98369ada6e2b0",
+    "mod": "LAMBS Suppression",
+    "examined": "2026-10-04",
+    "pbo": "lambs_suppression.pbo"
+  },
+  {
+    "sha256": "87d0a04153418ed10ae17290ce8fd38ca7e77815ab70902b4952f22be31d2adc",
+    "mod": "HBQ Advanced Driving",
+    "examined": "2026-10-04",
+    "pbo": "hbq_advanced_driving_ai.pbo"
+  },
+  {
+    "sha256": "3356e179fb112de8070829dcb8a4408bfa3ad50ba218536bf9c2a881ad143cff",
+    "mod": "Protocol Combat Pairs",
+    "examined": "2026-10-04",
+    "pbo": "prototcol_ai_pairs.pbo"
+  },
+  {
+    "sha256": "65806bce1fc479bb5cd1d09a36c3cc3a00738dca919e0b8284f7fa6db6dd3d13",
+    "mod": "Simple Civilian Behaviour",
+    "examined": "2026-10-04",
+    "pbo": "WBK_Civies.pbo"
+  }
+]

@@ -8,3 +8,9 @@ runtime-*/
 
 .test-deps/
 .test-tmp/
+.tools/
+.hemttout/
+.qa/
+releases/
+.hemttprivatekey
+*.biprivatekey

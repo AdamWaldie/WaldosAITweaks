@@ -27,10 +27,10 @@ private _drill=_state getOrDefault ["drill",createHashMap];
 if (count _drill == 0 || {(_drill getOrDefault ["token",""]) != _token}) exitWith {false};
 
 private _existing=_group getVariable ["Waldo_Cortex_DrillFSM",[]];
-if (count _existing == 2 && {(_existing select 0) == _token}) then {
+if (count _existing == 2 && {(_existing select 0) == _token} && {
     private _existingHandle=_existing select 1;
-    if (_existingHandle isEqualType 0 && {_existingHandle > 0} && {!completedFSM _existingHandle}) exitWith {true};
-};
+    _existingHandle isEqualType 0 && {_existingHandle > 0} && {!completedFSM _existingHandle}
+}) exitWith {true};
 
 private _handle=[_group,_token] execFSM "\z\waldo_ai_tweaks\addons\main\fsm\tacticalDrill.fsm";
 if (_handle <= 0) exitWith {

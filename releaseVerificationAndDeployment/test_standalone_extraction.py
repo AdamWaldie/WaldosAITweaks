@@ -58,7 +58,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         self.assertIn("Waldo_AI_PrecisionExclude", production)
 
     def test_packaging_files_define_one_namespaced_addon(self):
-        self.assertTrue((ROOT / "hemtt.toml").is_file())
+        self.assertTrue((ROOT / ".hemtt/project.toml").is_file())
         self.assertEqual(
             (ROOT / "addons/main/$PBOPREFIX$").read_text(encoding="utf-8").strip(),
             "z\\waldo_ai_tweaks\\addons\\main",

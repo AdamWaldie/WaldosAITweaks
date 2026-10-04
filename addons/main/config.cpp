@@ -4,7 +4,7 @@ class CfgPatches {
     class Waldo_AI_Tweaks_Main {
         name = "Waldos AI Tweaks";
         author = "WaldoTheWarfighter";
-        requiredVersion = 2.14;
+        requiredVersion = 2.18;
         requiredAddons[] = {"cba_main", "cba_xeh", "zen_main"};
         units[] = {};
         weapons[] = {};

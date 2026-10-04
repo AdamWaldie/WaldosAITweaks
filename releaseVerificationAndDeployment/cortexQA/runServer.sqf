@@ -12,7 +12,7 @@
  */
 if (!isServer || {missionNamespace getVariable ["Waldo_CortexQA_ServerRunning",false]}) exitWith {};
 missionNamespace setVariable ["Waldo_CortexQA_ServerRunning",true];
-waitUntil {sleep 0.5; !isNil "Waldo_fnc_CortexTuning" && {missionNamespace getVariable ["Waldo_FeatureConfigsReady",false] || {time > 30}}};
+waitUntil {sleep 0.5; !isNil "Waldo_fnc_CortexTuning" && {missionNamespace getVariable ["Waldo_AITweaks_SettingsReady",false]} && {missionNamespace getVariable ["Waldo_AITweaks_PostInitComplete",false]}};
 private _failures = [];
 private _focus = missionNamespace getVariable ["Waldo_CortexQA_Focus","all"];
 missionNamespace setVariable ["Waldo_CortexQA_Results",[],true];
@@ -20,6 +20,7 @@ private _phase = {params ["_title","_expected","_position"]; missionNamespace se
 private _readyUntil = diag_tickTime + 120;
 waitUntil {sleep 0.5; missionNamespace getVariable ["Waldo_CortexQA_GuideReady",false] || {diag_tickTime > _readyUntil}};
 private _check = {params ["_id","_ok",["_detail",""]]; diag_log format ["WMP CORTEX QA|%1|%2|%3",_id,["FAIL","PASS"] select _ok,_detail]; if (!_ok) then {_failures pushBack _id}; private _results = missionNamespace getVariable ["Waldo_CortexQA_Results",[]]; _results pushBack [_id,["FAIL","PASS"] select _ok]; missionNamespace setVariable ["Waldo_CortexQA_Results",_results,true]};
+[_check] call compile preprocessFileLineNumbers "cortexQAAddon.sqf";
 private _wait = {params ["_condition",["_seconds",15]]; private _until = diag_tickTime + _seconds; waitUntil {sleep 0.2; call _condition || {diag_tickTime >= _until}}; call _condition};
 private _saved = createHashMapFromArray (([] call Waldo_fnc_CortexTuningSpec) apply {[_x select 0,missionNamespace getVariable [_x select 0,_x select 5]]});
 if (_focus == "terrain") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATerrain.sqf"};
@@ -121,7 +122,7 @@ private _owners = (missionNamespace getVariable ["Waldo_Headless_Clients",[]]) a
 {
     private _owner = _x;
     [_group,_owner] call Waldo_fnc_HeadlessMigrateGroup;
-    private _moved = [{groupOwner _group == _owner && {(_group getVariable ["Waldo_Headless_LastAdoption",[]]) param [1,-1] == _owner}},20] call _wait;
+    private _moved = [{groupOwner _group == _owner && {_group getVariable ["Waldo_AIPass_Adopted",false]}},20] call _wait;
     [format ["HC-02-adopt-%1",_owner],_moved] call _check;
     ["DEFEND",[6000,6040+(_forEachIndex*30),0]] call _order;
     [format ["HC-03-order-%1",_owner],(_group getVariable ["Waldo_AIPass_Defend",[]]) isNotEqualTo [] && {count (missionNamespace getVariable ["Waldo_AIPass_OrderPending",createHashMap]) == 0}] call _check;
