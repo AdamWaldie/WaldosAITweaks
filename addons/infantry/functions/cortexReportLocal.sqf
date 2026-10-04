@@ -15,7 +15,7 @@ if (remoteExecutedOwner != 2 || {!local _receiver} || {isNull _sender} || {!aliv
     || {!([_receiver,"WAIT_AIPass_ContactReports_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_sender,"WAIT_AIPass_ContactReports_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {};
 if ((missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded",false]) && {missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership","SPLIT"] == "SPLIT"}
-    && {!(_receiver getVariable ["lambs_danger_disableGroupAI",false])}) exitWith {};
+    && {!([_receiver,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)}) exitWith {};
 private _range = if ([leader _sender] call WAIT_fnc_CortexCanTransmit) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
 if (side _receiver != side _sender || {leader _receiver distance2D leader _sender > _range}) exitWith {};
 private _best = _reports param [0,[]];

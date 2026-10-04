@@ -1,11 +1,11 @@
 /*
  * Author: WaldoTheWarfighter
- * Starts the installed COMPAT Waypoints controller as Cortex's primary building backend while
+ * Starts the installed external controller Waypoints controller as Cortex's primary building backend while
  * retaining the state needed for clean Zeus interruption, stop and locality migration.
  *
- * This is an integration wrapper around the public COMPAT task functions; it does not copy COMPAT
+ * This is an integration wrapper around the public external controller task functions; it does not copy external controller
  * implementation. GARRISON uses taskGarrison without teleporting. CQB stores the spawned script
- * handle so Cortex can terminate the continuing COMPAT room cycle before an external order. The
+ * handle so Cortex can terminate the continuing external controller room cycle before an external order. The
  * public semantic intent is replayable by a new group owner; engine commands and script handles are
  * never replayed across machines.
  *
@@ -20,7 +20,7 @@
  * 2: target <ARRAY or OBJECT> - garrison centre or CQB building
  * 3: radius <NUMBER> - search radius
  *
- * Return Value: Boolean - true when the installed COMPAT function was started
+ * Return Value: Boolean - true when the installed external controller function was started
  * Current callers: CortexGarrison and CortexClearBuilding.
  * Example: [_group,"CQB",_building,35] call WAIT_fnc_CortexBuildingBackendStart;
  */
@@ -37,7 +37,7 @@ if (!isNil {_group getVariable "WAIT_Cortex_BuildingBackendBackend"}) then {
     [_group,false] call WAIT_fnc_CortexBuildingBackendRelease;
 };
 
-// A migrated task reuses the original pre-task snapshot. Capturing the already modified COMPAT
+// A migrated task reuses the original pre-task snapshot. Capturing the already modified external controller
 // state on the new owner would make final cleanup restore FILE/FULL and disabled AI features.
 private _publishedBaseline=_group getVariable ["WAIT_Cortex_BuildingBaseline",[]];
 private _baseline=if ((_group getVariable ["WAIT_Cortex_BuildingIntent",[]]) isNotEqualTo []

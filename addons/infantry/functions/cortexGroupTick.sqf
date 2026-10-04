@@ -229,7 +229,7 @@ private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualT
 private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
 private _dangerCombat = (missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded", false])
     && {toUpperANSI (["WAIT_AIPass_InfantryOwnership", "SPLIT"] call _get) == "SPLIT"}
-    && {!(_group getVariable ["lambs_danger_disableGroupAI", false])};
+    && {!([_group,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)};
 // Passenger squads can hear their own vehicle crew without acquiring exact target knowledge.
 // Run this lightweight own-vehicle check at every distance tier: the far cadence is already
 // bounded, and suppressing it outside FarRange made separate passenger squads unable to react.

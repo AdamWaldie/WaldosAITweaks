@@ -19,7 +19,7 @@ private _compat = createHashMapFromArray [
     ["launcherPolicy", "lambs_rpg" call _patch],
     ["alternativeBackend", ("VCOM_AI" call _patch) || {!isNil "VCM_fnc_SQUADBEH"}],
     ["meleeBackend", !isNil "IMS_Melee_Weapons" || {"WBK_IMS" call _patch} || {"WBK_IMS2" call _patch}],
-    ["webKnight", !isNil "WBK_LoadAIThroughEden" || {!isNil "WBK_Droid_B1_Load"}],
+    ["specialistBackend", !isNil "WBK_LoadAIThroughEden" || {!isNil "WBK_Droid_B1_Load"}],
     ["civilianBackend", !isNil "WBK_CivilianFlee"],
     ["drivingBackend", "HBQ_AdvancedDrivingAI" call _patch],
     ["navalBackend", "PROTOCOL_AI_NAVY_SEAL" call _patch],
@@ -47,7 +47,7 @@ missionNamespace setVariable ["WAIT_AIPass_DangerBackendLoaded", _compat get "da
 missionNamespace setVariable ["WAIT_AIPass_AlternativeBackendLoaded", _compat get "alternativeBackend"];
 missionNamespace setVariable ["WAIT_AIPass_NavalBackendLoaded", _compat get "navalBackend"];
 missionNamespace setVariable ["WAIT_AIPass_MeleeBackendLoaded", _compat get "meleeBackend"];
-missionNamespace setVariable ["WAIT_AIPass_SpecialistBackendLoaded", _compat get "webKnight"];
+missionNamespace setVariable ["WAIT_AIPass_SpecialistBackendLoaded", _compat get "specialistBackend"];
 missionNamespace setVariable ["WAIT_AIPass_CivilianBackendLoaded", _compat get "civilianBackend"];
 missionNamespace setVariable ["WAIT_Cortex_TurretPolicyLoaded", _compat get "turretPolicy"];
 missionNamespace setVariable ["WAIT_Cortex_SuppressionPolicyLoaded", _compat get "suppressionPolicy"];

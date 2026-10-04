@@ -14,6 +14,8 @@ class CfgFunctions {
         {
             class AITweaksNotifyLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksNotifyLocal.sqf";};
             class AITweaksDiagnosticReport {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksDiagnosticReport.sqf";};
+            class CompatibilityAvailable {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityAvailable.sqf";};
+            class CompatibilityState {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityState.sqf";};
             class AITweaksDetectCompatibility {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\aiTweaksDetectCompatibility.sqf";};
             class AITweaksRegisterSettings {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksRegisterSettings.sqf";};
             class AITweaksSettingChanged {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksSettingChanged.sqf";};

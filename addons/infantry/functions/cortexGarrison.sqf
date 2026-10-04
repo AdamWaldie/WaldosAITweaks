@@ -53,7 +53,7 @@ if (_units isEqualTo []) exitWith {false};
 // Refuse an empty search before releasing the existing order or claiming success.
 if (!(_options getOrDefault ["inPlace",false]) && {(nearestObjects [_centre,["House","Building"],_radius,true]) findIf {(_x buildingPos -1) isNotEqualTo []} < 0}) exitWith {false};
 
-if ((_options getOrDefault ["useBuildingBackend", true]) && {isClass (configFile >> "CfgPatches" >> "lambs_wp")}) exitWith {
+if ((_options getOrDefault ["useBuildingBackend", true]) && {(["buildingBackend"] call WAIT_fnc_CompatibilityAvailable)}) exitWith {
     [_group,false] call WAIT_fnc_CortexReleaseGroup;
     [_group] call WAIT_fnc_CortexClearRelease;
     if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexGarrisonRelease};

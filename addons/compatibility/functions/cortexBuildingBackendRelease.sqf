@@ -1,15 +1,15 @@
 /*
  * Author: WaldoTheWarfighter
- * Releases a COMPAT Waypoints building task started through Cortex without leaving its CQB loop,
+ * Releases a external controller Waypoints building task started through Cortex without leaving its CQB loop,
  * garrison hold, PATH lock, stance, forced speed or task waypoint behind.
  *
- * Cortex records the exact pre-task group and unit state before calling COMPAT. CQB script handles
- * are terminated locally; COMPAT task variables and event handlers are removed; only settings still
+ * Cortex records the exact pre-task group and unit state before calling external controller. CQB script handles
+ * are terminated locally; external controller task variables and event handlers are removed; only settings still
  * carrying the value applied by the building task are restored. A Zeus takeover therefore removes
  * the old controller without issuing a replacement movement command. On locality loss, only the old
  * owner's local script is retired and the public semantic intent remains for the new owner to replay.
  *
- * Locality/authority: runs on the machine that started the COMPAT task. Ordinary release is called on
+ * Locality/authority: runs on the machine that started the external controller task. Ordinary release is called on
  * the current group owner. The migration-only path may run immediately after locality was lost so it
  * can terminate the old owner's local script handle.
  * Repeat/JIP: local backend state is consumed once. Public intent is cleared for ordinary release and
@@ -20,7 +20,7 @@
  * 1: restore formation movement <BOOL> - true rejoins surviving AI to the leader (default true)
  * 2: locality migration only <BOOL> - true preserves public semantic intent (default false)
  *
- * Return Value: Boolean - true when a delegated COMPAT task was retired
+ * Return Value: Boolean - true when a delegated external controller task was retired
  * Current callers: CortexReleaseGroup, CortexLocality, CortexStop, CortexGarrison and
  * CortexClearBuilding.
  * Example: [_group, false] call WAIT_fnc_CortexBuildingBackendRelease;
@@ -60,9 +60,9 @@ if (local _group && {count _groupState == 10}) then {
 };
 
 private _leader=leader _group;
-// COMPAT CQB deliberately sets the group to never flee. Arma exposes no getter for that coefficient,
+// external controller CQB deliberately sets the group to never flee. Arma exposes no getter for that coefficient,
 // whose engine default is 1, or for the live IR-laser state. Restore the morale default, but leave
-// weapon-light ownership with the engine/COMPAT rather than guessing a pre-task laser state.
+// weapon-light ownership with the engine/external controller rather than guessing a pre-task laser state.
 if (_kind == "CQB" && {local _group}) then {_group allowFleeing 1};
 {
     _x params ["_unit","_stance","_forcedSpeed","_path","_move","_cover","_suppression","_autocombat"];
@@ -76,7 +76,7 @@ if (_kind == "CQB" && {local _group}) then {_group allowFleeing 1};
         _unit setVariable ["lambs_danger_disableAI",nil,true];
         _unit setVariable ["lambs_danger_forceMove",nil,true];
         // Restore only values the delegated task is known to own. MOVE and COVER are sampled for
-        // diagnostics but COMPAT building tasks do not change them, so touching them here could
+        // diagnostics but external controller building tasks do not change them, so touching them here could
         // overwrite a newer curator or mission-script decision.
         if (unitPos _unit in ["UP","MIDDLE","AUTO"]) then {
             _unit setUnitPos _stance;

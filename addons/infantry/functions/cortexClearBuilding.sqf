@@ -59,7 +59,7 @@ if (!local _group) exitWith {
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {false};
 private _building = if (_target isEqualType objNull) then {_target} else {nearestBuilding _target};
 if (isNull _building) exitWith {if (_options getOrDefault ["resume", false]) then {[_group] call WAIT_fnc_CortexClearRelease}; false};
-if ((_options getOrDefault ["useBuildingBackend", true]) && {isClass (configFile >> "CfgPatches" >> "lambs_wp")}) exitWith {
+if ((_options getOrDefault ["useBuildingBackend", true]) && {(["buildingBackend"] call WAIT_fnc_CompatibilityAvailable)}) exitWith {
     [_group,false] call WAIT_fnc_CortexReleaseGroup;
     [_group] call WAIT_fnc_CortexClearRelease;
     if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexGarrisonRelease};

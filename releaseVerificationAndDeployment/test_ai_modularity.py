@@ -144,7 +144,7 @@ class AIModularityContracts(unittest.TestCase):
         lease = src('cortexOwnershipLease')
         for patch in ['lambs_turrets','lambs_suppression','lambs_rpg']:
             self.assertIn(patch,compat)
-            self.assertIn(patch,diagnostics)
+            self.assertIn("WAIT_fnc_CompatibilityAvailable",diagnostics)
             self.assertNotIn(patch+' setVariable',lease)
         self.assertIn('config companions remain active in every mode',diagnostics)
 class ExtendedSourceOwnershipContracts(unittest.TestCase):
@@ -192,7 +192,7 @@ class AddonSettingLifecycleContracts(unittest.TestCase):
         spec = src('cortexTuningSpec')
         self.assertIn('"WAIT_AIPass_InfantryOwnership", "Infantry controller ownership"', spec)
         self.assertNotIn('"COMPAT integration"', spec)
-        for phrase in ['when COMPAT Turrets', 'external naval controller takes', 'source-branded civilian ownership']:
+        for phrase in ['when COMPAT Turrets', 'external naval controller takes', 'Simple Civilian Behaviour owns']:
             self.assertNotIn(phrase, spec)
 
 class StandaloneApiMigrationContracts(unittest.TestCase):

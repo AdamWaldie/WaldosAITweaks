@@ -108,17 +108,17 @@ private _civilianReactions={serverTime < (_x getVariable ["WAIT_Cortex_CivilianR
 private _passState = if (!_passEnabled) then {"DISABLED"} else {if (_passActive && {!isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}}) then {"ACTIVE"} else {"ERROR"}};
 private _passHint = if (_passState == "ERROR") then {"WAIT_AIPass_Enable is true but the server scheduler is not running; check RPT for [WAIT] and that CBA is loaded."} else {""};
 private _regroupEnabled = missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true];
-private _dangerBackend = isClass (configFile >> "CfgPatches" >> "lambs_danger");
-private _buildingBackend = isClass (configFile >> "CfgPatches" >> "lambs_wp");
-private _turretPolicy = isClass (configFile >> "CfgPatches" >> "lambs_turrets");
-private _suppressionPolicy = isClass (configFile >> "CfgPatches" >> "lambs_suppression");
-private _launcherPolicy = isClass (configFile >> "CfgPatches" >> "lambs_rpg");
+private _dangerBackend = (["dangerBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _buildingBackend = (["buildingBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _turretPolicy = (["turretPolicy"] call WAIT_fnc_CompatibilityAvailable);
+private _suppressionPolicy = (["suppressionPolicy"] call WAIT_fnc_CompatibilityAvailable);
+private _launcherPolicy = (["launcherPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _dangerMovementLeases = {_x getVariable ["WAIT_Cortex_OwnershipLease", []] isNotEqualTo []} count _groups;
 private _dangerBusyGroups = {
-    private _currentTactic = _x getVariable ["lambs_main_currentTactic", ""];
-    (_x getVariable ["lambs_danger_isExecutingTactic", false])
+    private _currentTactic = [_x,"currentTactic",""] call WAIT_fnc_CompatibilityState;
+    ([_x,"executingTactic",false] call WAIT_fnc_CompatibilityState)
         || {(_currentTactic isEqualType "") && {(toLowerANSI _currentTactic) find "task" == 0}}
-        || {(units _x) findIf {_x getVariable ["lambs_danger_forceMove", false]} >= 0}
+        || {(units _x) findIf {[_x,"forcedMovement",false] call WAIT_fnc_CompatibilityState} >= 0}
 } count _groups;
 private _operatingCrew=allUnits select {
     !isPlayer _x && {vehicle _x != _x}
@@ -134,14 +134,14 @@ private _crewAimAdjusted={
         && {abs (getCustomAimCoef _x - (_x getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _x])) > 0.01}
 } count _operatingCrew;
 private _activeAirAttacks=vehicles select {(_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []};
-private _drivingLoaded=isClass (configFile >> "CfgPatches" >> "hbq_advanced_driving_ai");
+private _drivingLoaded=(["drivingBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _convoyRegistry=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
 private _convoyGroups=_convoyRegistry apply {_x select 0};
 private _convoyVehicles=[];
 {_convoyVehicles append (((_x select 1) param [4,[]]) select {!isNull _x})} forEach _convoyRegistry;
 private _convoyRecoveries=0;
 {_convoyRecoveries=_convoyRecoveries+(_x getVariable ["WAIT_Convoy_RouteRecoveries",0])} forEach _convoyGroups;
-private _navalBackend=isClass (configFile >> "CfgPatches" >> "PROTOCOL_AI_NAVY_SEAL");
+private _navalBackend=(["navalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _navalGroups=_groups select {(_x getVariable ["WAIT_Cortex_NavalStatus",[]]) isNotEqualTo []};
 private _checks = [
     ["ai", "cortex", _passState, format ["enabled=%1 serverActive=%2 serverJobs=%3 paused=%4 includedSides=%5. %6", _passEnabled, _passActive, _passJobs, [] call WAIT_fnc_CortexIsPaused, missionNamespace getVariable ["WAIT_AIPass_IncludedSides", []], _passHint]],
@@ -177,9 +177,9 @@ private _checks = [
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai", "cortex-compatibility", if (_dangerBackend || {_buildingBackend} || {_turretPolicy} || {_suppressionPolicy} || {_launcherPolicy}) then {"ACTIVE"} else {"UNAVAILABLE"}, format ["danger=%1 waypoints=%2 turrets=%3 suppression=%4 rpg=%5 mode=%6 scopedMovementLeases=%7 lambsOwnedGroups=%8 busyLeaseRefusals=%9; config companions remain active in every mode", _dangerBackend, _buildingBackend, _turretPolicy, _suppressionPolicy, _launcherPolicy, missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"], _dangerMovementLeases, _dangerBusyGroups, missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals", 0]]],
-    ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; WBK/active IMS actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
-    ["ai","convoy-driving",if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 hbqLoaded=%6 hbqPausedVehicles=%7. Road look-ahead is one bounded sample per convoy; WMP re-selects only an unchanged final route and never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{_x getVariable ["HBQAD_Pause",false]} count _convoyVehicles]],
+    ["ai", "cortex-danger-ownership", if (_dangerBackend || {_buildingBackend} || {_turretPolicy} || {_suppressionPolicy} || {_launcherPolicy}) then {"ACTIVE"} else {"UNAVAILABLE"}, format ["danger=%1 waypoints=%2 turrets=%3 suppression=%4 rpg=%5 mode=%6 scopedMovementLeases=%7 externalDangerOwnedGroups=%8 busyLeaseRefusals=%9; config companions remain active in every mode", _dangerBackend, _buildingBackend, _turretPolicy, _suppressionPolicy, _launcherPolicy, missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"], _dangerMovementLeases, _dangerBusyGroups, missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals", 0]]],
+    ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
+    ["ai","convoy-driving",if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7. Road look-ahead is one bounded sample per convoy; WMP re-selects only an unchanged final route and never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{[_x,"drivingPause",false] call WAIT_fnc_CompatibilityState} count _convoyVehicles]],
     ["ai","cortex-naval",if !(missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true]) then {"DISABLED"} else {if (_navalBackend) then {"EXTERNAL"} else {if (_navalGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}},format ["enabled=%1 navalBackendLoaded=%2 activeGroups=%3 statuses=%4. WMP uses the existing Cortex group scheduler, a bounded shore comparison and one finite native approach; PROTOCOL has exclusive ownership when loaded.",missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true],_navalBackend,count _navalGroups,_navalGroups apply {_x getVariable ["WAIT_Cortex_NavalStatus",[]]}]],
     ["ai","cortex-civilian-reactions",if !(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true]) then {"DISABLED"} else {if (missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false]) then {"EXTERNAL"} else {"LOADED"}},format ["eligibleUnarmedCivilians=%1 reactingNow=%2 radius=%3 distance=%4 cooldown=%5. FiredNear/Hit handlers are event-driven; external civilian controller has exclusive ownership when present.",count _civilianActors,_civilianReactions,missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Distance",180],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Cooldown",20]]],
     ["ai", "ai-profile", if (_enabled) then {"ACTIVE"} else {"DISABLED"}, format ["profile=%1 mode=%2 serverActive=%3", missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"], missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"], missionNamespace getVariable ["WAIT_AI_RebalanceActive", false]]],

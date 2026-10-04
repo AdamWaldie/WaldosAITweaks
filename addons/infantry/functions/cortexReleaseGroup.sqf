@@ -81,7 +81,7 @@ private _releasedVehicles=[];
     };
 } forEach units _group;
 if (local _group && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false]}) then {
-    _group setVariable ["lambs_danger_disableGroupAI", _group getVariable ["WAIT_AIPass_DangerBackendBaseline", false], true];
+    [_group,"dangerDisabled",_group getVariable ["WAIT_AIPass_DangerBackendBaseline", false],true,true] call WAIT_fnc_CompatibilityState;
     _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", nil, true];
     _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
 };

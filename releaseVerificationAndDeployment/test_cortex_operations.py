@@ -2656,14 +2656,14 @@ class CortexOperations(unittest.TestCase):
         start=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         release=(ROOT/'addons/vehicles/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
         diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        self.assertIn('CfgPatches" >> "hbq_advanced_driving_ai',start)
-        for variable in ['HBQAD_Pause','HBQAD_PreventDisembark']:
-            self.assertIn('isNil {_vehicle getVariable "'+variable+'"}',start)
-            self.assertIn('_vehicle setVariable ["'+variable+'"',start)
-            self.assertIn('_vehicle setVariable ["'+variable+'"',release)
-            self.assertIn('_vehicle setVariable ["'+variable+'",nil,true]',release)
+        adapter=source('compatibilityState')
+        self.assertIn('["drivingBackend"] call WAIT_fnc_CompatibilityAvailable',start)
+        for field,variable in [('drivingPause','HBQAD_Pause'),('drivingCrewReturn','HBQAD_PreventDisembark')]:
+            self.assertIn('"'+variable+'"',adapter)
+            self.assertIn('isNil {[_vehicle,"'+field+'"] call WAIT_fnc_CompatibilityState}',start)
+            self.assertIn('[_vehicle,"'+field+'",nil,true,true] call WAIT_fnc_CompatibilityState',release)
         self.assertIn('drivingAssist=%3 routeRecoveryEnabled=%4',diagnostics)
-        self.assertIn('hbqLoaded=%6 hbqPausedVehicles=%7',diagnostics)
+        self.assertIn('drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7',diagnostics)
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
 
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):

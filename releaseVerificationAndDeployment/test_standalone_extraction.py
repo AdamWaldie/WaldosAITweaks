@@ -79,7 +79,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         self.assertIn("_this] call WAIT_fnc_AITweaksSettingChanged", settings)
         self.assertNotIn("params ['_value']", settings)
         self.assertIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
-        for capability in ("dangerBackend", "alternativeBackend", "meleeBackend", "webKnight", "drivingBackend", "navalBackend"):
+        for capability in ("dangerBackend", "alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
             self.assertIn(f'"{capability}"', compat)
 
     def test_product_boundary_is_documented(self):
