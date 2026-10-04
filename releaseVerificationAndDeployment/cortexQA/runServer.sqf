@@ -122,8 +122,9 @@ private _owners = (missionNamespace getVariable ["Waldo_Headless_Clients",[]]) a
 {
     private _owner = _x;
     [_group,_owner] call Waldo_fnc_HeadlessMigrateGroup;
-    private _moved = [{groupOwner _group == _owner && {_group getVariable ["Waldo_AIPass_Adopted",false]}},20] call _wait;
-    [format ["HC-02-adopt-%1",_owner],_moved] call _check;
+    // Adoption is owner-local. The following real defence movement proves the new owner runs it.
+    private _moved = [{groupOwner _group == _owner},20] call _wait;
+    [format ["HC-02-transfer-%1",_owner],_moved] call _check;
     ["DEFEND",[6000,6040+(_forEachIndex*30),0]] call _order;
     [format ["HC-03-order-%1",_owner],(_group getVariable ["Waldo_AIPass_Defend",[]]) isNotEqualTo [] && {count (missionNamespace getVariable ["Waldo_AIPass_OrderPending",createHashMap]) == 0}] call _check;
     [format ["HC-03b-defence-movement-%1",_owner],[{["Waldo_AIPass_DefendPos",3.5] call _atAssigned},95] call _wait] call _check;
