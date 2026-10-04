@@ -1176,9 +1176,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('["WAIT_AIPass_Advance_MinContactSeconds", 5]',config)
         self.assertIn('["WAIT_AIPass_Advance_Cooldown", 20]',config)
         self.assertIn('"WAIT_AIPass_Advance_MinContactSeconds", "Advance contact delay"',spec)
-        self.assertIn('"SLIDER", [0,300,0], 5]',spec)
+        self.assertIn('"SLIDER", [0,300,0], 5, "NEXT_OPERATION"]',spec)
         self.assertIn('"WAIT_AIPass_Advance_Cooldown", "Advance repeat delay"',spec)
-        self.assertIn('"SLIDER", [0,180,0], 20]',spec)
+        self.assertIn('"SLIDER", [0,180,0], 20, "NEXT_OPERATION"]',spec)
         self.assertIn('getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 5]',advance)
 
     def test_bounding_advance_uses_fresh_contact_when_no_waypoint_remains(self):
@@ -1724,9 +1724,9 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('switchMove',react)
         self.assertIn('"EntityCreated"',init)
         self.assertIn('WAIT_Cortex_CivilianCreatedHandler',stop)
-        settings=source('cortexSettingsLocal')
+        settings=source('aiTweaksSettingChanged')
         self.assertIn('WAIT_AIPass_CivilianReaction_Enable',settings)
-        self.assertIn('_effects select [3,3]',settings)
+        self.assertIn('call WAIT_fnc_CortexInit',settings)
 
     def test_aircraft_occupants_have_one_dedicated_movement_owner(self):
         eligible=source('cortexIsEligible')

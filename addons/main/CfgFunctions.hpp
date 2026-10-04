@@ -65,7 +65,6 @@ class CfgFunctions {
             class CortexAirborneDropStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirborneDropStep.sqf";};
             class CortexAirborneDrop {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirborneDrop.sqf";};
             class CortexParachuteJump {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexParachuteJump.sqf";};
-            class CortexSettingsLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexSettingsLocal.sqf";};
             class CortexTuning {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuning.sqf";};
             class CortexOrderReason {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexOrderReason.sqf";};
             class CortexTuningSpec {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuningSpec.sqf";};
@@ -188,7 +187,6 @@ class CfgFunctions {
             class AIPassAirborneDropStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirborneDropStep.sqf";};
             class AIPassAirborneDrop {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirborneDrop.sqf";};
             class AIPassParachuteJump {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexParachuteJump.sqf";};
-            class AIPassSettingsLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexSettingsLocal.sqf";};
             class AIPassTuning {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuning.sqf";};
             class AIPassTuningSpec {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexTuningSpec.sqf";};
             class AIPassArtilleryRole {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryRole.sqf";};

@@ -11,6 +11,8 @@ class ReferenceBoundary(unittest.TestCase):
         files = list((ROOT/'addons').rglob('*')) + list((ROOT/'docs').rglob('*'))
         files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.md'))
         files += [ROOT/'README.md',ROOT/'CONTRIBUTING.md',ROOT/'cortex_defaults.md']
+        files += list((ROOT/'docs').glob('*.json'))
+        files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.json'))
         for path in files:
             if not path.is_file() or 'compatibility' in path.parts:
                 continue

@@ -50,4 +50,23 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertTrue(any('duplicate setting' in f for f in problems))
         self.assertTrue(any('bypasses' in f for f in problems))
 
+    def test_rejects_unsupported_activation_policy(self):
+        self.copy_settings_contract()
+        p=self.root/'addons/core/functions/cortexTuningSpec.sqf'
+        p.write_text(p.read_text().replace(', "LIVE"],', ', "IMMEDIATE_MAGIC"],', 1))
+        self.assertTrue(any('invalid setting activation' in f for f in parity.audit(self.root)))
+
+    def test_cba_uses_shared_activation_without_a_second_settings_writer(self):
+        registration=(ROOT/'addons/core/functions/aiTweaksRegisterSettings.sqf').read_text()
+        tuning=(ROOT/'addons/core/functions/cortexTuning.sqf').read_text()
+        self.assertIn('_activation == "RESTART_REQUIRED"',registration)
+        self.assertIn('Existing operations keep their committed intent',registration)
+        self.assertIn('call CBA_settings_fnc_set',tuning)
+        self.assertNotIn('CortexSettingsLocal',tuning)
+        self.assertFalse((ROOT/'addons/core/functions/cortexSettingsLocal.sqf').exists())
+        controls={row[0]:row[-1] for row in parity.settings()}
+        self.assertEqual(controls['WAIT_AIPass_TickBudgetMs'],'LIVE')
+        self.assertEqual(controls['WAIT_AIPass_Morale_RetreatDistance'],'NEXT_OPERATION')
+        self.assertEqual(controls['WAIT_AIPass_InfantryOwnership'],'NEXT_OPERATION')
+
 if __name__=='__main__': unittest.main()

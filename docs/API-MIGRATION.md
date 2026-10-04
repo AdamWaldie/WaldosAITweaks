@@ -21,3 +21,10 @@ CBA Addon Options is the effective settings authority. Authorized runtime tuning
 layer for the current session and does not silently write the administrator profile. Profile
 persistence remains an explicit CBA operator action. Validate session overrides, restart, JIP and
 server enforcement in the addon audit before release.
+## Settings transport removal
+
+`WAIT_fnc_CortexSettingsLocal` and `WAIT_fnc_AIPassSettingsLocal` are removed. Call
+`WAIT_fnc_CortexTuning` on the server (or as an authorized curator) for validated runtime changes.
+CBA performs client and JIP synchronization; do not replace the removed transport with direct
+variable broadcasts. Activation timing is listed in the generated settings reference.
+

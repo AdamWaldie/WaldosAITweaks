@@ -26,7 +26,14 @@ private _sectionNames = createHashMapFromArray [
 ];
 private _registered = 0;
 {
-    _x params ["_name", "_label", "_tooltip", "_kind", "_options", "_default", ["_section", "GENERAL"]];
+    _x params ["_name", "_label", "_tooltip", "_kind", "_options", "_default", ["_section", "GENERAL"], "_activation"];
+    private _activationHelp = switch (_activation) do {
+        case "LIVE": {"Applies on the next local update; existing worker setup follows this change."};
+        case "NEXT_OPERATION": {"Guaranteed for the next operation. Existing operations keep their committed intent and may read safety values earlier."};
+        case "RESTART_REQUIRED": {"Requires a mission restart."};
+        default {"Unsupported activation policy."};
+    };
+    private _help = _tooltip + " " + _activationHelp;
     private _category = ["Waldos AI Tweaks", _sectionNames getOrDefault [_section, _section]];
     private _cbaType = "CHECKBOX";
     private _valueInfo = _default;
@@ -47,7 +54,7 @@ private _registered = 0;
         "['%1', _this] call WAIT_fnc_AITweaksSettingChanged;",
         _name
     ];
-    [_name, _cbaType, [_label, _tooltip], _category, _valueInfo, true, _callback, false]
+    [_name, _cbaType, [_label, _help], _category, _valueInfo, true, _callback, _activation == "RESTART_REQUIRED"]
         call CBA_fnc_addSetting;
     _registered = _registered + 1;
 } forEach ([] call WAIT_fnc_CortexTuningSpec);

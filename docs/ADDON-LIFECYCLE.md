@@ -45,6 +45,17 @@ No tactical job waits indefinitely for a grenade animation, a casualty, or every
 
 ## Choosing addon mechanisms
 
+The shared tuning specification carries each option's activation policy into CBA help and the
+generated settings reference. Live controls follow their callback or next owner-local update.
+Next-operation controls are guaranteed when new intent starts; active work keeps committed geometry
+and may adopt safety values earlier. No runtime control currently requires a restart. Optional engine
+policies will require package selection and restart rather than a reversible checkbox.
+
+The script tuning API validates input and changes CBA's server layer. It does not send a second
+settings snapshot or install duplicate workers. CBA handles effective-value synchronization and JIP;
+the published revision counter is diagnostic only. Settings changes are not a multi-key atomic
+transaction. Physical server-enforcement and JIP acceptance remain pending.
+
 Use config for declarations and dependencies, CBA settings for reversible configuration, events for
 sparse stimuli, finite FSMs for transitions, and the existing scheduler for bounded due work. A config
 change that cannot be undone at runtime must never be presented as a reversible setting. Do not put

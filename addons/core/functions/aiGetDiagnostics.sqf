@@ -469,6 +469,6 @@ private _compat = missionNamespace getVariable ["WAIT_AITweaks_Compatibility", c
 private _providers = (keys _compat) select {_compat get _x};
 _providers sort true;
 _checks pushBack ["ai", "ai-external-providers", "LOADED", format [
-    "Detected=%1. Presence is diagnostic only; active operation markers reserve actors. Detection does not certify compatibility. COMPAT Danger/Waypoints are required foundations.", _providers
+    "Detected=%1. Optional providers reserve actors through active operation markers. Detection does not certify compatibility; native danger remains available without a provider.", _providers
 ]];
 ["ai", _checks] call WAIT_fnc_AITweaksDiagnosticReport

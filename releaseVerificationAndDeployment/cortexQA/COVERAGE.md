@@ -9,7 +9,7 @@ Feature cases: **63**. Required variant categories: **14**.
 | --- | ---: | ---: | ---: | --- | ---: | --- |
 | TERRAIN - Cross-cutting uneven-terrain movement and air attack | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | TERRAIN-BATTLE - Equal-force live battle on measured terrain | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
-| CORE - Master, exclusions and ownership | 3 | 1 | 28 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
+| CORE - Master, exclusions and ownership | 3 | 1 | 27 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
 | COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 5 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
 | SCHED - Scheduler and distance tiers | 11 | 0 | 4 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
 | PROFILE - Behaviour profiles and aggression | 4 | 1 | 1 | `runProfiles.sqf` | 1 | implemented_partial |
@@ -200,9 +200,9 @@ Feature cases: **63**. Required variant categories: **14**.
 
 ### CIVILIAN - Civilian danger response and external ownership
 
-**Expected:** Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active external controller actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.
+**Expected:** Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.
 
-**Automation and open work:** runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded external controller/external controller/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.
+**Automation and open work:** runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded specialist/specialist/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.
 
 ### AT - Anti-armour and ammunition roles
 
@@ -214,7 +214,7 @@ Feature cases: **63**. Required variant categories: **14**.
 
 **Expected:** Only eligible mounted groups receive changes. Boats make a finite shallow-water approach, unload infantry onto dry ground, retain operating crew and restore authored orders; the parent gate and external owner release all controls.
 
-**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and external controller-loaded arms remain queued.
+**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued.
 
 ### DISMOUNT - Contact passenger dismount
 

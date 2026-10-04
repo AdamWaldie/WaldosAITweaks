@@ -79,7 +79,6 @@
         "addons/infantry/functions/cortexKnowledge.sqf",
         "addons/infantry/functions/cortexReleaseGroup.sqf",
         "addons/infantry/functions/cortexRestoreCalm.sqf",
-        "addons/core/functions/cortexSettingsLocal.sqf",
         "addons/core/functions/cortexStop.sqf",
         "addons/core/functions/cortexTuning.sqf",
         "addons/core/functions/cortexTuningSpec.sqf",
@@ -512,8 +511,8 @@
     {
       "id": "CIVILIAN",
       "title": "Civilian danger response and external ownership",
-      "setup": "Use an ordinary unarmed civilian near a threat with reactions disabled and enabled, then replace the active flee order with a Zeus movement order. Repeat under supported external controller, external controller and external civilian controller dependencies when installed.",
-      "expected": "Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active external controller actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.",
+      "setup": "Use an ordinary unarmed civilian near a threat with reactions disabled and enabled, then replace the active flee order with a Zeus movement order. Repeat under supported specialist, specialist and external civilian controller dependencies when installed.",
+      "expected": "Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.",
       "settings": [
         "WAIT_AIPass_CivilianReaction_Enable",
         "WAIT_AIPass_CivilianReaction_Radius",
@@ -522,7 +521,7 @@
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded external controller/external controller/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.",
+      "automation": "runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded specialist/specialist/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.",
       "executable_sources": [
         "runReactions.sqf"
       ],
@@ -565,7 +564,7 @@
       "live_evidence": [
         "runtime-20260927-040456: server suite zero findings; natural detection, actual AT-directed shots, hold-fire, disabled stationary control, physical +60 m standoff and crew retention passed. Client completion missing, broader owner/disable variants unverified."
       ],
-      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and external controller-loaded arms remain queued.",
+      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued.",
       "executable_sources": [
         "runGunnery.sqf",
         "runNaval.sqf"

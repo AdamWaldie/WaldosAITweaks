@@ -30,17 +30,21 @@ def render(rows):
              'Defaults describe configuration, not confirmed behavioural acceptance. See '
              '[current inventory](CURRENT-INVENTORY.md) and [operations](MODDING-AND-OPERATIONS.md) '
              'for validation limits.\n\n'
-             '| Variable | Label | Type | Default | Range / choices | Purpose |\n'
-             '| --- | --- | --- | --- | --- | --- |\n')
-    for key,label,help_text,kind,options,default in rows:
-        fields=[f'`{key}`',label,kind,json.dumps(default),json.dumps(options),help_text]
+             'Live controls follow their owner-local update or worker callback. Next-operation controls '
+             'are guaranteed for new intent; active work keeps committed destinations and may read safety '
+             'values earlier. Restart-required controls need a mission restart. No current runtime option '
+             'changes irreversible engine configuration.\n\n'
+             '| Variable | Label | Type | Default | Range / choices | Activation | Purpose |\n'
+             '| --- | --- | --- | --- | --- | --- | --- |\n')
+    for key,label,help_text,kind,options,default,activation in rows:
+        fields=[f'`{key}`',label,kind,json.dumps(default),json.dumps(options),activation,help_text]
         text += '| ' + ' | '.join(str(f).replace('|','\\|') for f in fields) + ' |\n'
     return text
 
 def audit(root=ROOT):
     rows=settings(root); problems=[]; seen=set()
     for row in rows:
-        key,label,help_text,kind,options,default=row
+        key,label,help_text,kind,options,default,activation=row
         if key in seen: problems.append('duplicate setting: '+key)
         seen.add(key)
         if not label.strip() or not help_text.strip(): problems.append('missing setting help: '+key)
@@ -48,6 +52,8 @@ def audit(root=ROOT):
         if kind=='SLIDER': valid=len(options)==3 and options[0]<=default<=options[1]
         if kind=='COMBO': valid=len(options)==2 and len(options[0])==len(options[1]) and default in options[0]
         if not valid: problems.append('invalid setting type/options/default: '+key)
+        if activation not in {'LIVE','NEXT_OPERATION','RESTART_REQUIRED'}:
+            problems.append('invalid setting activation: '+key)
     for name in ['aiTweaksRegisterSettings.sqf','cortexTuning.sqf']:
         if 'call WAIT_fnc_CortexTuningSpec' not in next((root/'addons').rglob(name)).read_text():
             problems.append('settings consumer bypasses shared specification: '+name)

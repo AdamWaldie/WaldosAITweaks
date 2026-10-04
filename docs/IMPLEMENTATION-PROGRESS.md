@@ -11,15 +11,17 @@
 - Cross-product detection and ownership markers preserved within interoperability boundaries.
 - Technical controller identifiers isolated in compatibility adapters and their tests; neutral diagnostics, audit labels and internal APIs.
 - Existing audit cases retained; bootstrap sources added to feature coverage.
+- Published history rewritten across all five branches after a verified external recovery backup; review recreated as PR #6 and package resealed against the new history.
+- Every current CBA setting has explicit live or next-operation activation metadata, shared by the options help, validation and generated reference.
+- Independent client settings snapshot writer removed; CBA alone synchronizes effective configuration and invokes worker callbacks.
 
 ## Still outstanding
 
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.
-- CBA configuration gaps and activation metadata for all controls.
+- Remaining CBA configuration gaps and physical validation of activation behaviour.
 - Deep assessment of every remaining method, including simulation/recovery shortcut purpose.
 - Building, manoeuvre, aircraft and coordination fixes and fresh batched physical acceptance.
 - JIP, headless migration, CBA server enforcement and 50 mixed-group measured performance.
-- Repository history rewrite and recreated PR/package evidence after reference isolation is complete.
 
-An external pre-conversion Git bundle preserves recovery. History has not been rewritten while the
-current tree still contains unresolved reference boundaries. Static success is not live acceptance.
+External Git bundles preserve recovery. GitHub PR history, forks and caches can retain old content
+after a ref rewrite; removal is not universal. Static success is not live acceptance.

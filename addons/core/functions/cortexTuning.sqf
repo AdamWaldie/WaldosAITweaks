@@ -1,15 +1,15 @@
 /*
  * Author: WaldoTheWarfighter
- * Changes Cortex difficulty and tuning settings during a mission, on every machine.
+ * Changes Cortex difficulty and tuning through the authoritative CBA server setting layer.
  *
  * Accepts only the settings in WAIT_fnc_CortexTuningSpec. Slider values are clamped to their range,
  * combo values must be one of the listed choices, and anything else is ignored with an RPT line. The
- * accepted values are broadcast, so the server and every headless client use them on each squad's
- * next step. Master/skill changes also update local workers after the complete revision is applied.
+ * CBA synchronizes accepted values and invokes owner-local callbacks. Activation is documented in
+ * the shared specification; tuning does not restart committed manoeuvres.
  * CBA Addon Options is the configuration UI; scripts use this validated CBA server-layer API.
  * Locality and authority: server-authoritative; a call on a client is forwarded to the server.
  *
- * Repeat/JIP: monotonically ordered local application; joining owners use the full settings snapshot.
+ * Repeat/JIP: CBA owns persistence and joining-owner replay; no independent settings snapshot is sent.
  * Arguments:
  * 0: settings <HASHMAP> - variable name to new value, for example WAIT_AIPass_Aggression to 1.5
  *
@@ -69,11 +69,7 @@ private _updates = [];
 if (_updates isNotEqualTo []) then {
     private _revision = (missionNamespace getVariable ["WAIT_AIPass_SettingsRevision",0])+1;
     missionNamespace setVariable ["WAIT_AIPass_SettingsRevision",_revision,true];
-    // Retire old positional JIP initializers; joining owners use the authoritative full snapshot.
-    if (_updates findIf {(_x select 0) find "WAIT_AIRebalance_" == 0} >= 0) then {[] remoteExecCall ["","WAIT_AIRebalance_RuntimeInit"]};
-    if (_updates findIf {(_x select 0) == "WAIT_AIPass_Enable"} >= 0) then {[] remoteExecCall ["","WAIT_AIPass_RuntimeInit"]};
-    private _snapshot = _spec apply {[_x select 0,missionNamespace getVariable [_x select 0,_x select 5]]};
-    [_revision,_snapshot] remoteExecCall ["WAIT_fnc_CortexSettingsLocal",0];
+    // Revision is diagnostic only. Effective values and worker callbacks belong exclusively to CBA.
 };
 diag_log format ["[WAIT] Tuning applied: %1", _updates];
 count _updates
