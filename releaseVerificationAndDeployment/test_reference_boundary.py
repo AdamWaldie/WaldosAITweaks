@@ -4,7 +4,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-PATTERN = re.compile(r'compatibility|alternativeBackend|external controller|external controller|protocol[_ ]ai|steamcommunity\.com/sharedfiles|pinned[_ ]?down|\bIMS\b|\bWBK\b', re.I)
+PATTERN = re.compile(r'lambs|vcom|webknight|hbq|protocol[_ ]ai|steamcommunity\.com/sharedfiles|pinned[_ ]?down|\bIMS\b|\bWBK\b', re.I)
 
 class ReferenceBoundary(unittest.TestCase):
     def test_product_and_production_have_no_source_references(self):
@@ -13,6 +13,7 @@ class ReferenceBoundary(unittest.TestCase):
         files += [ROOT/'README.md',ROOT/'CONTRIBUTING.md',ROOT/'cortex_defaults.md']
         files += list((ROOT/'docs').glob('*.json'))
         files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.json'))
+        files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.md'))
         for path in files:
             if not path.is_file() or 'compatibility' in path.parts:
                 continue
