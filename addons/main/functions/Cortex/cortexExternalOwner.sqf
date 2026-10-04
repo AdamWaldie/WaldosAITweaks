@@ -3,6 +3,7 @@
  * Identifies AI whose movement, animation or combat state belongs to a supported external system.
  * Cortex uses this one read-only gate before any tactic so external controller custom skeletons, zombies,
  * droids, active IMS melee actors and external civilian controller never receive competing commands.
+ * Active Pinned Down coordination/transport and Smart Merge movement also reserve their actors.
  * Ordinary infantry remains eligible when those addons are merely loaded.
  *
  * Locality / Authority: read-only and callable anywhere. No public state or addon variable is changed.
@@ -12,7 +13,7 @@
  * 0: actor <OBJECT>, default objNull
  *
  * Return Value:
- * String - empty when Cortex may proceed, otherwise WBK, IMS or WBK_CIVILIAN.
+ * String - empty when Cortex may proceed; otherwise the external owner identifier.
  *
  * Current callers: Waldo_fnc_CortexIsEligible and AI diagnostics.
  *
@@ -23,6 +24,17 @@
 
 params [["_unit",objNull,[objNull]]];
 if (isNull _unit) exitWith {""};
+
+// Active-operation markers observed in installed source; owners clear them on release.
+// WAIT never edits or invokes private external state. Presence alone does not veto ordinary AI.
+private _group = group _unit;
+if ((_group getVariable ["PDCO_activeLeaseId", ""]) isNotEqualTo ""
+    || {_group getVariable ["PDCO_garrisonActive", false]}
+    || {_group getVariable ["PDCO_garrisonPending", false]}) exitWith {"PD_CONDUCTOR"};
+private _transports = [vehicle _unit, assignedVehicle _unit] select {!isNull _x && {_x != _unit}};
+if (_transports findIf {(_x getVariable ["PDTB_jobId", ""]) isNotEqualTo ""} >= 0) exitWith {"PD_TRANSPORT"};
+if (_unit getVariable ["smai_ownedMove", false]
+    && {!isNull (_unit getVariable ["smai_pendingTargetGroup", grpNull])}) exitWith {"SMART_MERGE"};
 
 private _config=configOf _unit;
 private _faction=getText (_config >> "faction");

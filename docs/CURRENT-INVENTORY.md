@@ -27,10 +27,12 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 | Other actors | Civilian reactions, airborne insertion and naval assault | Event-driven or finite group job |
 | Operator support | Diagnostics, ZEN control and convoy module, visible QA overlays | Required ZEN and audit mission |
 
-## Optional integrations
+## Foundation and optional integrations
 
-The code detects installed COMPAT components, external controller AI, external controller/external controller, external civilian controller, external controller
-Advanced Driving AI and supported external controller packages. Integrations must use public variables or
+COMPAT Danger and its Waypoints component are the required infantry foundation. The code also
+detects COMPAT companions, external controller AI, external controller/external controller, external civilian controller, external controller, external controller,
+Smart Aircraft/Combat/Merge, helicopter deceleration, BHL, DiGii, AI Culler and Scorpions AI.
+Integrations must use public variables or
 functions, take a finite lease, and restore the exact prior state. Addon presence alone must not
 disable unrelated AI.
 

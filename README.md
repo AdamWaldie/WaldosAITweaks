@@ -16,9 +16,12 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - the standalone settings request uses a CBA server event and validates the requesting curator;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. CBA_A3 and ZEN are hard runtime
-dependencies. ACE, COMPAT, external controller AI, external controller systems, external controller and supported external controller packages are
-detected only when present.
+Run `hemtt build` from the repository root to create the mod package. CBA_A3, ZEN and COMPAT Danger
+(including its Waypoints component) are hard runtime dependencies. COMPAT supplies the infantry
+danger FSM and building-task foundation; WAIT adds finite tactical operations around that base.
+ACE, COMPAT Turrets/Suppression/RPG, external controller AI, external controller systems, external controller and other AI packages are optional.
+The COMPAT code is not bundled or modified in this package. Its published license restricts derivative
+Workshop redistribution; the dependency preserves upstream attribution and distribution.
 
 ## Product boundary
 
