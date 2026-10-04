@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: A new defence replaces the prior assignment. Published assignments are reapplied by the new local owner after migration or JIP.
  * Orders an AI group to hold a defensive line facing a direction, with a rear reserve.
  *
  * About two thirds of the squad form a firing line across the facing

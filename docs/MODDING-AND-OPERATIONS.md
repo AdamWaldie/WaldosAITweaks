@@ -98,3 +98,9 @@ An isolated fast showcase is insufficient evidence for scale.
 
 These references guide original implementation. Existing compatibility detection does not mean a
 Workshop feature has been recreated or that its physical behaviour passes WAIT acceptance.
+
+## Source and documentation gates
+
+The local build and both build/candidate workflows enforce SQF validation for production and audit helpers, config structure, opening source-header contracts, local documentation/image links, shared CBA/Zeus/script setting parity and recurring performance risks. HEMTT compiles and lints addon SQF/config; its warnings remain visible for review. The static performance scanner rejects new high-severity patterns and starts with no accepted exceptions. It does not measure frame time.
+
+See [contribution requirements](../CONTRIBUTING.md) for feature guides, PR evidence and multiplayer acceptance. [The settings reference](SETTINGS-REFERENCE.md) is generated from the live tuning specification. Run `python releaseVerificationAndDeployment/zeus_script_parity_checker.py --write-reference` after editing that specification. CI rejects a stale reference, duplicate keys, invalid defaults or missing function exports.

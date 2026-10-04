@@ -6,7 +6,7 @@ Cortex functions use `Waldo_fnc_Cortex...`; their implementation is in `addons/m
 
 _Associated Files: `addons/main/settings/aiConfig.sqf`; `addons/main/functions/Cortex/` (scheduler, eligibility, Zeus priority, group tick, profiles and every behaviour); `MissionScripts/ZenModules/RuntimeControl/featureRuntimeZen.sqf` (settings and purpose-based order dialogs); `initPlayerLocal.sqf` (Zeus watcher)_
 
-The Smart AI Pass improves how AI squads behave. [Waldo's AI Tuning](Waldos-AI-Tweak) changes how
+The Smart AI Pass improves how AI squads behave. [Waldo's AI Tuning](Waldos-AI-Tweak.md) changes how
 well they shoot and spot; this pass changes what they do. It covers every non-player AI group,
 including Dynamic AO patrols and garrisons, and needs no mod beyond the pack's required CBA and ACE.
 
@@ -140,7 +140,7 @@ Aircraft reactions recheck owner locality, active/pause state, pilot health, exp
 
 ## Behaviour and morale profiles
 
-The pass reads the same profile names as [Waldo's AI Tuning](Waldos-AI-Tweak) (MILITIA, LINE,
+The pass reads the same profile names as [Waldo's AI Tuning](Waldos-AI-Tweak.md) (MILITIA, LINE,
 VETERAN, ELITE; LEGACY behaves like LINE). Skill profiles set how well AI shoot and spot, and the
 pass never changes them. Profiles tune morale, investigation and optional preparation details; they
 do not assign a squad a fixed movement style. In live contact Cortex derives advance or flank from
@@ -392,7 +392,7 @@ trigger or the aircraft's waypoint On Activation:
 
 The static chute setting, `WALDO_STATIC_STATICCHUTE`, must name a vehicle derived from `ParachuteBase`. Cortex falls back to `NonSteerable_Parachute_F` for an unavailable class or a different object type, including a parachute backpack. Soldiers keep their original backpacks.
 
-This is separate from the player [Paradrop](Paradrop) feature. AI jumpers from Paradrop itself are
+This is separate from the player [Paradrop](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Paradrop) feature. AI jumpers from Paradrop itself are
 taken over once they land (see Exclusions).
 
 ## With LAMBS
@@ -515,7 +515,7 @@ profiles. While ENDEX or SafeStart is active the pass holds all behaviour and re
 ## Settings
 
 Every setting is listed with its default in
-[Mission Configuration Files](Feature-Configuration-Files). The ones you are most likely to change:
+[Mission Configuration Files](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Configuration-Files). The ones you are most likely to change:
 
 Difficulty settings are listed under [Difficulty and tuning](#difficulty-and-tuning).
 
@@ -752,14 +752,14 @@ The tighter rally movement, physical readiness check and attack-order control re
 
 ## See also
 
-- [Waldo's AI Tuning](Waldos-AI-Tweak)
-- [Dynamic AO Generation](Dynamic-AO-Generation)
-- [Headless Client Support](Headless-Client-Support)
-- [Radio Jamming](Radio-Jamming)
+- [Waldo's AI Tuning](Waldos-AI-Tweak.md)
+- [Dynamic AO Generation](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Dynamic-AO-Generation)
+- [Headless Client Support](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Headless-Client-Support)
+- [Radio Jamming](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Radio-Jamming)
 
 <!-- WMP-WIKI-NAV -->
 ---
-[Wiki home](Home) · [Quickstart](Quickstart-Guide) · [Feature index](Feature-Tutorials)
+[Wiki home](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Tutorials)
 
 ## Cortex Control window
 

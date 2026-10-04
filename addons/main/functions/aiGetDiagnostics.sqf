@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Read-only on demand; does not install handlers or mutate JIP state.
  * Reports whether the WMP AI profile is active and whether ordinary AI groups currently owned by
  * headless clients have acknowledged profile adoption. Also reports the Cortex scheduler and
  * survivor-regroup counters, per-feature gates/tuning, coordinated support outcomes,

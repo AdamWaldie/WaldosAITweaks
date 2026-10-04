@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Repeated stop is safe; removes tracked local handlers and restores only owned skill state. No JIP replay of stopped work.
  * Stops future automatic AI profile application and optionally restores captured skills. Captured
  * original values, custom aim coefficient and stable variance offsets are cleared publicly after restoration so a later
  * explicit restart creates a fresh baseline and one new per-unit variation.

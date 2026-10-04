@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Repeated acknowledgements replace the same owner record; stale ownership reports are rejected. No client JIP setup.
  * Validates and records an AI-profile adoption acknowledgement sent by an ACE headless-client
  * destination. This gives the authoritative server RPT evidence that ordinary migrated AI received
  * the active WMP profile. The newest 100 per-group results are retained for diagnostics.

@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Repeat/JIP: Machine-local start guard prevents duplicate scheduler and handlers. Joining owners install their own local runtime.
  * Starts the Smart AI Pass on this machine if it owns AI: the server or a headless client.
  *
  * Installs, once per machine:
