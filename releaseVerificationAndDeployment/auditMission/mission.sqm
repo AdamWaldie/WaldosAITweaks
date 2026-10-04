@@ -1,0 +1,25 @@
+version=12;
+class Mission {
+    addOns[]={"A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
+    addOnsAuto[]={"A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
+    randomSeed=4012026;
+    class Intel {briefingName="WAIT packaged AI audit"; year=2035; month=6; day=24; hour=12; minute=0; startWeather=0; forecastWeather=0;};
+    class Groups {
+        items=2;
+        class Item0 {
+            side="WEST";
+            class Vehicles {
+                items=1;
+                class Item0 {position[]={5800,0,5800}; id=0; side="WEST"; vehicle="B_Soldier_F"; player="PLAYER COMMANDER"; leader=1; skill=0.5;};
+            };
+        };
+        class Item1 {
+            side="LOGIC";
+            class Vehicles {
+                items=2;
+                class Item0 {position[]={5800,0,5805}; id=1; side="LOGIC"; vehicle="HeadlessClient_F"; player="PLAY CDG"; leader=1; skill=0.5;};
+                class Item1 {position[]={5805,0,5805}; id=2; side="LOGIC"; vehicle="HeadlessClient_F"; player="PLAY CDG"; skill=0.5;};
+            };
+        };
+    };
+};

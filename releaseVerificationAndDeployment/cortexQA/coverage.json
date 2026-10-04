@@ -63,9 +63,10 @@
         "runtime-20260927-032658: CORE MASTER/GROUP/UNIT/EXTERNAL/SIDE refusal and physical arrival passed.",
         "runtime-20260927-094454: 53 lifecycle checks passed, zero SQF errors, server and client complete. Held-defence Zeus takeover and replacement arrival passed for server and two WMP HC variants after return to server. Added server mid-movement interruption, replacement arrival and 15-second no-resurrection checks passed. Real curator event delivery and interruption during every feature remain unverified; prior HC replacement failure retained."
       ],
-      "automation": "runGates.sqf: five closed-gate refusal and no-movement checks, each followed by reopened physical arrival. All ten passed in runtime-20260927-032658. Player-led, Zeus and locality variants remain outstanding.",
+      "automation": "runGates.sqf: five closed-gate refusal and no-movement checks, each followed by reopened physical arrival. All ten passed in runtime-20260927-032658. Player-led, Zeus and locality variants remain outstanding. Standalone addon readiness and catalogue assertions run in runAddon; ZEN notifications, setting changes, diagnostics and compatibility side effects still require live checks.",
       "executable_sources": [
-        "runGates.sqf"
+        "runGates.sqf",
+        "runAddon.sqf"
       ],
       "production_sources": [
         "addons/main/functions/Cortex/cortexCombatEffective.sqf",
@@ -82,7 +83,17 @@
         "addons/main/functions/Cortex/cortexStop.sqf",
         "addons/main/functions/Cortex/cortexTuning.sqf",
         "addons/main/functions/Cortex/cortexTuningSpec.sqf",
-        "addons/main/functions/Cortex/cortexInfantrySpeed.sqf"
+        "addons/main/functions/Cortex/cortexInfantrySpeed.sqf",
+        "addons/main/functions/aiTweaksDetectCompatibility.sqf",
+        "addons/main/functions/aiTweaksDiagnosticReport.sqf",
+        "addons/main/functions/aiTweaksNotifyLocal.sqf",
+        "addons/main/functions/aiTweaksRegisterSettings.sqf",
+        "addons/main/functions/aiTweaksSettingChanged.sqf",
+        "addons/main/functions/aiTweaksSettingsRequestServer.sqf",
+        "addons/main/functions/aiTweaksUiTheme.sqf",
+        "addons/main/functions/headlessResolveSender.sqf",
+        "addons/main/functions/zenConvoyModule.sqf",
+        "addons/main/functions/Cortex/cortexDrillStart.sqf"
       ]
     },
     {
