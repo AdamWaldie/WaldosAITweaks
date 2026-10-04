@@ -15,6 +15,11 @@
 - Every current CBA setting has explicit live or next-operation activation metadata, shared by the options help, validation and generated reference.
 - Independent client settings snapshot writer removed; CBA alone synchronizes effective configuration and invokes worker callbacks.
 
+- Legacy start/stop APIs request CBA changes instead of publishing a second enable/profile state or keyed JIP initializer; headless startup uses the effective CBA state.
+- Startup readiness follows the CBA settings-initialized event after effective server values refresh, rather than the guarded pre-init defaults.
+- Repeated skill startup before settings readiness shares a cancellable waiter and reads the joining owner's current effective profile.
+- Existing survivor recovery, flank bounds, suppression, landing and braking controls exposed through the authoritative settings specification without changing production defaults.
+
 ## Still outstanding
 
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.

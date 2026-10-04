@@ -4,8 +4,9 @@
  * Stops future automatic AI profile application and optionally restores captured skills. Captured
  * original values, custom aim coefficient and stable variance offsets are cleared publicly after restoration so a later
  * explicit restart creates a fresh baseline and one new per-unit variation.
- * Locality and authority: invoked on every AI-owning machine by the authoritative server; each
- * machine restores only its local AI. Server state and the keyed JIP initializer are cleared once.
+ * Locality and authority: a direct server call requests disable through the CBA server layer.
+ * CBA invokes cleanup on each owner; each machine restores only its local AI. CBA retains the
+ * disabled effective value for joining owners without a second JIP initializer.
  *
  * Arguments:
  * None
@@ -17,24 +18,21 @@
  * Result: Stops future application, restores captured values where requested by the server,
  * and clears the previous baseline for a later explicit restart.
  *
- * Current callers: AI ZEN runtime control and the audit AI reset station.
+ * Current callers: CBA setting callbacks, server scripts and the audit AI reset station.
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
-missionNamespace setVariable ["WAIT_AI_RebalanceActive", false, isServer];
+if (isServer && {missionNamespace getVariable ["WAIT_AIRebalance_Enable", true]}) exitWith {
+    [createHashMapFromArray [["WAIT_AIRebalance_Enable", false]]] call WAIT_fnc_CortexTuning;
+};
+missionNamespace setVariable ["WAIT_AI_RebalanceInitPending", false];
+missionNamespace setVariable ["WAIT_AI_RebalanceActive", false];
 if !(isNil "WAIT_Cortex_LightingPFH") then {
     [WAIT_Cortex_LightingPFH] call CBA_fnc_removePerFrameHandler;
     WAIT_Cortex_LightingPFH = nil;
 };
 missionNamespace setVariable ["WAIT_Cortex_LightingUnits",[]];
 missionNamespace setVariable ["WAIT_Cortex_LightingCursor",0];
-if (isServer) then {
-    missionNamespace setVariable ["WAIT_AIRebalance_Enable", false, true];
-    [] remoteExecCall ["", "WAIT_AIRebalance_RuntimeInit"];
-    if (remoteExecutedOwner == 0) then {
-        [] remoteExecCall ["WAIT_fnc_AIRebalanceStop", -2];
-    };
-};
 if (missionNamespace getVariable ["WAIT_AI_RestoreOnStop", true]) then {
     {
         if (local _x && {!isPlayer _x}) then {

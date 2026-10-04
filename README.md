@@ -13,7 +13,7 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - the established `WAIT_fnc_*` API remains available through `CfgFunctions`;
 - CBA Settings owns global addon configuration and JIP synchronization;
 - ZEN is a required operator dependency and supplies the live control surface;
-- the standalone settings request uses a CBA server event and validates the requesting curator;
+- the standalone settings request validates the requesting curator and updates the CBA server layer;
 - HEMTT owns packaging and version metadata.
 
 Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+, CBA_A3 and

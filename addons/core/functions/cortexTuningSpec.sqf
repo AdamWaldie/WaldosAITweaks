@@ -133,6 +133,33 @@ private _spec = [
     ["WAIT_AIPass_Artillery_OpeningSafeDistance", "Opening safety distance (m)", "Minimum commanded opening aim distance from the reported target and living players. Player positions are rejection-only.", "SLIDER", [100, 500, 0], 200, "NEXT_OPERATION"],
     ["WAIT_AIPass_Artillery_OpeningBuffer", "Opening extra buffer (m)", "Additional room for ballistic spread and player movement. Live shells are not a guarantee of harmless impacts.", "SLIDER", [50, 300, 0], 100, "NEXT_OPERATION"],
     ["WAIT_AIPass_Artillery_WarningInterval", "Ranging warning interval (s)", "Minimum pause after estimated impact before the next burst.", "SLIDER", [10, 60, 0], 20, "NEXT_OPERATION"],
+    // Existing production controls, shared with CBA and the validated script API.
+    ["WAIT_AIPass_Regroup_MaxRemnantSize", "Remnant size", "Maximum surviving members eligible for remnant recovery.", "SLIDER", [1, 8, 0], 2, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_MinimumPeakSize", "Minimum previous squad size", "Protects deliberately small teams from automatic merging.", "SLIDER", [2, 16, 0], 3, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_SearchRadius", "Recovery host search (m)", "Search radius for a compatible friendly host squad.", "SLIDER", [50, 1000, 0], 400, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_MaxGroupSize", "Recovery host size limit", "Maximum host membership after a physical survivor merge.", "SLIDER", [4, 24, 0], 12, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_JoinDistance", "Recovery join distance (m)", "Survivors must reach the host before joining.", "SLIDER", [5, 60, 0], 30, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_StuckSeconds", "Recovery no-progress limit (s)", "Retry an isolated survivor after this interval without progress; never remotely merge it.", "SLIDER", [5, 60, 0], 20, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_TimeoutSeconds", "Recovery time limit (s)", "Maximum recovery attempt duration before explicit abandonment.", "SLIDER", [30, 300, 0], 120, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_SettleSeconds", "Casualty assessment delay (s)", "Brief delay to assess simultaneous casualties before survivor recovery.", "SLIDER", [0, 15, 1], 5, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_MinGroupSize", "Minimum flanking squad size", "Capable soldiers on foot required to split movement and support elements.", "SLIDER", [2, 16, 0], 6, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_MinRange", "Minimum flank range (m)", "Nearer contacts are engaged without opening a flank route.", "SLIDER", [20, 200, 0], 60, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundDistance", "Flank bound distance (m)", "Intended distance of a covered bound; actual terrain may shorten it.", "SLIDER", [15, 100, 0], 55, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundPause", "Flank overwatch interval (s)", "Overwatch interval between bounds; does not require grenade completion.", "SLIDER", [0, 10, 1], 2, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundTimeout", "Bound no-progress limit (s)", "No-progress limit for a bound; reaching the limit never counts as arrival.", "SLIDER", [5, 60, 0], 25, "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_Cooldown", "Flank retry cooldown (s)", "Minimum interval before the same squad starts another flank.", "SLIDER", [10, 300, 0], 90, "NEXT_OPERATION"],
+    ["WAIT_AIPass_FireControl_MaxSuppressors", "Simultaneous suppressors", "Maximum soldiers assigned suppression simultaneously.", "SLIDER", [1, 8, 0], 2, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TriggerDistance", "Landing acquisition range (m)", "Landing assistance may acquire an eligible approach within this range.", "SLIDER", [100, 1500, 0], 500, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TransitAltitude", "Landing approach altitude (m)", "Clear-terrain approach height; terrain and canopy safety still apply.", "SLIDER", [15, 150, 0], 30, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_GlideSlopeRatio", "Landing glide ratio", "Horizontal approach distance per metre of descent.", "SLIDER", [2, 10, 1], 4, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumClimbRate", "Landing climb limit (m/s)", "Maximum commanded climb during assisted landing.", "SLIDER", [2, 15, 1], 8, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumDescentRate", "Landing descent limit (m/s)", "Maximum commanded descent during assisted landing.", "SLIDER", [2, 15, 1], 10, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumGoArounds", "Landing retry limit", "Maximum automatic go-arounds for one landing order.", "SLIDER", [0, 3, 0], 1, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TouchdownRadius", "Touchdown tolerance (m)", "Horizontal acceptance radius for touchdown.", "SLIDER", [2, 15, 1], 5, "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TouchdownHoldSeconds", "Touchdown hold (s)", "Hold after touchdown before releasing flight control.", "SLIDER", [0, 60, 0], 20, "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_MinimumSpeed", "Braking detection speed (km/h)", "Ignore climb corrections below this airspeed.", "SLIDER", [40, 200, 0], 80, "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_TerrainClearance", "Braking terrain clearance (m)", "Required clearance over sampled terrain ahead.", "SLIDER", [15, 100, 0], 25, "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_MaximumCorrectionSeconds", "Braking correction duration (s)", "Finite correction cap before native control resumes.", "SLIDER", [1, 8, 1], 4, "NEXT_OPERATION"],
     // Counter-battery
     ["WAIT_AIPass_CounterBattery_Rounds", "Counter-battery: rounds per burst", "Rounds in each counter-battery burst; ranging changes between bursts.", "SLIDER", [1, 10, 0], 4, "NEXT_OPERATION"],
     ["WAIT_AIPass_CounterBattery_Delay", "Counter-battery: delay (s)", "Acquisition delay without radar. Radar can shorten it.", "SLIDER", [1, 120, 0], 60, "NEXT_OPERATION"],
@@ -150,7 +177,7 @@ _spec apply {
     private _name = _x select 0;
     private _section = switch (true) do {
         case (_name find "Artillery" >= 0 || {_name find "CounterBattery" >= 0}): {"ARTILLERY"};
-        case (_name find "Airborne" >= 0 || {_name find "Aircraft" >= 0} || {_name find "AttackRunFlares" >= 0}): {"AIR"};
+        case (_name find "HelicopterLanding" >= 0 || {_name find "HelicopterDeceleration" >= 0} || {_name find "Airborne" >= 0} || {_name find "Aircraft" >= 0} || {_name find "AttackRunFlares" >= 0}): {"AIR"};
         case (_name find "Vehicle" >= 0 || {_name find "Convoy" >= 0}): {"VEHICLES"};
         case (_name find "Reinforce" >= 0 || {_name find "Coordinated" >= 0} || {_name find "ContactReports" >= 0} || {_name find "AmmoShare" >= 0}): {"SUPPORT"};
         case (_name find "Morale" >= 0 || {_name find "Retreat" >= 0} || {_name find "Surrender" >= 0} || {_name find "Regroup" >= 0}): {"MORALE"};

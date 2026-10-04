@@ -9,21 +9,22 @@
  * after server/headless-client ownership changes. ACE Headless's documented post-transfer event is
  * also handled explicitly and acknowledged to the server. Players are never modified. WMP Line is the
  * default baseline; its established values are intentionally retained rather than made harder.
- * Locality and authority: run on every AI-owning machine. Server/JIP runtime state selects the
- * profile; each server or headless-client owner applies skills only to its local AI.
+ * Locality and authority: CBA selects the effective profile and replays it to joining owners.
+ * A direct server call requesting different values uses the CBA server layer. Other owners cannot
+ * change global configuration; each owner applies the effective values only to its local AI.
  *
  * Arguments:
  * 0: mode <STRING> - AUTO (default), DAY or NIGHT
  * 1: profile <STRING> - built-in or mission-defined profile key (default LINE)
  *
  * Return Value:
- * Boolean - true when the selected profile exists
+ * Boolean - true when the valid request is accepted, pending readiness, or applied locally
  *
  * Example:
  * ["NIGHT", "LINE"] call WAIT_fnc_AIRebalanceInit;
  * Result: eligible existing and newly local AI use WMP Line's low-light skill values.
  *
- * Current callers: AITweak startup wrapper, AI ZEN runtime control and JIP runtime replay.
+ * Current callers: AITweak startup wrapper, CBA setting callbacks, server scripts and audits.
  */
 
 params [
@@ -31,14 +32,20 @@ params [
     ["_profile", "LINE", [""]]
 ];
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};
-if (!isServer && {!(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false])}) exitWith {
-    [_mode, _profile] spawn {
-        params ["_mode", "_profile"];
+if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWith {
+    if (missionNamespace getVariable ["WAIT_AI_RebalanceInitPending", false]) exitWith {true};
+    missionNamespace setVariable ["WAIT_AI_RebalanceInitPending", true];
+    [] spawn {
         waitUntil {
             missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]
+            || {!(missionNamespace getVariable ["WAIT_AI_RebalanceInitPending", false])}
         };
-        if (missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) then {
-            [_mode, _profile] call WAIT_fnc_AIRebalanceInit;
+        private _requested = missionNamespace getVariable ["WAIT_AI_RebalanceInitPending", false];
+        missionNamespace setVariable ["WAIT_AI_RebalanceInitPending", false];
+        if (_requested && {missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]}
+            && {missionNamespace getVariable ["WAIT_AIRebalance_Enable", false]}) then {
+            [missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"],
+                missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"]] call WAIT_fnc_AIRebalanceInit;
         };
     };
     true
@@ -96,15 +103,19 @@ if !(_profile in (keys _profiles)) exitWith {
     false
 };
 
-missionNamespace setVariable ["WAIT_AIRebalance_Mode", _mode, isServer];
-missionNamespace setVariable ["WAIT_AIRebalance_Profile", _profile, isServer];
-missionNamespace setVariable ["WAIT_AI_RebalanceActive", true, isServer];
-if (isServer) then {
-    missionNamespace setVariable ["WAIT_AIRebalance_Enable", true, true];
-    if (remoteExecutedOwner == 0) then {
-        [_mode, _profile] remoteExecCall ["WAIT_fnc_AIRebalanceInit", -2, "WAIT_AIRebalance_RuntimeInit"];
-    };
+// Explicit server calls change CBA; callbacks apply only the effective owner-local state.
+private _configurationChange = !(missionNamespace getVariable ["WAIT_AIRebalance_Enable", true])
+    || {_mode != (missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"])}
+    || {_profile != (missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"])};
+if (_configurationChange) exitWith {
+    if (!isServer) exitWith {false};
+    ([createHashMapFromArray [
+        ["WAIT_AIRebalance_Mode", _mode],
+        ["WAIT_AIRebalance_Profile", _profile],
+        ["WAIT_AIRebalance_Enable", true]
+    ]] call WAIT_fnc_CortexTuning) > 0
 };
+missionNamespace setVariable ["WAIT_AI_RebalanceActive", true];
 
 if !(missionNamespace getVariable ["WAIT_AI_HandlerInstalled", false]) then {
     missionNamespace setVariable ["WAIT_AI_HandlerInstalled", true];

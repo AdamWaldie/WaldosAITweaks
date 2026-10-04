@@ -98,6 +98,32 @@ Live controls follow their owner-local update or worker callback. Next-operation
 | `WAIT_AIPass_Artillery_OpeningSafeDistance` | Opening safety distance (m) | SLIDER | 200 | [100, 500, 0] | NEXT_OPERATION | Minimum commanded opening aim distance from the reported target and living players. Player positions are rejection-only. |
 | `WAIT_AIPass_Artillery_OpeningBuffer` | Opening extra buffer (m) | SLIDER | 100 | [50, 300, 0] | NEXT_OPERATION | Additional room for ballistic spread and player movement. Live shells are not a guarantee of harmless impacts. |
 | `WAIT_AIPass_Artillery_WarningInterval` | Ranging warning interval (s) | SLIDER | 20 | [10, 60, 0] | NEXT_OPERATION | Minimum pause after estimated impact before the next burst. |
+| `WAIT_AIPass_Regroup_MaxRemnantSize` | Remnant size | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum surviving members eligible for remnant recovery. |
+| `WAIT_AIPass_Regroup_MinimumPeakSize` | Minimum previous squad size | SLIDER | 3 | [2, 16, 0] | NEXT_OPERATION | Protects deliberately small teams from automatic merging. |
+| `WAIT_AIPass_Regroup_SearchRadius` | Recovery host search (m) | SLIDER | 400 | [50, 1000, 0] | NEXT_OPERATION | Search radius for a compatible friendly host squad. |
+| `WAIT_AIPass_Regroup_MaxGroupSize` | Recovery host size limit | SLIDER | 12 | [4, 24, 0] | NEXT_OPERATION | Maximum host membership after a physical survivor merge. |
+| `WAIT_AIPass_Regroup_JoinDistance` | Recovery join distance (m) | SLIDER | 30 | [5, 60, 0] | NEXT_OPERATION | Survivors must reach the host before joining. |
+| `WAIT_AIPass_Regroup_StuckSeconds` | Recovery no-progress limit (s) | SLIDER | 20 | [5, 60, 0] | NEXT_OPERATION | Retry an isolated survivor after this interval without progress; never remotely merge it. |
+| `WAIT_AIPass_Regroup_TimeoutSeconds` | Recovery time limit (s) | SLIDER | 120 | [30, 300, 0] | NEXT_OPERATION | Maximum recovery attempt duration before explicit abandonment. |
+| `WAIT_AIPass_Regroup_SettleSeconds` | Casualty assessment delay (s) | SLIDER | 5 | [0, 15, 1] | NEXT_OPERATION | Brief delay to assess simultaneous casualties before survivor recovery. |
+| `WAIT_AIPass_Flank_MinGroupSize` | Minimum flanking squad size | SLIDER | 6 | [2, 16, 0] | NEXT_OPERATION | Capable soldiers on foot required to split movement and support elements. |
+| `WAIT_AIPass_Flank_MinRange` | Minimum flank range (m) | SLIDER | 60 | [20, 200, 0] | NEXT_OPERATION | Nearer contacts are engaged without opening a flank route. |
+| `WAIT_AIPass_Flank_BoundDistance` | Flank bound distance (m) | SLIDER | 55 | [15, 100, 0] | NEXT_OPERATION | Intended distance of a covered bound; actual terrain may shorten it. |
+| `WAIT_AIPass_Flank_BoundPause` | Flank overwatch interval (s) | SLIDER | 2 | [0, 10, 1] | NEXT_OPERATION | Overwatch interval between bounds; does not require grenade completion. |
+| `WAIT_AIPass_Flank_BoundTimeout` | Bound no-progress limit (s) | SLIDER | 25 | [5, 60, 0] | NEXT_OPERATION | No-progress limit for a bound; reaching the limit never counts as arrival. |
+| `WAIT_AIPass_Flank_Cooldown` | Flank retry cooldown (s) | SLIDER | 90 | [10, 300, 0] | NEXT_OPERATION | Minimum interval before the same squad starts another flank. |
+| `WAIT_AIPass_FireControl_MaxSuppressors` | Simultaneous suppressors | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum soldiers assigned suppression simultaneously. |
+| `WAIT_ImprovedHelicopterLanding_TriggerDistance` | Landing acquisition range (m) | SLIDER | 500 | [100, 1500, 0] | NEXT_OPERATION | Landing assistance may acquire an eligible approach within this range. |
+| `WAIT_ImprovedHelicopterLanding_TransitAltitude` | Landing approach altitude (m) | SLIDER | 30 | [15, 150, 0] | NEXT_OPERATION | Clear-terrain approach height; terrain and canopy safety still apply. |
+| `WAIT_ImprovedHelicopterLanding_GlideSlopeRatio` | Landing glide ratio | SLIDER | 4 | [2, 10, 1] | NEXT_OPERATION | Horizontal approach distance per metre of descent. |
+| `WAIT_ImprovedHelicopterLanding_MaximumClimbRate` | Landing climb limit (m/s) | SLIDER | 8 | [2, 15, 1] | NEXT_OPERATION | Maximum commanded climb during assisted landing. |
+| `WAIT_ImprovedHelicopterLanding_MaximumDescentRate` | Landing descent limit (m/s) | SLIDER | 10 | [2, 15, 1] | NEXT_OPERATION | Maximum commanded descent during assisted landing. |
+| `WAIT_ImprovedHelicopterLanding_MaximumGoArounds` | Landing retry limit | SLIDER | 1 | [0, 3, 0] | NEXT_OPERATION | Maximum automatic go-arounds for one landing order. |
+| `WAIT_ImprovedHelicopterLanding_TouchdownRadius` | Touchdown tolerance (m) | SLIDER | 5 | [2, 15, 1] | NEXT_OPERATION | Horizontal acceptance radius for touchdown. |
+| `WAIT_ImprovedHelicopterLanding_TouchdownHoldSeconds` | Touchdown hold (s) | SLIDER | 20 | [0, 60, 0] | NEXT_OPERATION | Hold after touchdown before releasing flight control. |
+| `WAIT_HelicopterDeceleration_MinimumSpeed` | Braking detection speed (km/h) | SLIDER | 80 | [40, 200, 0] | NEXT_OPERATION | Ignore climb corrections below this airspeed. |
+| `WAIT_HelicopterDeceleration_TerrainClearance` | Braking terrain clearance (m) | SLIDER | 25 | [15, 100, 0] | NEXT_OPERATION | Required clearance over sampled terrain ahead. |
+| `WAIT_HelicopterDeceleration_MaximumCorrectionSeconds` | Braking correction duration (s) | SLIDER | 4 | [1, 8, 1] | NEXT_OPERATION | Finite correction cap before native control resumes. |
 | `WAIT_AIPass_CounterBattery_Rounds` | Counter-battery: rounds per burst | SLIDER | 4 | [1, 10, 0] | NEXT_OPERATION | Rounds in each counter-battery burst; ranging changes between bursts. |
 | `WAIT_AIPass_CounterBattery_Delay` | Counter-battery: delay (s) | SLIDER | 60 | [1, 120, 0] | NEXT_OPERATION | Acquisition delay without radar. Radar can shorten it. |
 | `WAIT_AIPass_CounterBattery_Interval` | Counter-battery: interval (s) | SLIDER | 60 | [10, 600, 0] | NEXT_OPERATION | Cooldown after the finite response ends; a new firing event is needed. |

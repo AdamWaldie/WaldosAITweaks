@@ -19,29 +19,29 @@
  * optional handlers when their switches have been turned on since the last call. Player clients return immediately and pay nothing. Each
  * behaviour has its own WAIT_AIPass_<Behaviour>_Enable switch in \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf, and
  * WAIT_fnc_CortexIsEligible keeps player groups and other WMP features' units out.
- * The required infantry foundation supplies danger and building tasks. Optional weapon components
- * remain active; movement ownership is reserved only for finite WAIT operations.
- * Locality and authority: the server publishes WAIT_AIPass_Enable and replays this call to
- * headless clients through the JIP key WAIT_AIPass_RuntimeInit. Remote calls from anything other
- * than the server are refused. A headless client waits for the feature-runtime snapshot first.
+ * Native danger remains active. Movement ownership is reserved only for finite WAIT operations.
+ * Locality and authority: CBA supplies the effective enable value to every joining owner. A direct
+ * server call while disabled requests enable through the CBA server layer; callbacks install local
+ * work. Remote calls from anything other than the server are refused. A headless client waits for
+ * CBA settings readiness first.
  *
  * Review contract: Repeated pre-snapshot calls share one waiter. Stop cancels it; a headless client starts only if the completed authoritative snapshot still enables the pass.
  *
  * Arguments: None.
  *
  * Return Value:
- * Boolean - true when the pass is running on this machine
+ * Boolean - true when startup is accepted, pending settings readiness, or already running
  *
  * Example:
  * [] call WAIT_fnc_CortexInit;
  * Result: on the server, the pass starts and every connected or later headless client starts it too.
  *
- * Current callers: addon postInit, CBA setting callbacks, CBA setting callbacks and JIP replay.
+ * Current callers: addon postInit, CBA setting callbacks, server scripts and audits.
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};
 if (hasInterface && {!isServer}) exitWith {false};
-if (!isServer && {!(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false])}) exitWith {
+if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWith {
     if (missionNamespace getVariable ["WAIT_AIPass_InitPending", false]) exitWith {true};
     missionNamespace setVariable ["WAIT_AIPass_InitPending", true];
     [] spawn {
@@ -57,14 +57,12 @@ if (!isServer && {!(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady",
     true
 };
 
-if (!isServer && {!(missionNamespace getVariable ["WAIT_AIPass_Enable", false])}) exitWith {false};
-missionNamespace setVariable ["WAIT_AIPass_Active", true];
-if (isServer) then {
-    missionNamespace setVariable ["WAIT_AIPass_Enable", true, true];
-    if (remoteExecutedOwner == 0) then {
-        [] remoteExecCall ["WAIT_fnc_CortexInit", -2, "WAIT_AIPass_RuntimeInit"];
-    };
+// A direct server start is a configuration request. CBA callbacks start each owner locally.
+if !(missionNamespace getVariable ["WAIT_AIPass_Enable", false]) exitWith {
+    if (!isServer) exitWith {false};
+    ([createHashMapFromArray [["WAIT_AIPass_Enable", true]]] call WAIT_fnc_CortexTuning) > 0
 };
+missionNamespace setVariable ["WAIT_AIPass_Active", true];
 
 if (isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}) then {
     missionNamespace setVariable ["WAIT_AIPass_SchedulerHandle", [{[] call WAIT_fnc_CortexSchedulerTick}, 0] call CBA_fnc_addPerFrameHandler];

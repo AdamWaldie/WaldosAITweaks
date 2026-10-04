@@ -8,9 +8,9 @@
  * is handed back. Survivors still walking to a host get doFollow. Defence, garrison and clear
  * orders are released on their owner so restarting cannot revive an order superseded while off.
  * Completed merges and surrenders are not undone.
- * Locality and authority: the server clears WAIT_AIPass_Enable and the JIP key
- * WAIT_AIPass_RuntimeInit, then asks every other machine to stop. Remote calls from anything other
- * than the server are refused. Each machine handles only the groups it owns.
+ * Locality and authority: a direct server call requests disable through the CBA server layer.
+ * CBA callbacks clean up on each owner; joining owners receive the disabled value from CBA.
+ * Remote calls from anything other than the server are refused. Each machine handles its local groups.
  *
  * Repeat/JIP: Repeat calls clear pending startup and abandoned jobs. Owner-local release clears
  * public defence/garrison assignments and restores only Cortex-owned movement restrictions.
@@ -38,6 +38,9 @@
  */
 
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
+if (isServer && {missionNamespace getVariable ["WAIT_AIPass_Enable", false]}) exitWith {
+    [createHashMapFromArray [["WAIT_AIPass_Enable", false]]] call WAIT_fnc_CortexTuning;
+};
 if (isServer) then {
     {
         private _job = _y;
@@ -50,7 +53,6 @@ if (isServer) then {
     } forEach (missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap]);
     missionNamespace setVariable ["WAIT_AIPass_SupportRequests",createHashMap];
     missionNamespace setVariable ["WAIT_AIPass_CounterGeneration", (missionNamespace getVariable ["WAIT_AIPass_CounterGeneration", 0]) + 1];
-    missionNamespace setVariable ["WAIT_AIPass_Enable", false, true];
     {
         private _battery = _y get "battery";
         _battery setVariable ["WAIT_AIPass_FireToken", nil, true];
@@ -81,10 +83,6 @@ if (isServer) then {
             _x setVariable ["WAIT_Cortex_AirAttackBlockedUntil",nil];
         };
     } forEach vehicles;
-    [] remoteExecCall ["", "WAIT_AIPass_RuntimeInit"];
-    if (remoteExecutedOwner == 0) then {
-        [] remoteExecCall ["WAIT_fnc_CortexStop", -2];
-    };
 };
 if (hasInterface && {!isServer}) exitWith {};
 missionNamespace setVariable ["WAIT_AIPass_Active", false];

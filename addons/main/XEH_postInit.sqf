@@ -6,10 +6,11 @@
  * Repeat/JIP: Guarded per machine. JIP and locality-aware systems perform their own repeat-safe adoption.
  * Arguments: None.
  * Return Value: BOOL - true once this machine has started the enabled systems.
- * Current callers: Extended_PostInit_EventHandlers in config.cpp.
+ * Current callers: Extended_PostInit_EventHandlers in config.cpp and the settings-initialized callback.
  * Example: call compile preprocessFileLineNumbers "\z\waldo_ai_tweaks\addons\main\XEH_postInit.sqf";
  */
 
+if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWith {false};
 if (missionNamespace getVariable ["WAIT_AITweaks_PostInitComplete", false]) exitWith {true};
 missionNamespace setVariable ["WAIT_AITweaks_PostInitComplete", true];
 [] call WAIT_fnc_AITweaksDetectCompatibility;
@@ -26,7 +27,7 @@ if (missionNamespace getVariable ["WAIT_ImprovedHelicopterLanding_Enable", true]
 if (missionNamespace getVariable ["WAIT_HelicopterDeceleration_Enable", false]) then {
     [] call WAIT_fnc_HelicopterDecelerationInit;
 };
-if (isServer && {missionNamespace getVariable ["WAIT_AIPass_Enable", true]}) then {
+if ((isServer || {!hasInterface}) && {missionNamespace getVariable ["WAIT_AIPass_Enable", true]}) then {
     [] call WAIT_fnc_CortexInit;
 };
 if (hasInterface) then {

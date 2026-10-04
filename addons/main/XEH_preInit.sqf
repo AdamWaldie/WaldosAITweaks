@@ -29,8 +29,13 @@ if !(_config isEqualType createHashMap) exitWith {
 [] call WAIT_fnc_AITweaksRegisterSettings;
 [] call WAIT_fnc_AITweaksDetectCompatibility;
 
-// Owner-local startup is allowed only after this machine has loaded every guarded default.
-missionNamespace setVariable ["WAIT_AITweaks_SettingsReady", true];
+// Guarded defaults are not yet the effective server settings. CBA refreshes every setting
+// after postInit; only that completion event may release owner-local startup.
+missionNamespace setVariable ["WAIT_AITweaks_SettingsReady", false];
+["CBA_settingsInitialized", {
+    missionNamespace setVariable ["WAIT_AITweaks_SettingsReady", true];
+    call compile preprocessFileLineNumbers "\z\waldo_ai_tweaks\addons\main\XEH_postInit.sqf";
+}] call CBA_fnc_addEventHandler;
 
 ["WAIT_AITweaks_LandingReconfigure", {
     [] call WAIT_fnc_ImprovedHelicopterLandingInit;

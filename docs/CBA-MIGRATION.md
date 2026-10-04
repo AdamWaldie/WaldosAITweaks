@@ -6,7 +6,7 @@
 2. CBA XEH owns pre-init and post-init. Missions no longer copy folders or call a bootstrap script.
 3. Functions use the breaking `WAIT_fnc_*` API through addon `CfgFunctions` paths.
 4. Global mission options are registered with CBA Settings, which owns persistence and JIP replay
-   with `WAIT_*` variable names as the public scripting API.
+   with `WAIT_*` variables exposing effective values; scripts change configuration through the validated tuning API.
 5. ZEN is a hard dependency and provides the live curator control surface.
 6. Product-specific Dynamic AA, Dynamic AO, transport and paradrop coupling was removed. Other
    systems use `Waldo_AI_ExternalControl` or `Waldo_AI_PrecisionExclude` instead.
@@ -18,8 +18,8 @@
 
 1. Extend the finite-FSM pattern only where it reduces polling or makes interruption and cleanup
    clearer. Keep discovery, bounded calculations and event reactions in budgeted SQF.
-2. Split the single addon into semantic PBOs only when ownership or optional dependencies justify it;
-   file count alone is not a reason to create more scheduler or packaging overhead.
+2. Add optional engine-policy PBOs only for justified irreversible policies; the core semantic split
+   is already packaged. Each policy needs exclusions, compatibility assessment and acceptance.
 3. Replace cross-owner commands with named CBA events where that improves restrictive mission
    `CfgRemoteExec` compatibility. Preserve server validation and owner locality.
 4. Exercise the signed candidate and exact-package release promotion workflows.

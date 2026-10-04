@@ -203,6 +203,32 @@ class StandaloneApiMigrationContracts(unittest.TestCase):
         self.assertNotIn('missionNamespace setVariable [_x select 0, _x select 1, true]', tuning)
         self.assertLess(tuning.index('if (!isServer)'), tuning.index('call CBA_settings_fnc_set'))
 
+    def test_start_stop_requests_have_only_cba_configuration_authority(self):
+        for name, setting in [('cortexInit', 'WAIT_AIPass_Enable'), ('cortexStop', 'WAIT_AIPass_Enable'),
+                              ('aiRebalanceInit', 'WAIT_AIRebalance_Enable'), ('aiRebalanceStop', 'WAIT_AIRebalance_Enable')]:
+            body = src(name)
+            self.assertIn('call WAIT_fnc_CortexTuning', body)
+            self.assertNotRegex(body, r'setVariable \["'+setting+r'",[^\n]*true\]')
+            self.assertNotIn('RuntimeInit', body)
+        init = src('aiRebalanceInit')
+        stop = src('aiRebalanceStop')
+        self.assertIn('WAIT_AI_RebalanceInitPending', init)
+        self.assertIn('WAIT_AI_RebalanceInitPending", false', stop)
+        self.assertIn('missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"]', init)
+        post = (ROOT/'addons/main/XEH_postInit.sqf').read_text()
+        self.assertIn('(isServer || {!hasInterface})', post)
+
+    def test_effective_settings_completion_precedes_owner_startup(self):
+        pre = (ROOT/'addons/main/XEH_preInit.sqf').read_text()
+        post = (ROOT/'addons/main/XEH_postInit.sqf').read_text()
+        self.assertIn('["CBA_settingsInitialized", {', pre)
+        event = pre.index('["CBA_settingsInitialized", {')
+        self.assertGreater(pre.index('WAIT_AITweaks_SettingsReady", true'), event)
+        self.assertIn('XEH_postInit.sqf', pre[event:])
+        self.assertLess(post.index('WAIT_AITweaks_SettingsReady'), post.index('WAIT_AITweaks_PostInitComplete'))
+        for name in ['cortexInit', 'aiRebalanceInit']:
+            self.assertIn('if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWith', src(name))
+
     def test_function_registration_has_no_old_tag_alias(self):
         config = (ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         self.assertIn('class WAIT {', config)

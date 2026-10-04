@@ -74,3 +74,7 @@ Next batched acceptance includes disable/re-enable of optional handlers, JIP and
 Zeus replacement during manoeuvres, active external ownership, and the feature behaviour matrix.
 Measured performance compares the same 50 mixed groups against baseline AI: at most 5 percent added
 median frame time and 10 percent added p95 frame time. Static checks cannot establish that budget.
+
+Owner-local startup waits for CBA's settings-initialized event after post-init refresh.
+Guarded pre-init defaults do not establish effective settings readiness. Direct server start/stop
+requests use the CBA server layer; callbacks perform local setup and cleanup.
