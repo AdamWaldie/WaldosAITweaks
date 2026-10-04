@@ -2,7 +2,7 @@
 
 > **Use this page when:** you need to choose and configure WMP's day or night AI behavior adjustments.
 
-_Associated Files: `MissionScripts/AiScripting/AISkillAdjustmentSystem.sqf`; `aiRebalanceInit.sqf`; `aiApplyProfile.sqf`; `aiRebalanceStop.sqf`_
+_Associated Files: `addons/main/functions/AISkillAdjustmentSystem.sqf`; `aiRebalanceInit.sqf`; `aiApplyProfile.sqf`; `aiRebalanceStop.sqf`_
 
 ## Overview
 
@@ -10,7 +10,7 @@ The AI rebalance applies named, bounded skill profiles to editor, scripted and Z
 
 ## Set up AI tuning
 
-Edit `MissionConfig/aiConfig.sqf`. The shipped pack enables AI tuning with the `LINE`
+Edit `addons/main/settings/aiConfig.sqf`. The shipped pack enables AI tuning with the `LINE`
 profile in `AUTO` mode. WMP waits for the server's feature settings and starts the
 wrapper automatically on each machine that can own AI. Do not add a second call to
 multiplayer `init.sqf` for normal setup.

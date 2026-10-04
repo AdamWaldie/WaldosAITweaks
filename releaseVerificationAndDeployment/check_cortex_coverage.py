@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import re
+from mod_pipeline import ALIASES
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_CASE_FIELDS = {
@@ -54,10 +55,10 @@ def audit(root=ROOT):
     tools = root / "releaseVerificationAndDeployment"
     qa = tools / "cortexQA"
     data = json.loads((qa / "coverage.json").read_text(encoding="utf-8"))
-    launcher = (tools / "launch_pr_review_audit.ps1").read_text(encoding="utf-8")
+    launcher = (tools / "mod_pipeline.py").read_text(encoding="utf-8")
     server = (qa / "runServer.sqf").read_text(encoding="utf-8")
     settings = set(re.findall(r'^\s*\["(Waldo_[^"]+)"\s*,',
-        (root / "MissionConfig/aiConfig.sqf").read_text(encoding="utf-8"), re.M))
+        (root / "addons/main/settings/aiConfig.sqf").read_text(encoding="utf-8"), re.M))
     assigned = [key for case in data["cases"] for key in case["settings"]]
     errors = []
     if settings != set(assigned):
@@ -69,7 +70,7 @@ def audit(root=ROOT):
         errors.append(f"Runtime control coverage mismatch: missing={sorted(PUBLIC_RUNTIME_CONTROLS-set(controls))}; obsolete={sorted(set(controls)-PUBLIC_RUNTIME_CONTROLS)}")
     if len(controls) != len(set(controls)):
         errors.append("Runtime controls assigned to multiple feature cases")
-    production_root = root / "MissionScripts/AiScripting"
+    production_root = root / "addons/main/functions"
     production = {
         path.relative_to(root).as_posix()
         for path in production_root.rglob("*.sqf")
@@ -111,11 +112,11 @@ def audit(root=ROOT):
                 errors.append(f"{case['id']}: missing or invalid source {source}")
                 continue
             # A source file by itself is not runnable: check staging and dispatch.
-            pattern = r'cortexQA/' + re.escape(source) + r'"\) -Destination \(Join-Path \$missionRoot "([^"]+)"'
-            match = re.search(pattern, launcher)
-            if not match:
+            suffix = Path(source).stem[3:]
+            staged_name = "cortexQA" + ALIASES.get(suffix, suffix) + ".sqf"
+            if 'glob(\'run*.sqf\')' not in launcher:
                 errors.append(f"{case['id']}: {source} is not staged by the launcher")
-            elif source not in ["runServer.sqf", "runClient.sqf"] and match[1] not in server:
+            elif source not in ["runServer.sqf", "runClient.sqf"] and staged_name not in server:
                 errors.append(f"{case['id']}: staged {source} has no server dispatch")
     pending = [case["id"] for case in data["cases"] if case.get("status") != "accepted"]
     return data, errors, pending

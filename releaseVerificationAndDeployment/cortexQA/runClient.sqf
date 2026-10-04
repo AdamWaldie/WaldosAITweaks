@@ -57,7 +57,7 @@ if (!isNull _display) then {
     private _until = diag_tickTime + 15;
     waitUntil {uiSleep 0.2; abs ((missionNamespace getVariable ["Waldo_AIPass_Aggression",1])-_testValue) < 0.01 || {diag_tickTime >= _until}};
     ["UI-05-authoritative-apply",_entry isNotEqualTo [] && {isNull _display} && {abs ((missionNamespace getVariable ["Waldo_AIPass_Aggression",1])-_testValue) < 0.01}] call _check;
-    ["AI_TUNING",[["Waldo_AIPass_Aggression",_initial]]] call Waldo_fnc_FeatureRuntimeApply;
+    ["Waldo_AITweaks_SettingsRequest",[player,[["Waldo_AIPass_Aggression",_initial]]]] call CBA_fnc_serverEvent;
     diag_log "WMP CORTEX QA CLIENT: restore requested; checking reservation cleanup";
     uiSleep 2;
     private _reservationIndex = (uiNamespace getVariable ["Waldo_UI_ReservationRegistry",[]]) findIf {(_x select 0) == "CORTEX_CONTROL"};

@@ -5,3 +5,12 @@ __pycache__/
 *.log
 *.rpt
 runtime-*/
+
+.test-deps/
+.test-tmp/
+.tools/
+.hemttout/
+.qa/
+releases/
+.hemttprivatekey
+*.biprivatekey
