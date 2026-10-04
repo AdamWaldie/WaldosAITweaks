@@ -39,7 +39,7 @@ private _cleanup={
 };
 private _base=createHashMapFromArray [
     ["WAIT_AIPass_Enable",true],["WAIT_AIRebalance_Enable",false],
-    ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],
     ["WAIT_AIPass_Advance_Enable",false],["WAIT_AIPass_Reinforce_Enable",false],
     ["WAIT_AIPass_ContactReports_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],

@@ -18,6 +18,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('UI-registered-',client)
         self.assertIn('arrayIntersect _keys',client)
 
+    def test_current_audits_use_valid_ownership_mode(self):
+        import re
+        for audit in (ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.sqf'):
+            values=re.findall(r'"WAIT_AIPass_InfantryOwnership"\s*,\s*"([^"]+)"',audit.read_text())
+            self.assertTrue(all(value in ['SPLIT','WAIT'] for value in values),audit.name)
+
     def test_configuration_has_no_duplicate_zen_panel_or_variable_bridge(self):
         modules=(ROOT/'addons/main/bootstrap/zenRegister.sqf').read_text()
         exports=(ROOT/'addons/main/CfgFunctions.hpp').read_text()

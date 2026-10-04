@@ -10,7 +10,7 @@
  */
 params ["_check","_phase","_wait"];
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],
     ["WAIT_AIPass_FireControl_Enable",true],["WAIT_AIPass_FireControl_MaxShootersPerTarget",1],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],
     ["WAIT_AIPass_Advance_Enable",false],["WAIT_AIPass_Morale_Enable",false],

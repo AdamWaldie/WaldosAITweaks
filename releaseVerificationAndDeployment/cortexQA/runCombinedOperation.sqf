@@ -115,7 +115,7 @@ private _publish={
     ],true];
 };
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],
     ["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_ContactReports_Enable",true],
     ["WAIT_AIPass_CoordinatedAssault_Enable",true],["WAIT_AIPass_Flank_Enable",true],
     ["WAIT_AIPass_Advance_Enable",true],["WAIT_AIPass_FireControl_Enable",true],

@@ -50,7 +50,7 @@ if (_baselineTarget isNotEqualTo []) then {doStop _baseline; _baseline doMove _b
 [createHashMapFromArray [["WAIT_AIPass_Enable",false]]] call WAIT_fnc_CortexTuning;
 sleep 2;
 ["ORD-01-disabled-explanation",([_group,"DEFEND"] call WAIT_fnc_CortexOrderReason) find "disabled" >= 0] call _check;
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
 private _order = {params ["_action",["_position",[6000,6010,0]],["_building",objNull]]; [[["order",_action],["group",_group],["position",_position],["building",_building],["radius",40],["facing",90]],2] call WAIT_fnc_CortexOrderDispatch; sleep 2};
 ["DEFEND"] call _order;
@@ -359,7 +359,7 @@ private _retainServerGun={
 };
 private _spotter=_spotterGroup createUnit ["O_Soldier_F",[7100,6000,0],[],0,"NONE"];
 _spotter allowDamage false;
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"]]] call WAIT_fnc_CortexTuning;
 _gun = createVehicle ["O_Mortar_01_F",[6500,6000,0],[],0,"NONE"]; createVehicleCrew _gun;
 [_gun] call _retainServerGun;
 _gun setVariable ["WAIT_CortexQA_Shots",0];
@@ -465,7 +465,7 @@ if (_focus in ["all","features","artillerysmoke"]) then {[_check,_phase,_wait] c
 if (_focus in ["all","features","crossing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACrossing.sqf"};
 if (_focus in ["all","features","contact"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
 if (_focus == "buildings") then {
-    [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WMP"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
+    [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
     [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
     [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQABuildings.sqf";
 };

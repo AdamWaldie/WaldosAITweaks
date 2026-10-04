@@ -42,7 +42,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_units,true];
     ["WAIT_AIPass_Enable",true],
     ["WAIT_AIPass_Contact_Enable",false],
     ["WAIT_AIPass_Regroup_Enable",false],
-    ["WAIT_AIPass_InfantryOwnership","WMP"]
+    ["WAIT_AIPass_InfantryOwnership","WAIT"]
 ]] call WAIT_fnc_CortexTuning;
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
 private _fallbackDestination=[2600,2470,0];
