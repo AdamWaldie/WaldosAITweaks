@@ -1,6 +1,6 @@
 # Cortex lifecycle review
 
-Status: source review in progress; this is not whole-system live acceptance. Trigger, completion and migration contracts must be tested together. Sources below are relative to MissionScripts/AiScripting/Cortex unless stated otherwise.
+Status: source review in progress; this is not whole-system live acceptance. Trigger, completion and migration contracts must be tested together. Sources below are relative to addons/main/functions/Cortex unless stated otherwise.
 
 ## Existing group flow
 

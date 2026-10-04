@@ -1,69 +1,61 @@
 # Waldos AI Tweaks
 
-Standalone, mission-native AI behaviour for Arma 3. The package adds finite and interruptible
-infantry tactics, combined-arms coordination, convoy control, aircraft behaviour, building use,
-artillery decisions, civilian reactions and configurable AI skill without requiring Waldos Mission Pack.
+Waldos AI Tweaks is a standalone CBA mod for Arma 3. Its goal is aggressive, dynamic and tactically
+sound AI with bounded, locality-aware work that remains subordinate to Zeus and authored mission
+orders.
+
+## Current foundation
+
+The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addon:
+
+- CBA extended pre-init loads guarded defaults on every machine;
+- CBA extended post-init starts only the systems enabled for that owner;
+- the established `Waldo_fnc_*` API remains available through `CfgFunctions`;
+- ZEN is optional and registered only after its public API exists;
+- the standalone settings request uses a CBA server event and validates the requesting curator;
+- HEMTT owns packaging and version metadata.
+
+Run `hemtt build` from the repository root to create the mod package. CBA_A3 is the only hard runtime
+dependency. ZEN, ACE, COMPAT, external controller AI, external controller systems, external controller and supported external controller packages are
+detected only when present.
 
 ## Product boundary
 
-This repository contains AI behaviour only:
+This repository owns AI behaviour:
 
-- Cortex infantry contact, movement, flank, advance, assault, withdrawal, regroup and CQB logic;
-- proximity-based multi-squad and combined-arms coordination;
-- convoy spacing, contact, dismount, recovery and crew-retention behaviour;
-- aircraft attack, defence, countermeasure, landing and deceleration behaviour;
-- vehicle gunnery, dispersion, standoff and passenger decisions;
-- artillery support and counter-battery behaviour;
-- AI skill, lighting, equipment and vehicle-crew profiles;
-- compatibility leases for COMPAT, external controller AI, external controller systems and detected external controller packages;
-- AI-specific diagnostics, optional ZEN controls and the Cortex QA suite.
+- skill, lighting/equipment heuristics and dispersion;
+- infantry contact, cover, flank, advance, assault, withdrawal, regroup, surrender and CQB;
+- multi-squad and combined-arms coordination;
+- convoy, passenger, vehicle gunnery and recovery behaviour;
+- aircraft attack, defence, countermeasures, landing and deceleration;
+- artillery support and counter-battery decisions;
+- civilian, naval and airborne reactions;
+- AI diagnostics, ZEN controls and the Cortex QA suite.
 
-Dynamic AA, Dynamic AO, mission logistics, economy, transport, paradrop services, notification UI and
-the WMP diagnostics shell remain WMP features. Cortex may recognise units created by those systems,
-but this package does not own or duplicate them.
+Waldos Mission Pack retains Dynamic AA, Dynamic AO, mission logistics, transport, paradrop, economy,
+UI and its diagnostics shell. WMP may mark an object, unit or group with the public
+`Waldo_AI_ExternalControl` flag while another system owns its behaviour. Independent weapon systems
+may set `Waldo_AI_PrecisionExclude` when they intentionally own lethality. AI Tweaks contains no
+Dynamic AA or Dynamic AO implementation and does not inspect their private state.
 
-## Requirements
-
-- Arma 3
-- CBA_A3
-- ZEN is optional and only needed for `bootstrap\zenRegister.sqf`.
-- ACE and supported AI mods are optional. Compatibility is detected at runtime.
-
-## Mission installation
-
-Copy `MissionConfig`, `MissionScripts`, `bootstrap` and `functions.hpp` into the mission root. Include
-the functions from `description.ext`:
-
-```cpp
-#include "functions.hpp"
-```
-
-Start the package on every machine from `init.sqf`:
-
-```sqf
-[] execVM "bootstrap\start.sqf";
-```
-
-For optional ZEN controls, add this to `initPlayerLocal.sqf`:
-
-```sqf
-[] spawn {
-    waitUntil {!isNil "zen_custom_modules_fnc_register"};
-    [] execVM "bootstrap\zenRegister.sqf";
-};
-```
-
-Mission code may set any `Waldo_*` setting before `bootstrap\start.sqf`; guarded defaults preserve it.
-The complete settings and feature flags are documented in `MissionConfig\aiConfig.sqf`.
+WMP may keep its mission-level AI skill values for missions that do not load this addon. When
+`Waldo_AI_Tweaks_Main` is present, WMP must not start a second skill, convoy, landing, deceleration or
+Cortex controller.
 
 ## Authority and Zeus
 
-The server owns public enable state and cross-group decisions. Each unit, group or vehicle owner runs
-the physical operation. JIP and locality changes reinstall only owner-local handlers. Direct Zeus
-selection and orders always interrupt Cortex ownership; ordinary mission waypoints remain usable.
+The server owns public settings and cross-group decisions, including ordered replay for JIP clients.
+The current unit, group or vehicle owner
+executes physical behaviour. Direct Zeus selection, editing and waypoints interrupt Cortex control;
+the addon restores only state it changed. Locality changes retire stale jobs and repeat owner-local
+setup.
 
 ## Validation
 
-Static validation lives under `releaseVerificationAndDeployment`. The Cortex QA builder remains
-available for batched dedicated-server and client testing. A static pass proves syntax and contracts;
-aircraft, convoy, CQB and multiplayer locality behaviour still require the generated in-engine audit.
+Static validation lives under `releaseVerificationAndDeployment`. It checks SQF structure, the addon
+layout, product boundaries, feature coverage and implementation contracts. Aircraft, convoy, CQB,
+performance and multiplayer locality still require the generated dedicated-server/client audit in
+batched runs. Static success is not an in-engine acceptance claim.
+
+See [the current inventory](docs/CURRENT-INVENTORY.md), [the CBA migration plan](docs/CBA-MIGRATION.md)
+and [the WMP extraction boundary](docs/WMP-Extraction.md).

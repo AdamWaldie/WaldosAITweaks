@@ -57,7 +57,7 @@ def audit(root=ROOT):
     launcher = (tools / "launch_pr_review_audit.ps1").read_text(encoding="utf-8")
     server = (qa / "runServer.sqf").read_text(encoding="utf-8")
     settings = set(re.findall(r'^\s*\["(Waldo_[^"]+)"\s*,',
-        (root / "MissionConfig/aiConfig.sqf").read_text(encoding="utf-8"), re.M))
+        (root / "addons/main/settings/aiConfig.sqf").read_text(encoding="utf-8"), re.M))
     assigned = [key for case in data["cases"] for key in case["settings"]]
     errors = []
     if settings != set(assigned):
@@ -69,7 +69,7 @@ def audit(root=ROOT):
         errors.append(f"Runtime control coverage mismatch: missing={sorted(PUBLIC_RUNTIME_CONTROLS-set(controls))}; obsolete={sorted(set(controls)-PUBLIC_RUNTIME_CONTROLS)}")
     if len(controls) != len(set(controls)):
         errors.append("Runtime controls assigned to multiple feature cases")
-    production_root = root / "MissionScripts/AiScripting"
+    production_root = root / "addons/main/functions"
     production = {
         path.relative_to(root).as_posix()
         for path in production_root.rglob("*.sqf")
