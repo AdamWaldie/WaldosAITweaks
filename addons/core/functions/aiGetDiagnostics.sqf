@@ -115,6 +115,9 @@ private _civilianReactions={serverTime < (_x getVariable ["WAIT_Cortex_CivilianR
 private _passState = if (!_passEnabled) then {"DISABLED"} else {if (_passActive && {!isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}}) then {"ACTIVE"} else {"ERROR"}};
 private _passHint = if (_passState == "ERROR") then {"WAIT_AIPass_Enable is true but the server scheduler is not running; check RPT for [WAIT] and that CBA is loaded."} else {""};
 private _regroupEnabled = missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true];
+private _medicalEnabled = missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Enable", true];
+private _medicalBackend = (["medicalBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _medicalAidGroups = _groups select {(_x getVariable ["WAIT_Cortex_MedicalAid",[]]) isNotEqualTo []};
 private _dangerBackend = (["dangerBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _buildingBackend = (["buildingBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _turretPolicy = (["turretPolicy"] call WAIT_fnc_CompatibilityAvailable);
@@ -185,6 +188,7 @@ private _navalGroups=_groups select {(_x getVariable ["WAIT_Cortex_NavalStatus",
 private _checks = [
     ["ai", "cortex", _passState, format ["enabled=%1 serverActive=%2 serverJobs=%3 paused=%4 includedSides=%5. %6", _passEnabled, _passActive, _passJobs, [] call WAIT_fnc_CortexIsPaused, missionNamespace getVariable ["WAIT_AIPass_IncludedSides", []], _passHint]],
     ["ai", "cortex-regroup", if (_passEnabled && {_regroupEnabled}) then {"LOADED"} else {"DISABLED"}, format ["enabled=%1 serverRegroupsCompleted=%2 serverUnitsJoined=%3", _regroupEnabled, missionNamespace getVariable ["WAIT_AIPass_RegroupsCompleted", 0], missionNamespace getVariable ["WAIT_AIPass_RegroupJoined", 0]]],
+    ["ai", "cortex-medical", if (!_passEnabled || {!_medicalEnabled}) then {"DISABLED"} else {if (_medicalBackend) then {"EXTERNAL"} else {if (_medicalAidGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}}, format ["enabled=%1 externalMedicalOwner=%2 activeAidGroups=%3 completed=%4. WAIT only issues one bounded native treatment command during CALM or SECURITY; combat, Zeus, a direct order or an external owner cancels it without changing health.",_medicalEnabled,_medicalBackend,count _medicalAidGroups,missionNamespace getVariable ["WAIT_AIPass_MedicalAssists",0]]],
     ["ai", "cortex-groups", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["serverManaged=%1 inContact=%2 retreating=%3 garrisons=%4 flanksCompleted=%5 retreats=%6 surrenders=%7 reinforcementsSent=%8 grenadeReactions=%9",
         {local _x && {_x getVariable ["WAIT_AIPass_Managed", false]}} count _groups,
         {local _x && {((_x getVariable ["WAIT_AIPass_State", createHashMap]) getOrDefault ["phase", ""]) == "CONTACT"}} count _groups,

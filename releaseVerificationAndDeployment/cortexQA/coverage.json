@@ -340,6 +340,30 @@
       ]
     },
     {
+      "id": "MEDICAL",
+      "title": "Finite squad medical assistance",
+      "setup": "Use a local on-foot medic and one injured squad-mate in CALM and SECURITY. Repeat with active contact, a Zeus replacement order, a specialist medical owner, no medic, a vehicle passenger, and an unreachable casualty.",
+      "expected": "Only an eligible medic physically approaches and uses native treatment during CALM or SECURITY. WAIT never changes health, teleports, merges groups or holds an assault. Contact, a newer Zeus order, specialist medical ownership, loss of an actor or no physical progress cancel the matching finite operation without replacing an external command.",
+      "settings": [
+        "WAIT_AIPass_MedicalAssist_Enable",
+        "WAIT_AIPass_MedicalAssist_Range",
+        "WAIT_AIPass_MedicalAssist_DamageThreshold",
+        "WAIT_AIPass_MedicalAssist_Timeout"
+      ],
+      "status": "implemented_partial",
+      "live_evidence": [],
+      "automation": "The production path is exercised through the shared owner-local group job and records a generation-owned MEDICAL_AID operation. Static checks cover capability gating, finite lifecycle, owner handover, cancellation and prohibited shortcuts. Physical treatment, specialist medical ownership, Zeus interruption, HC migration and performance acceptance are queued for the next packaged batch.",
+      "executable_sources": [],
+      "production_sources": [
+        "addons/infantry/functions/cortexMedicalStep.sqf",
+        "addons/infantry/functions/cortexGroupTick.sqf",
+        "addons/core/functions/operationStart.sqf",
+        "addons/core/functions/operationStep.sqf",
+        "addons/core/functions/operationCancel.sqf",
+        "addons/core/functions/operationRelease.sqf"
+      ]
+    },
+    {
       "id": "CONTACT",
       "title": "Contact detection",
       "setup": "Expose real enemies, then occlude them; compare live engine knowledge and Cortex phase.",

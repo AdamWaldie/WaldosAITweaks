@@ -111,8 +111,12 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Regroup_Enable` | Survivor regroup | CHECKBOX | true | [] | NEXT_OPERATION | Survivors of a destroyed squad walk to and join a nearby friendly squad. |
+| `WAIT_AIPass_MedicalAssist_Enable` | Medical assistance | CHECKBOX | true | [] | NEXT_OPERATION | During CALM or SECURITY, one local medic physically treats a hurt squad-mate using native AI treatment. It yields to Zeus, direct orders and an active medical controller. |
 | `WAIT_AIPass_PostContact_RegroupSeconds` | Regroup limit (s) | SLIDER | 30 | [10, 120, 0] | NEXT_OPERATION | Maximum time for surviving squad members to close up before Cortex releases control. |
 | `WAIT_AIPass_Regroup_MaxRemnantSize` | Remnant size | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum surviving members eligible for remnant recovery. |
+| `WAIT_AIPass_MedicalAssist_Range` | Medical selection range (m) | SLIDER | 80 | [10, 200, 0] | NEXT_OPERATION | Maximum local medic-to-casualty distance considered for one finite assistance attempt. |
+| `WAIT_AIPass_MedicalAssist_DamageThreshold` | Medical damage threshold | SLIDER | 0.35 | [0.1, 0.9, 2] | NEXT_OPERATION | Minimum engine damage before WAIT considers vanilla medical assistance. |
+| `WAIT_AIPass_MedicalAssist_Timeout` | Medical attempt limit (s) | SLIDER | 45 | [10, 120, 0] | NEXT_OPERATION | Maximum duration of one native treatment attempt before WAIT releases it without altering health. |
 | `WAIT_AIPass_Regroup_MinimumPeakSize` | Minimum previous squad size | SLIDER | 3 | [2, 16, 0] | NEXT_OPERATION | Protects deliberately small teams from automatic merging. |
 | `WAIT_AIPass_Regroup_SearchRadius` | Recovery host search (m) | SLIDER | 400 | [50, 1000, 0] | NEXT_OPERATION | Search radius for a compatible friendly host squad. |
 | `WAIT_AIPass_Regroup_MaxGroupSize` | Recovery host size limit | SLIDER | 12 | [4, 24, 0] | NEXT_OPERATION | Maximum host membership after a physical survivor merge. |

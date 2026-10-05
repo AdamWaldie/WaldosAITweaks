@@ -54,6 +54,7 @@ private _spec = [
     ["WAIT_AI_AirCrewDispersion", "Aircraft weapon dispersion", "Owner-local aim coefficient for aircraft operators. Precision-excluded aircraft remain exempt; external turret dispersion prevents double stacking.", "SLIDER", [1,7,2], 4.25, "PRECISION", "LIVE"],
     ["WAIT_AIPass_Enable", "Enable Cortex automatic tactics", "Master control for Cortex actions and reactions. The purpose switches below choose which tactics Cortex may use; convoy control remains independent.", "CHECKBOX", [], true, "GENERAL", "LIVE"],
     ["WAIT_AIPass_Regroup_Enable", "Survivor regroup", "Survivors of a destroyed squad walk to and join a nearby friendly squad.", "CHECKBOX", [], true, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_MedicalAssist_Enable", "Medical assistance", "During CALM or SECURITY, one local medic physically treats a hurt squad-mate using native AI treatment. It yields to Zeus, direct orders and an active medical controller.", "CHECKBOX", [], true, "RECOVERY", "NEXT_OPERATION"],
     ["WAIT_AIPass_Contact_Enable", "Contact handling", "Squads switch to combat on contact and return to their previous behaviour and waypoints afterwards. Needed by every combat option below.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
     ["WAIT_AIPass_PostContact_Enable", "Post-contact search", "After contact is lost: hold, send two soldiers to check the last known position, regroup.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
     ["WAIT_AIPass_PostContact_LostSeconds", "Contact lost delay (s)", "Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover.", "SLIDER", [3,120,0], 30, "CONTACT", "NEXT_OPERATION"],
@@ -140,6 +141,9 @@ private _spec = [
     ["WAIT_AIPass_Artillery_WarningInterval", "Ranging warning interval (s)", "Minimum pause after estimated impact before the next burst.", "SLIDER", [10, 60, 0], 20, "ARTILLERY", "NEXT_OPERATION"],
     // Existing production controls, shared with CBA and the validated script API.
     ["WAIT_AIPass_Regroup_MaxRemnantSize", "Remnant size", "Maximum surviving members eligible for remnant recovery.", "SLIDER", [1, 8, 0], 2, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_MedicalAssist_Range", "Medical selection range (m)", "Maximum local medic-to-casualty distance considered for one finite assistance attempt.", "SLIDER", [10, 200, 0], 80, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_MedicalAssist_DamageThreshold", "Medical damage threshold", "Minimum engine damage before WAIT considers vanilla medical assistance.", "SLIDER", [0.1, 0.9, 2], 0.35, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_MedicalAssist_Timeout", "Medical attempt limit (s)", "Maximum duration of one native treatment attempt before WAIT releases it without altering health.", "SLIDER", [10, 120, 0], 45, "RECOVERY", "NEXT_OPERATION"],
     ["WAIT_AIPass_Regroup_MinimumPeakSize", "Minimum previous squad size", "Protects deliberately small teams from automatic merging.", "SLIDER", [2, 16, 0], 3, "RECOVERY", "NEXT_OPERATION"],
     ["WAIT_AIPass_Regroup_SearchRadius", "Recovery host search (m)", "Search radius for a compatible friendly host squad.", "SLIDER", [50, 1000, 0], 400, "RECOVERY", "NEXT_OPERATION"],
     ["WAIT_AIPass_Regroup_MaxGroupSize", "Recovery host size limit", "Maximum host membership after a physical survivor merge.", "SLIDER", [4, 24, 0], 12, "RECOVERY", "NEXT_OPERATION"],

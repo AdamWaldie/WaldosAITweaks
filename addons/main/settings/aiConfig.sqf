@@ -127,6 +127,10 @@
  * - WAIT_AIPass_TickBudgetMs (ADVANCED): milliseconds of work allowed on a frame with due jobs.
  * - WAIT_AIPass_LowFpsThreshold (ADVANCED): below this machine FPS, behaviour steps run half as often.
  * - WAIT_AIPass_Regroup_Enable (MISSION MAKER): survivors of a destroyed squad join a nearby friendly squad.
+ * - WAIT_AIPass_MedicalAssist_Enable (MISSION MAKER): a local medic physically treats a hurt squad-mate during CALM or SECURITY when no medical controller owns treatment. Default true.
+ * - WAIT_AIPass_MedicalAssist_Range (ADVANCED): maximum medic-to-casualty selection distance in metres.
+ * - WAIT_AIPass_MedicalAssist_DamageThreshold (ADVANCED): minimum engine damage before WAIT considers vanilla assistance.
+ * - WAIT_AIPass_MedicalAssist_Timeout (ADVANCED): finite treatment attempt limit; failure releases without health changes.
  * - WAIT_AIPass_Regroup_MaxRemnantSize (ADVANCED): a group this small or smaller counts as a remnant.
  * - WAIT_AIPass_Regroup_MinimumPeakSize (ADVANCED): groups that never reached this size (snipers,
  *   sentries) are never merged.
@@ -310,6 +314,10 @@ createHashMapFromArray [
         ["WAIT_AIPass_TickBudgetMs", 1], // MILLISECONDS: work allowed on a frame with due jobs; at least one due job always runs.
         ["WAIT_AIPass_LowFpsThreshold", 25], // FPS: below this, behaviour steps are rescheduled half as often.
         ["WAIT_AIPass_Regroup_Enable", true], // BOOL: survivors of a destroyed squad regroup with a nearby friendly squad.
+        ["WAIT_AIPass_MedicalAssist_Enable", true], // BOOL: local vanilla medic assistance during CALM/SECURITY; yields to medical controllers.
+        ["WAIT_AIPass_MedicalAssist_Range", 80], // METRES: maximum eligible medic-to-casualty selection distance.
+        ["WAIT_AIPass_MedicalAssist_DamageThreshold", 0.35], // DAMAGE: minimum engine damage considered for treatment.
+        ["WAIT_AIPass_MedicalAssist_Timeout", 45], // SECONDS: bounded native treatment attempt before release.
         ["WAIT_AIPass_Regroup_MaxRemnantSize", 2], // COUNT: living members at or below this make a remnant.
         ["WAIT_AIPass_Regroup_MinimumPeakSize", 3], // COUNT: smaller deliberate teams are never merged.
         ["WAIT_AIPass_Regroup_SearchRadius", 400], // METRES: host squad search radius.

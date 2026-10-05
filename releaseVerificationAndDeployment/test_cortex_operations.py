@@ -141,6 +141,25 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_OperationRelease',step)
         self.assertIn('WAIT_fnc_OperationCancel',step)
 
+    def test_medical_assistance_is_bounded_and_yields_to_competing_owners(self):
+        medical=source('cortexMedicalStep')
+        tick=source('cortexGroupTick')
+        self.assertIn('WAIT_AIPass_MedicalAssist_Enable',medical)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',medical)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',medical)
+        self.assertIn('["medicalBackend"] call WAIT_fnc_CompatibilityAvailable',medical)
+        self.assertIn('doHeal',medical)
+        self.assertIn('WAIT_fnc_OperationStart',medical)
+        self.assertIn('WAIT_fnc_OperationStep',medical)
+        self.assertIn('WAIT_fnc_OperationCancel',medical)
+        self.assertIn('WAIT_fnc_OperationRelease',medical)
+        self.assertIn('_phase in ["CALM","SECURITY"]',medical)
+        self.assertIn('COMBAT_RESUMED',medical)
+        self.assertIn('NO_PROGRESS',medical)
+        for forbidden in ['setDamage', 'setPos', 'joinSilent', 'addWaypoint']:
+            self.assertNotIn(forbidden,medical)
+        self.assertIn('WAIT_fnc_CortexMedicalStep',tick)
+
     def test_recovery_quarantines_only_an_exhausted_actor_from_common_operation_progress(self):
         start=source('operationStart')
         step=source('operationStep')

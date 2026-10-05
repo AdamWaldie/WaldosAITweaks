@@ -57,7 +57,7 @@ This is an implementation order, not a timed automation. Unfinished acceptance r
 
 ## Still outstanding
 
-- Optional engine-policy PBOs and remaining medical/behaviour implementations. The danger FSM foundation now releases its owned posture on Zeus, disable, pause and locality interruption, but still requires physical reaction, transition and performance acceptance.
+- Optional engine-policy PBOs and remaining behaviour implementations. Medical assistance now uses one bounded owner-local native treatment operation during CALM/SECURITY, yielding to direct/external ownership; it still requires physical, transition and performance acceptance.
 - Remaining CBA configuration gaps and physical validation of activation behaviour.
 - Deep assessment of every remaining method, including simulation/recovery shortcut purpose.
 - Building, manoeuvre, aircraft and coordination fixes and fresh batched physical acceptance.

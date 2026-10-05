@@ -161,6 +161,7 @@ class CfgFunctions {
             class CortexKnowledge {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexKnowledge.sqf";};
             class CortexLineOfFireClear {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexLineOfFireClear.sqf";};
             class CortexMorale {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMorale.sqf";};
+            class CortexMedicalStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMedicalStep.sqf";};
             class CortexRegisterRadar {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexRegisterRadar.sqf";};
             class CortexSupportServer {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportServer.sqf";};
             class CortexSupportAssaultServer {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportAssaultServer.sqf";};

@@ -71,6 +71,10 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_TickBudgetMs` | `1` | MILLISECONDS: work allowed per 0.25 s scheduler tick; at least one job always runs. |
 | `WAIT_AIPass_LowFpsThreshold` | `25` | FPS: below this, behaviour steps are rescheduled half as often. |
 | `WAIT_AIPass_Regroup_Enable` | `true` | BOOL: survivors of a destroyed squad regroup with a nearby friendly squad. |
+| `WAIT_AIPass_MedicalAssist_Enable` | `true` | BOOL: one local medic uses native treatment during CALM or SECURITY; yields to active medical ownership, Zeus and combat. |
+| `WAIT_AIPass_MedicalAssist_Range` | `80` | METRES: maximum local medic-to-casualty selection distance. |
+| `WAIT_AIPass_MedicalAssist_DamageThreshold` | `0.35` | DAMAGE: minimum engine damage considered for one finite treatment attempt. |
+| `WAIT_AIPass_MedicalAssist_Timeout` | `45` | SECONDS: finite native treatment limit; WAIT releases without changing health. |
 | `WAIT_AIPass_Regroup_MaxRemnantSize` | `2` | COUNT: living members at or below this make a remnant. |
 | `WAIT_AIPass_Regroup_MinimumPeakSize` | `3` | COUNT: smaller deliberate teams are never merged. |
 | `WAIT_AIPass_Regroup_SearchRadius` | `400` | METRES: host squad search radius. |

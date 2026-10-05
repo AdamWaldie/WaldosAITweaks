@@ -158,6 +158,10 @@ private _airborneDelay = [_group, [_group] call WAIT_fnc_CortexGroupState] call 
 if (_airborneDelay >= 0) exitWith {_airborneDelay};
 
 private _state = [_group] call WAIT_fnc_CortexGroupState;
+// A short calm/security treatment action uses the common operation lifecycle and is deliberately
+// evaluated before contact planning. It never delays a contact, retreat, direct order or an existing
+// movement/building operation; the next state tick cancels it when any of those conditions appears.
+if ([_group,_state,_state getOrDefault ["phase","CALM"]] call WAIT_fnc_CortexMedicalStep) exitWith {3};
 // Danger assessment has already validated locality, eligibility and Zeus ownership. Consume its
 // short-lived context here rather than introducing a second movement loop. The context never
 // identifies a shooter, changes a route or converts a report into target knowledge.
