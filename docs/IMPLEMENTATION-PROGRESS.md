@@ -68,6 +68,7 @@ after a ref rewrite; removal is not universal. Static success is not live accept
 
 ## Current non-promoted repairs
 
+- Registered convoy travel now creates one owner-local `CONVOY` operation per revision. The operation records progress at the shared bounded cadence, completes only on an accepted arrival hold, and cancels on Zeus, player control, external ownership, mobility failure or a replacement route revision. The predecessor-trail, spacing and physical-roadblock controller remains unchanged. Static validation passes; mixed-column interruption, locality and obstruction acceptance remains pending.
 - Danger assessment now stops at admission, observer setup and FSM interruption when a curator, player, compatible specialist controller or other external owner holds the group. It clears only WAIT-owned response state and never wakes the group decision job after that handover. Static and package validation pass; live specialist and Zeus handover acceptance remains pending.
 - Building clearance now forms bounded lead/security pairs rather than giving the first available room to one single-worker lane. The security partner remains at a real entry until the lead crosses it, follows into the first room, and trails successive rooms; buildings with no usable entry positions still receive a physical paired first-room attempt. Static and package validation pass; multi-model, casualty and traversal acceptance remains pending.
 
