@@ -16,6 +16,7 @@ params [["_group",grpNull,[grpNull]], ["_event",[],[[]]]];
 if (isNull _group || {!local _group} || {count _event != 4}) exitWith {"RELEASE"};
 if ([_group] call WAIT_fnc_CortexZeusHeld
     || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"RELEASE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.

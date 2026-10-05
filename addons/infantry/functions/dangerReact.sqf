@@ -15,6 +15,7 @@ if (isNull _group || {!local _group}) exitWith {"IGNORED"};
 private _lease=_group getVariable ["WAIT_Danger_ReactionLease",[]];
 private _yieldToOwner=[_group] call WAIT_fnc_CortexZeusHeld
     || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl};
 if (_cause in ["RESTORE","RELEASE"]) exitWith {
     // Never restore a WAIT posture over a curator, player or specialist controller. The old lease

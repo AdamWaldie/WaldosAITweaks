@@ -20,6 +20,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
     || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 // Eligibility was checked at observer installation and is rechecked before dispatch. Keep bullet

@@ -14,6 +14,7 @@ if (isNull _group || {!local _group} || {_epoch != (_group getVariable ["WAIT_AI
     || {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {-1};
 private _yieldToOwner=[_group] call WAIT_fnc_CortexZeusHeld
     || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl};
 if (_yieldToOwner) exitWith {
     [leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
