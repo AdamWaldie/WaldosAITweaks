@@ -72,10 +72,11 @@ private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
 [leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact;
 // This is a finite handoff, not a target assignment or movement order. GroupTick can respond on
 // its already-owned scheduler cycle while retaining its route, operation and external ownership.
-private _responseLifetime=[3,2,1.5,1] select (["HIT","SUPPRESSED","DETECTED","GUNFIRE"] find _cause);
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseLifetime=_responseDurations getOrDefault [_cause,1];
 private _response=[_cause,+_position,_observedAt,time+_responseLifetime,_generation];
 private _existing=_group getVariable ["WAIT_Danger_Response",[]];
-private _priority=createHashMapFromArray [["HIT",4],["SUPPRESSED",3],["DETECTED",2],["GUNFIRE",1]];
+private _priority=createHashMapFromArray [["HIT",5],["EXPLOSION",4],["SUPPRESSED",3],["DETECTED",2],["GUNFIRE",1]];
 private _replace=_existing isEqualTo [] || {count _existing != 5}
     || {(_existing select 4) != _generation}
     || {time >= (_existing select 3)}

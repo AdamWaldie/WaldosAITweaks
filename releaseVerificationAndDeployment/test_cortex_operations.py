@@ -58,6 +58,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_observer knowsAbout _target < 1',setup)
         self.assertIn('"DETECTED"',request)
         self.assertIn('"DETECTED"',selection)
+        self.assertIn('"EXPLOSION"',request)
+        self.assertIn('"EXPLOSION"',selection)
+        self.assertIn('"Explosion"',setup)
+        self.assertIn('["HIT",5],["EXPLOSION",4]',selection)
+        self.assertIn('"EXPLOSION","SUPPRESSED"',action)
         self.assertNotIn('getPosATL _target',setup)
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text()
         self.assertIn('_zeusToken isNotEqualTo',fsm)
@@ -77,6 +82,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _desiredCombat',reaction)
         self.assertNotIn('doMove',reaction)
         self.assertNotIn('doTarget',reaction)
+        self.assertIn('"EXPLOSION",2.5',reaction)
 
     def test_operations_are_generation_scoped_and_zeus_cancels_before_release(self):
         start=source('operationStart')

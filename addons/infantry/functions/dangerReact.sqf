@@ -34,7 +34,7 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
         "RESTORED"
     } else {"ASSESS"}
 };
-if !(_cause in ["HIT","SUPPRESSED","DETECTED","GUNFIRE"]) exitWith {"IGNORED"};
+if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]) exitWith {"IGNORED"};
 if (_yieldToOwner) exitWith {"IGNORED"};
 // A manoeuvre already owns the group movement. It receives the event through GroupTick and must
 // keep its committed route rather than being sent back to a reaction position.
@@ -64,6 +64,7 @@ if (_priorCombat == "BLUE" || {_action == "ENGAGE" && {_priorCombat != "RED"}}) 
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };
-private _until=(time + ([3,2,1.5,1] select (["HIT","SUPPRESSED","DETECTED","GUNFIRE"] find _cause))) max (_lease param [4,-1]);
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
+private _until=(time + (_responseDurations getOrDefault [_cause,1])) max (_lease param [4,-1]);
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until],true];
 "POSTURE"

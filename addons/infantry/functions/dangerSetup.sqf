@@ -76,6 +76,9 @@ private _handlers=[];
     _handlers pushBack [_member,"Hit",_member addEventHandler ["Hit",{
         params ["_actor"]; [_actor,"HIT",getPosATL _actor] call WAIT_fnc_DangerRequest;
     }]];
+    _handlers pushBack [_member,"Explosion",_member addEventHandler ["Explosion",{
+        params ["_actor"]; [_actor,"EXPLOSION",getPosATL _actor] call WAIT_fnc_DangerRequest;
+    }]];
     _handlers pushBack [_member,"Suppressed",_member addEventHandler ["Suppressed",{
         params ["_actor"]; [_actor,"SUPPRESSED",getPosATL _actor] call WAIT_fnc_DangerRequest;
     }]];

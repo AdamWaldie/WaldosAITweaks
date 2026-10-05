@@ -110,12 +110,12 @@ This is an interruption improvement to the finite manoeuvre FSM, not a replaceme
 ## Danger assessment
 
 `WAIT_AIPass_Danger_Enable` is a server-enforced, live CBA option under Infantry / Contact, default true.
-It installs Hit, Suppressed and FiredNear observers on up to twelve eligible local AI group members,
+It installs Hit, Explosion, Suppressed and FiredNear observers on up to twelve eligible local AI group members,
 prioritising the leader, plus one owner-local EnemyDetected observer for engine-confirmed hostile contact. The
 contact observer accepts only information already known to the current group leader, records the observer position
 rather than the target identity or position, and is removed on loss of ownership or shutdown. Membership changes reinstall
 observers without cancelling the group's active finite response.
-Four cause classes are coalesced in a queue capped at sixteen records. Events expire after two seconds;
+Five cause classes are coalesced in a queue capped at sixteen records. Events expire after two seconds;
 Repeated callbacks of the same cause are throttled to 0.25 seconds before any squad eligibility scan;
 assessment selects the highest urgency without sorting and breaks equal-priority ties by observation time.
 Gunfire records the observer position rather than an unseen attacker. The queue never supplies a target

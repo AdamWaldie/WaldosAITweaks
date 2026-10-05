@@ -96,7 +96,7 @@ live cause over weaker later events, expires cleanly, and is cleared before Zeus
 consume it. Static/package validation is separate from the still-pending physical reaction, transition and
 performance acceptance.
 
-Each live response now also carries a finite action classification: `HIDE` after a hit or suppression,
+Each live response now also carries a finite action classification: `HIDE` after a hit, explosion or suppression,
 `ENGAGE` after an engine-confirmed contact or nearby gunfire, `VEHICLE` for a mounted leader, and
 `MAINTAIN` for a group that already has a committed operation. `RELEASE` marks an ownership handover.
 The classification is diagnostics and scheduling context only; native AI retains target selection and movement,

@@ -24,5 +24,5 @@ private _leader=leader _group;
 if (isNull _leader || {!alive _leader}) exitWith {"RELEASE"};
 if (vehicle _leader != _leader) exitWith {"VEHICLE"};
 private _cause=_event select 0;
-if (_cause in ["HIT","SUPPRESSED"]) exitWith {"HIDE"};
+if (_cause in ["HIT","EXPLOSION","SUPPRESSED"]) exitWith {"HIDE"};
 "ENGAGE"
