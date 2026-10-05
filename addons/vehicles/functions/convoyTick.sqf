@@ -63,6 +63,12 @@ if (_phase == "HALT") exitWith {
     };
 };
 if (!local _group) exitWith {};
+// The convoy tick performs bounded route and gap calculations before it writes any driver command.
+// Recheck ownership at each command boundary so a curator or specialist controller that arrives
+// during that work receives an immediate clean handover rather than a stale speed or route update.
+private _mayIssueDriving = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 private _vehicles = _registered select {alive _x && {canMove _x} && {local _x} && {alive driver _x} && {local driver _x}
     && {group driver _x == _group} && {!((driver _x) getVariable ["ACE_isUnconscious", false])} && {lifeState driver _x != "INCAPACITATED"}};
 // Do not treat temporary split locality as damage or arrival.
@@ -87,6 +93,9 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
     if (count _state > 0 && {!_sameLine}) then {[_group, false, _restore, _registered] call WAIT_fnc_ConvoyReleaseLocal};
     private _savedProgress = _group getVariable ["WAIT_Convoy_ContactProgress", []];
     private _progress = if (_savedProgress isNotEqualTo [] && {(_savedProgress select 0) == _revision}) then {+(_savedProgress select 1)} else {[]};
+    if !([] call _mayIssueDriving) exitWith {
+        [_group,false,_restore,_registered,"EXTERNAL"] call WAIT_fnc_ConvoyReleaseLocal;
+    };
     _state = createHashMapFromArray [["revision", _revision], ["lead", _lead], ["frontTrails", _resumeTrails],
         ["heading", getDir _lead], ["vehicles", +_vehicles], ["followers", _resumeFollowers], ["speedLimits", createHashMap], ["contactProgress", _progress]];
     private _objective = if (count waypoints _group > 0) then {waypointPosition [_group,(count waypoints _group)-1]} else {getPosATL _lead};
@@ -132,7 +141,7 @@ if (_operationGeneration >= 0 && {time >= (_state getOrDefault ["operationDue",t
 };
 // Active waypoints can change formation after initial setup. Enforce the convoy
 // formation only while this owner controls travel; suspension above preserves Zeus control.
-if (formation _group != "COLUMN") then {_group setFormation "COLUMN"};
+if ([] call _mayIssueDriving && {formation _group != "COLUMN"}) then {_group setFormation "COLUMN"};
 // Query existing group knowledge at most every five seconds; never reveal hidden attackers.
 if (time >= (_state getOrDefault ["contactDue", -1])) then {
     private _report = [];
@@ -212,11 +221,13 @@ if ([_group,"WAIT_Convoy_RouteRecovery_Enable",true] call WAIT_fnc_CortexFeature
         if (waypointType _watchedWaypoint == "MOVE"
             && {waypointPosition _watchedWaypoint distance2D _watchedPosition < 2}
             && {_lead distance2D _watchedPosition > (_watchedRadius max 20)+75}) then {
-            _group setCurrentWaypoint _watchedWaypoint;
-            (driver _lead) doMove _watchedPosition;
-            _state set ["routeRecoveryAt",time+15];
-            private _recoveries=(_group getVariable ["WAIT_Convoy_RouteRecoveries",0])+1;
-            _group setVariable ["WAIT_Convoy_RouteRecoveries",_recoveries,true];
+            if ([] call _mayIssueDriving) then {
+                _group setCurrentWaypoint _watchedWaypoint;
+                (driver _lead) doMove _watchedPosition;
+                _state set ["routeRecoveryAt",time+15];
+                private _recoveries=(_group getVariable ["WAIT_Convoy_RouteRecoveries",0])+1;
+                _group setVariable ["WAIT_Convoy_RouteRecoveries",_recoveries,true];
+            };
         };
     };
 };
@@ -355,7 +366,7 @@ if (!_routeDone && {_leadLimit > (_leadSpeedState select 0)}) then {
 };
 _leadLimit = [_lead,_leadLimit,_group] call WAIT_fnc_CortexInfantrySpeed;
 _state set ["leadSpeedLimit",[_leadLimit,time]];
-_lead forceSpeed (_leadLimit / 3.6);
+if ([] call _mayIssueDriving) then {_lead forceSpeed (_leadLimit / 3.6)};
 // Speed limits cannot restart an engine movement order that stopped short. Retry only
 // after ten seconds without progress, while a real route destination remains active.
 private _leadProgress = _state getOrDefault ["leadProgress", [getPosATL _lead, time, 0]];
@@ -369,7 +380,7 @@ if (!_routeDone && {_leadLimit > 0} && {_waypointIndex < count waypoints _group}
         private _attempts=(_leadProgress param [2,0])+1;
         if (_attempts > 3) then {
             [_group,_revision,"STALLED",[],_lead] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
-        } else {driver _lead doMove _destination};
+        } else {if ([] call _mayIssueDriving) then {driver _lead doMove _destination}};
         _leadProgress set [2,_attempts];
     };
     _leadProgress set [0,getPosATL _lead]; _leadProgress set [1,time];
@@ -419,7 +430,7 @@ for "_i" from 1 to (count _vehicles - 1) do {
     // A full stop while physically clear but offset would preserve the wedge indefinitely.
     if (_lateralOffset > _tolerance && {_gap > _gapLow} && {_pathOwners getOrDefault [_key,false]}) then {_limit=_limit max 5};
     _limit = [_vehicle,_limit,_group] call WAIT_fnc_CortexInfantrySpeed;
-    _vehicle forceSpeed (_limit / 3.6);
+    if ([] call _mayIssueDriving) then {_vehicle forceSpeed (_limit / 3.6)};
     _speedLimits set [_key,[_limit,time]];
     private _progress = _followers getOrDefault [_key, [getPosATL _vehicle, time, -1, _trailBase]];
     if (_vehicle distance2D (_progress select 0) > 3) then {_progress = [getPosATL _vehicle, time, _progress select 2, _progress select 3]};
@@ -431,8 +442,10 @@ for "_i" from 1 to (count _vehicles - 1) do {
             [_group,_revision,"STALLED",[],_vehicle] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
         } else {
             _pathOwners set [_key,false];
-            (driver _vehicle) doFollow leader _group;
-            _vehicle setConvoySeparation _desiredGap;
+            if ([] call _mayIssueDriving) then {
+                (driver _vehicle) doFollow leader _group;
+                _vehicle setConvoySeparation _desiredGap;
+            };
         };
         _progress = [getPosATL _vehicle, time, time + 10, _progress select 3, _attempts];
     };
@@ -494,7 +507,7 @@ for "_i" from 1 to (count _vehicles - 1) do {
                 private _pathCap=if (_pathTurn > 70) then {18} else {if (_pathTurn > 45) then {25} else {if (_pathTurn > 25) then {35} else {_maximum}}};
                 if (_pathGrade > 0.2) then {_pathCap=_pathCap min 18} else {if (_pathGrade > 0.12) then {_pathCap=_pathCap min 25}};
                 _limit=_limit min _pathCap;
-                _vehicle forceSpeed (_limit/3.6);
+                if ([] call _mayIssueDriving) then {_vehicle forceSpeed (_limit/3.6)};
                 _speedLimits set [_key,[_limit,time]];
             };
             if (_native && {_path isNotEqualTo []}) then {
@@ -518,8 +531,10 @@ for "_i" from 1 to (count _vehicles - 1) do {
                 if (count _committedDestination < 2
                     || {_committedDestination distance2D _destination > 8}
                     || {currentCommand driver _vehicle in ["","STOP"]}) then {
-                    driver _vehicle doMove _destination;
-                    _progress set [5,+_destination];
+                    if ([] call _mayIssueDriving) then {
+                        driver _vehicle doMove _destination;
+                        _progress set [5,+_destination];
+                    };
                 };
                 _progress set [2, time + 1];
             } else {
@@ -527,12 +542,14 @@ for "_i" from 1 to (count _vehicles - 1) do {
                     // Normal AI must relinquish its formation movement before path driving.
                     // Stop once per acquisition, not on every refreshed path (which would cancel it).
                     if (!(_pathOwners getOrDefault [_key,false])) then {
-                        doStop driver _vehicle;
-                        _pathOwners set [_key,true];
+                        if ([] call _mayIssueDriving) then {
+                            doStop driver _vehicle;
+                            _pathOwners set [_key,true];
+                        };
                     };
                     // Path driving consumes its own speed component in metres per second.
                     // Refresh it even inside the gap band so an earlier faster path cannot outrun braking.
-                    _vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]});
+                    if ([] call _mayIssueDriving) then {_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})};
                     _progress set [2, time + 1];
                 };
             };
@@ -542,10 +559,12 @@ for "_i" from 1 to (count _vehicles - 1) do {
             // Native formation here recreates side-by-side traffic and can close the gap first.
             if (_native) then {
                 _pathOwners set [_key,false];
-                (driver _vehicle) doFollow leader _group;
-                _vehicle setConvoySeparation _desiredGap;
+                if ([] call _mayIssueDriving) then {
+                    (driver _vehicle) doFollow leader _group;
+                    _vehicle setConvoySeparation _desiredGap;
+                };
             } else {
-                if (!(_pathOwners getOrDefault [_key,false])) then {doStop driver _vehicle};
+                if (!(_pathOwners getOrDefault [_key,false]) && {[] call _mayIssueDriving}) then {doStop driver _vehicle};
                 _pathOwners set [_key,true];
             };
             _progress set [2, time + 1];

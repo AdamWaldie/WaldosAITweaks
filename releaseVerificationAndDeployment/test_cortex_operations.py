@@ -3323,6 +3323,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_mayRestoreGroup && {!isNull _driver}',release)
         self.assertLess(release.index('private _mayRestoreGroup='),release.index('setFormation _formation'))
 
+    def test_convoy_tick_does_not_issue_late_driver_commands_after_external_takeover(self):
+        tick=source('convoyTick')
+        self.assertIn('private _mayIssueDriving = {',tick)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',tick)
+        self.assertIn('[_group,false,_restore,_registered,"EXTERNAL"] call WAIT_fnc_ConvoyReleaseLocal;',tick)
+        for command in ['_lead forceSpeed (_leadLimit / 3.6)',
+                        '(driver _lead) doMove _watchedPosition',
+                        'driver _vehicle doMove _destination',
+                        '_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})']:
+            self.assertLess(tick.rindex('[] call _mayIssueDriving',0,tick.index(command)+len(command)),tick.index(command))
+
     def test_delegated_building_release_removes_its_task_without_overwriting_a_new_owner(self):
         release=source('cortexBuildingBackendRelease')
         self.assertIn('private _externalTakeover = local _group && {',release)
