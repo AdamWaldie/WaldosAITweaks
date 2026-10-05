@@ -3088,6 +3088,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,_generation,toUpperANSI _reason] call WAIT_fnc_OperationCancel',release)
         self.assertIn('_allowFeatureOwner',eligible)
         self.assertIn('_allowFeatureOwner',operation_step)
+        operation_start=source('operationStart')
+        self.assertIn('!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)',operation_start)
+        self.assertLess(operation_start.index('CortexIsEligible'),operation_start.index('private _previous'))
 
     def test_vehicle_withdraw_and_standoff_use_finite_operation_generations(self):
         vehicles=source('cortexVehicles')
