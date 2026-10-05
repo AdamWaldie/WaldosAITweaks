@@ -636,6 +636,17 @@ class CortexOperations(unittest.TestCase):
         for command in ['_actor doMove _rally;','_unit doMove _spot;','_unit doMove (_spots select _forEachIndex);']:
             index=step.index(command)
             self.assertIn('_mayIssueMovement',step[max(0,index-800):index])
+    def test_combined_arms_and_convoy_crew_yield_at_final_command_boundaries(self):
+        combined=source('cortexCombinedArmsLocal')
+        ground=source('cortexCombinedGroundStep')
+        crew=source('convoyCrewLocal')
+        self.assertGreaterEqual(combined.count('CortexExternalTakeover'),5)
+        self.assertLess(combined.index('CortexExternalTakeover'),combined.index('_x doTarget _target'))
+        self.assertLess(combined.rindex('CortexExternalTakeover'),combined.index('WAIT_fnc_CortexAirAttack,createHashMapFromArray'))
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover) then {',ground)
+        self.assertIn('&& {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doTarget _target; _gunner doFire _target};',ground)
+        self.assertIn('if ([_group] call WAIT_fnc_CortexExternalTakeover ||',crew)
+        self.assertIn('&& {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {',crew)
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')

@@ -42,13 +42,16 @@ if (_role == "AIR_ATTACK" && {
     !(_asset isKindOf "Air") || {isTouchingGround _asset}
         || {!([_group,"WAIT_Cortex_AirAttack_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
 }) exitWith {false};
+// Role discovery and weapon preflight may take longer than an external order transition.
+// Recheck before assigning targets or starting a finite manoeuvre.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _group reveal [_target,2.5];
 {
-    if (alive _x && {local _x} && {!isPlayer _x}) then {_x doTarget _target};
+    if (alive _x && {local _x} && {!isPlayer _x} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_x doTarget _target};
 } forEach crew _asset;
 if (_role == "GROUND_FIRE") exitWith {
     private _gunner=gunner _asset;
-    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]}) then {_gunner doFire _target};
+    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doFire _target};
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];
     true
@@ -85,6 +88,7 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         false
     };
     private _destination=_selected select ((count _selected)-1);
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     if !([_group,"COMBINED_GROUND",true,_expiry] call WAIT_fnc_CortexOwnershipLease) exitWith {
         _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"EXTERNAL_BUSY",serverTime,_target],true];
@@ -100,6 +104,7 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"OWNER_LOST",serverTime,_target],true];
         false
     };
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
     private _state=[_group] call WAIT_fnc_CortexGroupState;
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
@@ -123,6 +128,7 @@ if (_role == "AIR_ATTACK") exitWith {
         [_requester,_group,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
         false
     };
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     if !(_asset getVariable ["WAIT_Cortex_AirAttackJob",false]) then {
         _asset setVariable ["WAIT_Cortex_AirAttackJob",true];
         // The server already authenticated this live hostile. Pass it into the finite controller;

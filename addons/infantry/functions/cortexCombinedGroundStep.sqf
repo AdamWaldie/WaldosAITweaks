@@ -57,7 +57,7 @@ if (serverTime >= (_job getOrDefault ["expiry",serverTime])) exitWith {["EXPIRED
 if (_asset distance2D _destination <= 70) exitWith {
     _group reveal [_target,3];
     private _gunner=gunner _asset;
-    if (!isNull _gunner && {alive _gunner} && {local _gunner}) then {_gunner doTarget _target; _gunner doFire _target};
+    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doTarget _target; _gunner doFire _target};
     ["POSITION_REACHED"] call _finish
 };
 if (time >= (_job getOrDefault ["progressAt",time])+10) then {
@@ -67,8 +67,10 @@ if (time >= (_job getOrDefault ["progressAt",time])+10) then {
         if (_stalls >= 1) exitWith {_job set ["terminal","BLOCKED"]};
         // Ask the engine to rebuild the same tactical route once. The destination is unchanged,
         // so this cannot walk a scripted obstacle-avoidance spiral around a deliberate roadblock.
-        [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
-        _job set ["stalls",_stalls+1];
+        if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+            [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+            _job set ["stalls",_stalls+1];
+        };
     };
     _job set ["lastPosition",getPosATL _asset];
     _job set ["progressAt",time];
