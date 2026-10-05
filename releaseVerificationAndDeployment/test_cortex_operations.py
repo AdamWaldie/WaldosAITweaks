@@ -452,6 +452,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_lastPositions=_pair apply {getPosATL _x}',recovery)
         self.assertNotIn('_unreachable pushBack',recovery)
 
+    def test_recovery_rechecks_ownership_before_issuing_its_direct_move(self):
+        recovery=source('recoveryStep')
+        for requirement in ['WAIT_fnc_CortexZeusHeld','WAIT_fnc_CortexExternalOwner',
+                            'WAIT_fnc_CompatibilityExternalControl','vehicle _actor != _actor',
+                            'WAIT_fnc_CortexCombatEffective','exitWith {"YIELDED"}']:
+            self.assertIn(requirement,recovery)
+        self.assertLess(recovery.index('exitWith {"YIELDED"}'),recovery.index('_actor doMove _destination'))
+
     def test_clearance_release_resumes_formation_after_do_stop(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')

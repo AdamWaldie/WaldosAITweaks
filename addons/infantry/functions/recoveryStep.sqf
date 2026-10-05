@@ -4,12 +4,20 @@
  * Locality/authority: Current group owner and current local participant only.
  * Repeat/JIP: Each actor receives one recovery generation. Exhaustion is published in the operation record and does not fabricate progress.
  * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 actor <OBJECT>; 3 destination <ARRAY>.
- * Return Value: STRING - RECOVERING, EXHAUSTED or INVALID.
+ * Return Value: STRING - RECOVERING, EXHAUSTED, YIELDED or INVALID.
  * Current callers: Operation-backed manoeuvre and building jobs.
  * Example: [group player,4,soldier1,getPosATL player] call WAIT_fnc_RecoveryStep;
  */
 params [["_group",grpNull,[grpNull]],["_generation",-1,[0]],["_actor",objNull,[objNull]],["_destination",[],[[]]]];
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor} || {count _destination < 2}) exitWith {"INVALID"};
+// This is the final direct movement command in a recovery path. Recheck handover at the point of
+// issue because a Zeus or specialist operation can arrive between an earlier operation step and
+// this isolated retry. Recovery must retire rather than overwrite the newer controller's route.
+if ([_group] call WAIT_fnc_CortexZeusHeld
+    || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
+    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"YIELDED"};
+if (vehicle _actor != _actor || {!([_actor] call WAIT_fnc_CortexCombatEffective)}) exitWith {"INVALID"};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {"INVALID"};
 private _recovery=_operation getOrDefault ["recovery",createHashMap];
