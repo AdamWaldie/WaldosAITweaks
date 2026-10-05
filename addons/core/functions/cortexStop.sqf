@@ -187,13 +187,17 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
     };
     private _group = (_x select 2) getOrDefault ["group", grpNull];
     if (!isNull _group) then {
-        if (local _group && {!isNull (_group getVariable ["WAIT_AIPass_RegroupHost", grpNull])}) then {
+        // Shutdown clears only WAIT work. A curator, player or external controller can claim a
+        // group between the broad release above and this delayed-job cleanup, so never use a
+        // stale regroup/clear record to issue formation or behaviour commands over that owner.
+        private _canRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+        if (_canRestoreGroup && {!isNull (_group getVariable ["WAIT_AIPass_RegroupHost", grpNull])}) then {
             {
                 if (alive _x && {local _x}) then {_x doFollow leader _group};
             } forEach units _group;
         };
         _group setVariable ["WAIT_AIPass_Dropping", nil];
-        if (local _group && {"team" in (_x select 2)} && {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}) then {
+        if (_canRestoreGroup && {"team" in (_x select 2)} && {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}) then {
             private _clearJob = _x select 2;
             {if (alive _x && {local _x}) then {_x doFollow leader _group}} forEach (_clearJob getOrDefault ["team", []]);
             if ("baseBehaviour" in _clearJob && {behaviour leader _group == "COMBAT"}) then {

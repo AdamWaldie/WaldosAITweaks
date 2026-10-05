@@ -1778,6 +1778,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit enableAI _feature', cleanup)
         self.assertIn('_state deleteAt "drill"', cleanup)
 
+    def test_cortex_stop_does_not_recall_external_groups_from_delayed_jobs(self):
+        stop=source('cortexStop')
+        self.assertIn('private _canRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};',stop)
+        self.assertIn('if (_canRestoreGroup && {!isNull (_group getVariable ["WAIT_AIPass_RegroupHost", grpNull])}) then {',stop)
+        self.assertIn('if (_canRestoreGroup && {"team" in (_x select 2)}',stop)
+        self.assertLess(stop.index('private _canRestoreGroup='),stop.index('doFollow leader _group'))
+
     def test_master_stop_cancels_explicit_orders_on_their_owner(self):
         text = source('cortexStop')
         cleanup = text.split('if (local _x) then {\n')[1].split('};')[0]
