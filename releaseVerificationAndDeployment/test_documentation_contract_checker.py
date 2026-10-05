@@ -56,6 +56,18 @@ class DocumentationContractTests(unittest.TestCase):
         p.write_text(p.read_text().replace(', "LIVE"]', ', "IMMEDIATE_MAGIC"]', 1))
         self.assertTrue(any('invalid setting activation' in f for f in parity.audit(self.root)))
 
+    def test_settings_sections_keep_participation_profiles_and_performance_separate(self):
+        self.copy_settings_contract()
+        sections=(self.root/'addons/core/functions/aiTweaksSettingsSections.sqf').read_text()
+        spec=(self.root/'addons/core/functions/cortexTuningSpec.sqf').read_text()
+        self.assertLess(sections.index('"GENERAL", "01 General", "01 Participation and ownership"'),sections.index('"PROFILE", "01 General", "02 Tactical profile"'))
+        self.assertLess(sections.index('"PROFILE", "01 General", "02 Tactical profile"'),sections.index('"PERFORMANCE", "01 General", "03 Performance"'))
+        for name in ['WAIT_AIPass_BehaviourProfile','WAIT_AIPass_Aggression','WAIT_AIPass_Cohesion','WAIT_AIPass_ReactionSpeed','WAIT_AIPass_EngageRange','WAIT_AIPass_ZeusHoldSeconds']:
+            row=next(line for line in spec.splitlines() if line.lstrip().startswith('["'+name+'"'))
+            self.assertIn('"PROFILE", "NEXT_OPERATION"',row)
+        row=next(line for line in spec.splitlines() if line.lstrip().startswith('["WAIT_Cortex_CombinedArms_AirRange"'))
+        self.assertIn('"COORD", "NEXT_OPERATION"',row)
+
     def test_rejects_unknown_setting_sections(self):
         self.copy_settings_contract()
         p=self.root/'addons/core/functions/cortexTuningSpec.sqf'

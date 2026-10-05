@@ -8,21 +8,25 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 ## 01 General
 
-### 01 Participation
+### 01 Participation and ownership
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Enable` | Enable Cortex automatic tactics | CHECKBOX | true | [] | LIVE | Master control for Cortex actions and reactions. The purpose switches below choose which tactics Cortex may use; convoy control remains independent. |
 | `WAIT_AIPass_InfantryOwnership` | Infantry controller ownership | COMBO | "SPLIT" | [["SPLIT", "WAIT"], ["Shared ownership (recommended)", "WAIT only"]] | NEXT_OPERATION | Shared ownership keeps the base danger FSM active. A finite WAIT manoeuvre reserves only its responder and restores prior ownership afterwards. WAIT only gives this addon full group control. The building-task backend remains active in either mode; independent weapon configuration is preserved. |
+
+### 02 Tactical profile
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_BehaviourProfile` | Behaviour profile | COMBO | "" | [["", "MILITIA", "LINE", "VETERAN", "ELITE"], ["Follow the AI Rebalance profile", "Militia", "Line", "Veteran", "Elite"]] | NEXT_OPERATION | Tactics profile for every squad without a group or faction profile of its own. Skill values are not changed. |
 | `WAIT_AIPass_Aggression` | Aggression | SLIDER | 1.2 | [0, 2, 2] | NEXT_OPERATION | Scales flank/advance preference, optional grenade preparation, investigation and coordinated-assault participation. Positive local preferences choose which viable manoeuvre starts instead of deciding whether the squad acts. Default 1.2 adds initiative; 1 is the profile value and 0 excludes proactive tactics. |
 | `WAIT_AIPass_Cohesion` | Cohesion | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How much punishment squads take before morale breaks. Above 1 they hold longer, below 1 they break sooner. |
 | `WAIT_AIPass_ReactionSpeed` | Reaction speed | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How often squads re-assess. Above 1 they react faster and use more server time; below 1 slower. |
 | `WAIT_AIPass_EngageRange` | Engagement range (m) | SLIDER | 800 | [200, 1500, 0] | NEXT_OPERATION | Known enemies within this range of a squad leader are acted on. |
 | `WAIT_AIPass_ZeusHoldSeconds` | Zeus hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it. |
-| `WAIT_Cortex_CombinedArms_AirRange` | Aircraft support range (m) | SLIDER | 4000 | [500, 10000, 0] | NEXT_OPERATION | How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius. |
 
-### 02 Performance
+### 03 Performance
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -140,6 +144,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Reinforce_Enable` | Reinforcement | CHECKBOX | true | [] | NEXT_OPERATION | Idle nearby squads move up behind a squad in contact. |
 | `WAIT_AIPass_CoordinatedAssault_Enable` | Coordinated assault | CHECKBOX | true | [] | NEXT_OPERATION | Reinforcing squads assault from both sides while the squad in contact fires. |
+| `WAIT_Cortex_CombinedArms_AirRange` | Aircraft support range (m) | SLIDER | 4000 | [500, 10000, 0] | NEXT_OPERATION | How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius. |
 | `WAIT_AIPass_Reinforce_Radius` | Reinforcement radius (m) | SLIDER | 600 | [100, 2000, 0] | NEXT_OPERATION | How far away idle squads may be sent to help. |
 | `WAIT_AIPass_Reinforce_MaxResponders` | Reinforcing squads | SLIDER | 2 | [0, 5, 0] | NEXT_OPERATION | Squads sent to help one squad in contact. |
 

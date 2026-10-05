@@ -8,8 +8,9 @@
  * Example: private _sections = [] call WAIT_fnc_AITweaksSettingsSections;
  */
 [
-    ["GENERAL", "01 General", "01 Participation"],
-    ["PERFORMANCE", "01 General", "02 Performance"],
+    ["GENERAL", "01 General", "01 Participation and ownership"],
+    ["PROFILE", "01 General", "02 Tactical profile"],
+    ["PERFORMANCE", "01 General", "03 Performance"],
     ["SKILLS", "02 Skills", "01 Profiles and visibility"],
     ["PRECISION", "02 Skills", "02 Weapon precision"],
     ["CONTACT", "03 Infantry", "01 Awareness and contact"],
