@@ -41,6 +41,8 @@ This is an implementation order, not a timed automation. Unfinished acceptance r
 
 - Optional-dialog dependency removed. Native Zeus START/HOLD/RELEASE convoy modules and display-load interruption installation are packaged; new-order speed, separation and contact defaults use CBA. The launcher defaults to CBA only and supports an explicit optional-dialog batch. Static checks passed; physical placement, late assignment and both dependency variants remain unverified.
 
+- Depleted bounding teams no longer wait indefinitely when no recovery participant exists. Three capable survivors can use two movers and one covering actor; membership changes rebuild slots for the same committed bound. Physical casualty and straggler acceptance remains pending.
+
 ## Still outstanding
 
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.

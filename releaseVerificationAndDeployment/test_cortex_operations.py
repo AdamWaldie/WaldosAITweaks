@@ -2461,7 +2461,10 @@ class CortexOperations(unittest.TestCase):
     def test_recovery_cannot_launch_a_one_soldier_bound(self):
         text = source('cortexFlankStep')
         self.assertIn('private _movingAvailable=(_teams select _turn) select {_x in _units};', text)
-        self.assertIn('count _movingAvailable < 2 && {count _coverAvailable > 2}', text)
+        self.assertIn('count _movingAvailable < 2 && {count _coverAvailable > 2', text)
+        self.assertIn('count _movingAvailable == 1 && {count _coverAvailable == 2}', text)
+        self.assertIn('_pendingRecovery isEqualTo []', text)
+        self.assertIn('RECOVERY_REINFORCEMENT', text)
         self.assertIn('TEAM_%1_RECOVERY', text)
         self.assertIn('if (_waitForTeam) exitWith {1.5};', text)
         self.assertIn('(_x select 1) >= 6', text)

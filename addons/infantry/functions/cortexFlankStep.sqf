@@ -86,8 +86,8 @@
  * uncommitted squad members. Advance and coordinated-bound fire teams first take unassigned
  * survivors, then rebalance only when one team falls below two. Recovery is also checked against the
  * fire team which is about to move: a covering team with more than two available soldiers reinforces
- * an under-strength moving team, otherwise the bound waits for that team's recovery instead of sending
- * one soldier alone. Six unsuccessful recovery orders end the bound rather than waiting forever.
+ * an under-strength moving team, a three-person survivor element may instead use two movers and one covering soldier.
+ * Otherwise it waits only for actual pending recovery instead of sending one soldier alone. Six unsuccessful recovery orders end the bound rather than waiting forever.
  * A casualty during movement restarts the same bound so the surviving formation cannot inherit another
  * soldier's destination.
  * Arguments:
@@ -277,7 +277,8 @@ if (_recoverySnapshot isNotEqualTo (_group getVariable ["WAIT_Cortex_DrillRecove
 _units = _units - _recovering;
 // Validate the actual moving element after recovery actors have been removed. The earlier
 // squad-wide strength gate cannot prevent a two-person team becoming a one-man assault.
-// Borrow only a genuine spare so the other element still has at least two soldiers covering.
+// Prefer two covering soldiers; three capable survivors can use two movers and one cover.
+// Never wait for a recovery actor which does not exist.
 private _waitForTeam=false;
 private _teamRecoveryFailed=false;
 if (_teams isNotEqualTo []) then {
@@ -285,20 +286,28 @@ if (_teams isNotEqualTo []) then {
     private _otherTurn=1-_turn;
     private _movingAvailable=(_teams select _turn) select {_x in _units};
     private _coverAvailable=(_teams select _otherTurn) select {_x in _units};
-    if (count _movingAvailable < 2 && {count _coverAvailable > 2}) then {
+    if (count _movingAvailable < 2 && {count _coverAvailable > 2
+        || {count _movingAvailable == 1 && {count _coverAvailable == 2}}}) then {
         private _replacement=_coverAvailable select ((count _coverAvailable)-1);
         (_teams select _otherTurn) deleteAt ((_teams select _otherTurn) find _replacement);
         (_teams select _turn) pushBack _replacement;
         _movingAvailable pushBack _replacement;
         _drill set ["teams",_teams];
+        if ((_drill getOrDefault ["stage",""]) == "MOVE") then {
+            // Membership changed: rebuild slots for this same committed bound before indexing them.
+            [_group,_drill,"START","RECOVERY_REINFORCEMENT"] call WAIT_fnc_CortexDrillSetStage;
+            _drill set ["spots",[]];
+        };
         private _history=_group getVariable ["WAIT_Cortex_DrillReinforcements",[]];
         _history pushBack [serverTime,_drill getOrDefault ["type",""],_drill getOrDefault ["index",-1],
             [[format ["TEAM_%1_RECOVERY",_turn+1],netId _replacement]]];
         _group setVariable ["WAIT_Cortex_DrillReinforcements",_history,true];
     };
     if (count _movingAvailable < 2) then {
-        private _exhausted=_recovery findIf {(_x select 0) in (_teams select _turn)
-            && {(_x select 1) >= 6} && {time >= (_x select 2)}} >= 0;
+        private _pendingRecovery=_recovery select {(_x select 0) in (_teams select _turn)};
+        private _exhausted=_pendingRecovery isEqualTo [] || {_pendingRecovery findIf {
+            (_x select 1) >= 6 && {time >= (_x select 2)}
+        } >= 0};
         if (_exhausted) then {_teamRecoveryFailed=true} else {_waitForTeam=true};
     };
 };

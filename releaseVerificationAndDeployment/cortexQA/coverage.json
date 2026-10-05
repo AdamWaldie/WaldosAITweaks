@@ -1372,7 +1372,7 @@
       "expected": "Track the blocked actor, preserve external movement inhibition, continue viable movers, then physically rejoin after stimulus release. Unresolved separation is not full completion.",
       "settings": [],
       "status": "implemented_partial",
-      "automation": "runCombat.sqf controlled PATH inhibition. Single blocked flank continuation/rejoin passed in 130332, but subsequent manoeuvre stalled. Advance, physical obstacles, multiple stragglers, leader separation and ownership variants remain unaccepted.",
+      "automation": "runCombat.sqf controlled PATH inhibition. Single blocked flank continuation/rejoin passed in 130332, but subsequent manoeuvre stalled. Advance, physical obstacles, multiple stragglers, leader separation and ownership variants remain unaccepted. Queued: three capable survivors alternate two movers/one cover; no pending recovery terminates explicitly rather than waiting; a mid-bound replacement rebuilds destinations without reversing the approach.",
       "live_evidence": [
         "runtime-20260927-130332 FLANK-BLOCKED: tracked straggler, continuation after separation, preserved PATH inhibition and physical rejoin passed. Full drill later ended STALLED at bound 1 with another actor 25.5 m short under ATTACK; moving-fire and assault checks failed. This proves only the controlled single-blockage scenario, not full manoeuvre or general obstacle recovery.",
         "runtime-20260927-133856: blocked Flank continued with movement and fire and preserved PATH inhibition, but physical rejoin failed and final result was PARTIAL. This supersedes any inference of general recovery from earlier narrow passes."
