@@ -479,7 +479,7 @@ Convoy controls apply to explicitly configured convoys independently of the Smar
 | `WAIT_AIPass_VehicleDismount_Enable` | `true` | Routine unloading during vehicle contact drills. |
 | `WAIT_AIPass_VehicleRemount_Enable` | `true` | Reboard recorded passengers on a normal return to CALM. Stop and locality cleanup never board them. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | `true` | Damaged vehicle smoke and withdrawal. |
-| `WAIT_AIPass_DrivingAssist_Enable` | `true` | Ordinary AI ground vehicles retain their native route while WAIT applies a sparse terrain-grade speed cap. Convoy driving remains separate. |
+| `WAIT_AIPass_DrivingAssist_Enable` | `true` | Ordinary AI ground vehicles retain their native route while WAIT applies sparse terrain-grade safety and one bounded recovery: route refresh, clear-rear reverse and final route retry. It never adds a route, teleports or changes collision. Convoy driving remains separate. |
 | `WAIT_AIPass_NavalAssault_Enable` | `true` | Finite shallow-water approach, passenger dismount and dry-ground egress. external AI controller takes priority when loaded. |
 | `WAIT_AIPass_CoverValidation_Enable` | `true` | Validate cover footprint, slope and blocked line of sight. |
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |

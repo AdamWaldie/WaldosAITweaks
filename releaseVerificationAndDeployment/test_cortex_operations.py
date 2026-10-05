@@ -4223,13 +4223,17 @@ class CortexOperations(unittest.TestCase):
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('general-driving',diagnostics)
         self.assertIn('WAIT_DrivingAssist_State',diagnostics)
-        self.assertIn('registered convoys are excluded',diagnostics)
+        self.assertIn('Registered convoys are excluded',diagnostics)
         self.assertIn('select [0,20]',diagnostics)
         registry=(ROOT/'docs/CAPABILITY-REGISTRY.md').read_text(encoding='utf-8')
         self.assertIn('General vehicle driving | Safe route progress outside registered convoys',registry)
-        self.assertIn('physical obstacle recovery remains an outstanding acceptance requirement',registry)
+        self.assertIn('clear-rear reverse and final retry outside combat',registry)
+        for marker in ['ROUTE_REFRESH','CAUTIOUS_REVERSE','REAR_BLOCKED','FINAL_ROUTE_RETRY',
+                       'nearestObjects [_rear','["Man","LandVehicle","StaticWeapon"]',
+                       'behaviour leader _group in ["COMBAT","STEALTH"]']:
+            self.assertIn(marker,start)
         for forbidden in ['addWaypoint','deleteWaypoint','setCurrentWaypoint','setDriveOnPath',
-                          'doMove','moveTo','setPos','setVelocity','setDamage','setFuel',
+                          'moveTo','setPos','setVelocity','setDamage','setFuel',
                           'disableCollisionWith']:
             self.assertNotIn(forbidden,start)
             self.assertNotIn(forbidden,release)
