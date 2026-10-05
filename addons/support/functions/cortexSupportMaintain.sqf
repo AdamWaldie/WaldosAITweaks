@@ -59,6 +59,18 @@ if (_token == "") exitWith {
         [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     };
 };
+private _operationGeneration=_state getOrDefault ["supportOperationGeneration",-1];
+private _finishOperation={
+    params ["_result","_reason"];
+    if (_operationGeneration >= 0) then {
+        if (_result == "COMPLETE") then {
+            [_group,_operationGeneration,"COMPLETE",_reason] call WAIT_fnc_OperationRelease;
+        } else {
+            [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
+        };
+    };
+    _state deleteAt "supportOperationGeneration";
+};
 private _restoreAttack={
     if (_state getOrDefault ["attackChanged",false]) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
     _state deleteAt "attackChanged"; _state deleteAt "baseAttack";
@@ -73,6 +85,7 @@ private _sharedCoordinated = !isNull _requester
     && {[_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _supportEnabled = _sharedReinforce || {_sharedCoordinated};
 private _releaseSupport={
+    params [["_reason","SUPPORT_RELEASED"]];
     // Reject only the exact lease snapshot accepted by this owner. The server validates token,
     // snapshot and sender again, making repeated cleanup and a racing replacement lease harmless.
     if (count _lease == 6 && {_token == (_lease select 0)}) then {
@@ -85,6 +98,7 @@ private _releaseSupport={
         [_group] call WAIT_fnc_CortexGroupMoveClear;
     };
     if (_supportOwnsMovement) then {_state deleteAt "movementLease"};
+    ["CANCELLED",_reason] call _finishOperation;
     [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     call _restoreAttack;
     {_state deleteAt _x} forEach ["supportToken","responding","respondingTo","respondUntil","arrivedAt","assaulting"];
@@ -92,16 +106,26 @@ private _releaseSupport={
 private _abort = _group getVariable ["WAIT_Cortex_SupportAbort",[]];
 if (count _abort == 4 && {(_abort select 0) == _token}) exitWith {
     _group setVariable ["WAIT_Cortex_SupportAbort",nil,true];
-    call _releaseSupport;
+    ["SERVER_RETIREMENT"] call _releaseSupport;
 };
 if (_lease isEqualTo [] || {(_lease select 0) != _token} || {serverTime >= (_lease select 2)}
     || {!([_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!_supportEnabled}) then {
-    call _releaseSupport;
+    exitWith {["LEASE_EXPIRED"] call _releaseSupport};
 };
 
 if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) then {
-    call _releaseSupport;
+    exitWith {["FEATURE_DISABLED"] call _releaseSupport};
+};
+
+// Keep the common record current without adding a separate worker.  An external owner, a Zeus
+// command or a locality transition wins immediately; the reservation cleanup below then only
+// clears the matching token and never restores an older route.
+if (_operationGeneration >= 0) then {
+    private _operationState=[_group,_operationGeneration,3,30,true] call WAIT_fnc_OperationStep;
+    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
+        [_operationState] call _releaseSupport;
+    };
 };
 
 // Contact can begin before the rally is reached. Readiness must not depend on CALM.

@@ -11,7 +11,7 @@ implementation direction, not completed acceptance. Each subsystem retains its f
 | Pairs, bounds, flank and assault | Continuous physical advance with covering elements | repair | Finite intent and shared scheduler |
 | Morale, surrender and withdrawal | Physical fallback and appropriate terminal surrender | repair | Changed-group assessment and finite movement |
 | Buildings | Enter, progress through rooms/floors and exit with the squad | repair | Topology cache and physical progress |
-| Coordination and combined arms | Communicating nearby elements exploit support opportunities | repair | Server opportunity registry and finite local roles |
+| Coordination and combined arms | Communicating nearby elements exploit support opportunities | repair | Server opportunity registry, durable support reservations and matching finite local roles |
 | General vehicle driving | Safe route progress outside registered convoys without replacing native pathfinding | repair | Shared scheduler invokes a bounded owner-local terrain-grade speed cap every four seconds. It yields to players, Zeus, registered convoys and external driver owners; physical obstacle recovery remains an outstanding acceptance requirement. |
 | Registered convoys | Single-file route progress, stable spacing and individual obstruction handling | repair | Native movement and sparse progress sampling; independent convoy gates |
 | Passengers and crew | Safe task-owned dismount/remount without crew leakage | repair | Seat reservations and order generations |
@@ -23,7 +23,7 @@ implementation direction, not completed acceptance. Each subsystem retains its f
 | Medical assistance | Maintain squad effectiveness through local treatment | implement independently | Owner-local finite aid job; respect existing medical authority |
 | Survivor reinforcement | Replenish manoeuvre elements without unconditional merging | repair | Casualty events and role replacement |
 | Civilian reactions | Physical escape from perceived danger | retain | FiredNear/Hit events and finite escape |
-| Airborne and naval delivery | Deploy embarked infantry safely to useful terrain | repair | Finite vehicle/passenger intent |
+| Airborne and naval delivery | Deploy embarked infantry safely to useful terrain | repair | Separate finite boat-crew and passenger intent, bound by one durable landing token |
 | Scheduling and update cadence | Bound work while retaining urgent reactions | retain | One shared owner-local budget and cached due times |
 | Simulation-management methods | Reduce expensive distant simulation without invalidating gameplay | assessment pending | First quantify purpose and owner/multiplayer risks; no new culling yet |
 | Recovery shortcuts | Resolve engine deadlock without erasing obstructions | assessment pending | Prefer physical retries; no newly introduced teleport or immunity |

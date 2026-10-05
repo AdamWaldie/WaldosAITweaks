@@ -88,6 +88,18 @@ if (_okay) then {
     _okay = [_group,"SUPPORT",true,_expiry] call WAIT_fnc_CortexOwnershipLease;
 };
 if (_okay && {_adopting || {!_same} || {_attackAllowed && {!(_state getOrDefault ["assaulting",false])}}}) then {
+    // The reservation token is durable across locality, but it also needs the shared generation
+    // record so a later Zeus/mission order can retire this exact support move without allowing a
+    // stale owner callback to recreate it.  The coordinated server will provide the detailed
+    // fire-team routes; this entry records only the finite cross-squad intent and live objective.
+    private _intent=["SUPPORT_RALLY","COORDINATED_ASSAULT"] select _sharedCoordinated;
+    private _objective=if (_attackAllowed && {count _attack > 0}) then {_attack select ((count _attack)-1)} else {_rally};
+    private _operation=[_group,_intent,_objective,_footFit,[_rally],"ACCEPTED"] call WAIT_fnc_OperationStart;
+    if (count _operation == 0) exitWith {
+        [_group,_token,false,_lease,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAck",2];
+        -1
+    };
+    _state set ["supportOperationGeneration",_operation get "generation"];
     if (_attackAllowed) then {
         [_group] call WAIT_fnc_CortexGroupMoveClear;
         _state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]];

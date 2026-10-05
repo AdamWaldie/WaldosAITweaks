@@ -213,6 +213,7 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         case "VEHICLE_WITHDRAW": {"vehicleOperationGeneration"};
         case "VEHICLE_STANDOFF": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
+        case "SUPPORT_RALLY": {"supportOperationGeneration"};
         default {""};
     };
     if (_operationKey != "") then {

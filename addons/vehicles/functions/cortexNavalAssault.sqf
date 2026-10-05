@@ -75,6 +75,14 @@ if (count _operation >= 4 && {(_operation param [2,""]) == "PASSENGER"}) exitWit
         false
     };
     if (_aboard isNotEqualTo []) exitWith {true};
+    // Passenger egress is a separate operation from the boat crew's approach.  A passenger
+    // locality handover must therefore never replace the crew's movement generation.
+    private _landingGeneration=_state getOrDefault ["navalOperationGeneration",-1];
+    if (_landingGeneration < 0) then {
+        private _landingOperation=[_group,"NAVAL_LANDING",_egress,_survivors,[_egress],"EGRESS"] call WAIT_fnc_OperationStart;
+        if (count _landingOperation == 0) exitWith {false};
+        _state set ["navalOperationGeneration",_landingOperation get "generation"];
+    };
     private _movement=_state getOrDefault ["movementLease",[]];
     if ((_movement param [0,""]) != "NAVAL_LANDING") then {
         if ([_group,"NAVAL_LANDING",true,_expires] call WAIT_fnc_CortexOwnershipLease) then {
@@ -84,7 +92,7 @@ if (count _operation >= 4 && {(_operation param [2,""]) == "PASSENGER"}) exitWit
         };
     };
     if ((leader _group distance2D _egress) <= 30) exitWith {
-        [_group,_state] call WAIT_fnc_CortexNavalRelease;
+        [_group,_state,"COMPLETE"] call WAIT_fnc_CortexNavalRelease;
         false
     };
     true
@@ -134,6 +142,11 @@ if (count _plan == 9 && {(_plan select 1) == _group} && {serverTime < (_plan sel
     private _crewOperation=[_token,_boat,"CREW",_egress,_expires];
     _state set ["navalOperation",_crewOperation];
     _group setVariable ["WAIT_Cortex_NavalOperation",_crewOperation,true];
+    if ((_state getOrDefault ["navalOperationGeneration",-1]) < 0) then {
+        private _crewOperationRecord=[_group,"NAVAL_ASSAULT",_egress,[],[_approach,_landing,_egress],"APPROACH"] call WAIT_fnc_OperationStart;
+        if (count _crewOperationRecord == 0) exitWith {false};
+        _state set ["navalOperationGeneration",_crewOperationRecord get "generation"];
+    };
     if (_phase == "APPROACH" && {(_boat distance2D _landing) <= 45}) then {
         if (local _boat) then {
             if ((_boat getVariable ["WAIT_Cortex_NavalForcedSpeed",[]]) isEqualTo []) then {
@@ -172,9 +185,7 @@ if (count _plan == 9 && {(_plan select 1) == _group} && {serverTime < (_plan sel
             if (_saved isNotEqualTo []) then {_boat forceSpeed (_saved param [0,-1])};
             _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",nil];
         };
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
-        [_group,"NAVAL_ASSAULT",false] call WAIT_fnc_CortexOwnershipLease;
-        _state deleteAt "movementLease";
+        [_group,_state,"COMPLETE"] call WAIT_fnc_CortexNavalRelease;
         _plan set [8,"LANDED"];
         _plan set [7,serverTime+45];
         _boat setVariable ["WAIT_Cortex_NavalPlan",_plan,true];
@@ -216,9 +227,15 @@ _candidates sort true;
 (_candidates select 0) params ["_score","_approach","_landing","_shore","_egress"];
 private _expires=serverTime+240;
 if !([_group,"NAVAL_ASSAULT",true,_expires] call WAIT_fnc_CortexOwnershipLease) exitWith {false};
+private _crewOperationRecord=[_group,"NAVAL_ASSAULT",_egress,[],[_approach,_landing,_egress],"APPROACH"] call WAIT_fnc_OperationStart;
+if (count _crewOperationRecord == 0) exitWith {
+    [_group,"NAVAL_ASSAULT",false] call WAIT_fnc_CortexOwnershipLease;
+    false
+};
 private _token=format ["NAVAL:%1:%2:%3",netId _boat,clientOwner,round (serverTime*10)];
 [_group,_landing,20] call WAIT_fnc_CortexGroupMove;
 _state set ["movementLease",["NAVAL_ASSAULT",time+240]];
+_state set ["navalOperationGeneration",_crewOperationRecord get "generation"];
 private _crewOperation=[_token,_boat,"CREW",_egress,_expires];
 _state set ["navalOperation",_crewOperation];
 _group setVariable ["WAIT_Cortex_NavalOperation",_crewOperation,true];

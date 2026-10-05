@@ -11,6 +11,7 @@
  * Arguments:
  * 0: group <GROUP>
  * 1: state <HASHMAP> (optional; current Cortex state by default)
+ * 2: reason <STRING, CANCELLED> for the matching shared operation.
  *
  * Return Value:
  * Nothing
@@ -24,7 +25,8 @@
 
 params [
     ["_group",grpNull,[grpNull]],
-    ["_state",createHashMap,[createHashMap]]
+    ["_state",createHashMap,[createHashMap]],
+    ["_reason","CANCELLED",[""]]
 ];
 if (isNull _group) exitWith {};
 private _operation=_state getOrDefault ["navalOperation",[]];
@@ -49,6 +51,15 @@ if ((_movement param [0,""]) in ["NAVAL_ASSAULT","NAVAL_LANDING"]) then {
     [_group,_movement param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
     _state deleteAt "movementLease";
 };
+private _operationGeneration=_state getOrDefault ["navalOperationGeneration",-1];
+if (_operationGeneration >= 0) then {
+    if (toUpperANSI _reason == "COMPLETE") then {
+        [_group,_operationGeneration,"COMPLETE","NAVAL_"+toUpperANSI _reason] call WAIT_fnc_OperationRelease;
+    } else {
+        [_group,_operationGeneration,"NAVAL_"+toUpperANSI _reason] call WAIT_fnc_OperationCancel;
+    };
+};
+_state deleteAt "navalOperationGeneration";
 _state deleteAt "navalOperation";
 _group setVariable ["WAIT_Cortex_NavalOperation",nil,true];
 _group setVariable ["WAIT_Cortex_NavalStatus",nil,true];

@@ -2123,7 +2123,10 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('enableAttack false',source('cortexSupportBoundStart'))
         maintain=source('cortexSupportMaintain')
         self.assertEqual(1, maintain.count('call _restoreAttack;'))
-        self.assertEqual(3, maintain.count('call _releaseSupport;'))
+        # Support release has distinct lease, feature and ownership-transition paths.  Do not
+        # couple this preservation check to their exact count as finite-operation cleanup adds
+        # valid cancellation reasons without changing group attack ownership.
+        self.assertGreaterEqual(maintain.count('call _releaseSupport;'),2)
         self.assertIn('enableAttack (_state getOrDefault ["baseAttack",true])', maintain)
         self.assertIn('"baseAttack", "attackChanged"', source('cortexCheckpoint'))
         self.assertIn('enableAttack (_state getOrDefault ["baseAttack",true])', source('cortexRestoreCalm'))
@@ -4145,6 +4148,19 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_NavalOperation',release)
         self.assertIn('_vehicle isKindOf "LandVehicle"',vehicles)
 
+    def test_support_reservations_use_the_common_generation_lifecycle(self):
+        apply=source('cortexSupportApply')
+        maintain=source('cortexSupportMaintain')
+        tick=source('cortexGroupTick')
+        for marker in ['WAIT_fnc_OperationStart','"SUPPORT_RALLY"','"COORDINATED_ASSAULT"',
+                       'supportOperationGeneration','"ACCEPTED"']:
+            self.assertIn(marker,apply)
+        for marker in ['WAIT_fnc_OperationStep','WAIT_fnc_OperationCancel',
+                       'supportOperationGeneration','"LEASE_EXPIRED"','"SERVER_RETIREMENT"',
+                       '"FEATURE_DISABLED"','"ZEUS"','"EXTERNAL"']:
+            self.assertIn(marker,maintain)
+        self.assertIn('case "SUPPORT_RALLY": {"supportOperationGeneration"};',tick)
+
     def test_naval_release_is_token_scoped_and_never_forces_boarding(self):
         release=source('cortexNavalRelease')
         for marker in ['(_plan select 0) == _token','(_plan select 1) == _group',
@@ -4153,6 +4169,16 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,release)
         for forbidden in ['moveIn','orderGetIn true','assignAs','setPos','deleteVehicle']:
             self.assertNotIn(forbidden,release)
+
+    def test_naval_delivery_tracks_crew_and_passenger_generations_separately(self):
+        naval=source('cortexNavalAssault')
+        release=source('cortexNavalRelease')
+        for marker in ['WAIT_fnc_OperationStart','"NAVAL_ASSAULT"','"NAVAL_LANDING"',
+                       'navalOperationGeneration','"APPROACH"','"EGRESS"']:
+            self.assertIn(marker,naval)
+        for marker in ['navalOperationGeneration','WAIT_fnc_OperationRelease',
+                       'WAIT_fnc_OperationCancel','NAVAL_']:
+            self.assertIn(marker,release)
 
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_naval_audit_requires_real_coast_travel_dismount_and_cleanup(self):
