@@ -3817,6 +3817,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_standoffRange <= _standoffMinimumRange+150',controller)
         self.assertIn('_standoffForwardAlignment > 0.75',controller)
 
+    def test_air_attack_counts_only_the_planned_weapon_and_magazine(self):
+        controller=source('cortexAirAttack')
+        self.assertIn('WAIT_Cortex_AirAttackSelectedWeapon',controller)
+        self.assertIn('WAIT_Cortex_AirAttackSelectedMagazine',controller)
+        self.assertIn('private _selectedRelease=_weapon == _selectedWeapon',controller)
+        self.assertIn('&& {_selectedMagazine != ""} && {_magazine == _selectedMagazine};',controller)
+        self.assertIn('if (_selectedRelease) then {',controller)
+        self.assertIn('&& {(_x select 0) == _selectedMagazine}',controller)
+        self.assertNotIn('(_x select 0) == _selectedMagazine || {(_x select 0) in compatibleMagazines _weapon}',controller)
+
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_adaptive_air_attack_is_bounded_physical_and_zeus_safe(self):
         planner=source('cortexAirAttackPlan')

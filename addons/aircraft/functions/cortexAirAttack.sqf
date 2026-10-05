@@ -202,6 +202,8 @@ private _finish={
     _aircraft setVariable ["WAIT_Cortex_AirAttackTarget",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidedWeapon",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidanceTarget",nil];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedWeapon",nil];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedMagazine",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackJob",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackToken",nil];
     // The flight waypoint has already been removed above. The common operation result records
@@ -359,9 +361,19 @@ if (_stage == "") then {
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidedWeapon",
         ["",_plan getOrDefault ["selectedWeapon",""]] select ((_plan getOrDefault ["selectedWeaponClass",""]) == "GUIDED")];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidanceTarget",_target];
+    // A native group may fire other weapons while it is approaching the finite attack leg. Only
+    // the exact loaded station selected by this plan may advance its delivery counter: accepting
+    // any non-countermeasure Fired event let defensive or unrelated native fire make a failed
+    // rocket, bomb or guided pass look complete and begin egress early.
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedWeapon",_plan getOrDefault ["selectedWeapon",""]];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedMagazine",_plan getOrDefault ["selectedMagazine",""]];
     private _handler=_aircraft addEventHandler ["Fired",{
-        params ["_aircraft","_weapon","","","","","_projectile"];
-        if (toLowerANSI getText (configFile >> "CfgWeapons" >> _weapon >> "simulation") != "cmlauncher") then {
+        params ["_aircraft","_weapon","","","","_magazine","_projectile"];
+        private _selectedWeapon=_aircraft getVariable ["WAIT_Cortex_AirAttackSelectedWeapon",""];
+        private _selectedMagazine=_aircraft getVariable ["WAIT_Cortex_AirAttackSelectedMagazine",""];
+        private _selectedRelease=_weapon == _selectedWeapon
+            && {_selectedMagazine != ""} && {_magazine == _selectedMagazine};
+        if (_selectedRelease) then {
             _aircraft setVariable ["WAIT_Cortex_AirAttackShots",(_aircraft getVariable ["WAIT_Cortex_AirAttackShots",0])+1];
             // Preserve native ballistics and seeker behaviour, but give the projectile the hostile
             // already selected by its operator. fireAtTarget alone can launch a guided pylon round
@@ -630,9 +642,13 @@ if (_stage == "ATTACK") then {
         && {vectorMagnitude _targetVector > 0.01}) then {
         (vectorNormalized _predictedLaunchVelocity) vectorDotProduct (vectorNormalized _targetVector)
     } else {-1};
+    // The planner selected a concrete magazine/weapon/turret tuple. A different compatible
+    // magazine can carry a different seeker or delivery family on the same launcher, so treating
+    // it as interchangeable here can release the wrong ordnance at a ground target. Refuse the
+    // finite release when that exact station is depleted and let native combat decide what to do.
     private _loaded=(magazinesAllTurrets _aircraft) findIf {
         (_x select 1) isEqualTo _turret && {(_x select 2) > 0}
-            && {(_x select 0) == _selectedMagazine || {(_x select 0) in compatibleMagazines _weapon}}
+            && {(_x select 0) == _selectedMagazine}
     } >= 0;
     private _envelope=switch _weaponClass do {
         case "GUN": {if (_airContact) then {[100,2200,0.999]} else {[120,1400,0.9995]}};
