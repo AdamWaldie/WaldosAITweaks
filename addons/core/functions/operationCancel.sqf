@@ -15,9 +15,9 @@ if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _ge
 _operation set ["cancelReason",toUpperANSI _reason];
 _operation set ["phase","CANCELLED"];
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
-// Cancellation and completion must never leave an older danger posture lease behind. The helper
-// restores only values it still owns, so a Zeus or mission command remains untouched.
-[leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
+// Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval
+// operations share the generation record without touching their native combat state on release.
+if (_operation getOrDefault ["dangerPosture",false]) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
 _group setVariable ["WAIT_Operation",nil,true];
 _group setVariable ["WAIT_OperationResult",[_operation getOrDefault ["intent",""],"CANCELLED",_generation,serverTime,toUpperANSI _reason],true];
 true

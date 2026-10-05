@@ -18,10 +18,11 @@ private _generation=(_group getVariable ["WAIT_OperationGeneration",0])+1;
 if (count _previous > 0) then {
     [_group,_previous getOrDefault ["generation",-1],"REPLACED"] call WAIT_fnc_OperationCancel;
 };
-// A finite danger posture is not a tactical movement owner. Release only its owned behaviour/ROE
-// values before this operation commits its own intent, while retaining the short-lived danger
-// context below so GroupTick can still react to the native observation without recreating a route.
-[leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
+// A finite danger posture is meaningful only for an on-foot group. Aircraft, vehicles and boats
+// use this common record too, but must not have their native flight or combat state altered merely
+// because a lifecycle record starts. Retain the decision so release is equally narrow later.
+private _dangerPosture=(vehicle (leader _group)) isEqualTo (leader _group);
+if (_dangerPosture) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
 private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
 private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
@@ -30,7 +31,8 @@ private _operation=createHashMapFromArray [
     ["objective",_objective], ["participants",_capable], ["route",+_route], ["phase",toUpperANSI _phase],
     ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL leader _group],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
-    ["replans",0], ["recovery",createHashMap], ["unavailable",[]], ["restore",createHashMap], ["dangerAtStart",_liveDanger], ["cancelReason",""]
+    ["replans",0], ["recovery",createHashMap], ["unavailable",[]], ["restore",createHashMap],
+    ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]
 ];
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
 _group setVariable ["WAIT_Operation",_operation,true];
