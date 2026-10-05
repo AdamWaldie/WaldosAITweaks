@@ -76,6 +76,17 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertLess(registration.index('find "_Enable" >= 0'), registration.index('find "_Enable" < 0'))
         self.assertNotIn('_name find "Convoy"', (ROOT/'addons/core/functions/cortexTuningSpec.sqf').read_text())
 
+    def test_zen_is_optional_and_native_zeus_orders_remain_available(self):
+        config=(ROOT/'addons/main/config.cpp').read_text()
+        inventory=(ROOT/'docs/CURRENT-INVENTORY.md').read_text()
+        readme=(ROOT/'README.md').read_text()
+        zen=(ROOT/'addons/main/bootstrap/zenRegister.sqf').read_text()
+        self.assertNotIn('zen_main',config.lower())
+        self.assertIn('ZEN is optional',inventory)
+        self.assertIn('native Zeus orders',inventory)
+        self.assertIn('ZEN is optional',readme)
+        self.assertIn('isNil "zen_custom_modules_fnc_register"',zen)
+
     def test_cba_uses_shared_activation_without_a_second_settings_writer(self):
         registration=(ROOT/'addons/core/functions/aiTweaksRegisterSettings.sqf').read_text()
         tuning=(ROOT/'addons/core/functions/cortexTuning.sqf').read_text()
