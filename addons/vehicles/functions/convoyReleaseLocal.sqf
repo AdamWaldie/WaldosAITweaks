@@ -4,13 +4,21 @@
  * per-vehicle baselines; cancels only follower paths.
  * Locality/authority: server owns registration; driving commands execute only on current owners.
  * Repeat/JIP: ordered registry snapshots replace old settings; owner-local paths rebuild on migration.
- * Arguments: 0: group <GROUP>, grpNull; 1: forget baseline <BOOL>, true; 2: baseline <ARRAY>, [] reads the locally received baseline; 3: still-controlled vehicles <ARRAY>, [].
+ * Arguments: 0: group <GROUP>, grpNull; 1: forget baseline <BOOL>, true; 2: baseline <ARRAY>, [] reads the locally received baseline; 3: still-controlled vehicles <ARRAY>, []; 4: cancellation reason <STRING, RELEASED>.
  * Return Value: Nothing.
  * Current callers: ConvoySync and ConvoyTick.
  * Example: [convoyGroup] call WAIT_fnc_ConvoyReleaseLocal;
  */
-params [["_group", grpNull, [grpNull]], ["_forget", true, [true]], ["_restore", [], [[]]], ["_keepCrew", [], [[]]]];
+params [["_group", grpNull, [grpNull]], ["_forget", true, [true]], ["_restore", [], [[]]], ["_keepCrew", [], [[]]], ["_reason", "RELEASED", [""]]];
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
+if (local _group) then {
+    private _state = _group getVariable ["WAIT_Convoy_LocalState",createHashMap];
+    private _generation = _state getOrDefault ["operationGeneration",-1];
+    private _operation = _group getVariable ["WAIT_Operation",createHashMap];
+    if (_generation >= 0 && {(_operation getOrDefault ["intent",""]) == "CONVOY"}) then {
+        [_group,_generation,toUpperANSI _reason] call WAIT_fnc_OperationCancel;
+    };
+};
 if (_restore isEqualTo []) then {_restore = _group getVariable ["WAIT_Convoy_Restore", []]};
 if (_restore isNotEqualTo []) then {
     _restore params ["_formation", "_attack", "_vehicles"];

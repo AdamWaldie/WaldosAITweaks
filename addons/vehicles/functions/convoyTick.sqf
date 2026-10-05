@@ -30,14 +30,25 @@ private _zeus = [_group] call WAIT_fnc_CortexZeusHeld;
 if (_paused || {_playerCrew} || {_zeus}) exitWith {
     [_group,_configuration,true] call WAIT_fnc_ConvoyDismountLocal;
     if (!(_group getVariable ["WAIT_Convoy_Suspended", false])) then {
-        [_group, false, _restore] call WAIT_fnc_ConvoyReleaseLocal;
+        private _reason = if (_zeus) then {"ZEUS"} else {if (_playerCrew) then {"PLAYER"} else {"EXTERNAL_OWNER"}};
+        [_group, false, _restore, [], _reason] call WAIT_fnc_ConvoyReleaseLocal;
         _group setVariable ["WAIT_Convoy_Suspended", true];
         if (local _group) then {_group setVariable ["WAIT_Convoy_ContactProgress", nil, true]};
     };
 };
 _group setVariable ["WAIT_Convoy_Suspended", false];
 [_group, _configuration] call WAIT_fnc_ConvoyCrewLocal;
-if (_phase == "HALT" || {!local _group}) exitWith {};
+if (_phase == "HALT") exitWith {
+    if (local _group) then {
+        private _generation = _state getOrDefault ["operationGeneration",-1];
+        private _reason = toUpperANSI (_configuration param [8,"MANUAL"]);
+        if (_generation >= 0) then {
+            if (_reason == "ARRIVED") then {[_group,_generation,"COMPLETE","ARRIVED"] call WAIT_fnc_OperationRelease}
+            else {[_group,_generation,_reason] call WAIT_fnc_OperationCancel};
+        };
+    };
+};
+if (!local _group) exitWith {};
 private _vehicles = _registered select {alive _x && {canMove _x} && {local _x} && {alive driver _x} && {local driver _x}
     && {group driver _x == _group} && {!((driver _x) getVariable ["ACE_isUnconscious", false])} && {lifeState driver _x != "INCAPACITATED"}};
 // Do not treat temporary split locality as damage or arrival.
@@ -64,6 +75,10 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
     private _progress = if (_savedProgress isNotEqualTo [] && {(_savedProgress select 0) == _revision}) then {+(_savedProgress select 1)} else {[]};
     _state = createHashMapFromArray [["revision", _revision], ["lead", _lead], ["frontTrails", _resumeTrails],
         ["heading", getDir _lead], ["vehicles", +_vehicles], ["followers", _resumeFollowers], ["speedLimits", createHashMap], ["contactProgress", _progress]];
+    private _objective = if (count waypoints _group > 0) then {waypointPosition [_group,(count waypoints _group)-1]} else {getPosATL _lead};
+    private _operation = [_group,"CONVOY",_objective,[],[_objective],"TRAVEL"] call WAIT_fnc_OperationStart;
+    _state set ["operationGeneration",_operation getOrDefault ["generation",-1]];
+    _state set ["operationDue",time];
     _group setVariable ["WAIT_Convoy_LocalState", _state];
     private _specs = createHashMap;
     {
@@ -92,6 +107,14 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
         };
     } forEach _vehicles;
     _state set ["pathOwners",_initialPathOwners];
+};
+private _operationGeneration = _state getOrDefault ["operationGeneration",-1];
+if (_operationGeneration >= 0 && {time >= (_state getOrDefault ["operationDue",time])}) then {
+    private _operationState = [_group,_operationGeneration,3,120,true] call WAIT_fnc_OperationStep;
+    _state set ["operationDue",time+5];
+    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
+        [_group,false,_restore,_registered,_operationState] call WAIT_fnc_ConvoyReleaseLocal;
+    };
 };
 // Active waypoints can change formation after initial setup. Enforce the convoy
 // formation only while this owner controls travel; suspension above preserves Zeus control.

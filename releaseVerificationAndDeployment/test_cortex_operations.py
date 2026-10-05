@@ -2995,6 +2995,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('case "CONVOY"',scheduler)
         self.assertIn('case "CONVOY"',reconcile)
 
+    def test_convoy_travel_has_one_matching_operation_and_terminal_halt(self):
+        tick=source('convoyTick')
+        release=source('convoyReleaseLocal')
+        eligible=source('cortexIsEligible')
+        operation_step=source('operationStep')
+        self.assertIn('[_group,"CONVOY",_objective,[],[_objective],"TRAVEL"] call WAIT_fnc_OperationStart',tick)
+        self.assertIn('["operationGeneration",_operation getOrDefault ["generation",-1]]',tick)
+        self.assertIn('[_group,_operationGeneration,3,120,true] call WAIT_fnc_OperationStep',tick)
+        self.assertIn('[_group,_generation,"COMPLETE","ARRIVED"] call WAIT_fnc_OperationRelease',tick)
+        self.assertIn('[_group,_generation,_reason] call WAIT_fnc_OperationCancel',tick)
+        self.assertIn('[_group,_generation,toUpperANSI _reason] call WAIT_fnc_OperationCancel',release)
+        self.assertIn('_allowFeatureOwner',eligible)
+        self.assertIn('_allowFeatureOwner',operation_step)
+
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_RouteRecovery_Enable','["routeWatch",',
@@ -3894,7 +3908,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_aircraft_crew_never_acquire_generic_group_ownership(self):
         eligibility=source('cortexIsEligible')
-        self.assertIn('params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]]]',eligibility)
+        self.assertIn('["_allowFeatureOwner",false,[true]]',eligibility)
         self.assertIn('_groundPass && {_alive findIf',eligibility)
         self.assertIn('_vehicle isKindOf "Air"',eligibility)
         discover=source('cortexDiscover')
