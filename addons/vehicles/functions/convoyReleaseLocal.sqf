@@ -22,11 +22,18 @@ if (local _group) then {
 if (_restore isEqualTo []) then {_restore = _group getVariable ["WAIT_Convoy_Restore", []]};
 if (_restore isNotEqualTo []) then {
     _restore params ["_formation", "_attack", "_vehicles"];
-    // A route, curator or specialist controller can take the group between the
-    // convoy cancellation above and this delayed baseline restore.  The saved
-    // convoy values are evidence only once that happens: restoring formation,
-    // attack permission or follower paths would overwrite the replacement task.
-    private _mayRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+    // A feature shutdown must restore the column's own baseline. A route, curator,
+    // player or specialist controller is different: it owns the replacement order and
+    // the saved convoy formation, attack permission and follower paths are evidence only.
+    private _externalTakeover = local _group && {
+        isPlayer leader _group
+        || {(units _group) findIf {isPlayer _x} >= 0}
+        || {[_group] call WAIT_fnc_CortexZeusHeld}
+        || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
+        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
+        || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+    };
+    private _mayRestoreGroup=local _group && {!_externalTakeover};
     if (_mayRestoreGroup) then {
         if (formation _group == "COLUMN") then {_group setFormation _formation};
         _group enableAttack _attack;

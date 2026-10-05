@@ -37,9 +37,16 @@
 params ["_group","_state"];
 if (!local _group) exitWith {};
 // The reservation may expire in the same scheduler turn that Zeus or another
-// controller claims the group.  Retire WAIT's lease either way, but do not
-// restore its saved combat permissions into the replacement task.
-private _mayRestoreGroup=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;
+// controller claims the group. Retire WAIT's lease either way. A normal feature
+// shutdown still restores the support hold; only an actual replacement owner keeps
+// the saved combat permissions and follower commands out of its task.
+private _externalTakeover = isPlayer leader _group
+    || {(units _group) findIf {isPlayer _x} >= 0}
+    || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _mayRestoreGroup=!_externalTakeover;
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
 private _movementLeaseActive = count _movementLease == 2 && {time < (_movementLease select 1)} && {
@@ -167,7 +174,7 @@ if (_newMove || {!_coordinating}) then {
             // is not a valid ownership check. Preserve commands which cannot be a
             // combat-side effect of the hold. A new bound supplies its own target.
             private _command=toUpperANSI currentCommand _x;
-            if (!_coordinating && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}) then {
+            if (_mayRestoreGroup && {!_coordinating} && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}) then {
                 _x doFollow leader _group;
             };
         };

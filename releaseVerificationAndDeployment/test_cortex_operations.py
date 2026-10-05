@@ -1797,6 +1797,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_canRestoreGroup && {"team" in (_x select 2)}',stop)
         self.assertLess(stop.index('private _canRestoreGroup='),stop.index('doFollow leader _group'))
 
+    def test_delayed_vehicle_and_building_release_restore_shutdown_but_yield_to_external_owners(self):
+        for name in ['convoyReleaseLocal','cortexBuildingBackendRelease']:
+            release=source(name)
+            self.assertIn('private _externalTakeover = local _group && {',release)
+            for marker in ['isPlayer leader _group','WAIT_fnc_CortexZeusHeld',
+                           'WAIT_fnc_CortexExternalOwner','WAIT_fnc_CompatibilityExternalControl']:
+                self.assertIn(marker,release)
+            expected='private _mayRestoreGroup=local _group && {!_externalTakeover};' if name == 'convoyReleaseLocal' else 'private _mayRestore=local _group && {!_externalTakeover};'
+            self.assertIn(expected,release)
+            self.assertNotIn('[_group,false,false,true] call WAIT_fnc_CortexIsEligible',release)
+
     def test_master_stop_cancels_explicit_orders_on_their_owner(self):
         text = source('cortexStop')
         cleanup = text.split('if (local _x) then {\n')[1].split('};')[0]
@@ -3234,21 +3245,24 @@ class CortexOperations(unittest.TestCase):
 
     def test_convoy_release_does_not_restore_over_an_external_group_owner(self):
         release=source('convoyReleaseLocal')
-        self.assertIn('private _mayRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};',release)
+        self.assertIn('private _externalTakeover = local _group && {',release)
+        self.assertIn('private _mayRestoreGroup=local _group && {!_externalTakeover};',release)
         self.assertIn('if (_mayRestoreGroup) then {',release)
         self.assertIn('if (_mayRestoreGroup && {!isNull _driver}',release)
         self.assertLess(release.index('private _mayRestoreGroup='),release.index('setFormation _formation'))
 
     def test_delegated_building_release_removes_its_task_without_overwriting_a_new_owner(self):
         release=source('cortexBuildingBackendRelease')
-        self.assertIn('private _mayRestore=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};',release)
+        self.assertIn('private _externalTakeover = local _group && {',release)
+        self.assertIn('private _mayRestore=local _group && {!_externalTakeover};',release)
         self.assertIn('if (_mayRestore && {count _groupState == 10}) then {',release)
         self.assertIn('if (_mayRestore && {_restore} && {alive _unit}',release)
         self.assertLess(release.index('private _mayRestore='),release.index('deleteWaypoint _x'))
 
     def test_expired_support_reservation_does_not_restore_attack_over_a_new_owner(self):
         maintain=source('cortexSupportMaintain')
-        self.assertIn('private _mayRestoreGroup=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;',maintain)
+        self.assertIn('private _externalTakeover =',maintain)
+        self.assertIn('private _mayRestoreGroup=!_externalTakeover;',maintain)
         self.assertIn('if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]})',maintain)
         self.assertLess(maintain.index('private _mayRestoreGroup='),maintain.index('private _restoreAttack='))
 

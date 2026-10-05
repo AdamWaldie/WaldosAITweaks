@@ -42,10 +42,18 @@ _group setVariable ["WAIT_Cortex_BuildingBackendBackend",nil];
 if (_migration) exitWith {true};
 
 // Retiring the delegated task is always safe: its handles and markers belong to the
-// old task.  Restoring its baseline is different.  A curator or another controller
-// may have claimed the group before this delayed release executes, and its current
-// formation, stance and follower paths are then not ours to change.
-private _mayRestore=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+// old task. Restoring its baseline is different. A feature shutdown must still undo
+// the task's own restrictions, while a curator, player or other controller may have
+// claimed the group before delayed release executes and owns the current state.
+private _externalTakeover = local _group && {
+    isPlayer leader _group
+    || {(units _group) findIf {isPlayer _x} >= 0}
+    || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+};
+private _mayRestore=local _group && {!_externalTakeover};
 
 // Remove only the waypoint(s) created by the delegated task. A later Zeus waypoint is not in this
 // captured list and remains untouched.
