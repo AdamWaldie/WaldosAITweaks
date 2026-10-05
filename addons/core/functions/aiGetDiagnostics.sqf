@@ -318,11 +318,22 @@ private _oldest=0;
 private _staleOwners=0;
 private _keyedJobs=0;
 private _earliestQueued=-1;
+private _maxCallbackMs=0;
+private _maxRecordedLatency=0;
+private _skippedJobs=0;
+private _skipReasons=createHashMap;
 {
     _x params ["_due","","_jobState"];
     if (_earliestQueued < 0 || {_due < _earliestQueued}) then {_earliestQueued=_due};
     if (_due < time) then {_overdue=_overdue+1; _oldest=_oldest max (time-_due)};
     if ((_jobState getOrDefault ["jobKey",""]) != "") then {_keyedJobs=_keyedJobs+1};
+    _maxCallbackMs=_maxCallbackMs max (_jobState getOrDefault ["lastCallbackMs",0]);
+    _maxRecordedLatency=_maxRecordedLatency max (_jobState getOrDefault ["queueLatency",0]);
+    private _skipReason=_jobState getOrDefault ["skippedReason",""];
+    if (_skipReason != "") then {
+        _skippedJobs=_skippedJobs+1;
+        _skipReasons set [_skipReason,(_skipReasons getOrDefault [_skipReason,0])+1];
+    };
     private _jobGroup=_jobState getOrDefault ["group",grpNull];
     if (!isNull _jobGroup && {!local _jobGroup || {(_jobState getOrDefault ["ownerEpoch",-1]) != (_jobGroup getVariable ["WAIT_AIPass_Epoch",0])}}) then {_staleOwners=_staleOwners+1};
 } forEach _queue;
@@ -335,7 +346,7 @@ private _queueHint=if (_cacheConsistent) then {
 } else {
     "The scheduler deadline cache is missing or later than the earliest queued job. Restart Cortex or inspect queue mutation paths before trusting idle scheduling."
 };
-_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11. %12",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_queueHint]];
+_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11 maxCallbackMs=%12 maxRecordedQueueLatencySeconds=%13 skippedJobs=%14 skipReasons=%15. %16",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_maxCallbackMs,_maxRecordedLatency,_skippedJobs,_skipReasons,_queueHint]];
 // Coordinated work is server-owned, so expose the lease/turn state which an HC-only
 // group snapshot cannot explain. This is calculated only for an on-demand report.
 private _supportRequests=missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
@@ -441,7 +452,7 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
     };
     private _operation=_group getVariable ["WAIT_Operation",createHashMap];
     if (count _operation > 0) then {
-        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 cancellation=%10. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],_operation getOrDefault ["cancelReason",""]]];
+        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 recoveryAttempts=%10 unavailableActors=%11 cancellation=%12. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],count (keys (_operation getOrDefault ["recovery",createHashMap])),count (_operation getOrDefault ["unavailable",[]]),_operation getOrDefault ["cancelReason",""]]];
     };
     _checks pushBack ["ai",format ["cortex-group-context-%1",netId _group],"LOADED",format ["group=%1 phaseAgeSeconds=%2 lastSeenAgeSeconds=%3 morale=%4 moraleState=%5 investigating=%6 searchMembers=%7 reinforcementResponding=%8 dismounted=%9 withdrawnVehicles=%10 disabledFeatures=%11 externalControl=%12. Ages are owner-local; unknown uses -1. Stored intentions are not physical completion.",groupId _group,if ("phaseStart" in _state) then {time-(_state get "phaseStart")} else {-1},if ("lastSeen" in _state) then {time-(_state get "lastSeen")} else {-1},_state getOrDefault ["morale",-1],_state getOrDefault ["moraleState","UNKNOWN"],_state getOrDefault ["areaInvestigation",""],count (_state getOrDefault ["searchTeam",[]]),_state getOrDefault ["responding",false],count (_state getOrDefault ["dismounted",[]]),count (_state getOrDefault ["withdrawn",[]]),_group getVariable ["WAIT_AIPass_DisabledFeatures",[]],[_group] call WAIT_fnc_CompatibilityExternalControl]];
     private _actors=_members apply {[_x,currentCommand _x,round speed _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x,unitCombatMode _x]};

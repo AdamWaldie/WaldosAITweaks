@@ -141,6 +141,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('wait-operation-',diagnostics)
         self.assertIn('lastCallbackMs',source('cortexSchedulerTick'))
         self.assertIn('queueLatency',source('cortexSchedulerTick'))
+        for marker in ['maxCallbackMs','maxRecordedQueueLatencySeconds','skippedJobs=',
+                       'skipReasons=','recoveryAttempts=','unavailableActors=']:
+            self.assertIn(marker,diagnostics)
 
     def test_combined_ground_manoeuvre_uses_common_operation_lifecycle(self):
         combined=source('cortexCombinedArmsLocal')
