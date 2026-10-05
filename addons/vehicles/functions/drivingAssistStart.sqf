@@ -50,6 +50,11 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
         || {behaviour leader _group == "CARELESS"}
         || {currentWaypoint _group >= count waypoints _group}) then {_release=true};
     if (_release) then {[_vehicle] call WAIT_fnc_DrivingAssistRelease} else {
+        // Terrain sampling is deliberately sparse but may still overlap a newer Zeus or specialist
+        // order. Preserve that order at the actual cap/recovery command boundary.
+        private _mayIssueDriving = {
+            !([_group] call WAIT_fnc_CortexExternalTakeover)
+        };
         if (time >= (_vehicle getVariable ["WAIT_DrivingAssist_Next",-1])) then {
             // A new Zeus, mission or specialist cap may not advertise an ownership marker. The
             // last cap we applied is therefore the narrowest reliable lease check: once another
@@ -83,7 +88,7 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
             };
             private _saved=_previous param [0,-1];
             if (_saved > 0) then {_cap=_cap min _saved};
-            _vehicle forceSpeed _cap;
+            if (call _mayIssueDriving) then {_vehicle forceSpeed _cap};
             // Retain the owning group for diagnostics only. The lease remains the forced-speed
             // value: this reference never grants route or movement ownership to WAIT.
             // Native vehicles can abandon an otherwise valid MOVE command after a small collision
@@ -106,7 +111,7 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
             private _hasRoute=_waypointIndex < count waypoints _group;
             private _inCombat=behaviour leader _group in ["COMBAT","STEALTH"] || {getSuppression _driver > 0.1};
             if (_hasRoute && {!_inCombat} && {abs speed _vehicle < 1}
-                && {time-_progressAt >= 12} && {time >= _recoveryUntil}) then {
+                && {time-_progressAt >= 12} && {time >= _recoveryUntil} && {call _mayIssueDriving}) then {
                 private _waypoint=[_group,_waypointIndex];
                 private _destination=waypointPosition _waypoint;
                 if (waypointType _waypoint == "MOVE" && {_vehicle distance2D _destination > (waypointCompletionRadius _waypoint max 20)}) then {
