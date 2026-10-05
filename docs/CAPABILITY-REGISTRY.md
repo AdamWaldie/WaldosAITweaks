@@ -51,6 +51,6 @@ should not couple participation, spacing, contact response or passenger policy b
 | Crew retrieval | repair | Recover only seats still owned by the operation. A dismounted squad with a new task must retain that task. |
 | Teleport, automatic repair, unflip and temporary immunity | exclude from default recovery | These change physical gameplay and ambush outcomes; no adoption as an invisible stuck-vehicle workaround. |
 
-These are implementation decisions, not measured driving acceptance. General driving still needs
-production implementation, independent CBA controls and additive physical tests. The existing convoy
-settings do not enable general driving.
+These are implementation decisions, not measured driving acceptance. General driving has a production
+controller, independent CBA controls and additive static coverage; its physical vehicle and terrain
+acceptance remains pending. The existing convoy settings do not enable general driving.
