@@ -44,12 +44,7 @@ if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _gro
 // A newer Zeus, player or specialist owner may have replaced this order before this release
 // reaches the group owner. WAIT must still remove only its own state, but a feature gate change
 // is not an external order: it must release the held element back to its formation.
-private _externalTakeover = isPlayer leader _group
-    || {(units _group) findIf {isPlayer _x} >= 0}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 private _canRestore = _restore && {!_externalTakeover};
 private _leader = leader _group;
 {

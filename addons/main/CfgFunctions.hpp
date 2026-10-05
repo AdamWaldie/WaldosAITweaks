@@ -79,6 +79,7 @@ class CfgFunctions {
             class CortexDrillInterrupt {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexDrillInterrupt.sqf";};
             class CortexIsEligible {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexIsEligible.sqf";};
             class CortexExternalOwner {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexExternalOwner.sqf";};
+            class CortexExternalTakeover {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexExternalTakeover.sqf";};
             class CortexCivilianReact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianReact.sqf";};
             class CortexCivilianSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianSetup.sqf";};
             class CortexIsPaused {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexIsPaused.sqf";};

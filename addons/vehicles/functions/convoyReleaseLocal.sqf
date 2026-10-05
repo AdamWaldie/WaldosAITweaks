@@ -25,14 +25,7 @@ if (_restore isNotEqualTo []) then {
     // A feature shutdown must restore the column's own baseline. A route, curator,
     // player or specialist controller is different: it owns the replacement order and
     // the saved convoy formation, attack permission and follower paths are evidence only.
-    private _externalTakeover = local _group && {
-        isPlayer leader _group
-        || {(units _group) findIf {isPlayer _x} >= 0}
-        || {[_group] call WAIT_fnc_CortexZeusHeld}
-        || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-        || {[_group] call WAIT_fnc_CompatibilityExternalControl}
-    };
+    private _externalTakeover = local _group && {[_group] call WAIT_fnc_CortexExternalTakeover};
     private _mayRestoreGroup=local _group && {!_externalTakeover};
     if (_mayRestoreGroup) then {
         if (formation _group == "COLUMN") then {_group setFormation _formation};

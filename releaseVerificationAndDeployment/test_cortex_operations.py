@@ -515,10 +515,7 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         for release in [garrison,defend]:
             self.assertIn('["_restore",true,[true]]',release)
-            self.assertIn('private _externalTakeover = isPlayer leader _group',release)
-            self.assertIn('WAIT_fnc_CortexZeusHeld',release)
-            self.assertIn('WAIT_fnc_CortexExternalOwner',release)
-            self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+            self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',release)
             self.assertIn('private _canRestore = _restore && {!_externalTakeover};',release)
             self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',release)
             self.assertIn('_x doFollow _leader',release)
@@ -1798,12 +1795,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(stop.index('private _canRestoreGroup='),stop.index('doFollow leader _group'))
 
     def test_delayed_vehicle_and_building_release_restore_shutdown_but_yield_to_external_owners(self):
+        takeover=source('cortexExternalTakeover')
+        for marker in ['isPlayer leader _group','WAIT_fnc_CortexZeusHeld',
+                       'WAIT_fnc_CortexExternalOwner','WAIT_fnc_CompatibilityExternalControl']:
+            self.assertIn(marker,takeover)
+        self.assertIn('if (isNull _group) exitWith {true};',takeover)
         for name in ['convoyReleaseLocal','cortexBuildingBackendRelease']:
             release=source(name)
-            self.assertIn('private _externalTakeover = local _group && {',release)
-            for marker in ['isPlayer leader _group','WAIT_fnc_CortexZeusHeld',
-                           'WAIT_fnc_CortexExternalOwner','WAIT_fnc_CompatibilityExternalControl']:
-                self.assertIn(marker,release)
+            self.assertIn('private _externalTakeover = local _group && {[_group] call WAIT_fnc_CortexExternalTakeover};',release)
             expected='private _mayRestoreGroup=local _group && {!_externalTakeover};' if name == 'convoyReleaseLocal' else 'private _mayRestore=local _group && {!_externalTakeover};'
             self.assertIn(expected,release)
             self.assertNotIn('[_group,false,false,true] call WAIT_fnc_CortexIsEligible',release)
@@ -2444,10 +2443,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_clear_release_never_recalls_an_externally_owned_group(self):
         release=source('cortexClearRelease')
-        self.assertIn('private _externalTakeover = isPlayer leader _group',release)
-        self.assertIn('WAIT_fnc_CortexZeusHeld',release)
-        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
-        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',release)
         self.assertIn('then {_restore=false}',release)
         self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore) then {_x doFollow _leader}'))
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
@@ -2518,7 +2514,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,code)
             self.assertIn('toUpperANSI currentCommand _x',code)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',code)
-            self.assertIn('private _externalTakeover = isPlayer leader _group',code)
+            self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',code)
             self.assertIn('private _canRestore = _restore && {!_externalTakeover};',code)
             self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',code)
             for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
@@ -2868,9 +2864,7 @@ class CortexOperations(unittest.TestCase):
         regroup=source('cortexRegroupStep')
         guard=regroup.split('private _mayRestoreHeld = {',1)[1].split('private _finish = {',1)[0]
         finish=regroup.split('private _finish = {',1)[1].split('if (isNull _group',1)[0]
-        for marker in ['WAIT_fnc_CortexZeusHeld','WAIT_fnc_CortexExternalOwner',
-                       'WAIT_fnc_CompatibilityExternalControl']:
-            self.assertIn(marker,guard)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',guard)
         self.assertIn('if ([_group] call _mayRestoreHeld) then {',finish)
         self.assertLess(finish.index('if ([_group] call _mayRestoreHeld) then {'),
                         finish.index('_x doFollow (leader group _x)'))
@@ -3261,7 +3255,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_expired_support_reservation_does_not_restore_attack_over_a_new_owner(self):
         maintain=source('cortexSupportMaintain')
-        self.assertIn('private _externalTakeover =',maintain)
+        self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',maintain)
         self.assertIn('private _mayRestoreGroup=!_externalTakeover;',maintain)
         self.assertIn('if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]})',maintain)
         self.assertLess(maintain.index('private _mayRestoreGroup='),maintain.index('private _restoreAttack='))

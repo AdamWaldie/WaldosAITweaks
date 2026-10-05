@@ -45,14 +45,7 @@ if (_migration) exitWith {true};
 // old task. Restoring its baseline is different. A feature shutdown must still undo
 // the task's own restrictions, while a curator, player or other controller may have
 // claimed the group before delayed release executes and owns the current state.
-private _externalTakeover = local _group && {
-    isPlayer leader _group
-    || {(units _group) findIf {isPlayer _x} >= 0}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
-};
+private _externalTakeover = local _group && {[_group] call WAIT_fnc_CortexExternalTakeover};
 private _mayRestore=local _group && {!_externalTakeover};
 
 // Remove only the waypoint(s) created by the delegated task. A later Zeus waypoint is not in this

@@ -21,12 +21,7 @@ if (_order isEqualTo []) exitWith {false};
 // A disabled feature must still release WAIT's own movement lease.  Only an actual player,
 // Zeus, compatibility or specialist takeover suppresses a formation recall; broad eligibility
 // also includes normal feature gates and would otherwise leave a released clear element stopped.
-private _externalTakeover = isPlayer leader _group
-    || {(units _group) findIf {isPlayer _x} >= 0}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 if (_restore && {_externalTakeover}) then {_restore=false};
 _group setVariable ["WAIT_AIPass_ClearGeneration", (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 1];
 // A release often comes from a Zeus replacement order.  Invalidate the common operation now,

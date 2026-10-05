@@ -45,10 +45,7 @@ private _mayRestoreHeld = {
     params ["_candidate"];
     !isNull _candidate
         && {local _candidate}
-        && {!([_candidate] call WAIT_fnc_CortexZeusHeld)}
-        && {([leader _candidate] call WAIT_fnc_CortexExternalOwner) == ""}
-        && {(units _candidate) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} < 0}
-        && {!([_candidate] call WAIT_fnc_CompatibilityExternalControl)}
+        && {!([_candidate] call WAIT_fnc_CortexExternalTakeover)}
 };
 private _finish = {
     if (!isNull _group) then {

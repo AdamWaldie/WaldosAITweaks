@@ -40,12 +40,7 @@ if (!local _group) exitWith {};
 // controller claims the group. Retire WAIT's lease either way. A normal feature
 // shutdown still restores the support hold; only an actual replacement owner keeps
 // the saved combat permissions and follower commands out of its task.
-private _externalTakeover = isPlayer leader _group
-    || {(units _group) findIf {isPlayer _x} >= 0}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 private _mayRestoreGroup=!_externalTakeover;
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];

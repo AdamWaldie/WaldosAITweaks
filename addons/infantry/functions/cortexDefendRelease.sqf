@@ -36,12 +36,7 @@ if (!local _group) exitWith {
 if ((_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
 // Clear only WAIT's published order after an external takeover. A normal feature gate change
 // still returns the released defence element to formation; it is not an external movement order.
-private _externalTakeover = isPlayer leader _group
-    || {(units _group) findIf {isPlayer _x} >= 0}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 private _canRestore = _restore && {!_externalTakeover};
 private _leader = leader _group;
 {
