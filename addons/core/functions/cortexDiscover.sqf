@@ -224,7 +224,8 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                         ["generation",_generation],
                         ["side",_side],
                         ["step",0],
-                        ["subsystem","TACTICS"]
+                        ["subsystem","TACTICS"],
+                        ["jobKey",format ["MISSILE_DEFENCE:%1",netId _vehicle]]
                     ],0] call WAIT_fnc_CortexQueueJob;
                 }];
                 _vehicle setVariable ["WAIT_AIPass_FlaresHandler", _handler];

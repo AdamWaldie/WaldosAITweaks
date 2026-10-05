@@ -81,6 +81,11 @@ requests use the CBA server layer; callbacks perform local setup and cleanup.
 
 ## Shared queue ownership
 
+Event-driven jobs that represent a single owner and response may supply a stable, owner-local job
+key. A repeated observation then refreshes that callback's state and wake time rather than adding a
+second callback that will become stale later. Keying is opt-in: separate groups, projectiles,
+artillery missions and ordinary operations remain independent queue entries.
+
 Tactics and skill adjustment share one owner-local callback and the configured soft budget.
 Skill refresh examines at most ten registered units per second, writes only changed layers and
 continues when tactics are disabled or paused. Tactical job delays retain low-FPS backoff;

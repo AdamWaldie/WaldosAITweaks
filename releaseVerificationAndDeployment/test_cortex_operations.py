@@ -148,6 +148,7 @@ class CortexOperations(unittest.TestCase):
         handler=discover.split('addEventHandler ["IncomingMissile", {',1)[1].split('}];',1)[0]
         self.assertIn('WAIT_fnc_CortexMissileDefenceStep',handler)
         self.assertIn('WAIT_fnc_CortexQueueJob',handler)
+        self.assertIn('"jobKey",format ["MISSILE_DEFENCE:%1",netId _vehicle]',handler)
         self.assertNotIn(' spawn ',handler)
         self.assertNotIn(' sleep ',handler)
         for marker in ['WAIT_Cortex_FlareBurstGeneration','WAIT_Cortex_MissileDefenceActive',
@@ -4039,6 +4040,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_MissileDefenceActive',stop)
         self.assertLess(stop.index('WAIT_Cortex_FlareBurstGeneration'),
                         stop.index('WAIT_AIPass_FlaresHandler", nil'))
+
+    def test_keyed_scheduler_jobs_coalesce_only_when_the_caller_requests_it(self):
+        queue=source('cortexQueueJob')
+        self.assertIn('["_jobKey", "", [""]]',queue)
+        self.assertIn('if (_jobKey == "") then {_jobKey = _state getOrDefault ["jobKey", ""]}',queue)
+        self.assertIn('if (_jobKey != "") then {',queue)
+        self.assertIn('WAIT_AIPass_Jobs',queue)
+        self.assertIn('WAIT_AIPass_PendingJobs',queue)
+        self.assertIn('_existingState set ["wakeAt", _dueAt]',queue)
+        self.assertIn('_pending pushBack [_dueAt, _job, _state]',queue)
 
     def test_attack_flare_audit_preserves_missile_cases_and_uses_real_flight(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runAircraft.sqf').read_text()
