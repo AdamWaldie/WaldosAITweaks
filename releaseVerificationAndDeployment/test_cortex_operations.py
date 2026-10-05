@@ -3786,6 +3786,14 @@ class CortexOperations(unittest.TestCase):
             self.assertLess(adoption, text.index(reservation))
             self.assertLess(adoption, text.index('] call WAIT_fnc_CortexQueueJob'))
 
+    def test_airborne_drop_yields_before_each_jump_and_before_post_landing_orders(self):
+        step=source('cortexAirborneDropStep')
+        self.assertGreaterEqual(step.count('WAIT_fnc_CortexExternalTakeover'),2)
+        drop=step.split('if ((_job get "phase") == "DROP") exitWith {',1)[1].split('// LAND',1)[0]
+        landing=step.split('// LAND',1)[1]
+        self.assertLess(drop.index('WAIT_fnc_CortexExternalTakeover'),drop.index('WAIT_fnc_CortexParachuteJump'))
+        self.assertLess(landing.index('WAIT_fnc_CortexExternalTakeover'),landing.index('_group addWaypoint'))
+
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_attack_run_flares_are_separate_gated_owner_job(self):
         text=source('cortexAttackRunFlares')
