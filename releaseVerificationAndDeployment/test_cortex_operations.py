@@ -246,6 +246,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _dangerYield=[_group] call WAIT_fnc_CortexZeusHeld',tick)
         self.assertIn('if (!_dangerYield) then {[leader _group,"RESTORE"] call WAIT_fnc_DangerReact}',tick)
 
+    def test_live_danger_setting_reconfigures_owner_local_observers_without_a_second_worker(self):
+        callback=source('aiTweaksSettingChanged')
+        self.assertIn('if (_name == "WAIT_AIPass_Danger_Enable"',callback)
+        self.assertIn('{if (local _x) then {[_x] call WAIT_fnc_DangerSetup}} forEach allGroups;',callback)
+        self.assertNotIn('WAIT_fnc_CortexQueueJob',callback)
+        self.assertNotIn('CBA_fnc_addPerFrameHandler',callback)
+
     def test_group_release_yields_cleanup_to_zeus_and_other_active_owners(self):
         release=source('cortexReleaseGroup')
         self.assertIn('private _yieldToZeus=',release)
