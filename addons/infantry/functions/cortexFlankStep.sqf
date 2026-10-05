@@ -130,6 +130,11 @@ if (_operationGeneration >= 0) then {
 if (_operationEndReason != "") exitWith {_operationEndReason call _end};
 // External control and replacement orders win before any mode or movement mutation.
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _end};
+// A queued drill can run after a new direct owner appears. Recheck only at actual command
+// writes; route scoring and progress accounting remain bounded and do not issue movement.
+private _mayIssueMovement = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 // RED explicitly permits independent pursuit. That engine-owned ATTACK state replaces
 // individual doMove destinations and was the common cause of stalled bounds in live QA.
 // YELLOW preserves fire-at-will while keeping the group in formation. Give the engine one
@@ -277,7 +282,9 @@ if (_main isNotEqualTo []) then {
                 if (_operationGeneration >= 0) then {
                     [_group,_operationGeneration,_actor,_rally] call WAIT_fnc_RecoveryStep;
                 } else {
-                    _actor doMove _rally;
+                    if (call _mayIssueMovement) then {
+                        _actor doMove _rally;
+                    };
                 };
                 _x set [1,_attempts+1];
                 _x set [2,time+8];
@@ -453,10 +460,12 @@ private _issue = {
         // survive the immediate doMove, pulling this element back toward its leader.
         // Preserve the actor's target. Clearing it every bound created a visible pause
         // and made the movement element repeatedly reacquire the same contact.
-        doStop _unit;
-        _unit doWatch _enemyPos;
-        _unit doMove _spot;
-        _unit setDestination [_spot,"LEADER PLANNED",true];
+        if (call _mayIssueMovement) then {
+            doStop _unit;
+            _unit doWatch _enemyPos;
+            _unit doMove _spot;
+            _unit setDestination [_spot,"LEADER PLANNED",true];
+        };
     } forEach _units;
     private _waypointIndex = currentWaypoint _group;
     private _waypointSnapshot = [];
@@ -518,7 +527,8 @@ switch (_drill get "stage") do {
                     // to keep engaging while preventing an endless native ATTACK loop.
                     if (currentCommand _unit == "ATTACK"
                         && {_remaining > 3}
-                        && {_pursuitResetCount < 2}) then {
+                        && {_pursuitResetCount < 2}
+                        && {call _mayIssueMovement}) then {
                         if (_expected distance2D _spot > 15 || {_pursuitResetCount > 0}) then {_unit doTarget objNull};
                         _unit doWatch _enemyPos;
                         _unit doMove _spot;
@@ -544,7 +554,7 @@ switch (_drill get "stage") do {
                         && {((expectedDestination _unit) select 0) distance2D (_waypoint select 1) < 1};
                     if ((_now-(_last select 3) >= 8 || {_returnedToWaypoint}) && {_now-(_retry select 1) >= 8}
                         && {(_retry select 0) < 2} && {_unit checkAIFeature "PATH"}
-                        && {_unit checkAIFeature "MOVE"}) then {
+                        && {_unit checkAIFeature "MOVE"} && {call _mayIssueMovement}) then {
                         // Replan the same destination; do not move the actor or waive arrival.
                         // Reissue only the movement destination. Target ownership is
                         // independent and must survive a path recovery attempt.

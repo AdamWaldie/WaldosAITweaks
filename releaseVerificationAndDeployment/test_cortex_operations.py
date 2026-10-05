@@ -627,6 +627,15 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(armour.index('if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};', armour.index('if (_blocked) exitWith {')),
                         armour.index('_gunner doMove _spot;'))
         self.assertIn('&& {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {',grenade)
+    def test_tactical_drills_recheck_takeover_before_bound_and_retry_commands(self):
+        step=source('cortexFlankStep')
+        self.assertIn('private _mayIssueMovement = {',step)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',step)
+        self.assertIn('if (call _mayIssueMovement) then {',step)
+        self.assertIn('&& {call _mayIssueMovement}) then {',step)
+        for command in ['_actor doMove _rally;','_unit doMove _spot;','_unit doMove (_spots select _forEachIndex);']:
+            index=step.index(command)
+            self.assertIn('_mayIssueMovement',step[max(0,index-800):index])
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
