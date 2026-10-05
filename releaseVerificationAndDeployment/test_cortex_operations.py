@@ -243,6 +243,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _dangerYield=[_group] call WAIT_fnc_CortexZeusHeld',tick)
         self.assertIn('if (!_dangerYield) then {[leader _group,"RESTORE"] call WAIT_fnc_DangerReact}',tick)
 
+    def test_group_release_yields_cleanup_to_zeus_and_other_active_owners(self):
+        release=source('cortexReleaseGroup')
+        self.assertIn('private _yieldToZeus=',release)
+        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('"EXTERNAL_TAKEOVER"',release)
+        self.assertIn('_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]',release)
+
     def test_group_move_commits_equivalent_requests_without_waypoint_churn(self):
         move=source('cortexGroupMove')
         clear=source('cortexGroupMoveClear')
@@ -555,11 +563,13 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexReleaseGroup')
         restore=source('cortexRestoreCalm')
         flank_end=source('cortexFlankEnd')
-        self.assertIn('private _yieldToExternal=local _group && {[_group] call WAIT_fnc_CortexZeusHeld}',release)
-        self.assertIn('private _externalTakeover=_yieldToExternal || {_reason == "ZEUS_TAKEOVER"}',release)
+        self.assertIn('private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld}',release)
+        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('private _externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
         self.assertIn('["RELEASE","ZEUS"] select _externalTakeover',release)
         self.assertIn('[_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm',release)
-        self.assertIn('["RELEASED","ZEUS_TAKEOVER"] select _yieldToExternal',release)
+        self.assertIn('"EXTERNAL_TAKEOVER"',release)
         self.assertIn('["_yieldToExternal",false,[true]]',restore)
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]}',restore)
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]})',restore)

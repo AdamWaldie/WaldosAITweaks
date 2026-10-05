@@ -23,7 +23,8 @@
  * 1: forget <BOOL> - also clear the managed flag so discovery may pick the group up again
  *    (optional, default: true)
  * 2: transition reason <STRING> - published with the CALM handover. Empty selects
- *    ZEUS_TAKEOVER when an external hold is active, otherwise RELEASED (optional, default: "").
+ *    ZEUS_TAKEOVER or EXTERNAL_TAKEOVER when another controller owns the group, otherwise RELEASED
+ *    (optional, default: "").
  *
  * Return Value:
  * Nothing
@@ -39,9 +40,15 @@
 params [["_group", grpNull, [grpNull]], ["_forget", true, [false]], ["_reason", "", [""]]];
 if (isNull _group) exitWith {};
 private _state = _group getVariable ["WAIT_AIPass_State", createHashMap];
-private _yieldToExternal=local _group && {[_group] call WAIT_fnc_CortexZeusHeld};
-if (_reason == "") then {_reason=["RELEASED","ZEUS_TAKEOVER"] select _yieldToExternal};
-private _externalTakeover=_yieldToExternal || {_reason == "ZEUS_TAKEOVER"};
+private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld};
+private _yieldToExternal=local _group && {!_yieldToZeus} && {
+    [leader _group] call WAIT_fnc_CortexExternalOwner != ""
+        || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+};
+if (_reason == "") then {
+    _reason=if (_yieldToZeus) then {"ZEUS_TAKEOVER"} else {if (_yieldToExternal) then {"EXTERNAL_TAKEOVER"} else {"RELEASED"}};
+};
+private _externalTakeover=_yieldToZeus || {_yieldToExternal} || {_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (local _group && {count _operation > 0}) then {
     [_group,_operation getOrDefault ["generation",-1],_reason] call WAIT_fnc_OperationCancel;

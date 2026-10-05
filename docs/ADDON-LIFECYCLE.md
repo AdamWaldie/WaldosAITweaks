@@ -133,10 +133,10 @@ participation gates. Native danger behaviour remains installed: this is not an e
 or proof that reaction and CQB behaviours work.
 
 Owner epochs and FSM generations prevent old callbacks from acting after transfer or restart. Zeus
-hold-token changes and replacement waypoints terminate the FSM and clear the response before another
-controller can consume it. Interruption explicitly releases only the temporary behaviour and combat-mode
-values that the response lease still owns, so a Zeus order, feature disable, pause or locality handover
-cannot leave a stale COMBAT/ROE posture behind. Eligibility checks preserve external animation/combat
-ownership. The new owner starts from observations received locally. Queued acceptance
+hold-token changes, replacement waypoints and active external-controller ownership terminate the FSM and
+clear the response before another controller can consume it. Interruption explicitly releases only the
+temporary behaviour and combat-mode values that the response lease still owns, so a Zeus order, external
+controller, feature disable, pause or locality handover cannot leave a stale COMBAT/ROE posture behind.
+Eligibility checks preserve external animation/combat ownership. The new owner starts from observations received locally. Queued acceptance
 covers priority/expiry, sustained fire, no knowledge leakage, disabled state, leader casualties, Zeus,
 external ownership, locality transfer, physical reaction and 50 mixed-group frame-time comparison.
