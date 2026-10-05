@@ -209,7 +209,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         if (unitPos _x == "UP" && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
                             _x setUnitPos (_x getVariable ["WAIT_Cortex_ClearStance","AUTO"]);
                         };
-                        if (getForcedSpeed _x == 4 && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}}) then {
+                        if (!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
                             _x forceSpeed (_x getVariable ["WAIT_Cortex_ClearForcedSpeed",-1]);
                         };
                         if (_restore) then {
@@ -218,6 +218,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         };
                     };
                     _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];
+                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil];
                     _x setVariable ["WAIT_Cortex_ClearStance",nil];
                 };
             } forEach (_job get "team");
@@ -461,7 +462,9 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                                 _unit setVariable ["WAIT_Cortex_ClearStance",unitPos _unit];
                                 _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
                                 _unit setUnitPos "UP";
-                                _unit forceSpeed 4;
+                                private _clearSpeed=[4.5,5] select (combatMode _group in ["YELLOW","RED"]);
+                            _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed];
+                            _unit forceSpeed _clearSpeed;
                                 _started pushBack _unit;
                             };
                             private _unitTarget=if (_unit == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
@@ -495,7 +498,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         _lastProgress=_now;
                     } else {
                         private _commandEnded=_pair findIf {currentCommand _x in ["","STOP"]} >= 0;
-                        private _retryDelay=[25,6] select _commandEnded;
+                        private _retryDelay=[12,4] select _commandEnded;
                         if (_now-_lastProgress > _retryDelay) then {
                             if (_retries < 3) then {
                                 {
@@ -623,4 +626,3 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
 ], 0] call WAIT_fnc_CortexQueueJob;
 diag_log format ["[WAIT] %1 clearing %2 (%3 positions, %4 soldiers, %5 entrances)", _group, typeOf _building, count _positions, count _team, count _entries];
 true
-

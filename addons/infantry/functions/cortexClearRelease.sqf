@@ -39,13 +39,14 @@ private _leader=leader _group;
             if (unitPos _x == "UP" && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
                 _x setUnitPos (_x getVariable ["WAIT_Cortex_ClearStance","AUTO"]);
             };
-            if (getForcedSpeed _x == 4 && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}}) then {
+            if (!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_ClearForcedSpeed",-1]);
             };
             if (_restore) then {_x doFollow _leader};
         };
         _x setVariable ["WAIT_Cortex_ClearStance",nil];
         _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];
+                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil];
     };
 } forEach units _group;
 true
