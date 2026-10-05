@@ -65,11 +65,10 @@ if (_restore isNotEqualTo []) then {
             private _driver = driver _vehicle;
             private _externalCrew = (crew _vehicle) findIf {
                 private _crewGroup = group _x;
-                [_x] call WAIT_fnc_CortexExternalOwner != ""
-                || {[_crewGroup] call WAIT_fnc_CompatibilityExternalControl}
-                || {[_crewGroup] call WAIT_fnc_CortexZeusHeld}
-                || {isPlayer _x}
-                || {isPlayer leader _crewGroup}
+                // The release can run after a replacement controller claimed just one crew
+                // member. Do not issue a formation recall to that vehicle unless every crew
+                // group remains outside the common Zeus/player/specialist handover boundary.
+                [_crewGroup] call WAIT_fnc_CortexExternalTakeover
             } >= 0;
             if (_mayRestoreGroup && {!isNull _driver} && {!_externalCrew} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
         };

@@ -36,12 +36,15 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
     private _vehicle=_x;
     private _driver=driver _vehicle;
     private _release=false;
+    // Driving must make the same ownership decision as every other delayed controller. A group
+    // member becoming player-controlled or specialist-owned is enough to retire the sparse speed
+    // cap before it can issue a recovery move; the individual driver checks below retain the
+    // vehicle-specific local/remote-control safety boundary.
+    private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
     if (!_enabled || {!local _vehicle} || {isNull _driver} || {isPlayer _driver}
         || {!isNull (_driver getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
         || {[_driver] call WAIT_fnc_CortexExternalOwner != ""}
-        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-        || {[_group] call WAIT_fnc_CortexZeusHeld}
-        || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+        || {_yieldToOwner}
         || {_vehicle getVariable ["WAIT_Convoy_Active",false]}
         || {!isNil {_vehicle getVariable "WAIT_ExternalDrivingOwner"}}
         || {behaviour leader _group == "CARELESS"}

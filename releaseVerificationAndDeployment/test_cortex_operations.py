@@ -3240,8 +3240,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7',diagnostics)
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
         self.assertIn('private _externalCrew',release)
-        self.assertIn('[_x] call WAIT_fnc_CortexExternalOwner != ""',release)
-        self.assertIn('[_crewGroup] call WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('[_crewGroup] call WAIT_fnc_CortexExternalTakeover',release)
         self.assertIn('{!_externalCrew}',release)
 
     def test_convoy_release_does_not_restore_over_an_external_group_owner(self):
@@ -4463,7 +4462,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Convoy driving is configured separately',spec)
         self.assertIn('WAIT_Convoy_Active',start)
         self.assertIn('WAIT_fnc_DrivingAssistRelease',start)
-        self.assertIn('[_driver] call WAIT_fnc_CortexExternalOwner != ""',start)
+        self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',start)
         self.assertIn('getTerrainHeightASL _sample',start)
         self.assertIn('time+4',start)
         self.assertIn('forceSpeed _cap',start)
