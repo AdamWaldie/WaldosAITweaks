@@ -398,7 +398,7 @@ taken over once they land (see Exclusions).
 ## External controller ownership
 
 WAIT requires CBA; ZEN is optional. Optional controllers may retain immediate danger, driving, civilian or
-specialist animation ownership. Compatibility detection does not make these additional dependencies.
+specialist animation ownership. Compatibility detection does not make these additional dependencies. A live external owner on any group member makes WAIT release only its own restrictions rather than restoring the group's previous movement state.
 
 Finite movement leases refuse conflicting active tactics. Completion, cancellation, expiry, locality
 migration and Zeus takeover restore exact prior ownership markers, including originally absent

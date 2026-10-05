@@ -76,6 +76,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('_externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
         self.assertIn('"EXTERNAL_TAKEOVER"',release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',release)
+        self.assertIn('(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',release)
     def test_report_transport_contains_positions_not_enemy_objects(self):
         report = src('cortexContactReport')
         self.assertIn('+(_x select 1)',report)

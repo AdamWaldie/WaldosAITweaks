@@ -43,6 +43,7 @@ private _state = _group getVariable ["WAIT_AIPass_State", createHashMap];
 private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld};
 private _yieldToExternal=local _group && {!_yieldToZeus} && {
     [leader _group] call WAIT_fnc_CortexExternalOwner != ""
+        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
         || {[_group] call WAIT_fnc_CompatibilityExternalControl}
 };
 if (_reason == "") then {
