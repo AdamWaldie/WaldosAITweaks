@@ -2380,10 +2380,10 @@ class CortexOperations(unittest.TestCase):
     def test_withdrawal_smoke_cannot_leave_the_route_owner_staring_at_the_screen(self):
         text=source('cortexRetreat')
         self.assertIn('_smokers=(_smokers select {_x != _leader})+(_smokers select {_x == _leader});',text)
-        self.assertIn('WAIT_Cortex_WithdrawalIntent",[]]) isNotEqualTo _intent',text)
-        self.assertIn('WAIT_AIPass_ZeusHold",[]]) isNotEqualTo []',text)
-        self.assertIn('(_lease select 0) == "INFANTRY_WITHDRAW"',text)
-        self.assertIn('if (_smoker == leader _group) then {_smoker doMove _target} else {_smoker doFollow leader _group};',text)
+        self.assertIn('if ([_x, _enemyPos, "SMOKE"] call WAIT_fnc_CortexThrowGrenade) exitWith {};',text)
+        self.assertNotIn('CBA_fnc_waitAndExecute',text)
+        self.assertNotIn('_smoker doMove',text)
+        self.assertNotIn('_smoker doFollow',text)
 
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
         checkpoint=source('cortexCheckpoint')
