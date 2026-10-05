@@ -404,7 +404,7 @@ Finite movement leases refuse conflicting active tactics. Completion, cancellati
 migration and Zeus takeover restore exact prior ownership markers, including originally absent
 values. Specialist actors remain excluded while ordinary rifle squads remain eligible. Config-level
 weapon adjustments stay active; WAIT avoids stacking penalties where an external turret policy owns
-that adjustment. Convoys pause competing driving and crew-return work for registered vehicles only.
+that adjustment. Convoys pause competing driving and crew-return work for registered vehicles only. An active external owner on any registered occupant pauses WAIT convoy driving, crew and passenger handling; it does not clear the vehicle's native route or force any occupant to change seats.
 Building orders may delegate to an available public task interface with tracked intent and cleanup.
 Naval delivery yields to an existing external owner.
 

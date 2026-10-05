@@ -24,7 +24,8 @@ _configuration params ["_revision", "_speed", "_separation", "_pushThrough", "_r
 if (time < (_group getVariable ["WAIT_Convoy_NextTick", -1])) exitWith {};
 _group setVariable ["WAIT_Convoy_NextTick", time + 1];
 private _state = _group getVariable ["WAIT_Convoy_LocalState", createHashMap];
-private _paused = [] call WAIT_fnc_CortexIsPaused || {[_group] call WAIT_fnc_CompatibilityExternalControl} || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])};
+private _externalCrew = _registered findIf {(crew _x) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0} >= 0;
+private _paused = [] call WAIT_fnc_CortexIsPaused || {[_group] call WAIT_fnc_CompatibilityExternalControl} || {_externalCrew} || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])};
 private _playerCrew = _registered findIf {(crew _x) findIf {isPlayer _x || {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}} >= 0} >= 0;
 private _zeus = [_group] call WAIT_fnc_CortexZeusHeld;
 if (_paused || {_playerCrew} || {_zeus}) exitWith {

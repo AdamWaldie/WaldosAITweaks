@@ -79,6 +79,8 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',release)
         for name in ['dangerActionSelect','dangerReact','dangerStep','dangerRequest']:
             self.assertIn('(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',src(name))
+        for name in ['convoyTick','convoyCrewLocal']:
+            self.assertIn('private _externalCrew',src(name))
     def test_report_transport_contains_positions_not_enemy_objects(self):
         report = src('cortexContactReport')
         self.assertIn('+(_x select 1)',report)

@@ -4306,6 +4306,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Convoy driving is configured separately',spec)
         self.assertIn('WAIT_Convoy_Active',start)
         self.assertIn('WAIT_fnc_DrivingAssistRelease',start)
+        self.assertIn('[_driver] call WAIT_fnc_CortexExternalOwner != ""',start)
         self.assertIn('getTerrainHeightASL _sample',start)
         self.assertIn('time+4',start)
         self.assertIn('forceSpeed _cap',start)

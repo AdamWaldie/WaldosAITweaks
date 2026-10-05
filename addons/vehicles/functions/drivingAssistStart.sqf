@@ -38,6 +38,8 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
     private _release=false;
     if (!_enabled || {!local _vehicle} || {isNull _driver} || {isPlayer _driver}
         || {!isNull (_driver getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        || {[_driver] call WAIT_fnc_CortexExternalOwner != ""}
+        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
         || {[_group] call WAIT_fnc_CortexZeusHeld}
         || {[_group] call WAIT_fnc_CompatibilityExternalControl}
         || {_vehicle getVariable ["WAIT_Convoy_Active",false]}

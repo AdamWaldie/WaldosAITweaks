@@ -15,7 +15,9 @@ if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
 _configuration params ["_revision", "", "", "", "_vehicles", "_phase", "_cargo", "_restore", ["_reason", "MANUAL"], ["_threat", []], ["_deadline", 0]];
 if (time < (_group getVariable ["WAIT_Convoy_CrewDue", -1])) exitWith {};
 _group setVariable ["WAIT_Convoy_CrewDue", time + 5];
+private _externalCrew = _vehicles findIf {(crew _x) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0} >= 0;
 if ([_group] call WAIT_fnc_CompatibilityExternalControl || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])} || {[] call WAIT_fnc_CortexIsPaused} || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {_externalCrew}
     || {_vehicles findIf {(crew _x) findIf {isPlayer _x || {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}} >= 0} >= 0}) exitWith {[_group, _configuration, true] call WAIT_fnc_ConvoyDismountLocal};
 private _seats = createHashMap;
 {
