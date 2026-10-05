@@ -13,10 +13,7 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor} || {c
 // This is the final direct movement command in a recovery path. Recheck handover at the point of
 // issue because a Zeus or specialist operation can arrive between an earlier operation step and
 // this isolated retry. Recovery must retire rather than overwrite the newer controller's route.
-if ([_group] call WAIT_fnc_CortexZeusHeld
-    || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"YIELDED"};
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"YIELDED"};
 if (vehicle _actor != _actor || {!([_actor] call WAIT_fnc_CortexCombatEffective)}) exitWith {"INVALID"};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {"INVALID"};

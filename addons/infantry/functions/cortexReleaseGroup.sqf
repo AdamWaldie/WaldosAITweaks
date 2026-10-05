@@ -41,11 +41,10 @@ params [["_group", grpNull, [grpNull]], ["_forget", true, [false]], ["_reason", 
 if (isNull _group) exitWith {};
 private _state = _group getVariable ["WAIT_AIPass_State", createHashMap];
 private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld};
-private _yieldToExternal=local _group && {!_yieldToZeus} && {
-    [leader _group] call WAIT_fnc_CortexExternalOwner != ""
-        || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-        || {[_group] call WAIT_fnc_CompatibilityExternalControl}
-};
+// The helper covers player members, curator possession, specialist ownership and explicit
+// compatibility markers. Do not restore a stale WAIT formation or posture when any one of those
+// arrives between the original operation and this release.
+private _yieldToExternal=local _group && {!_yieldToZeus} && {[_group] call WAIT_fnc_CortexExternalTakeover};
 if (_reason == "") then {
     _reason=if (_yieldToZeus) then {"ZEUS_TAKEOVER"} else {if (_yieldToExternal) then {"EXTERNAL_TAKEOVER"} else {"RELEASED"}};
 };

@@ -253,8 +253,7 @@ class CortexOperations(unittest.TestCase):
     def test_group_release_yields_cleanup_to_zeus_and_other_active_owners(self):
         release=source('cortexReleaseGroup')
         self.assertIn('private _yieldToZeus=',release)
-        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
-        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',release)
         self.assertIn('"EXTERNAL_TAKEOVER"',release)
         self.assertIn('_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]',release)
 
@@ -486,8 +485,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_recovery_rechecks_ownership_before_issuing_its_direct_move(self):
         recovery=source('recoveryStep')
-        for requirement in ['WAIT_fnc_CortexZeusHeld','WAIT_fnc_CortexExternalOwner',
-                            'WAIT_fnc_CompatibilityExternalControl','vehicle _actor != _actor',
+        for requirement in ['WAIT_fnc_CortexExternalTakeover','vehicle _actor != _actor',
                             'WAIT_fnc_CortexCombatEffective','exitWith {"YIELDED"}']:
             self.assertIn(requirement,recovery)
         self.assertLess(recovery.index('exitWith {"YIELDED"}'),recovery.index('_actor doMove _destination'))
@@ -606,8 +604,7 @@ class CortexOperations(unittest.TestCase):
         restore=source('cortexRestoreCalm')
         flank_end=source('cortexFlankEnd')
         self.assertIn('private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld}',release)
-        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
-        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',release)
         self.assertIn('private _externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
         self.assertIn('["RELEASE","ZEUS"] select _externalTakeover',release)
         self.assertIn('[_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm',release)
@@ -1803,6 +1800,19 @@ class CortexOperations(unittest.TestCase):
             expected='private _mayRestoreGroup=local _group && {!_externalTakeover};' if name == 'convoyReleaseLocal' else 'private _mayRestore=local _group && {!_externalTakeover};'
             self.assertIn(expected,release)
             self.assertNotIn('[_group,false,false,true] call WAIT_fnc_CortexIsEligible',release)
+
+    def test_all_delayed_danger_and_passenger_commands_share_the_takeover_boundary(self):
+        # A player, curator or specialist owner can arrive after an operation was planned. Each
+        # remaining direct-command path must consult the common boundary at the point it chooses to
+        # classify, restore, retry or release that earlier WAIT work.
+        for name in ['dangerActionSelect','cortexReleaseGroup','recoveryStep','convoyDismountLocal']:
+            self.assertIn('WAIT_fnc_CortexExternalTakeover',source(name),name)
+        release=source('cortexReleaseGroup')
+        self.assertIn('private _yieldToExternal=local _group && {!_yieldToZeus} && {[_group] call WAIT_fnc_CortexExternalTakeover};',release)
+        recovery=source('recoveryStep')
+        self.assertLess(recovery.index('WAIT_fnc_CortexExternalTakeover'),recovery.index('_actor doMove _destination'))
+        passenger=source('convoyDismountLocal')
+        self.assertLess(passenger.index('WAIT_fnc_CortexExternalTakeover'),passenger.index('_unit doMove _destination'))
 
     def test_master_stop_cancels_explicit_orders_on_their_owner(self):
         text = source('cortexStop')

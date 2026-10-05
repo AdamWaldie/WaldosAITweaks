@@ -60,7 +60,7 @@ class AIModularityContracts(unittest.TestCase):
         for check in ['local _unit','isPlayer','WAIT_fnc_CortexCombatEffective','abs speed _vehicle','surfaceIsWater','lineIntersectsSurfaces','fullCrew','emptyPositions']:
             self.assertIn(check,text)
         dismount = src('convoyDismountLocal')
-        self.assertIn('WAIT_fnc_CortexExternalOwner',dismount)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',dismount)
         self.assertIn('private _operator =',dismount)
         for name in ['cortexVehicles','cortexRestoreCalm']:
             self.assertIn('WAIT_fnc_CortexPassengerReady',src(name))
@@ -76,7 +76,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('_externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
         self.assertIn('"EXTERNAL_TAKEOVER"',release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',release)
-        self.assertIn('(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',release)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',release)
         for name in ['dangerActionSelect','dangerReact','dangerStep','dangerRequest']:
             text=src(name)
             self.assertTrue(
