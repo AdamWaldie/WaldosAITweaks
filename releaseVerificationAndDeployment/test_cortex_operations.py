@@ -3203,6 +3203,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_crewGroup] call WAIT_fnc_CompatibilityExternalControl',release)
         self.assertIn('{!_externalCrew}',release)
 
+    def test_convoy_release_does_not_restore_over_an_external_group_owner(self):
+        release=source('convoyReleaseLocal')
+        self.assertIn('private _mayRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};',release)
+        self.assertIn('if (_mayRestoreGroup) then {',release)
+        self.assertIn('if (_mayRestoreGroup && {!isNull _driver}',release)
+        self.assertLess(release.index('private _mayRestoreGroup='),release.index('setFormation _formation'))
+
+    def test_delegated_building_release_removes_its_task_without_overwriting_a_new_owner(self):
+        release=source('cortexBuildingBackendRelease')
+        self.assertIn('private _mayRestore=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};',release)
+        self.assertIn('if (_mayRestore && {count _groupState == 10}) then {',release)
+        self.assertIn('if (_mayRestore && {_restore} && {alive _unit}',release)
+        self.assertLess(release.index('private _mayRestore='),release.index('deleteWaypoint _x'))
+
+    def test_expired_support_reservation_does_not_restore_attack_over_a_new_owner(self):
+        maintain=source('cortexSupportMaintain')
+        self.assertIn('private _mayRestoreGroup=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;',maintain)
+        self.assertIn('if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]})',maintain)
+        self.assertLess(maintain.index('private _mayRestoreGroup='),maintain.index('private _restoreAttack='))
+
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',

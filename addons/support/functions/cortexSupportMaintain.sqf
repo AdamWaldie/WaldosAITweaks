@@ -36,6 +36,10 @@
  */
 params ["_group","_state"];
 if (!local _group) exitWith {};
+// The reservation may expire in the same scheduler turn that Zeus or another
+// controller claims the group.  Retire WAIT's lease either way, but do not
+// restore its saved combat permissions into the replacement task.
+private _mayRestoreGroup=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
 private _movementLeaseActive = count _movementLease == 2 && {time < (_movementLease select 1)} && {
@@ -72,7 +76,7 @@ private _finishOperation={
     _state deleteAt "supportOperationGeneration";
 };
 private _restoreAttack={
-    if (_state getOrDefault ["attackChanged",false]) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
+    if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
     _state deleteAt "attackChanged"; _state deleteAt "baseAttack";
 };
 private _lease = _group getVariable ["WAIT_AIPass_SupportLease",[]];

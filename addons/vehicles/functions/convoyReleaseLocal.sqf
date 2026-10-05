@@ -22,7 +22,12 @@ if (local _group) then {
 if (_restore isEqualTo []) then {_restore = _group getVariable ["WAIT_Convoy_Restore", []]};
 if (_restore isNotEqualTo []) then {
     _restore params ["_formation", "_attack", "_vehicles"];
-    if (local _group) then {
+    // A route, curator or specialist controller can take the group between the
+    // convoy cancellation above and this delayed baseline restore.  The saved
+    // convoy values are evidence only once that happens: restoring formation,
+    // attack permission or follower paths would overwrite the replacement task.
+    private _mayRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+    if (_mayRestoreGroup) then {
         if (formation _group == "COLUMN") then {_group setFormation _formation};
         _group enableAttack _attack;
     };
@@ -66,7 +71,7 @@ if (_restore isNotEqualTo []) then {
                 || {isPlayer _x}
                 || {isPlayer leader _crewGroup}
             } >= 0;
-            if (!isNull _driver && {!_externalCrew} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
+            if (_mayRestoreGroup && {!isNull _driver} && {!_externalCrew} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
         };
     } forEach _vehicles;
 };

@@ -41,6 +41,12 @@ _group setVariable ["WAIT_Cortex_BuildingBackendBackend",nil];
 
 if (_migration) exitWith {true};
 
+// Retiring the delegated task is always safe: its handles and markers belong to the
+// old task.  Restoring its baseline is different.  A curator or another controller
+// may have claimed the group before this delayed release executes, and its current
+// formation, stance and follower paths are then not ours to change.
+private _mayRestore=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+
 // Remove only the waypoint(s) created by the delegated task. A later Zeus waypoint is not in this
 // captured list and remains untouched.
 if (local _group) then {
@@ -50,7 +56,7 @@ if (local _group) then {
 };
 
 private _groupState=_baseline getOrDefault ["group",[]];
-if (local _group && {count _groupState == 10}) then {
+if (_mayRestore && {count _groupState == 10}) then {
     _groupState params ["_behaviour","_formation","_speed","_combat","_attack","_ownedBehaviour","_ownedFormation","_ownedSpeed","_ownedCombat","_ownedAttack"];
     if (behaviour leader _group == _ownedBehaviour) then {_group setBehaviour _behaviour};
     if (formation _group == _ownedFormation) then {_group setFormation _formation};
@@ -63,7 +69,7 @@ private _leader=leader _group;
 // external controller CQB deliberately sets the group to never flee. Arma exposes no getter for that coefficient,
 // whose engine default is 1, or for the live IR-laser state. Restore the morale default, but leave
 // weapon-light ownership with the engine/external controller rather than guessing a pre-task laser state.
-if (_kind == "CQB" && {local _group}) then {_group allowFleeing 1};
+if (_kind == "CQB" && {_mayRestore}) then {_group allowFleeing 1};
 {
     _x params ["_unit","_stance","_forcedSpeed","_path","_move","_cover","_suppression","_autocombat"];
     if (local _unit) then {
@@ -78,15 +84,15 @@ if (_kind == "CQB" && {local _group}) then {_group allowFleeing 1};
         // Restore only values the delegated task is known to own. MOVE and COVER are sampled for
         // diagnostics but external controller building tasks do not change them, so touching them here could
         // overwrite a newer curator or mission-script decision.
-        if (unitPos _unit in ["UP","MIDDLE","AUTO"]) then {
+        if (_mayRestore && {unitPos _unit in ["UP","MIDDLE","AUTO"]}) then {
             _unit setUnitPos _stance;
             _unit setUnitPosWeak _stance;
         };
-        if (getForcedSpeed _unit < 0) then {_unit forceSpeed _forcedSpeed};
-        if !(_unit checkAIFeature "PATH") then {
+        if (_mayRestore && {getForcedSpeed _unit < 0}) then {_unit forceSpeed _forcedSpeed};
+        if (_mayRestore && {!(_unit checkAIFeature "PATH")}) then {
             if (_path) then {_unit enableAI "PATH"} else {_unit disableAI "PATH"};
         };
-        if (_kind == "CQB") then {
+        if (_mayRestore && {_kind == "CQB"}) then {
             if !(_unit checkAIFeature "SUPPRESSION") then {
                 if (_suppression) then {_unit enableAI "SUPPRESSION"} else {_unit disableAI "SUPPRESSION"};
             };
@@ -94,7 +100,7 @@ if (_kind == "CQB" && {local _group}) then {_group allowFleeing 1};
                 if (_autocombat) then {_unit enableAI "AUTOCOMBAT"} else {_unit disableAI "AUTOCOMBAT"};
             };
         };
-        if (_restore && {alive _unit} && {!isPlayer _unit}) then {_unit doFollow _leader};
+        if (_mayRestore && {_restore} && {alive _unit} && {!isPlayer _unit}) then {_unit doFollow _leader};
     };
 } forEach (_baseline getOrDefault ["units",[]]);
 
