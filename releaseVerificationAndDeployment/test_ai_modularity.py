@@ -7,6 +7,14 @@ BASE = ROOT / 'addons/main/functions/Cortex'
 def src(name):
     return re.sub(r'^/\*.*?\*/\s*', '', next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8-sig'), flags=re.S)
 class AIModularityContracts(unittest.TestCase):
+    def test_drill_loses_ownership_before_modes_and_does_not_regroup(self):
+        step = src('cortexFlankStep')
+        self.assertLess(step.index('"OWNERSHIP_LOST" call _end'), step.index('_group setCombatMode'))
+        end = src('cortexFlankEnd')
+        self.assertIn('_reason in ["ZEUS","OWNERSHIP_LOST"]', end)
+        self.assertIn('if (_mayCommand) then {{_x doFollow _leader}', end)
+        self.assertIn('private _hold = _mayCommand', end)
+
     @unittest.skip('WMP integration contract; covered in WaldosMissionPack')
     def test_child_switches_are_configured_validated_and_replayed(self):
         config = (ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')

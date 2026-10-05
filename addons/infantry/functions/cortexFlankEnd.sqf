@@ -7,7 +7,8 @@
  * enemy is close, leaves its members holding the ground they took: they are recorded as "holders" and
  * rejoin formation later (WAIT_fnc_CortexGroupTick, WAIT_fnc_CortexRestoreCalm,
  * WAIT_fnc_CortexRetreat). Any other ending (losses, the squad leaving contact, Zeus taking the
- * group, or release) orders members to follow the leader again at once. A failed coordinated
+ * group, or release) orders members to follow the leader again at once, unless replacement
+ * orders or external ownership prohibit movement commands. A failed coordinated
  * bound instead holds its gained ground until the next server sequence; it must not regroup
  * backwards before a retry. PATH holds transfer to supportHeld and a public actor marker so the
  * new owner can release the exact Cortex-owned restriction after migration.
@@ -21,7 +22,7 @@
  * 0: group <GROUP>
  * 1: state <HASHMAP>
  * 2: reason <STRING> - COMPLETE, CLOSE, ABORT, LOSSES, STALLED, TIME_LIMIT, RELEASE, ZEUS, CALM,
- *    ROE_CHANGED, SPEED_CHANGED, GRENADE_UNRESOLVED, RECOVERY_FAILED or SCHEDULER_STALLED
+ *    ROE_CHANGED, SPEED_CHANGED, GRENADE_UNRESOLVED, RECOVERY_FAILED, OWNERSHIP_LOST or SCHEDULER_STALLED
  * Unresolved stragglers change COMPLETE/CLOSE to PARTIAL; main actors hold while stragglers rejoin.
  *
  * Return Value:
@@ -37,6 +38,8 @@
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_reason", "", [""]]];
 private _drill = _state getOrDefault ["drill", createHashMap];
 if (count _drill == 0) exitWith {};
+private _mayCommand = !(_reason in ["ZEUS","OWNERSHIP_LOST"])
+    && {[_group] call WAIT_fnc_CortexIsEligible};
 private _groupModeLease = _drill getOrDefault ["groupCombatMode",[]];
 if (count _groupModeLease == 2 && {combatMode _group == (_groupModeLease select 1)}) then {
     _group setCombatMode (_groupModeLease select 0);
@@ -77,7 +80,7 @@ private _holdFailedBound=_supportToken != ""
     && {count _lease == 6} && {(_lease select 0) == _supportToken}
     && {serverTime < (_lease select 2)}
     && {[_group] call WAIT_fnc_CortexIsEligible};
-private _hold = _reason in ["COMPLETE","CLOSE"];
+private _hold = _mayCommand && {_reason in ["COMPLETE","CLOSE"]};
 if (_hold && {_stragglers isNotEqualTo []}) then {_reason = "PARTIAL"};
 _group setVariable ["WAIT_Cortex_DrillRecovery",[_reason,_stragglers,_drill getOrDefault ["index",-1]],true];
 if (_holdFailedBound) then {
@@ -103,13 +106,13 @@ if (_hold) then {
     private _leader = leader _group;
     // Zeus has already supplied the replacement movement. Restore Cortex-owned
     // feature switches above, but do not replace that order with formation return.
-    if (_reason != "ZEUS") then {{_x doFollow _leader} forEach _members};
+    if (_mayCommand) then {{_x doFollow _leader} forEach _members};
 };
 };
 if (_supportToken != "") then {
     _group setVariable ["WAIT_Cortex_SupportBoundResult",[_supportToken,_drill get "supportSequence",_reason],true];
 } else {
-    if (_reason != "ZEUS" && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
+    if (_mayCommand && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
     _state deleteAt "attackChanged";
     _state deleteAt "baseAttack";
 };

@@ -117,6 +117,8 @@ private _end = {
     [_group, _state, _this] call WAIT_fnc_CortexFlankEnd;
     -1
 };
+// External control and replacement orders win before any mode or movement mutation.
+if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _end};
 // RED explicitly permits independent pursuit. That engine-owned ATTACK state replaces
 // individual doMove destinations and was the common cause of stalled bounds in live QA.
 // YELLOW preserves fire-at-will while keeping the group in formation. Give the engine one
@@ -152,7 +154,6 @@ private _gate=if (_support) then {"WAIT_AIPass_CoordinatedAssault_Enable"} else 
 };
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active", false])
     || {if (_support) then {!_supportValid} else {(_state getOrDefault ["phase",""]) != "CONTACT"}}
-    || {!([_group] call WAIT_fnc_CortexIsEligible)}
     || {!([_group,_gate,true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {"ABORT" call _end};
 // This callback is the drill's liveness heartbeat. Standalone drills also renew their
 // movement ownership instead of relying on one fixed five-minute lease. GroupTick uses

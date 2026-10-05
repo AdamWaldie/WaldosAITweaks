@@ -21,9 +21,11 @@
 - Existing survivor recovery, flank bounds, suppression, landing and braking controls exposed through the authoritative settings specification without changing production defaults.
 
 - Skills and tactics now share one generation-aware owner-local scheduler; disabling either retains the other runtime's jobs and the last runtime releases the callback. Skill refresh retains a ten-unit budget.
-- Additive scheduler audits exercise measured skill refresh while tactics are off, callback cleanup and physical movement while skills are off; live evidence is pending.
+- The packaged scheduler batch at commit 3355623 passed all 17 server checks with no reported SQF errors, including measured skill refresh while tactics are off, callback cleanup and physical arrival of twelve squads while skills are off. Client completion remained blocked by the audit's reversed curator assignment; this is incomplete acceptance, not a whole-addon pass.
 
 - Coordinated final bounds now require a COMPLETE owner result; PARTIAL progress yields a turn without falsely retiring the squad's unfinished assault objective.
+- Drill eligibility is checked before combat/speed mutations; ownership loss releases the drill without ordering formation return or holding troops against replacement commands. Physical interruption acceptance is pending.
+- Audit observer launch explicitly selects its resolution config and 3840x2160 command-line dimensions. Curator assignment is corrected and re-established after observer respawn; fresh client acceptance is pending.
 
 ## Still outstanding
 

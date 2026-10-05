@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Start the packaged WAIT audit and provide an observer curator and HC registry.
  * Locality/authority: Dedicated server. Only audit fixtures are created.
- * Repeat/JIP: One initialization per mission; arriving observers receive the curator.
+ * Repeat/JIP: One initialization per mission; arriving or respawned observers receive the curator.
  * Arguments: None. Return: Nothing. Current callers: engine mission initialization.
  * Example: Launch WAIT_Audit.VR with the checked-in launcher.
  */
@@ -17,8 +17,23 @@ _curator setVariable ["Addons",3,true];
     params ["_curator"];
     waitUntil {sleep 0.5; (allPlayers select {isPlayer _x && {!(_x isKindOf "HeadlessClient_F")}}) isNotEqualTo []};
     private _observer=(allPlayers select {isPlayer _x && {!(_x isKindOf "HeadlessClient_F")}}) select 0;
-    _curator assignCurator _observer;
+    _observer assignCurator _curator;
+    _curator addCuratorEditableObjects [allUnits + vehicles,true];
+    diag_log "WAIT AUDIT OBSERVER ZEUS READY";
     [] execVM "cortexQAServer.sqf";
+    while {!isNull _curator} do {
+        sleep 2;
+        private _observers=allPlayers select {isPlayer _x && {!(_x isKindOf "HeadlessClient_F")}};
+        if (_observers isNotEqualTo []) then {
+            private _current=_observers select 0;
+            if (getAssignedCuratorLogic _current != _curator) then {
+                unassignCurator _curator;
+                _current assignCurator _curator;
+                diag_log "WAIT AUDIT OBSERVER ZEUS READY";
+            };
+        };
+        _curator addCuratorEditableObjects [allUnits + vehicles,true];
+    };
 };
 [] spawn {
     while {true} do {

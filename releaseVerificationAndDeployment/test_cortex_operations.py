@@ -251,7 +251,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]}',restore)
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]})',restore)
         self.assertIn('preserving a newer individual command',restore)
-        self.assertIn('if (_reason != "ZEUS") then',flank_end)
+        self.assertIn('!(_reason in ["ZEUS","OWNERSHIP_LOST"])',flank_end)
+        self.assertIn('if (_mayCommand) then',flank_end)
 
     def test_garrison_reassigns_unreachable_positions_without_wall_clock_failure(self):
         order=source('cortexGarrison')
@@ -1856,7 +1857,8 @@ class CortexOperations(unittest.TestCase):
         restore=source('cortexRestoreCalm')
         flank_end=source('cortexFlankEnd')
         self.assertIn('if (!_yieldToExternal && {_state getOrDefault ["attackChanged",false]})',restore)
-        self.assertIn('if (_reason != "ZEUS" && {_state getOrDefault ["attackChanged",false]})',flank_end)
+        self.assertIn('!(_reason in ["ZEUS","OWNERSHIP_LOST"])',flank_end)
+        self.assertIn('if (_mayCommand && {_state getOrDefault ["attackChanged",false]})',flank_end)
 
     def test_zeus_takeover_releases_explicit_orders_without_waypoint(self):
         text=source('cortexGroupTick').split('if (!_generallyEligible)')[1].split('// Survivor regroup')[0]

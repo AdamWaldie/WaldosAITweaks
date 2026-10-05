@@ -61,6 +61,16 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertNotIn('-filePatching', launcher)
         self.assertIn("if ($Interactive) {'Normal'} else {'Hidden'}", launcher)
         self.assertIn("'-name=WAIT_Audit',$modArg) -Interactive", launcher)
+        for option in ('-cfg=$clientConfig', '-x=$ResolutionWidth', '-y=$ResolutionHeight', '-noPause'):
+            self.assertIn(option, launcher)
+
+    def test_observer_has_curator_on_join_and_respawn(self):
+        server = (ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text()
+        self.assertIn('_observer assignCurator _curator', server)
+        self.assertNotIn('_curator assignCurator _observer', server)
+        self.assertIn('getAssignedCuratorLogic _current != _curator', server)
+        self.assertIn('_current assignCurator _curator', server)
+        self.assertIn('addCuratorEditableObjects [allUnits + vehicles,true]', server)
 
     def test_focuses_follow_real_dispatch_and_invalid_focus_is_rejected(self):
         self.assertIn('performancemixed', supported_focuses())
