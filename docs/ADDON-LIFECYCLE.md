@@ -90,6 +90,8 @@ its generation so stale jobs cannot revive after a quick restart. No job is repl
 locality adoption registers the new owner's units.
 
 The scheduler audit checks actual skill refresh with tactics disabled and physical queued movement
-with skills disabled, then callback removal when both stop. These new cases await batched game
-acceptance. The shared budget is soft and cannot pre-empt an executing SQF function; 50 mixed-group
+with skills disabled, then callback removal when both stop. The c0e9009 packaged scheduler batch
+completed server and client acceptance with 267 passing checks and no reported SQF errors.
+This validates that focused batch, not combat tactics or frame-time overhead. The shared budget
+is soft and cannot pre-empt an executing SQF function; 50 mixed-group
 median/p95 frame-time acceptance remains required.
