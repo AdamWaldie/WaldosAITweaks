@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Reports whether a group is currently under player, Zeus, specialist or explicitly
+ * Purpose: Reports whether a group is currently under player, direct curator remote, specialist or explicitly
  * declared external control. Cleanup uses this narrow question instead of broad eligibility so a
  * WAIT feature shutdown can restore its own holds without writing into another controller's order.
  * Locality / Authority: Read-only and callable on any machine; callers still issue commands only
@@ -19,6 +19,8 @@ if (isNull _group) exitWith {true};
 isPlayer leader _group
 || {(units _group) findIf {isPlayer _x} >= 0}
 || {[_group] call WAIT_fnc_CortexZeusHeld}
+|| {(units _group) findIf {!isNull (remoteControlled _x)} >= 0}
+|| {(units _group) findIf {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])} >= 0}
 || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
 || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
 || {[_group] call WAIT_fnc_CompatibilityExternalControl}

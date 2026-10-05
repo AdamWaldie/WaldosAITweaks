@@ -3428,10 +3428,23 @@ class CortexOperations(unittest.TestCase):
     def test_deceleration_releases_changed_order_before_impulse(self):
         text=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         for marker in ['waypointPosition _wp','waypointType _wp','waypointScript _wp','waypointSpeed _wp',
-                       'currentPilot _aircraft == _entryPilot','WAIT_fnc_CompatibilityExternalControl','ORDER_CHANGED']:
+                       'currentPilot _aircraft == _entryPilot','WAIT_fnc_CortexExternalTakeover','ORDER_CHANGED']:
             self.assertIn(marker,text)
         self.assertIn('&& {call _ownsOrder}',text)
         self.assertLess(text.index('&& {call _ownsOrder}'),text.index('_aircraft addForce'))
+
+    def test_aircraft_controllers_yield_to_full_takeover_before_flight_writes(self):
+        helper=source('cortexExternalTakeover')
+        for marker in ['remoteControlled _x','bis_fnc_moduleRemoteControl_owner']:
+            self.assertIn(marker,helper)
+        deceleration=(ROOT/'addons/aircraft/functions/helicopterDecelerationTrackLocal.sqf').read_text(encoding='utf-8')
+        correction=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        landing=(ROOT/'addons/aircraft/functions/improvedHelicopterLandingExecuteLocal.sqf').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',deceleration)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',correction)
+        self.assertGreaterEqual(landing.count('WAIT_fnc_CortexExternalTakeover'),2)
+        final=landing.split('actual mutation boundary',1)[1]
+        self.assertLess(final.index('WAIT_fnc_CortexExternalTakeover'),final.index('setVectorDirAndUp'))
 
     def test_deceleration_impulse_uses_elapsed_simulation_time(self):
         text=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
@@ -4198,7 +4211,11 @@ class CortexOperations(unittest.TestCase):
         for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal','improvedHelicopterLandingExecuteLocal']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
-            self.assertIn('WAIT_fnc_CortexZeusHeld', path.read_text(encoding='utf-8'), name)
+            text=path.read_text(encoding='utf-8')
+            self.assertTrue(
+                'WAIT_fnc_CortexZeusHeld' in text or 'WAIT_fnc_CortexExternalTakeover' in text,
+                name
+            )
 
     def test_attack_run_flare_jobs_are_not_queued_for_ineligible_aircraft(self):
         discover=source('cortexDiscover')

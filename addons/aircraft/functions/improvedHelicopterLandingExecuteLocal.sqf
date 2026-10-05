@@ -8,7 +8,7 @@
  * the flare, while deletion or editing of that waypoint always releases the aircraft immediately.
  * LastResult is broadcast on the helicopter for locality-safe diagnostics and QA.
  * Locality and authority: Only the current helicopter owner may drive this AI approach.
- * It checks its pilot, waypoint, direct Zeus hold and ownership before and during control.
+ * It checks its pilot, waypoint and player, curator or specialist ownership before and during control.
  * Repeat/JIP: One control revision owns an approach. A changed waypoint, pilot or locality
  * aborts that run; the published LastResult is readable by joining clients.
  *
@@ -59,7 +59,7 @@ private _groupHelicopterCount = {
 };
 // Exact vector landing owns one aircraft and one touchdown point. A formation must remain entirely
 // under vanilla group flight control; acquiring any member would steer the shared group into one LZ.
-if ([_group] call _groupHelicopterCount != 1) exitWith {false};
+if ([_group] call _groupHelicopterCount != 1 || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _minimumDistance = ([_helicopter, "MinimumActivationDistance", 50] call WAIT_fnc_ImprovedHelicopterLandingSetting) max 50;
 if (_helicopter distance2D _targetPosition <= _minimumDistance) exitWith {false};
 
@@ -322,7 +322,7 @@ while {
     };
     // Grouping can occur between the periodic validation above and this frame's write. Recheck at
     // the actual mutation boundary so no further WAIT vector reaches a newly formed flight.
-    if ([_group] call _groupHelicopterCount != 1) then {
+    if ([_group] call _groupHelicopterCount != 1 || {[_group] call WAIT_fnc_CortexExternalTakeover}) then {
         _abort = true;
         _groupedAbort = true;
     } else {

@@ -4,8 +4,8 @@
  * Samples one local AI helicopter and starts a bounded correction when Arma's braking behaviour is
  * simultaneously losing forward speed, gaining altitude and pitching up. It never operates near
  * terrain, on player/UAV/remote-controlled aircraft, during a Cortex attack or missile-defence
- * lease or pending Cortex attack job, while Zeus is directly holding the pilot group, or while a
- * supported landing order exists.
+ * lease or pending Cortex attack job, while another player, curator or specialist owns the pilot group,
+ * or while a supported landing order exists.
  *
  * Locality/authority: scheduled on the aircraft owner only. The loop ends when locality moves and
  * the Local handler installs a fresh tracker on the new owner. Public state is diagnostics only.
@@ -59,7 +59,7 @@ while {alive _aircraft && {local _aircraft} && {(_aircraft getVariable ["WAIT_He
         && {!(_aircraft getVariable ["WAIT_Cortex_AirAttackJob", false])}
         && {isNil {_aircraft getVariable "WAIT_Cortex_AirAttackToken"}}
         && {isNil {_aircraft getVariable "WAIT_Cortex_MissileDefenceActive"}}
-        && {!([group _pilot] call WAIT_fnc_CortexZeusHeld)}
+        && {!([group _pilot] call WAIT_fnc_CortexExternalTakeover)}
         && {!(_aircraft getVariable ["WAIT_HelicopterDeceleration_Active", false])}
         && {!(_aircraft getVariable ["WAIT_ImprovedHelicopterLanding_Active", false])}
         && {!([_aircraft] call _isLandingOrder)}
