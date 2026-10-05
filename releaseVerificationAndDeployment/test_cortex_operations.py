@@ -3334,6 +3334,16 @@ class CortexOperations(unittest.TestCase):
                         '_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})']:
             self.assertLess(tick.rindex('[] call _mayIssueDriving',0,tick.index(command)+len(command)),tick.index(command))
 
+    def test_group_tick_does_not_rejoin_or_search_over_a_new_external_owner(self):
+        tick=source('cortexGroupTick')
+        self.assertIn('private _mayIssueMovement = {',tick)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',tick)
+        for command in ['{_x doFollow _leader} forEach _rejoin',
+                        '{_x doMove (_target getPos [4 + _forEachIndex * 4, random 360])} forEach _team',
+                        '{_x doMove (_searchPos getPos [4 + _forEachIndex * 4, random 360])} forEach _team',
+                        '_x doMove ((getPosATL _leader) getPos [_slot,(_forEachIndex*137) mod 360])']:
+            self.assertLess(tick.rindex('[] call _mayIssueMovement',0,tick.index(command)+len(command)),tick.index(command))
+
     def test_delegated_building_release_removes_its_task_without_overwriting_a_new_owner(self):
         release=source('cortexBuildingBackendRelease')
         self.assertIn('private _externalTakeover = local _group && {',release)

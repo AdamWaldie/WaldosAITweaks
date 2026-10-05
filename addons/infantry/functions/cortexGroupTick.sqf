@@ -130,6 +130,12 @@ if (!_generallyEligible) exitWith {
     };
     [20, 5] select ([_group] call WAIT_fnc_CortexZeusHeld)
 };
+// A group tick can complete bounded assessment and planning after a curator or specialist
+// controller has claimed the group. Check immediately before actor-level commands so old
+// search, rejoin and regroup work cannot overwrite that newer order.
+private _mayIssueMovement = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 // Survivor regroup owns a remnant while it is being merged.
 if (_group getVariable ["WAIT_AIPass_RegroupQueued", false]) exitWith {5};
 // Resolve casualty succession before reading leader knowledge or issuing group orders.
@@ -350,7 +356,7 @@ _state set ["holders",_holders];
 // Keep its hold record for release, but do not regroup between successive bounds.
 if (_holders isNotEqualTo [] && {!(_state getOrDefault ["assaulting",false])}) then {
     private _rejoin = _holders select {_x distance2D _leader < 30};
-    {_x doFollow _leader} forEach _rejoin;
+    if ([] call _mayIssueMovement) then {{_x doFollow _leader} forEach _rejoin};
     _state set ["holders", _holders - _rejoin];
 };
 
@@ -381,12 +387,14 @@ private _beginContact = {
         _state set ["behaviourChanged", false];
         _state set ["speedChanged", false];
     };
-    {
-        private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-        if (alive _x && {local _x} && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
-            _x doFollow _leader
-        };
-    } forEach (_state getOrDefault ["searchTeam", []]);
+    if ([] call _mayIssueMovement) then {
+        {
+            private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
+            if (alive _x && {local _x} && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
+                _x doFollow _leader
+            };
+        } forEach (_state getOrDefault ["searchTeam", []]);
+    };
     _state set ["searchTeam", []];
     if (!_groupMovementOwned && {!(_state getOrDefault ["responding", false])} && {!(_state getOrDefault ["assaulting", false])}) then {[_group] call WAIT_fnc_CortexGroupMoveClear};
     call _enterContact;
@@ -491,7 +499,9 @@ switch (_state get "phase") do {
                 if (_team isEqualTo []) then {
                     [_group, _target getPos [30, _target getDir _leader], 25] call WAIT_fnc_CortexGroupMove;
                 } else {
-                    {_x doMove (_target getPos [4 + _forEachIndex * 4, random 360])} forEach _team;
+                    if ([] call _mayIssueMovement) then {
+                        {_x doMove (_target getPos [4 + _forEachIndex * 4, random 360])} forEach _team;
+                    };
                     {if (!(_x in _team) && {local _x}) then {_x doWatch _target}} forEach _alive;
                 };
                 _state set ["searchTeam", _team];
@@ -662,7 +672,9 @@ switch (_state get "phase") do {
             [_group,_state,"REGROUP","NO_SEARCH_TEAM",_now] call WAIT_fnc_CortexSetPhase;
             _delay = 3;
         };
-        {_x doMove (_searchPos getPos [4 + _forEachIndex * 4, random 360])} forEach _team;
+        if ([] call _mayIssueMovement) then {
+            {_x doMove (_searchPos getPos [4 + _forEachIndex * 4, random 360])} forEach _team;
+        };
         _state set ["searchTeam", _team];
         [_group,_state,"SEARCH","SEARCH_TEAM_SENT",_now] call WAIT_fnc_CortexSetPhase;
         _delay = 3;
@@ -674,7 +686,9 @@ switch (_state get "phase") do {
             || {_team findIf {_x distance2D _searchPos > 15} < 0}
             || {_now - (_state get "phaseStart") > (["WAIT_AIPass_PostContact_SearchSeconds", 45] call _get)};
         if (_done) then {
-            {_x doFollow _leader} forEach (_team select {!(_x call _hasLiveActorMove)});
+            if ([] call _mayIssueMovement) then {
+                {_x doFollow _leader} forEach (_team select {!(_x call _hasLiveActorMove)});
+            };
             _state set ["searchTeam", []];
             if (_visible isNotEqualTo []) then {call _beginContact} else {
                 [_group,_state,"REGROUP","SEARCH_COMPLETE",_now] call WAIT_fnc_CortexSetPhase;
@@ -705,7 +719,7 @@ switch (_state get "phase") do {
         // doStop (including a casualty, cover or Zeus-interrupted order), which left otherwise healthy
         // soldiers standing at their old positions until this state timed out. Individual destinations
         // avoid replacing the group's authored route and avoid collapsing everyone onto one point.
-        if (_now - (_state getOrDefault ["consolidateIssued", -1e6]) >= 8) then {
+        if (_now - (_state getOrDefault ["consolidateIssued", -1e6]) >= 8 && {[] call _mayIssueMovement}) then {
             {
                 if (_x != _leader && {_x distance2D _leader > 8}) then {
                     private _slot=4+((_forEachIndex mod 3)*2);
