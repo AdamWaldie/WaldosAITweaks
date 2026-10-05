@@ -77,7 +77,7 @@ surrender if its situation deteriorates. Squads you set to CARELESS are never to
 | CONTACT | Morale breaks and surrender is not selected | RETREAT | Releases garrison, defence or clearance ownership, selects a screened withdrawal avenue, uses smoke when available and measures physical net withdrawal. |
 | RETREAT | At least 30 m net withdrawal, or the bounded deadline expires | REGROUP | Clears the withdrawal task. A timeout is reported as incomplete and still releases the group instead of holding it indefinitely. |
 | REGROUP | Members are cohesive | CALM | Restores the saved mission behaviour, speed and waypoints. A new sighting interrupts consolidation and returns to CONTACT. |
-| Any Cortex-owned state | Zeus or a newer scripted order takes priority | CALM / external control | Releases only Cortex-owned movement, holds and temporary settings. It does not inject a replacement waypoint or revive an older task. |
+| Any Cortex-owned state | Zeus, player control or a newer scripted order takes priority | CALM / external control | Releases only Cortex-owned movement, holds and temporary settings. The shared WAIT waypoint path rechecks eligibility before it can issue a route, so delayed work cannot revive an older task after ownership changes. |
 | INVESTIGATE, SEARCH or RETREAT | Group ownership moves to another machine | same semantic state | Publishes the remaining intent and original deadline. The new owner resumes it without resetting the timeout or passing through a false CALM state. |
 
 Every transition publishes its reason, timestamp and previous/next phase in a bounded group ledger.

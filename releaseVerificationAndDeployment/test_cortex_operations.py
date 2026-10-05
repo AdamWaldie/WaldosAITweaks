@@ -260,6 +260,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(move.index('if (_sameRequest) exitWith {_previousWaypoint}'),
                         move.index('call WAIT_fnc_CortexGroupMoveClear'))
         self.assertIn('if (isNull _group || {!local _group}',move)
+        self.assertIn('[_group,false,false,true] call WAIT_fnc_CortexIsEligible',move)
         self.assertIn('if (isNull _group || {!local _group}',clear)
         self.assertIn('_group setVariable ["WAIT_Cortex_GroupMoveIntent", nil, true]',clear)
         self.assertIn('private _ownedWaypoint',clear)
