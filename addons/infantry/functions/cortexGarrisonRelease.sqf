@@ -41,6 +41,11 @@ if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated
 };
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
+// A newer Zeus, player or specialist owner may have replaced this order before this release
+// reaches the group owner.  WAIT must still remove only its own state, but may not write a
+// formation/watch command into the replacement operation.
+private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;
+private _canRestore = _restore && _eligible;
 private _leader = leader _group;
 {
     if (local _x) then {
@@ -58,12 +63,12 @@ private _leader = leader _group;
             if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
                 _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
             };
-            _x doWatch objNull;
+            if (_eligible) then {_x doWatch objNull;};
             if (getForcedSpeed _x == 4 && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
             };
             private _command = toUpperANSI currentCommand _x;
-            if (_restore || {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}) then {
+            if (_canRestore || {_eligible && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
                 _x doFollow _leader
             };
         };

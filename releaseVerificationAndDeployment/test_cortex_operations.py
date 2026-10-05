@@ -506,7 +506,9 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         for release in [garrison,defend]:
             self.assertIn('["_restore",true,[true]]',release)
-            self.assertIn('_restore || {_ownedHold',release)
+            self.assertIn('private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;',release)
+            self.assertIn('private _canRestore = _restore && _eligible;',release)
+            self.assertIn('_canRestore || {_eligible && {_ownedHold',release)
             self.assertIn('_x doFollow _leader',release)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',release)
         self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease',tick)
@@ -2483,7 +2485,9 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,code)
             self.assertIn('toUpperANSI currentCommand _x',code)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',code)
-            self.assertIn('_restore || {_ownedHold',code)
+            self.assertIn('private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;',code)
+            self.assertIn('private _canRestore = _restore && _eligible;',code)
+            self.assertIn('_canRestore || {_eligible && {_ownedHold',code)
             for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
                 self.assertNotIn(f'"{external}"',code)
 

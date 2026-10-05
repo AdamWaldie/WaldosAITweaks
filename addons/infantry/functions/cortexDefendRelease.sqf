@@ -34,14 +34,18 @@ if (!local _group) exitWith {
 };
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
+// Clear only WAIT's published order after an external takeover.  A defensive release must not
+// replace a Zeus, player or specialist movement/watch command with a formation recall.
+private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;
+private _canRestore = _restore && _eligible;
 private _leader = leader _group;
 {
     private _ownedHold = (_x getVariable ["WAIT_AIPass_DefendHolding",false])
         || {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []};
     if (alive _x && {local _x}) then {
-        _x doWatch objNull;
+        if (_eligible) then {_x doWatch objNull;};
         private _command = toUpperANSI currentCommand _x;
-        if (_restore || {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}) then {
+        if (_canRestore || {_eligible && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
             _x doFollow _leader
         };
     };
