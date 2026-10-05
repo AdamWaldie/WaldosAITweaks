@@ -87,10 +87,9 @@ if (!local _group || {!(missionNamespace getVariable ["WAIT_AIPass_Active", fals
     _group setVariable ["WAIT_AIPass_Managed", nil];
     -1
 };
-// A periodic lease expiry must never reset posture after Zeus or a specialist controller claims the group.
-private _dangerYield=[_group] call WAIT_fnc_CortexZeusHeld
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+// A periodic lease expiry must never reset posture after Zeus, a player or a specialist controller
+// claims any member of the group.
+private _dangerYield=[_group] call WAIT_fnc_CortexExternalTakeover;
 if (!_dangerYield) then {[leader _group,"RESTORE"] call WAIT_fnc_DangerReact};
 
 {

@@ -20,9 +20,9 @@ private _members=(units _group) select {alive _x && {local _x} && {!isPlayer _x}
 _members=([_leader]+(_members-[_leader])) arrayIntersect ([_leader]+(_members-[_leader]));
 _members=_members select {alive _x && {local _x} && {!isPlayer _x}};
 _members resize ((count _members) min 12);
-private _yieldToOwner=[_group] call WAIT_fnc_CortexZeusHeld
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+// Observer installation follows the same takeover boundary as finite operations. A specialist or
+// player-owned member must not leave residual danger handlers attached to the remaining group.
+private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
 private _enabled=!_cleanup && {local _group} && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {[_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {[_group,false,true] call WAIT_fnc_CortexIsEligible}

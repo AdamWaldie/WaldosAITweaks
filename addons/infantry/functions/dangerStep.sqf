@@ -12,10 +12,10 @@
 params [["_group",grpNull,[grpNull]],["_epoch",-1,[0]],["_generation",-1,[0]]];
 if (isNull _group || {!local _group} || {_epoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {-1};
-private _yieldToOwner=[_group] call WAIT_fnc_CortexZeusHeld
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+// Danger response owns only its finite posture. Reuse the common narrow takeover question so
+// ordinary setting changes can restore that posture, while Zeus, players and specialist owners
+// retain their current state immediately.
+private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
 if (_yieldToOwner) exitWith {
     [leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Events",nil];

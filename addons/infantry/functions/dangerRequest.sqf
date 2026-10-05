@@ -17,11 +17,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {!local _group}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!(_group getVariable ["WAIT_AIPass_Managed",false])}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+    || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 // Eligibility was checked at observer installation and is rechecked before dispatch. Keep bullet
 // callbacks cheap; repeated events of one cause cannot scan the squad or start extra FSMs.

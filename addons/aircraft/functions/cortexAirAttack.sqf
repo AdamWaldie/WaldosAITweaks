@@ -168,16 +168,12 @@ private _finish={
             private _resumeWaypointIndex=(waypoints _resumeGroup) findIf {
                 waypointPosition _x distance2D _resumePosition <= 2
             };
-            private _resumeExternal = [_resumeGroup] call WAIT_fnc_CompatibilityExternalControl
-                || {(crew _aircraft) findIf {
-                    private _crewGroup = group _x;
-                    [_x] call WAIT_fnc_CortexExternalOwner != ""
-                    || {[_crewGroup] call WAIT_fnc_CompatibilityExternalControl}
-                    || {[_crewGroup] call WAIT_fnc_CortexZeusHeld}
-                    || {isPlayer _x}
-                    || {isPlayer leader _crewGroup}
-                } >= 0};
-            if (count _resumePosition >= 2 && {!_resumeExternal} && {!([_resumeGroup] call WAIT_fnc_CortexZeusHeld)}) then {
+            // The shared takeover boundary includes player occupants, Zeus and specialist markers
+            // on every crew group. A completed attack must not re-form the aircraft over any one
+            // of those newer owners merely because its own operation reached a normal release.
+            private _resumeExternal = [_resumeGroup] call WAIT_fnc_CortexExternalTakeover
+                || {(crew _aircraft) findIf {[group _x] call WAIT_fnc_CortexExternalTakeover} >= 0};
+            if (count _resumePosition >= 2 && {!_resumeExternal}) then {
                 {if (alive _x && {!isPlayer _x}) then {_x doFollow leader _resumeGroup}} forEach crew _aircraft;
                 if (_resumeWaypointIndex >= 0 && {_resumeWaypointIndex < count waypoints _resumeGroup}
                     && {waypointPosition [_resumeGroup,_resumeWaypointIndex] distance2D _resumePosition <= 2}) then {

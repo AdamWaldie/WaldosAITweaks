@@ -13,10 +13,9 @@ if (isNull _actor || {!local _actor} || {!alive _actor}) exitWith {"IGNORED"};
 private _group=group _actor;
 if (isNull _group || {!local _group}) exitWith {"IGNORED"};
 private _lease=_group getVariable ["WAIT_Danger_ReactionLease",[]];
-private _yieldToOwner=[_group] call WAIT_fnc_CortexZeusHeld
-    || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
-    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+// Use the shared takeover decision used by every operation cleanup. A partial copy here previously
+// missed player-controlled members and could restore a short WAIT posture over a newer controller.
+private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
 if (_cause in ["RESTORE","RELEASE"]) exitWith {
     // Never restore a WAIT posture over a curator, player or specialist controller. The old lease
     // has no authority after that handover, so discard it instead of guessing what to restore.
