@@ -120,6 +120,9 @@ private _buildingAnchor = {
         if (_unit distance _destination > 2) then {
             _unit setUnitPos "UP";
             _unit forceSpeed 4;
+            // Record the exact value WAIT applied.  Release restores the previous value only
+            // while this lease is still intact, so a later controller's forced speed survives.
+            _unit setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",4];
             _unit doMove _target;
             _unit setDestination [_target,"LEADER PLANNED",true];
         };

@@ -64,7 +64,7 @@ private _leader = leader _group;
                 _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
             };
             if (_eligible) then {_x doWatch objNull;};
-            if (getForcedSpeed _x == 4 && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
+            if (getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2]) && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
             };
             private _command = toUpperANSI currentCommand _x;
@@ -79,6 +79,7 @@ private _leader = leader _group;
     _x setVariable ["WAIT_AIPass_GarrisonFailed",nil,true];
     _x setVariable ["WAIT_AIPass_GarrisonStance", nil, true];
     _x setVariable ["WAIT_Cortex_GarrisonForcedSpeed",nil];
+    _x setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",nil];
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_Garrison", nil, true];
 _group setVariable ["WAIT_Cortex_GarrisonCandidates",nil,true];

@@ -2491,6 +2491,13 @@ class CortexOperations(unittest.TestCase):
             for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
                 self.assertNotIn(f'"{external}"',code)
 
+    def test_garrison_restores_only_the_speed_lease_it_applied(self):
+        apply=source('cortexGarrisonApplyLocal')
+        release=source('cortexGarrisonRelease')
+        self.assertIn('setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",4]',apply)
+        self.assertIn('getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2])',release)
+        self.assertIn('setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",nil]',release)
+
     def test_vehicle_movement_owns_its_waypoint_until_physical_completion(self):
         vehicles=source('cortexVehicles')
         tick=source('cortexGroupTick')
