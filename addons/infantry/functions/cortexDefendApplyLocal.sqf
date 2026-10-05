@@ -32,13 +32,18 @@ private _generation = (_group getVariable ["WAIT_AIPass_DefendGeneration", 0]) +
 _group setVariable ["WAIT_AIPass_DefendGeneration", _generation];
 _group setVariable ["WAIT_AIPass_DefendApplied", true];
 private _routes=[];
+// Recheck immediately before individual movement writes; scheduler eligibility is not a
+// lease over a later Zeus, player or specialist takeover in the same callback.
+private _mayIssueMovement = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 {
     _x setVariable ["WAIT_AIPass_DefendHolding", nil];
     _x setVariable ["WAIT_AIPass_DefendFailed",nil,true];
     private _assignment = _x getVariable ["WAIT_AIPass_DefendPos", []];
     if (alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {_assignment isNotEqualTo []}) then {
         _routes pushBack [_x,getPosATL _x,time,0];
-        if (_x distance2D (_assignment select 0) > 2) then {
+        if (_x distance2D (_assignment select 0) > 2 && {call _mayIssueMovement}) then {
             _x doMove (_assignment select 0);
             _x setDestination [_assignment select 0,"LEADER PLANNED",true];
         };
@@ -51,6 +56,9 @@ private _routes=[];
     if ((_group getVariable ["WAIT_AIPass_DefendGeneration", -1]) != (_job get "generation")) exitWith {-1};
     // External control has priority. Do not age or reissue an owned movement while Zeus is active.
     if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {2};
+    private _mayIssueMovement = {
+        !([_group] call WAIT_fnc_CortexExternalTakeover)
+    };
     private _pending = 0;
     private _routes=_job get "routes";
     {
@@ -75,7 +83,7 @@ private _routes=[];
                     _route set [2,time];
                 } else {
                     if (time-_lastProgress >= 15) then {
-                        if (_retries < 3) then {
+                        if (_retries < 3 && {call _mayIssueMovement}) then {
                             _unit doMove (_assignment select 0);
                             _unit setDestination [_assignment select 0,"LEADER PLANNED",true];
                             _route set [2,time];

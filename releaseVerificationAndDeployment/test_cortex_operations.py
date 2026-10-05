@@ -604,6 +604,18 @@ class CortexOperations(unittest.TestCase):
         for command in ['_unit doMove _target;','_unit doMove _unitTarget;','_x doMove _unitTarget;']:
             index=text.index(command)
             self.assertIn('_mayIssueMovement',text[max(0,index-1000):index])
+    def test_holding_operations_recheck_external_ownership_before_route_writes(self):
+        garrison=source('cortexGarrisonApplyLocal')
+        defend=source('cortexDefendApplyLocal')
+        reserve=source('cortexDefendStep')
+        for text in [garrison,defend]:
+            self.assertGreaterEqual(text.count('private _mayIssueMovement = {'),2)
+            self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',text)
+            self.assertIn('&& {call _mayIssueMovement}',text)
+        self.assertIn('if (call _mayIssueMovement) then {',garrison)
+        self.assertIn('private _openedDoor = if (call _mayIssueMovement)',garrison)
+        self.assertIn('[_group] call WAIT_fnc_CortexExternalTakeover',reserve)
+        self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x doMove _position;'))
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
@@ -647,7 +659,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _replacementTarget=if (_replacementApproach)',apply)
         self.assertIn('private _replacementAnchor=if (_replacementApproach)',apply)
         self.assertIn('_entries resize ((count _entries) min 4)',apply)
-        self.assertIn('if (_nextEntry < count _entries) then',apply)
+        self.assertIn('if (_nextEntry < count _entries && {call _mayIssueMovement}) then',apply)
         self.assertIn('["deadline", time + 240]',apply)
         self.assertNotIn('_job set ["deadline",(_job get "deadline") max (time+60)]',apply)
 
