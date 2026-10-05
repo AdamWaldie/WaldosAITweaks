@@ -715,7 +715,7 @@ Combat acceptance also requires readable pressure and counterplay: use observed 
 
 ### Movement tempo
 
-`WAIT_AIPass_Flank_BoundPause` controls fire-team handovers, final advance holds, coordinated bound handovers, clearing and consolidation (default 2 seconds). A standalone flank uses twice that pause to establish its final position. The default bound length is 55 metres, keeping the exchange of movement and cover while avoiding a long chain of short, artificial stops. Tactical bound slots form a shallow line facing the threat even when the squad's ordinary travel formation is a wedge. These holds begin after physical arrival. Grenade clearance retains its separate minimum eight-second wait and projectile check; reducing tactical pauses cannot bypass it.
+`WAIT_AIPass_Flank_BoundPause` controls fire-team handovers, final advance holds, coordinated bound handovers, clearing and consolidation (default 2 seconds). A standalone flank uses twice that pause to establish its final position. The default bound length is 55 metres, keeping the exchange of movement and cover while avoiding a long chain of short, artificial stops. Tactical bound slots form a shallow line facing the threat even when the squad's ordinary travel formation is a wedge. These holds begin after physical arrival. Grenade safety retains its own ammunition, friendly-distance and projectile checks, but throwing a grenade never pauses or replaces the committed movement route.
 
 ### On-demand diagnostic snapshots
 
