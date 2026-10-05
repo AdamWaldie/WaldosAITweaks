@@ -68,7 +68,8 @@ private _reserved = [];
                     };
                 };
                 if (_destination isNotEqualTo [] && {_unit distance2D _destination > 3}
-                    && {(_unit getVariable ["WAIT_Convoy_DismountApplied", []]) isNotEqualTo [_group, _revision, _destination]}) then {
+                    && {(_unit getVariable ["WAIT_Convoy_DismountApplied", []]) isNotEqualTo [_group, _revision, _destination]}
+                    && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                     _unit doMove _destination;
                     _unit setVariable ["WAIT_Convoy_DismountApplied", [_group, _revision, _destination]];
                 };

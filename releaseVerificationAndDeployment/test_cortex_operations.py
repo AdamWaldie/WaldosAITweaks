@@ -616,6 +616,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _openedDoor = if (call _mayIssueMovement)',garrison)
         self.assertIn('[_group] call WAIT_fnc_CortexExternalTakeover',reserve)
         self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x doMove _position;'))
+    def test_reactive_direct_commands_recheck_external_ownership(self):
+        dismount=source('convoyDismountLocal')
+        civilian=source('cortexCivilianReact')
+        armour=source('cortexAntiArmour')
+        grenade=source('cortexGrenadeCheck')
+        self.assertIn('&& {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {',dismount)
+        self.assertLess(civilian.rindex('CortexExternalTakeover'),civilian.rindex('_unit doMove _destination;'))
+        self.assertGreaterEqual(armour.count('CortexExternalTakeover'),2)
+        self.assertLess(armour.index('if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};', armour.index('if (_blocked) exitWith {')),
+                        armour.index('_gunner doMove _spot;'))
+        self.assertIn('&& {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {',grenade)
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')

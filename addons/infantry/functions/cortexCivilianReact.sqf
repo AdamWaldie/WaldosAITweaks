@@ -55,6 +55,7 @@ private _routeDestination=+(_route select 0);
 private _safeDestination=[_routeDestination,0,35,3,0,0.35,0,[],[_routeDestination,_routeDestination]] call BIS_fnc_findSafePos;
 private _safeRoute=[_origin,[[_safeDestination]],_threatPos,[],_threatObject,"INFANTRY"] call WAIT_fnc_CortexSelectAvenue;
 private _destination=if (_safeRoute isEqualTo []) then {_routeDestination} else {+(_safeRoute select 0)};
+if ([group _unit] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _unit setVariable ["WAIT_Cortex_CivilianReactionUntil",serverTime+(_cooldown max 2),true];
 _unit setBehaviour "CARELESS";
 _unit setSpeedMode "FULL";

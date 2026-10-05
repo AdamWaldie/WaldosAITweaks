@@ -97,12 +97,14 @@ if (_blocked && {!(_gunner checkAIFeature "PATH") || {!(_gunner checkAIFeature "
     || {(_group getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []}
     || {_group getVariable ["WAIT_AIPass_ClearBuilding",false]}}) exitWith {false};
 if (_blocked) exitWith {
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     private _spot = ([(getPosATL _gunner) getPos [6, (_enemyPos getDir _gunner) + selectRandom [-70, 70]], _enemyPos, 8, [], _group] call WAIT_fnc_CortexFindCover) select 0;
     _gunner doMove _spot;
     _gunner setVariable ["WAIT_Cortex_ActorMove",["ANTI_ARMOUR",+_spot,_now+10]];
     _state set ["antiArmourRelocation",[_gunner,+_spot,_now+10]];
     false
 };
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _gunner doTarget _armour;
 _gunner doFire _armour;
 _gunner setVariable ["WAIT_AIPass_TargetHold", _now + 15];

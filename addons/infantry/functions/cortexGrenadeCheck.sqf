@@ -81,7 +81,7 @@ private _regroupActors = [];
     if (local _unit && {!isPlayer _unit} && {[_unit] call WAIT_fnc_CortexCombatEffective} && {vehicle _unit == _unit}
         && {_unit checkAIFeature "PATH" || {_unit in _supportHeld}}
         && {!(_unit in _drillUnits)} && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
-        && {_checkedResults select _groupIndex}) then {
+        && {_checkedResults select _groupIndex} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
         private _sees = _unit distance _grenade < 5 || {([objNull, "VIEW"] checkVisibility [eyePos _unit, _grenadeASL]) > 0.2};
         private _chance = (0.5 + 0.5 * (_unit skill "general")) * (1 - 0.5 * getSuppression _unit);
         if (_sees && {random 1 < _chance}) then {
