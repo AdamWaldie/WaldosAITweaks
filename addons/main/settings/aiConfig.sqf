@@ -51,8 +51,8 @@
  * - WAIT_AI_SkillVariance (ADVANCED): stable random offset chosen once per AI; 0 disables variation.
  * - WAIT_AI_InfantryDispersion (ADVANCED): script-level aim coefficient for dismounted AI and vehicle cargo.
  * - WAIT_AI_VehicleCrewAimMultiplier (ADVANCED): final aiming-skill multiplier for operating vehicle and aircraft crew.
- * - WAIT_AI_VehicleCrewDispersion (ADVANCED): script-level aim coefficient for ground-vehicle operators when COMPAT Turrets is absent.
- * - WAIT_AI_AirCrewDispersion (ADVANCED): wider script-level aim coefficient for aircraft operators when COMPAT Turrets is absent.
+ * - WAIT_AI_VehicleCrewDispersion (ADVANCED): script-level aim coefficient for ground-vehicle operators when no external precision provider is active.
+ * - WAIT_AI_AirCrewDispersion (ADVANCED): wider script-level aim coefficient for aircraft operators when no external precision provider is active.
  * - WAIT_AI_IncludedSides (MISSION MAKER): [] allows every side; example ["WEST", "GUER"] limits application.
  * - WAIT_AI_IncludedFactions (MISSION MAKER): [] allows all; otherwise list CfgFactionClasses names.
  * - WAIT_AI_ExcludedFactions (MISSION MAKER): listed factions are always skipped after the include checks.
@@ -265,7 +265,7 @@ createHashMapFromArray [
         ["WAIT_AI_SkillVariance", 0],               // ADVANCED: one stable per-AI offset; 0 disables variation.
         ["WAIT_AI_InfantryDispersion", 1.35],       // ADVANCED: modest owner-local dispersion for dismounted AI and cargo.
         ["WAIT_AI_VehicleCrewAimMultiplier", 0.6],  // ADVANCED: vehicle/aircraft operating crew retain the selected profile at reduced precision.
-        ["WAIT_AI_VehicleCrewDispersion", 3.5],     // ADVANCED: ground-vehicle aim coefficient; skipped when COMPAT Turrets supplies config dispersion.
+        ["WAIT_AI_VehicleCrewDispersion", 3.5],     // ADVANCED: ground-vehicle aim coefficient; skipped when an external precision provider supplies configuration dispersion.
         ["WAIT_AI_AirCrewDispersion", 4.25],        // ADVANCED: aircraft aim coefficient; Dynamic AA remains exempt.
         ["WAIT_AI_IncludedSides", []],             // ARRAY of WEST/EAST/GUER/CIV strings; [] permits every side.
         ["WAIT_AI_IncludedFactions", []],          // ARRAY of CfgFactionClasses names; [] permits every faction.

@@ -25,7 +25,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AI_SkillVariance` | `0` | ADVANCED: one stable per-AI offset; 0 disables variation. |
 | `WAIT_AI_InfantryDispersion` | `1.35` | Owner-local aim coefficient for dismounted AI and vehicle cargo. |
 | `WAIT_AI_VehicleCrewAimMultiplier` | `0.6` | Final aiming-skill multiplier for ordinary operating vehicle and aircraft crew. Named Dynamic AA crews are exempt. |
-| `WAIT_AI_VehicleCrewDispersion` | `3.5` | Owner-local aim coefficient for ground-vehicle operators when COMPAT Turrets is absent. |
+| `WAIT_AI_VehicleCrewDispersion` | `3.5` | Owner-local aim coefficient for ground-vehicle operators when no external precision provider is active. |
 | `WAIT_AI_AirCrewDispersion` | `4.25` | Wider owner-local aim coefficient for aircraft operators. Named Dynamic AA crews remain exempt. |
 | `WAIT_AI_IncludedSides` | `[]` | ARRAY of WEST/EAST/GUER/CIV strings; [] permits every side. |
 | `WAIT_AI_IncludedFactions` | `[]` | ARRAY of CfgFactionClasses names; [] permits every faction. |

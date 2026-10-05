@@ -93,7 +93,7 @@ private _atHouse={
     } < 0}
 };
 private _buildingBackend=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-private _dangerBuilding=isClass (configFile >> "CfgPatches" >> "lambs_wp");
+private _dangerBuilding=["buildingBackend"] call WAIT_fnc_CompatibilityAvailable;
 private _garrisonAccepted=if (_dangerBuilding) then {
     (_buildingBackend param [0,""]) == "COMPAT" && {(_buildingBackend param [1,""]) == "GARRISON"}
 } else {

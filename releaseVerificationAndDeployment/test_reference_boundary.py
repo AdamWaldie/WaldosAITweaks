@@ -4,7 +4,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-PATTERN = re.compile(r'lambs|vcom|webknight|hbq|protocol[_ ]ai|steamcommunity\.com/sharedfiles|pinned[_ ]?down|\bIMS\b|\bWBK\b', re.I)
+PATTERN = re.compile(r'lambs|vcom|webknight|hbq|protocol[_ ]ai|steamcommunity\.com/sharedfiles|pinned[_ ]?down|\bIMS\b|\bWBK\b|compat\s+turrets', re.I)
 LEGACY_PRODUCT_PATTERN = re.compile("(?:WM" + "P|Waldos" + "MissionPack)", re.I)
 
 class ReferenceBoundary(unittest.TestCase):
@@ -15,8 +15,9 @@ class ReferenceBoundary(unittest.TestCase):
         files += list((ROOT/'docs').glob('*.json'))
         files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.json'))
         files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.md'))
+        files += list((ROOT/'releaseVerificationAndDeployment/cortexQA').glob('*.sqf'))
         for path in files:
-            if not path.is_file() or 'compatibility' in path.parts:
+            if not path.is_file() or 'compatibility' in path.parts or path.name == 'runCompatibility.sqf':
                 continue
             if path.suffix not in {'.sqf','.hpp','.cpp','.md','.json'}:
                 continue

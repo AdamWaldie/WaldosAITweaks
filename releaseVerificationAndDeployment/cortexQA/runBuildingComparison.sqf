@@ -68,7 +68,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 
 // Native WAIT garrison and clearance are the normal production paths. The explicitly requested
 // compatibility cases below verify delegation and clean release without replacing native coverage.
-private _buildingBackendLoaded=isClass (configFile >> "CfgPatches" >> "lambs_wp");
+private _buildingBackendLoaded=["buildingBackend"] call WAIT_fnc_CompatibilityAvailable;
 ["COMPAT-building-backend-available-or-optional",true,
     ["Optional COMPAT Waypoints is absent; its primary-backend cases are skipped and native fallback still runs.",
      "Installed COMPAT Waypoints detected; primary-backend cases are active."] select _buildingBackendLoaded] call _check;

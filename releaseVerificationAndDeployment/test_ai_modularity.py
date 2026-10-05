@@ -254,7 +254,7 @@ class AddonSettingLifecycleContracts(unittest.TestCase):
         spec = src('cortexTuningSpec')
         self.assertIn('"WAIT_AIPass_InfantryOwnership", "Infantry controller ownership"', spec)
         self.assertNotIn('"COMPAT integration"', spec)
-        for phrase in ['when COMPAT Turrets', 'external naval controller takes', 'Simple Civilian Behaviour owns']:
+        for phrase in ['external naval controller takes', 'Simple Civilian Behaviour owns']:
             self.assertNotIn(phrase, spec)
 
 class SharedSchedulerLifecycleContracts(unittest.TestCase):
