@@ -595,6 +595,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_job set ["egressFailed",true]',text)
         self.assertIn('!(_job getOrDefault ["egressFailed",false])',text)
 
+    def test_clearance_rechecks_external_ownership_at_each_movement_write(self):
+        text=source('cortexClearBuilding')
+        self.assertIn('private _mayIssueMovement = {',text)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',text)
+        self.assertIn('&& {call _mayIssueMovement}',text)
+        self.assertGreaterEqual(text.count('if (call _mayIssueMovement) then {'),2)
+        for command in ['_unit doMove _target;','_unit doMove _unitTarget;','_x doMove _unitTarget;']:
+            index=text.index(command)
+            self.assertIn('_mayIssueMovement',text[max(0,index-1000):index])
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')

@@ -258,6 +258,11 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     // A fresh Zeus or script order immediately owns movement. Retire Cortex state without
     // a follow, stance or behaviour command that could overwrite that replacement order.
     if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {[false,"EXTERNAL"] call _finish};
+    // Check ownership at every local movement write as a Zeus, player or specialist controller
+    // can take over during this queued callback after the operation-level eligibility check.
+    private _mayIssueMovement = {
+        !([_group] call WAIT_fnc_CortexExternalTakeover)
+    };
     if ((_job getOrDefault ["phase","CLEAR"]) == "EGRESS") exitWith {
         private _assignments=(_job get "egressAssignments") select {
             _x params ["_unit"];
@@ -272,14 +277,16 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
             };
             [true,"COMPLETE"] call _finish
         } else {
-            {
-                _x params ["_unit","_target"];
-                private _openedDoor=[_unit,_job get "building"] call WAIT_fnc_CortexBuildingDoor;
-                if (_openedDoor || {currentCommand _unit in ["","STOP"]} || {time >= (_job get "egressReissue")}) then {
-                    _unit doMove _target;
-                    _unit setDestination [_target,"LEADER PLANNED",true];
-                };
-            } forEach _assignments;
+            if (call _mayIssueMovement) then {
+                {
+                    _x params ["_unit","_target"];
+                    private _openedDoor=[_unit,_job get "building"] call WAIT_fnc_CortexBuildingDoor;
+                    if ((_openedDoor || {currentCommand _unit in ["","STOP"]} || {time >= (_job get "egressReissue")}) && {call _mayIssueMovement}) then {
+                        _unit doMove _target;
+                        _unit setDestination [_target,"LEADER PLANNED",true];
+                    };
+                } forEach _assignments;
+            };
             if (time >= (_job get "egressReissue")) then {_job set ["egressReissue",time+6]};
             1.5
         }
@@ -455,7 +462,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                     {
                         private _unit=_x;
                         private _openedDoor=[_unit,_job get "building"] call WAIT_fnc_CortexBuildingDoor;
-                        if (_issue || {_openedDoor}) then {
+                        if ((_issue || {_openedDoor}) && {call _mayIssueMovement}) then {
                             private _started=_job get "started";
                             if !(_unit in _started) then {
                                 doStop _unit;
@@ -502,11 +509,13 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         private _commandEnded=currentCommand _point in ["","STOP"];
                         private _retryDelay=[12,4] select _commandEnded;
                         if (_now-_lastProgress > _retryDelay) then {
-                            if (_retries < 3) then {
+                            if (_retries < 3 && {call _mayIssueMovement}) then {
                                 {
                                     private _unitTarget=if (_x == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
-                                    _x doMove _unitTarget;
-                                    _x setDestination [_unitTarget,"LEADER PLANNED",true];
+                                    if (call _mayIssueMovement) then {
+                                        _x doMove _unitTarget;
+                                        _x setDestination [_unitTarget,"LEADER PLANNED",true];
+                                    };
                                 } forEach _pair;
                                 _retries=_retries+1;
                                 _lastProgress=_now;
@@ -610,11 +619,15 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         _job set ["egressAssignments",_egressAssignments];
         _job set ["egressDeadline",time+45];
         _job set ["egressReissue",time];
-        {
-            _x params ["_unit","_target"];
-            _unit doMove _target;
-            _unit setDestination [_target,"LEADER PLANNED",true];
-        } forEach _egressAssignments;
+        if (call _mayIssueMovement) then {
+            {
+                _x params ["_unit","_target"];
+                if (call _mayIssueMovement) then {
+                    _unit doMove _target;
+                    _unit setDestination [_target,"LEADER PLANNED",true];
+                };
+            } forEach _egressAssignments;
+        };
         _group setVariable ["WAIT_Cortex_ClearEgress",["EGRESS",_egressAssignments apply {_x select 1},serverTime],true];
         _group setVariable ["WAIT_Cortex_ClearStatus",["EGRESS",count (_job get "cleared"),count (_job get "unreachable"),count (_job get "positions"),count (_job get "pairs"),serverTime],true];
         1.5
