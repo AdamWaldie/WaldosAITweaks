@@ -654,6 +654,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (call _mayIssueDriving) then {_vehicle forceSpeed _cap};',driving)
         recovery=driving.split('if (_hasRoute &&',1)[1].split('switch (_recoveryStage)',1)[0]
         self.assertIn('&& {call _mayIssueDriving}',recovery)
+    def test_naval_operations_release_without_overwriting_external_orders(self):
+        naval=source('cortexNavalAssault')
+        release=source('cortexNavalRelease')
+        self.assertIn('if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {',naval)
+        self.assertIn('[_group,_state,"EXTERNAL"] call WAIT_fnc_CortexNavalRelease',naval)
+        self.assertLess(naval.rindex('CortexExternalTakeover'),naval.rindex('WAIT_fnc_CortexGroupMove'))
+        self.assertIn('private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;',release)
+        self.assertIn('if (_saved isNotEqualTo [] && {!_externalTakeover}) then {_boat forceSpeed',release)
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')

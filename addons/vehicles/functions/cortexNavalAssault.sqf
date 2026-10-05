@@ -65,6 +65,12 @@ if (_operation isEqualTo []) then {
         _state set ["navalOperation",_operation];
     };
 };
+// A passenger landing, boat approach or disembark must yield as a whole when a curator,
+// player or specialist controller takes either group. Release removes only WAIT-owned state.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {
+    if (_operation isNotEqualTo []) then {[_group,_state,"EXTERNAL"] call WAIT_fnc_CortexNavalRelease};
+    false
+};
 // Continue a passenger landing after the last soldier has physically left the boat.
 if (count _operation >= 4 && {(_operation param [2,""]) == "PASSENGER"}) exitWith {
     _operation params ["_token","_boat","_role","_egress","_expires"];
@@ -233,6 +239,10 @@ if (count _crewOperationRecord == 0) exitWith {
     false
 };
 private _token=format ["NAVAL:%1:%2:%3",netId _boat,clientOwner,round (serverTime*10)];
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {
+    [_group,_state,"EXTERNAL"] call WAIT_fnc_CortexNavalRelease;
+    false
+};
 [_group,_landing,20] call WAIT_fnc_CortexGroupMove;
 _state set ["movementLease",["NAVAL_ASSAULT",time+240]];
 _state set ["navalOperationGeneration",_crewOperationRecord get "generation"];

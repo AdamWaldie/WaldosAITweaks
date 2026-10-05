@@ -29,6 +29,9 @@ params [
     ["_reason","CANCELLED",[""]]
 ];
 if (isNull _group) exitWith {};
+// A handover release must clear WAIT state without restoring a speed chosen by a later
+// curator, mission or specialist controller.
+private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;
 private _operation=_state getOrDefault ["navalOperation",[]];
 if (_operation isEqualTo []) then {
     _operation=_group getVariable ["WAIT_Cortex_NavalOperation",[]];
@@ -40,7 +43,7 @@ if (!isNull _boat) then {
     if (count _plan == 9 && {_token != ""} && {(_plan select 0) == _token}
         && {(_plan select 1) == _group} && {local _boat}) then {
         private _saved=_boat getVariable ["WAIT_Cortex_NavalForcedSpeed",[]];
-        if (_saved isNotEqualTo []) then {_boat forceSpeed (_saved param [0,-1])};
+        if (_saved isNotEqualTo [] && {!_externalTakeover}) then {_boat forceSpeed (_saved param [0,-1])};
         _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",nil];
         _boat setVariable ["WAIT_Cortex_NavalPlan",nil,true];
     };
