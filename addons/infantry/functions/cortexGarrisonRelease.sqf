@@ -42,10 +42,15 @@ if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
 // A newer Zeus, player or specialist owner may have replaced this order before this release
-// reaches the group owner.  WAIT must still remove only its own state, but may not write a
-// formation/watch command into the replacement operation.
-private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;
-private _canRestore = _restore && _eligible;
+// reaches the group owner. WAIT must still remove only its own state, but a feature gate change
+// is not an external order: it must release the held element back to its formation.
+private _externalTakeover = isPlayer leader _group
+    || {(units _group) findIf {isPlayer _x} >= 0}
+    || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
+    || {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+private _canRestore = _restore && {!_externalTakeover};
 private _leader = leader _group;
 {
     if (local _x) then {
@@ -63,12 +68,12 @@ private _leader = leader _group;
             if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
                 _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
             };
-            if (_eligible) then {_x doWatch objNull;};
+            if (!_externalTakeover) then {_x doWatch objNull;};
             if (getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2]) && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
             };
             private _command = toUpperANSI currentCommand _x;
-            if (_canRestore || {_eligible && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
+            if (_canRestore || {!_externalTakeover && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
                 _x doFollow _leader
             };
         };

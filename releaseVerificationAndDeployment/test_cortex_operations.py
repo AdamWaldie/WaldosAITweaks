@@ -515,9 +515,12 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         for release in [garrison,defend]:
             self.assertIn('["_restore",true,[true]]',release)
-            self.assertIn('private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;',release)
-            self.assertIn('private _canRestore = _restore && _eligible;',release)
-            self.assertIn('_canRestore || {_eligible && {_ownedHold',release)
+            self.assertIn('private _externalTakeover = isPlayer leader _group',release)
+            self.assertIn('WAIT_fnc_CortexZeusHeld',release)
+            self.assertIn('WAIT_fnc_CortexExternalOwner',release)
+            self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
+            self.assertIn('private _canRestore = _restore && {!_externalTakeover};',release)
+            self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',release)
             self.assertIn('_x doFollow _leader',release)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',release)
         self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease',tick)
@@ -2430,7 +2433,10 @@ class CortexOperations(unittest.TestCase):
 
     def test_clear_release_never_recalls_an_externally_owned_group(self):
         release=source('cortexClearRelease')
-        self.assertIn('!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)',release)
+        self.assertIn('private _externalTakeover = isPlayer leader _group',release)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',release)
+        self.assertIn('WAIT_fnc_CortexExternalOwner',release)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',release)
         self.assertIn('then {_restore=false}',release)
         self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore) then {_x doFollow _leader}'))
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
@@ -2501,9 +2507,9 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,code)
             self.assertIn('toUpperANSI currentCommand _x',code)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',code)
-            self.assertIn('private _eligible = [_group,false,false,true] call WAIT_fnc_CortexIsEligible;',code)
-            self.assertIn('private _canRestore = _restore && _eligible;',code)
-            self.assertIn('_canRestore || {_eligible && {_ownedHold',code)
+            self.assertIn('private _externalTakeover = isPlayer leader _group',code)
+            self.assertIn('private _canRestore = _restore && {!_externalTakeover};',code)
+            self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',code)
             for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
                 self.assertNotIn(f'"{external}"',code)
 
