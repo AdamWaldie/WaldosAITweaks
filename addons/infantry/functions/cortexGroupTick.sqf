@@ -722,6 +722,23 @@ switch (_state get "phase") do {
         _delay = 3;
         if ((["WAIT_AIPass_Morale_Enable", true] call _get)
             && {([_group, _state, _enemies] call WAIT_fnc_CortexMorale) == "SURRENDER"}) exitWith {[_group] call WAIT_fnc_CortexSurrender};
+        // Withdrawal uses the same participant progress record as every other manoeuvre. One
+        // lagging survivor gets a single physical follow-up but never holds the surviving element
+        // in place or causes a fresh group-wide route churn.
+        private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+        private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
+        if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}
+            && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
+            [_group,_generation,3,15] call WAIT_fnc_OperationStep;
+            if (time-(_operation getOrDefault ["startedAt",time]) >= 8) then {
+                private _straggler=(_operation getOrDefault ["participants",[]]) findIf {
+                    alive _x && {local _x} && {vehicle _x == _x} && {_x distance2D _leader > 35} && {speed _x < 1}
+                };
+                if (_straggler >= 0) then {
+                    [_group,_generation,(_operation get "participants") select _straggler,getPosATL _leader] call WAIT_fnc_RecoveryStep;
+                };
+            };
+        };
         private _moving = (waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0;
         private _start = _state getOrDefault ["retreatStart",getPosATL _leader];
         private _travel = _leader distance2D _start;
@@ -774,8 +791,8 @@ switch (_state get "phase") do {
         private _status = if (_timedOut) then {"INCOMPLETE"} else {["MOVING","WITHDRAWN"] select (!_moving && {_travel >= 30})};
         _group setVariable ["WAIT_Cortex_Withdrawal",[_status,round _travel,_replans],true];
         if ((!_moving && {_travel >= 30}) || {_timedOut}) then {
-            private _operation=_group getVariable ["WAIT_Operation",createHashMap];
-            private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
+            _operation=_group getVariable ["WAIT_Operation",createHashMap];
+            _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
             if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}) then {
                 [_group,_generation,["COMPLETE","INCOMPLETE"] select _timedOut,["OBJECTIVE_REACHED","TIMEOUT"] select _timedOut] call WAIT_fnc_OperationRelease;
             };

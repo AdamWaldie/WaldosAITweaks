@@ -119,6 +119,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,"WITHDRAW",_point,_participants,[_point],"MOVING"] call WAIT_fnc_OperationStart',retreat)
         self.assertIn('withdrawOperationGeneration',retreat)
         self.assertIn('WAIT_fnc_OperationRelease',source('cortexGroupTick'))
+        self.assertIn('WAIT_fnc_RecoveryStep',source('cortexGroupTick'))
         self.assertIn('operationGeneration',end)
         self.assertIn('WAIT_fnc_OperationStep',source('cortexFlankStep'))
         self.assertIn('WAIT_fnc_RebalanceRoles',source('cortexFlankStep'))

@@ -20,7 +20,9 @@
  * replace the retreat waypoint with independent pursuit. GroupTick measures physical travel; a
  * vanished waypoint or 15 seconds without progress replans around the obstruction at a different
  * angle, without teleporting anyone. Attack, combat mode, behaviour and speed
- * changes are recorded for CALM, release and ownership cleanup. A later Zeus ROE change is preserved.
+ * changes are recorded for CALM, release and ownership cleanup. A separated survivor receives one
+ * local recovery order and is then quarantined from progress accounting, so he cannot stall the
+ * rest of the withdrawal. A later Zeus ROE change is preserved.
  * Locality and authority: call where the group is local; server selects and dispatches supporting artillery.
  * Repeat/JIP: caller phase prevents repeated entry. A public movement intent lets a new group owner
  * resume the same bounded withdrawal without repeating smoke or artillery effects.
