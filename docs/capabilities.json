@@ -159,10 +159,10 @@
     {
       "capability": "Medical assistance",
       "purpose": "Maintain squad effectiveness through local treatment",
-      "decision": "implement independently",
-      "mechanism": "Owner-local finite aid job; respect existing medical authority",
-      "implementation_status": "not_implemented",
-      "controls": "shared tuning specification; additional gaps remain",
+      "decision": "repair",
+      "mechanism": "One local vanilla medic uses a finite native treatment action during CALM/SECURITY; yields to direct and specialist medical ownership",
+      "implementation_status": "implemented_partial",
+      "controls": "WAIT_AIPass_MedicalAssist_Enable, Range, DamageThreshold and Timeout",
       "ownership": "current AI owner; server coordinates cross-group requests",
       "cost": "shared budget; worst-case measurement pending",
       "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"

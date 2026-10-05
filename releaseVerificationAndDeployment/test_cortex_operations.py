@@ -156,6 +156,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_phase in ["CALM","SECURITY"]',medical)
         self.assertIn('COMBAT_RESUMED',medical)
         self.assertIn('NO_PROGRESS',medical)
+        self.assertIn('if (_distance > 4) then {',medical)
+        self.assertIn('native doHeal can work',medical)
         for forbidden in ['setDamage', 'setPos', 'joinSilent', 'addWaypoint']:
             self.assertNotIn(forbidden,medical)
         self.assertIn('WAIT_fnc_CortexMedicalStep',tick)

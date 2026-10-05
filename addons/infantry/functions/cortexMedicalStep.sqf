@@ -58,16 +58,22 @@ if (_aid isNotEqualTo []) exitWith {
     if (_phase in ["CONTACT","RETREAT"] || {time-_startedAt >= (missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Timeout",45])}) exitWith {
         ["CANCELLED",["COMBAT_RESUMED","TIMEOUT"] select (time-_startedAt >= (missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Timeout",45]))] call _finish
     };
-    private _operationState=[_group,_generation,2,12] call WAIT_fnc_OperationStep;
-    if (_operationState in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) exitWith {
-        ["CANCELLED",_operationState] call _finish
-    };
     private _distance=_medic distance2D _casualty;
+    // At treatment range the medic's lack of displacement is expected: native doHeal can work
+    // in place. The shared progress monitor is only meaningful while this finite operation is
+    // physically approaching its casualty, otherwise it would incorrectly cancel a working aid.
+    private _cancelReason="";
+    if (_distance > 4) then {
+        private _operationState=[_group,_generation,2,12] call WAIT_fnc_OperationStep;
+        if (_operationState in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) then {_cancelReason=_operationState};
+        if (_operationState == "STALLED") then {_cancelReason="NO_PROGRESS"};
+    };
+    if (_cancelReason != "") exitWith {["CANCELLED",_cancelReason] call _finish};
     if (_distance < _bestDistance-2) then {
         _bestDistance=_distance;
         _lastProgressAt=time;
     };
-    if (_operationState == "STALLED" || {time-_lastProgressAt >= 12}) exitWith {
+    if (_distance > 4 && {time-_lastProgressAt >= 12}) exitWith {
         ["CANCELLED","NO_PROGRESS"] call _finish
     };
     if (time-_lastOrderAt >= 8) then {
@@ -97,7 +103,7 @@ private _members=(units _group) select {
 private _threshold=missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_DamageThreshold",0.35];
 private _casualties=_members select {_x != leader _group && {damage _x >= _threshold}};
 if (_casualties isEqualTo []) exitWith {false};
-private _medics=_members select {_x != leader _group && {[_x] call WAIT_fnc_CortexUnitRole == "MEDIC"}};
+private _medics=_members select {_x getUnitTrait "Medic" || {(_x getVariable ["ace_medical_medicClass",0]) > 0}};
 if (_medics isEqualTo []) exitWith {false};
 private _pair=[];
 private _best=1e9;

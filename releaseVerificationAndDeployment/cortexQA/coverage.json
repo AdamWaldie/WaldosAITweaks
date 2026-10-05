@@ -353,14 +353,11 @@
       "status": "implemented_partial",
       "live_evidence": [],
       "automation": "The production path is exercised through the shared owner-local group job and records a generation-owned MEDICAL_AID operation. Static checks cover capability gating, finite lifecycle, owner handover, cancellation and prohibited shortcuts. Physical treatment, specialist medical ownership, Zeus interruption, HC migration and performance acceptance are queued for the next packaged batch.",
-      "executable_sources": [],
+      "executable_sources": [
+        "runReactions.sqf"
+      ],
       "production_sources": [
-        "addons/infantry/functions/cortexMedicalStep.sqf",
-        "addons/infantry/functions/cortexGroupTick.sqf",
-        "addons/core/functions/operationStart.sqf",
-        "addons/core/functions/operationStep.sqf",
-        "addons/core/functions/operationCancel.sqf",
-        "addons/core/functions/operationRelease.sqf"
+        "addons/infantry/functions/cortexMedicalStep.sqf"
       ]
     },
     {
@@ -387,7 +384,8 @@
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",
-        "addons/infantry/functions/dangerReact.sqf"
+        "addons/infantry/functions/dangerReact.sqf",
+        "addons/infantry/functions/dangerActionSelect.sqf"
       ]
     },
     {
