@@ -6,19 +6,22 @@
  * Locality / Authority: Read-only and callable on any machine; callers still issue commands only
  * on the current group owner.
  * Repeat/JIP: Re-evaluates live ownership markers on every call and changes no public state.
- * Arguments: 0: group <GROUP>, default grpNull.
+ * Arguments:
+ * 0: group <GROUP>, default grpNull.
+ * 1: ignore temporary Zeus hold <BOOL>, default false. Direct remote control and all other
+ *    external ownership still take priority when true.
  * Return Value: Boolean - true when WAIT must not restore formation, posture or combat state.
  * Current callers: explicit-order, regroup, convoy, support and delegated-building cleanup.
  * Example: if ([group soldier1] call WAIT_fnc_CortexExternalTakeover) exitWith {};
  * Result: a cleanup routine removes its own state without replacing a curator's order.
  */
 
-params [["_group",grpNull,[grpNull]]];
+params [["_group",grpNull,[grpNull]], ["_ignoreZeusHold",false,[true]]];
 if (isNull _group) exitWith {true};
 
 isPlayer leader _group
 || {(units _group) findIf {isPlayer _x} >= 0}
-|| {[_group] call WAIT_fnc_CortexZeusHeld}
+|| {!_ignoreZeusHold && {[_group] call WAIT_fnc_CortexZeusHeld}}
 || {(units _group) findIf {!isNull (remoteControlled _x)} >= 0}
 || {(units _group) findIf {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])} >= 0}
 || {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}

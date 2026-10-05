@@ -67,8 +67,11 @@ private _sameRequest = _hasOwnedWaypoint
     && {abs (_radius - _previousRadius) <= 2}
     && {_type == _previousType};
 if (_sameRequest) exitWith {_previousWaypoint};
-
+// A curator, player or specialist can take the group after the earlier eligibility gate but before
+// the waypoint write. Recheck at the mutation boundary so no delayed WAIT route is inserted over it.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 [_group] call WAIT_fnc_CortexGroupMoveClear;
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 private _waypoint = _group addWaypoint [_position, 0, currentWaypoint _group];
 _waypoint setWaypointType _type;
 _waypoint setWaypointCompletionRadius _radius;

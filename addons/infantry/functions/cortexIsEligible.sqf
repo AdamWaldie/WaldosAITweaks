@@ -48,9 +48,9 @@
 
 params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]], ["_allowFeatureOwner",false,[true]]];
 if (isNull _group) exitWith {false};
-if ([_group] call WAIT_fnc_CompatibilityExternalControl || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
-// Zeus always has priority: a group Zeus is commanding is left alone (WAIT_fnc_CortexZeusHeld).
-if (!_ignoreZeusHold && {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
+if ([_group,_ignoreZeusHold] call WAIT_fnc_CortexExternalTakeover || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
+// The optional preflight exemption skips only the expiring Zeus waypoint-hold cache. It never
+// bypasses direct curator remote control, player, specialist or declared external ownership.
 if (_group getVariable ["WAIT_AI_Exclude", false]
     || {_group getVariable ["WAIT_AIPass_Exclude", false]}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
@@ -92,10 +92,11 @@ if (!_allowFeatureOwner && {[_group] call _isFeatureOwned}) exitWith {false};
     private _vehicles = [vehicle _unit, assignedVehicle _unit] select {!isNull _x && {_x != _unit}};
     (_unit getVariable ["WAIT_AI_Exclude", false])
     || {_unit getVariable ["WAIT_AIPass_Exclude", false]}
-    || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}
+    // Retain the unit-level declaration here as an auditable complement to the group gate above:
+    // a newly joined specialist actor must remain excluded even before a locality snapshot updates.
+    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}
     || {_unit getVariable ["zen_ai_garrisoned", false]}
     || {_unit getVariable ["zen_ai_isSuppressing", false]}
-    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}
     || {!_allowFeatureOwner && {[_unit] call _isFeatureOwned}}
     || {count _includedFactions > 0 && {!(faction _unit in _includedFactions)}}
     || {faction _unit in _excludedFactions}
