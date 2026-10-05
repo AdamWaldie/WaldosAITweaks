@@ -3017,6 +3017,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease',vehicles)
         self.assertIn('_state deleteAt "vehicleOperationGeneration"',vehicles)
 
+    def test_artillery_scoot_uses_a_finite_operation_and_group_cleanup(self):
+        scoot=source('cortexArtilleryScoot')
+        tick=source('cortexGroupTick')
+        self.assertIn('[_group,"ARTILLERY_SCOOT",_spot,[],[_spot],"MOVING"] call WAIT_fnc_OperationStart',scoot)
+        self.assertIn('["artilleryScootOperationGeneration",_operation get "generation"]',scoot)
+        self.assertIn('case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};',tick)
+        self.assertIn('[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease',tick)
+
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_RouteRecovery_Enable','["routeWatch",',

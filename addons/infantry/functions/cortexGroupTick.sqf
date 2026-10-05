@@ -209,6 +209,17 @@ private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLea
     }
 };
 if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
+    private _operationKey = switch (_movementOwner) do {
+        case "VEHICLE_WITHDRAW": {"vehicleOperationGeneration"};
+        case "VEHICLE_STANDOFF": {"vehicleOperationGeneration"};
+        case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
+        default {""};
+    };
+    if (_operationKey != "") then {
+        private _generation=_state getOrDefault [_operationKey,-1];
+        if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
+        _state deleteAt _operationKey;
+    };
     if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
     _state deleteAt "movementLease";
 };

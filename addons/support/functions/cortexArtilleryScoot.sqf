@@ -63,7 +63,14 @@ if !([_group,"ARTILLERY_SCOOT",true,serverTime+120] call WAIT_fnc_CortexOwnershi
         true
     } else {call _clear; false}
 };
+private _operation=[_group,"ARTILLERY_SCOOT",_spot,[],[_spot],"MOVING"] call WAIT_fnc_OperationStart;
+if (count _operation == 0) exitWith {
+    [_group,"ARTILLERY_SCOOT",false] call WAIT_fnc_CortexOwnershipLease;
+    call _clear;
+    false
+};
 [_group, _spot, 30] call WAIT_fnc_CortexGroupMove;
 _state set ["movementLease",["ARTILLERY_SCOOT",time+120]];
+_state set ["artilleryScootOperationGeneration",_operation get "generation"];
 call _clear;
 true
