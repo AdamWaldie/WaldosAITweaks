@@ -30,9 +30,10 @@ if (isNull _unit || {!local _unit} || {!alive _unit} || {isPlayer _unit}
     || {side group _unit != civilian}
     || {primaryWeapon _unit != "" || {secondaryWeapon _unit != ""} || {handgunWeapon _unit != ""}}
     || {!(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true])}
-    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}
-    || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
-    || {[group _unit] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
+    // This reaction is one direct movement order. Yield to the same broad boundary as combat,
+    // convoy and aircraft work so an external civilian controller cannot be overwritten between
+    // its event observation and this finite escape route.
+    || {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _cooldown=missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Cooldown",20];
 if (serverTime < (_unit getVariable ["WAIT_Cortex_CivilianReactionUntil",0])) exitWith {false};
 private _threatPos=if (_threat isEqualType objNull) then {
