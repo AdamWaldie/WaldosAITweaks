@@ -643,7 +643,7 @@ current owner. These changes have static regression coverage; their engine behav
 ## Remove or diagnose
 
 Mission diagnostics include rows under area `ai`:
-- `cortex`: scheduler state, queued jobs, pause;
+- `cortex`: scheduler state, queued jobs, keyed coalesced jobs, pause;
 - `cortex-drill-health-*`: active drill heartbeat age, watchdog threshold, movement lease and
   post-pause grace; an overdue controller is an error rather than a successful manoeuvre;
 - `cortex-regroup`: regroups and units joined;

@@ -316,11 +316,13 @@ _queue append (missionNamespace getVariable ["WAIT_AIPass_PendingJobs",[]]);
 private _overdue=0;
 private _oldest=0;
 private _staleOwners=0;
+private _keyedJobs=0;
 private _earliestQueued=-1;
 {
     _x params ["_due","","_jobState"];
     if (_earliestQueued < 0 || {_due < _earliestQueued}) then {_earliestQueued=_due};
     if (_due < time) then {_overdue=_overdue+1; _oldest=_oldest max (time-_due)};
+    if ((_jobState getOrDefault ["jobKey",""]) != "") then {_keyedJobs=_keyedJobs+1};
     private _jobGroup=_jobState getOrDefault ["group",grpNull];
     if (!isNull _jobGroup && {!local _jobGroup || {(_jobState getOrDefault ["ownerEpoch",-1]) != (_jobGroup getVariable ["WAIT_AIPass_Epoch",0])}}) then {_staleOwners=_staleOwners+1};
 } forEach _queue;
@@ -333,7 +335,7 @@ private _queueHint=if (_cacheConsistent) then {
 } else {
     "The scheduler deadline cache is missing or later than the earliest queued job. Restart Cortex or inspect queue mutation paths before trusting idle scheduling."
 };
-_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 dueNow=%2 oldestDueSeconds=%3 staleOwnerJobs=%4 cachedNextDueSeconds=%5 earliestQueuedDueSeconds=%6 deadlineCacheConsistent=%7 fps=%8 budgetMs=%9 paused=%10. %11",count _queue,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_queueHint]];
+_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11. %12",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_queueHint]];
 // Coordinated work is server-owned, so expose the lease/turn state which an HC-only
 // group snapshot cannot explain. This is calculated only for an on-demand report.
 private _supportRequests=missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];

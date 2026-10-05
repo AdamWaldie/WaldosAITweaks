@@ -707,6 +707,8 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('["'+feature+'",',diagnostic)
         self.assertIn('private _parents=+(_dependencies',diagnostic)
         self.assertIn('oldestDueSeconds=',diagnostic)
+        self.assertIn('keyedJobs=',diagnostic)
+        self.assertIn('private _keyedJobs=0;',diagnostic)
         self.assertIn('staleOwnerJobs=',diagnostic)
         self.assertIn('cachedNextDueSeconds=',diagnostic)
         self.assertIn('earliestQueuedDueSeconds=',diagnostic)
