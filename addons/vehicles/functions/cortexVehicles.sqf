@@ -59,6 +59,11 @@ if (_vehicleMove isNotEqualTo []) then {
             (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
         } >= 0) && {time < (_vehicleMove select 1)};
         if (!_activeVehicleMove) then {
+            private _generation=_state getOrDefault ["vehicleOperationGeneration",-1];
+            if (_generation >= 0) then {
+                [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                _state deleteAt "vehicleOperationGeneration";
+            };
             [_group,_vehicleMove param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };
@@ -198,16 +203,22 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             private _threat=(_enemies select 0) select 0;
             private _away=[_vehicle,_enemyPos,_threat,300] call _selectVehicleEscape;
             if (_away isNotEqualTo [] && {[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease}) then {
-                [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
-                _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
-                private _origin = getPosATL _vehicle;
-                _state set ["retreatStart",_origin];
-                _state set ["retreatTarget",_away];
-                _state set ["retreatProgress",[time,0,0]];
-                _group setVariable ["WAIT_Cortex_Withdrawal",["MOVING",0,0],true];
-                _group setVariable ["WAIT_Cortex_WithdrawalIntent",["VEHICLE",_origin,_away,_enemyPos,serverTime,0,0],true];
-                _movementOwned = true;
-                [_group,_state,"RETREAT","VEHICLE_DISABLED",time] call WAIT_fnc_CortexSetPhase;
+                private _operation=[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
+                if (count _operation == 0) then {
+                    [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
+                } else {
+                    [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
+                    _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
+                    _state set ["vehicleOperationGeneration",_operation get "generation"];
+                    private _origin = getPosATL _vehicle;
+                    _state set ["retreatStart",_origin];
+                    _state set ["retreatTarget",_away];
+                    _state set ["retreatProgress",[time,0,0]];
+                    _group setVariable ["WAIT_Cortex_Withdrawal",["MOVING",0,0],true];
+                    _group setVariable ["WAIT_Cortex_WithdrawalIntent",["VEHICLE",_origin,_away,_enemyPos,serverTime,0,0],true];
+                    _movementOwned = true;
+                    [_group,_state,"RETREAT","VEHICLE_DISABLED",time] call WAIT_fnc_CortexSetPhase;
+                };
             };
         };
     };
@@ -255,10 +266,16 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             private _away=[_vehicle,_atPos,_atThreat,(_standoff - (_vehicle distance2D _atPos)) max 60]
                 call _selectVehicleEscape;
             if (_away isNotEqualTo [] && {[_group,"VEHICLE_STANDOFF",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease}) then {
-                [_group, _away, 30] call WAIT_fnc_CortexGroupMove;
-                _state set ["movementLease",["VEHICLE_STANDOFF",time+60]];
-                _movementOwned = true;
-                [_state, "standoff", 60] call WAIT_fnc_CortexCooldown;
+                private _operation=[_group,"VEHICLE_STANDOFF",_atThreat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
+                if (count _operation == 0) then {
+                    [_group,"VEHICLE_STANDOFF",false] call WAIT_fnc_CortexOwnershipLease;
+                } else {
+                    [_group, _away, 30] call WAIT_fnc_CortexGroupMove;
+                    _state set ["movementLease",["VEHICLE_STANDOFF",time+60]];
+                    _state set ["vehicleOperationGeneration",_operation get "generation"];
+                    _movementOwned = true;
+                    [_state, "standoff", 60] call WAIT_fnc_CortexCooldown;
+                };
             };
         };
     };

@@ -3009,6 +3009,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_allowFeatureOwner',eligible)
         self.assertIn('_allowFeatureOwner',operation_step)
 
+    def test_vehicle_withdraw_and_standoff_use_finite_operation_generations(self):
+        vehicles=source('cortexVehicles')
+        self.assertIn('[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart',vehicles)
+        self.assertIn('[_group,"VEHICLE_STANDOFF",_atThreat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart',vehicles)
+        self.assertIn('["vehicleOperationGeneration",_operation get "generation"]',vehicles)
+        self.assertIn('[_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease',vehicles)
+        self.assertIn('_state deleteAt "vehicleOperationGeneration"',vehicles)
+
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_RouteRecovery_Enable','["routeWatch",',
