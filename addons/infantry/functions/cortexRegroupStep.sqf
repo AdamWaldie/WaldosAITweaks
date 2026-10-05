@@ -38,16 +38,30 @@
 
 params [["_state", createHashMap, [createHashMap]]];
 private _group = _state getOrDefault ["group", grpNull];
+// A feature gate changing must still release WAIT's own temporary STOP hold, but an
+// active Zeus or specialist controller owns the next order. Keep that distinction
+// inside the shared finish path because it may execute after a delayed retry.
+private _mayRestoreHeld = {
+    params ["_candidate"];
+    !isNull _candidate
+        && {local _candidate}
+        && {!([_candidate] call WAIT_fnc_CortexZeusHeld)}
+        && {([leader _candidate] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {(units _candidate) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} < 0}
+        && {!([_candidate] call WAIT_fnc_CompatibilityExternalControl)}
+};
 private _finish = {
     if (!isNull _group) then {
-        {
-            if (alive _x && {local _x}) then {
-                private _command = toUpperANSI currentCommand _x;
-                if (_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]) then {
-                    _x doFollow (leader group _x);
+        if ([_group] call _mayRestoreHeld) then {
+            {
+                if (alive _x && {local _x}) then {
+                    private _command = toUpperANSI currentCommand _x;
+                    if (_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]) then {
+                        _x doFollow (leader group _x);
+                    };
                 };
-            };
-        } forEach (_state getOrDefault ["held",[]]);
+            } forEach (_state getOrDefault ["held",[]]);
+        };
         _state set ["held",[]];
         _group setVariable ["WAIT_AIPass_RegroupQueued", nil];
         _group setVariable ["WAIT_AIPass_RegroupHost", nil];
@@ -174,7 +188,9 @@ if (time - (_state get "lastProgress") >= (missionNamespace getVariable ["WAIT_A
         _state set ["lastProgress",time];
         3
     };
-    {_x doFollow leader _group} forEach _remaining;
+    if ([_group] call _mayRestoreHeld) then {
+        {_x doFollow leader _group} forEach _remaining;
+    };
     diag_log format ["[WAIT] Regroup stalled group=%1 host=%2 remaining=%3",_group,_host,_farthest];
     call _finish
 };

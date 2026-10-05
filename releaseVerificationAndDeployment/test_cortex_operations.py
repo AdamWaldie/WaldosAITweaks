@@ -2847,6 +2847,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_group move _target',regroup)
         self.assertNotIn('{doStop _x; _x doMove _target} forEach _movers',regroup)
 
+    def test_remnant_regroup_never_replaces_an_external_order_during_cleanup(self):
+        regroup=source('cortexRegroupStep')
+        guard=regroup.split('private _mayRestoreHeld = {',1)[1].split('private _finish = {',1)[0]
+        finish=regroup.split('private _finish = {',1)[1].split('if (isNull _group',1)[0]
+        for marker in ['WAIT_fnc_CortexZeusHeld','WAIT_fnc_CortexExternalOwner',
+                       'WAIT_fnc_CompatibilityExternalControl']:
+            self.assertIn(marker,guard)
+        self.assertIn('if ([_group] call _mayRestoreHeld) then {',finish)
+        self.assertLess(finish.index('if ([_group] call _mayRestoreHeld) then {'),
+                        finish.index('_x doFollow (leader group _x)'))
+        stalled=regroup.split('if (time - (_state get "lastProgress")',1)[1]
+        self.assertLess(stalled.index('if ([_group] call _mayRestoreHeld) then {'),
+                        stalled.index('doFollow leader _group'))
+
     def test_cover_stance_bounds_rays_and_rotates_units(self):
         text=source('cortexStance')
         self.assertIn('{abs speed _unit < 1}',text)
