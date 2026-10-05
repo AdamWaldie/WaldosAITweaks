@@ -65,29 +65,35 @@ if ((_group getVariable ["WAIT_Cortex_DrillRecovery",[]]) isNotEqualTo []) then 
     _group setVariable ["WAIT_Cortex_DrillRecovery",["MIGRATED",[],-1],true];
 };
 private _restore = createHashMapFromArray (_group getVariable ["WAIT_AIPass_Checkpoint", []]);
-private _groupModeLease = _restore getOrDefault ["restoreGroupCombatMode",[]];
-if (count _groupModeLease == 2 && {combatMode _group == (_groupModeLease select 1)}) then {
-    _group setCombatMode (_groupModeLease select 0);
+// A locality callback may arrive after Zeus or another controller has claimed the group.  The
+// old owner's checkpoint is then evidence only: never replay its follow, AI-feature or ROE cleanup
+// into the new owner's task.  Eligible WAIT groups still recover only the values WAIT recorded.
+private _restoreEligible=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;
+if (_restoreEligible) then {
+    private _groupModeLease = _restore getOrDefault ["restoreGroupCombatMode",[]];
+    if (count _groupModeLease == 2 && {combatMode _group == (_groupModeLease select 1)}) then {
+        _group setCombatMode (_groupModeLease select 0);
+    };
+    private _groupSpeedLease = _restore getOrDefault ["restoreGroupSpeedMode",[]];
+    if (count _groupSpeedLease == 2 && {speedMode _group == (_groupSpeedLease select 1)}) then {
+        _group setSpeedMode (_groupSpeedLease select 0);
+    };
+    {
+        _x params ["_unit", "_feature"];
+        if (local _unit) then {_unit enableAI _feature};
+    } forEach (_restore getOrDefault ["restoreDisabled", []]);
+    {
+        if (alive _x && {local _x} && {group _x == _group}) then {_x doFollow leader _group};
+    } forEach (_restore getOrDefault ["restoreMovers", []]);
+    {
+        _x params ["_unit","_mode",["_ownedMode","BLUE"]];
+        if (local _unit && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
+    } forEach (_restore getOrDefault ["restoreCombatModes",[]]);
+    {
+        _x params ["_unit","_previous","_owned"];
+        if (local _unit && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
+    } forEach (_restore getOrDefault ["restoreCombatBehaviours",[]]);
 };
-private _groupSpeedLease = _restore getOrDefault ["restoreGroupSpeedMode",[]];
-if (count _groupSpeedLease == 2 && {speedMode _group == (_groupSpeedLease select 1)}) then {
-    _group setSpeedMode (_groupSpeedLease select 0);
-};
-{
-    _x params ["_unit", "_feature"];
-    if (local _unit) then {_unit enableAI _feature};
-} forEach (_restore getOrDefault ["restoreDisabled", []]);
-{
-    if (alive _x && {local _x} && {group _x == _group}) then {_x doFollow leader _group};
-} forEach (_restore getOrDefault ["restoreMovers", []]);
-{
-    _x params ["_unit","_mode",["_ownedMode","BLUE"]];
-    if (local _unit && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
-} forEach (_restore getOrDefault ["restoreCombatModes",[]]);
-{
-    _x params ["_unit","_previous","_owned"];
-    if (local _unit && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
-} forEach (_restore getOrDefault ["restoreCombatBehaviours",[]]);
 // Keep restoration intent, not engine commands, across HC ownership changes.
 // A new assignment or Zeus takeover invalidates the old passenger episode.
 private _passengers=(_restore getOrDefault ["dismounted",[]]) select {

@@ -67,6 +67,7 @@ class AIModularityContracts(unittest.TestCase):
         locality=src('cortexLocality')
         self.assertIn('"OWNERSHIP_ADOPTED"',locality)
         self.assertIn('call WAIT_fnc_CortexRestoreCalm',locality)
+        self.assertIn('private _restoreEligible=[_group,false,false,true] call WAIT_fnc_CortexIsEligible',locality)
         release=src('cortexReleaseGroup')
         self.assertIn('[_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm',release)
         self.assertIn('_externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
