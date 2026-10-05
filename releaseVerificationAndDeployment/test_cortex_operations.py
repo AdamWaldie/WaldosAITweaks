@@ -141,6 +141,22 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_OperationRelease',step)
         self.assertIn('WAIT_fnc_OperationCancel',step)
 
+    def test_missile_defence_uses_the_shared_bounded_scheduler(self):
+        discover=source("cortexDiscover")
+        defence=source("cortexMissileDefenceStep")
+        functions=(ROOT/"addons/main/CfgFunctions.hpp").read_text(encoding="utf-8")
+        handler=discover.split('addEventHandler ["IncomingMissile", {',1)[1].split('}];',1)[0]
+        self.assertIn('WAIT_fnc_CortexMissileDefenceStep',handler)
+        self.assertIn('WAIT_fnc_CortexQueueJob',handler)
+        self.assertNotIn(' spawn ',handler)
+        self.assertNotIn(' sleep ',handler)
+        for marker in ['WAIT_Cortex_FlareBurstGeneration','WAIT_Cortex_MissileDefenceActive',
+                       'WAIT_fnc_CortexAircraftEligible','WAIT_fnc_CortexFireCountermeasure',
+                       '_step in [0,4]','_step >= 12','0.45+random 0.18']:
+            self.assertIn(marker,defence)
+        self.assertNotIn('spawn',defence)
+        self.assertNotIn('sleep',defence)
+        self.assertIn('class CortexMissileDefenceStep',functions)
     def test_medical_assistance_is_bounded_and_yields_to_competing_owners(self):
         medical=source('cortexMedicalStep')
         tick=source('cortexGroupTick')
@@ -3998,16 +4014,22 @@ class CortexOperations(unittest.TestCase):
 
     def test_delayed_missile_flare_bursts_are_generation_owned(self):
         discover=source('cortexDiscover')
+        defence=source('cortexMissileDefenceStep')
         for requirement in ['WAIT_Cortex_FlareBurstGeneration',
                             'WAIT_Cortex_MissileDefenceActive',
-                            'params ["_vehicle","_missile","_generation","_side"]',
+                            'WAIT_Cortex_LastIncomingMissile',
+                            'WAIT_fnc_CortexMissileDefenceStep',
+                            'WAIT_fnc_CortexQueueJob']:
+            self.assertIn(requirement,discover)
+        for requirement in ['params [["_state",createHashMap,[createHashMap]]]',
                             '!= _generation',
-                            'for "_step" from 0 to 11',
                             '_step in [0,4]',
                             '!isNull _missile} && {!alive _missile',
-                            'WAIT_Cortex_LastIncomingMissile']:
-            self.assertIn(requirement,discover)
-        self.assertEqual(discover.count('_vehicle setVelocityModelSpace _candidate'),1)
+                            '_step >= 12',
+                            '_aircraft setVelocityModelSpace _candidate']:
+            self.assertIn(requirement,defence)
+        self.assertNotIn(' spawn ',discover)
+        self.assertNotIn(' sleep ',discover)
         stop=source('cortexStop')
         self.assertIn('WAIT_Cortex_FlareBurstGeneration',stop)
         self.assertIn('WAIT_Cortex_MissileDefenceActive',stop)

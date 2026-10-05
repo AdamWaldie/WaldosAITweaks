@@ -144,6 +144,7 @@ class CfgFunctions {
             class CortexFindCover {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexFindCover.sqf";};
             class CortexFireControl {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexFireControl.sqf";};
             class CortexFireCountermeasure {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexFireCountermeasure.sqf";};
+            class CortexMissileDefenceStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexMissileDefenceStep.sqf";};
             class CortexFlankEnd {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexFlankEnd.sqf";};
             class CortexFlankStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexFlankStart.sqf";};
             class CortexFlankStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexFlankStep.sqf";};

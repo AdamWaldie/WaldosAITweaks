@@ -218,49 +218,14 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                     private _side=if (isNull _threat) then {selectRandom [1,-1]}
                         else {[1,-1] select ((_vehicle getRelDir _threat) < 180)};
                     _vehicle setVariable ["WAIT_Cortex_MissileDefenceActive",_generation];
-                    [_vehicle,_missile,_generation,_side] spawn {
-                        params ["_vehicle","_missile","_generation","_side"];
-                        for "_step" from 0 to 11 do {
-                            if (isNull _vehicle || {!local _vehicle}
-                                || {(_vehicle getVariable ["WAIT_Cortex_FlareBurstGeneration",-1]) != _generation}
-                                || {!([_vehicle] call WAIT_fnc_CortexAircraftEligible)}) exitWith {};
-                            // A known missile becoming null/dead means the engagement has ended. Keep one
-                            // initial iteration for engines/mods that do not expose the projectile object.
-                            if (_step > 0 && {!isNull _missile} && {!alive _missile}) exitWith {};
-                            private _pilot=driver _vehicle;
-                            if (!isNull _pilot && {[group _pilot,"WAIT_AIPass_AircraftFlares_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
-                                [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
-                            };
-                            // Two decisive impulses produce a genuine beam/climb without fighting
-                            // the native flight FSM every half-second. The earlier implementation
-                            // rewrote velocity twelve times and created the same pauses and small
-                            // circles that this defensive reaction is meant to avoid.
-                            if (_step in [0,4] && {!isNull _pilot}
-                                && {[group _pilot,"WAIT_AIPass_AircraftBreak_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
-                                private _velocity=velocityModelSpace _vehicle;
-                                private _isPlane=_vehicle isKindOf "Plane";
-                                private _lateralLimit=[34,58] select _isPlane;
-                                private _minimumForward=[28,90] select _isPlane;
-                                private _vertical=[7,14] select _isPlane;
-                                private _candidate=[
-                                    (((_velocity select 0)+(_side*([18,30] select _isPlane))) max -_lateralLimit) min _lateralLimit,
-                                    (_velocity select 1) max _minimumForward,
-                                    ((_velocity select 2)+([_vertical,_vertical*0.35] select (_step > 0))) min ([16,30] select _isPlane)
-                                ];
-                                private _future=_vehicle modelToWorldWorld (_candidate vectorMultiply 2);
-                                private _clearance=(_future select 2)-(getTerrainHeightASL _future);
-                                if (_clearance >= ([30,70] select _isPlane)
-                                    && {[_vehicle] call WAIT_fnc_CortexAircraftEligible}) then {
-                                    _vehicle setVelocityModelSpace _candidate;
-                                };
-                            };
-                            sleep (0.45+random 0.18);
-                        };
-                        if (!isNull _vehicle
-                            && {(_vehicle getVariable ["WAIT_Cortex_FlareBurstGeneration",-1]) == _generation}) then {
-                            _vehicle setVariable ["WAIT_Cortex_MissileDefenceActive",nil];
-                        };
-                    };
+                    [WAIT_fnc_CortexMissileDefenceStep,createHashMapFromArray [
+                        ["aircraft",_vehicle],
+                        ["missile",_missile],
+                        ["generation",_generation],
+                        ["side",_side],
+                        ["step",0],
+                        ["subsystem","TACTICS"]
+                    ],0] call WAIT_fnc_CortexQueueJob;
                 }];
                 _vehicle setVariable ["WAIT_AIPass_FlaresHandler", _handler];
                 private _tracked = missionNamespace getVariable ["WAIT_AIPass_FlareVehicles", []];

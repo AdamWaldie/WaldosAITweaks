@@ -50,6 +50,7 @@ This is an implementation order, not a timed automation. Unfinished acceptance r
 - WAIT-only infantry ownership discovery now reads the registered WAIT enum instead of an obsolete value. This repairs a path where discovery left the external danger controller active while finite leases assumed it had been disabled. Exact baseline restoration and shared ownership remain; dependency-loaded physical acceptance is pending.
 
 - A finite local danger response now promotes only its existing squad decision job to contact cadence. This lets a distant group use its native engine knowledge without waiting for the normal player-distance interval, while retaining the shared scheduler, route owner and performance bounds. Physical response latency and 50 mixed-group acceptance remain pending.
+- Incoming-missile defence now uses the same finite shared scheduler as the rest of WAIT. A newer warning invalidates the earlier generation, and each response emits bounded countermeasures with at most two terrain-checked flight impulses. This removes the independent sleeping worker; real missile evasion and flight-quality acceptance remain pending packaged testing.
 
 - Convoy lead-road and follower-trail grade sampling now uses absolute elevation. Terrain-relative heights previously hid hills from the safety cap. Query bounds and cadence are unchanged; sloped-route physical acceptance remains pending.
 
