@@ -4,7 +4,8 @@
  * Locality/authority: server publishes tokened roles; each group owner executes its fire teams.
  * Repeat/JIP: roles are durable snapshots; only changed roles are broadcast. Existing support
  * lease expiry, exclusion and Zeus cancellation remain authoritative. At most six groups are read.
- * A partial bound is useful progress and hands movement to the next squad. Stalls are counted per
+ * A partial bound is useful progress and hands movement to the next squad, but never completes
+ * the final assault objective; that squad remains eligible to finish its committed approach. Stalls are counted per
  * squad; one unreliable element can recover or retire without cancelling the other manoeuvre and
  * base-of-fire roles. Retirement publishes the exact reservation token for owner-side release; an
  * older abort cannot cancel a replacement task. A squad which can no longer form two viable fire
@@ -62,7 +63,12 @@ private _stillActive=[];
                     [_token,serverTime,"BOUND_FAILURES",_failures],true];
             };
         };
-        if (_progressed && {_final}) then {_completed pushBackUnique _token; _job set ["boundCompleted",_completed]};
+        // Partial progress yields a turn but is not completion of the final assault. Keep the
+        // same objective available so the next committed bound finishes the remaining distance.
+        if (_outcome == "COMPLETE" && {_final}) then {
+            _completed pushBackUnique _token;
+            _job set ["boundCompleted",_completed];
+        };
     } else {
         _stillActive pushBack _x;
     };

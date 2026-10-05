@@ -1743,6 +1743,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_stage != "" || {[_group] call WAIT_fnc_CortexIsEligible}',attack)
         self.assertIn('private _explicitlyExcluded=',attack)
 
+    def test_partial_final_bound_does_not_complete_the_assault(self):
+        coordinator=source('cortexSupportCoordinateStep')
+        self.assertIn('_outcome in ["COMPLETE","PARTIAL"]',coordinator)
+        self.assertIn('if (_outcome == "COMPLETE" && {_final})',coordinator)
+        self.assertNotIn('if (_progressed && {_final})',coordinator)
+        self.assertIn('!(_token in _completed)',coordinator)
+
     def test_combined_roles_use_owned_fire_team_drills_and_restore_holds(self):
         coordinator=source('cortexSupportCoordinateStep')
         self.assertNotIn('allUnits',coordinator)

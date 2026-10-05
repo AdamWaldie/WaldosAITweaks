@@ -676,7 +676,7 @@ The tighter rally movement, physical readiness check and attack-order control re
 
 <!-- WMP-WIKI-NAV -->
 ---
-[Wiki home](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Tutorials)
+[Wiki home](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Home) Â· [Quickstart](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Quickstart-Guide) Â· [Feature index](https://github.com/AdamWaldie/WaldosMissionPack/wiki/Feature-Tutorials)
 
 ## Configuration interface
 
@@ -703,7 +703,7 @@ Each owner checks at most ten registered units per second and rewrites skills on
 
 ### Combined fire-team bounds (in live validation)
 
-Reserved assault squads now receive explicit moving or covering roles from the server. One squad moves a 45–70 metre bound, scaled down for its remaining approach, while the other reserved squads cover. Inside the moving squad, one balanced fire team moves first, then covers the other as it closes. Roles rotate between squads after the physical bound completes. The last approach can enter the ordinary gated assault, grenade and clear-through sequence. An independent flank also brings its covering element forward when no final assault is selected.
+Reserved assault squads now receive explicit moving or covering roles from the server. One squad moves a 45â€“70 metre bound, scaled down for its remaining approach, while the other reserved squads cover. Inside the moving squad, one balanced fire team moves first, then covers the other as it closes. Roles rotate between squads after the physical bound completes. The last approach can enter the ordinary gated assault, grenade and clear-through sequence. An independent flank also brings its covering element forward when no final assault is selected.
 
 This uses the existing per-group movement jobs, retry limits and feature restoration. The coordinator examines at most six reserved squads every two seconds and broadcasts roles only when they change. A failed bound yields the turn and waits eight seconds before retry; it is never counted as completed. A squad below four combat-effective dismounts is released rather than blocking the remaining manoeuvre. A missing owner response is bounded by the configured bound timeout plus a small delivery margin, capped at the existing three-minute safety limit. The combined assignment has a finite ten-minute limit for viable participants. Responders which cannot communicate or receive a safe approach are released when the attack starts. Zeus takeover, withdrawal, feature disable and lease expiry release owned movement restrictions. HC adoption restores old restrictions before consuming the current role.
 
@@ -785,3 +785,7 @@ The additive building matrix now compares native direct movement, a building-att
 Completed runtime `20260930-143339` recorded 25 server findings. The Cortex settings UI completed without a client finding. Native direct movement and replanning again reached the interior on comparison models 2 and 4, while models 1 and 3 failed all three engine movement comparisons. The unlocked-door case opened and physically crossed its threshold. Garrison, full clearance, casualty replacement and subsequent ordinary movement remained unaccepted. This run also caught repeated script errors in the staged clearance controller: an invalid entrance index could produce an empty movement target. Those errors invalidate the affected traversal results as evidence about the revised controller.
 
 The saved correction now sends each worker directly to its claimed interior position first and uses at most four nearest entrances only after measured lack of progress. It validates an entrance before selecting it, applies the same rule after garrison reassignment, preserves live group behaviour and combat mode, and releases the leader from `doStop` on normal completion. Zeus replacement orders clear Cortex state without injecting a competing formation command. The audit observes leader movement when the leader is an assigned worker. These changes pass 140 focused operation checks and validation of 132 AI SQF files; they still require a rebuilt live run.
+
+Coordinated final-bound completion requires the owner to report COMPLETE. PARTIAL releases the
+current turn while keeping that squad eligible to finish the remaining objective distance; it
+does not count as a completed assault. This repair requires fresh physical multi-squad acceptance.

@@ -23,6 +23,8 @@
 - Skills and tactics now share one generation-aware owner-local scheduler; disabling either retains the other runtime's jobs and the last runtime releases the callback. Skill refresh retains a ten-unit budget.
 - Additive scheduler audits exercise measured skill refresh while tactics are off, callback cleanup and physical movement while skills are off; live evidence is pending.
 
+- Coordinated final bounds now require a COMPLETE owner result; PARTIAL progress yields a turn without falsely retiring the squad's unfinished assault objective.
+
 ## Still outstanding
 
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.

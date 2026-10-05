@@ -59,6 +59,8 @@ class PackagePipelineTests(unittest.TestCase):
             self.assertIn(expected, launcher)
         self.assertNotIn('Stop-Process', launcher)
         self.assertNotIn('-filePatching', launcher)
+        self.assertIn("if ($Interactive) {'Normal'} else {'Hidden'}", launcher)
+        self.assertIn("'-name=WAIT_Audit',$modArg) -Interactive", launcher)
 
     def test_focuses_follow_real_dispatch_and_invalid_focus_is_rejected(self):
         self.assertIn('performancemixed', supported_focuses())

@@ -51,9 +51,12 @@ persistent=1;
 class Missions {class Audit {template="$missionName.VR"; difficulty="Regular";};};
 "@ | Set-Content $config
 $modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$Mods -join ';')
-function Start-AuditProcess([string]$exe,[string[]]$arguments) {
+function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interactive) {
     $quoted=$arguments | ForEach-Object {'"'+$_+'"'}
-    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WindowStyle Hidden -PassThru
+    # Background server/HC helpers stay hidden. The observer is an interactive game client:
+    # it must expose its lobby/window so mission entry and physical behaviour can be verified.
+    $auditWindowStyle = if ($Interactive) {'Normal'} else {'Hidden'}
+    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WindowStyle $auditWindowStyle -PassThru
 }
 $serverProfile=Join-Path $runtime 'server'
 $server=Start-AuditProcess 'arma3server_x64.exe' @('-noBattlEye','-autoInit','-netlog',"-port=$Port","-config=$config","-profiles=$serverProfile",$modArg)
@@ -84,7 +87,7 @@ resolutionW=$ResolutionWidth;
 resolutionH=$ResolutionHeight;
 Windowed=1;
 "@ | Set-Content (Join-Path $clientProfile 'Arma3.cfg')
-$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-skipIntro','-noSplash','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile",'-name=WAIT_Audit',$modArg)
+$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-skipIntro','-noSplash','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile",'-name=WAIT_Audit',$modArg) -Interactive
 $processes+=$client.Id
 @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
 Write-Output "WAIT batch launched. Join the observer slot and press OK. Confirm VR entry and addon initialization in RPT. Runtime: $runtime"
