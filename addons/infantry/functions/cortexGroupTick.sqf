@@ -774,6 +774,11 @@ switch (_state get "phase") do {
         private _status = if (_timedOut) then {"INCOMPLETE"} else {["MOVING","WITHDRAWN"] select (!_moving && {_travel >= 30})};
         _group setVariable ["WAIT_Cortex_Withdrawal",[_status,round _travel,_replans],true];
         if ((!_moving && {_travel >= 30}) || {_timedOut}) then {
+            private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+            private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
+            if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}) then {
+                [_group,_generation,["COMPLETE","INCOMPLETE"] select _timedOut,["OBJECTIVE_REACHED","TIMEOUT"] select _timedOut] call WAIT_fnc_OperationRelease;
+            };
             [_group,"INFANTRY_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
             [_group] call WAIT_fnc_CortexGroupMoveClear;
             _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];
