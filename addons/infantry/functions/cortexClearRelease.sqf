@@ -18,6 +18,9 @@ if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated
 };
 private _order = _group getVariable ["WAIT_AIPass_ClearOrder", []];
 if (_order isEqualTo []) exitWith {false};
+// Any controller takeover can arrive before its caller supplies the explicit no-restore flag.
+// Clear WAIT state regardless, but never issue a formation recall over the new owner.
+if (_restore && {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) then {_restore=false};
 _group setVariable ["WAIT_AIPass_ClearGeneration", (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 1];
 // A release often comes from a Zeus replacement order.  Invalidate the common operation now,
 // rather than waiting for the low-frequency building job to notice the cleared flag.  Restrict

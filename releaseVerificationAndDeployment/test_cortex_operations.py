@@ -2385,6 +2385,11 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_smoker doMove',text)
         self.assertNotIn('_smoker doFollow',text)
 
+    def test_clear_release_never_recalls_an_externally_owned_group(self):
+        release=source('cortexClearRelease')
+        self.assertIn('!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)',release)
+        self.assertIn('then {_restore=false}',release)
+        self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore) then {_x doFollow _leader}'))
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
         checkpoint=source('cortexCheckpoint')
         locality=source('cortexLocality')
