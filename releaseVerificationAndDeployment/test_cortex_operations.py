@@ -1,6 +1,7 @@
 """Cortex operational regression contracts. Engine acceptance is in cortexQA, not simulated here."""
 from pathlib import Path
 import json
+import re
 import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'addons/main/functions/Cortex'
@@ -333,12 +334,36 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('"Cortex behaviours",',spec)
 
     def test_cortex_control_spec_has_one_canonical_row_per_setting(self):
-        import re
         spec=source('cortexTuningSpec')
         keys=re.findall(r'^\s*\["(WAIT_[A-Za-z0-9_]+)"\s*,',spec,re.MULTILINE)
         self.assertGreater(len(keys),40)
         duplicates=sorted({key for key in keys if keys.count(key)>1})
         self.assertEqual([],duplicates)
+
+    def test_cba_catalogue_has_registered_sections_and_matching_shipped_defaults(self):
+        """Every CBA control must have one section and the same primitive default as aiConfig."""
+        spec=source('cortexTuningSpec')
+        config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
+        sections=source('aiTweaksSettingsSections')
+        registration=source('aiTweaksRegisterSettings')
+        section_keys=set(re.findall(r'^\s*\["([A-Z_]+)",\s*"\d\d ',sections,re.MULTILINE))
+        rows=re.findall(
+            r'^\s*\["(WAIT_[^"]+)",.*?,\s*"(?:CHECKBOX|SLIDER|COMBO)",\s*.*?,\s*'
+            r'(true|false|-?\d+(?:\.\d+)?|"[^"]*"),\s*"([A-Z_]+)",\s*'
+            r'"(?:LIVE|NEXT_OPERATION|RESTART_REQUIRED)"\],',
+            spec,
+            re.MULTILINE,
+        )
+        shipped=dict(re.findall(r'^\s*\["(WAIT_[^"]+)",\s*(.+?)\],(?:\s*//.*)?$',config,re.MULTILINE))
+        self.assertGreater(len(rows),100)
+        self.assertEqual([],sorted({section for _,_,section in rows}-section_keys))
+        self.assertEqual([],sorted(key for key,_,_ in rows if key not in shipped))
+        self.assertEqual(
+            {},
+            {key:(default,shipped[key].strip()) for key,default,_ in rows if shipped[key].strip()!=default},
+        )
+        self.assertIn('private _rows = _spec select {(_x select 6) == _section};',registration)
+        self.assertIn('call CBA_fnc_addSetting;',registration)
 
     def test_published_cortex_defaults_match_current_core_switches(self):
         import re
