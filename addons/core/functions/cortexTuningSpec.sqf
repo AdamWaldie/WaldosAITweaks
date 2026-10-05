@@ -1,0 +1,180 @@
+/*
+ * Author: WaldoTheWarfighter
+ * The authoritative list of WAIT difficulty, tuning settings and use-case sections that can be changed during a mission.
+ *
+ * One list feeds the CBA Addon Options, the validation in WAIT_fnc_CortexTuning and the
+ * CBA joining-owner replay, so the consumers cannot drift apart. Activation metadata
+ * distinguishes live worker changes from options guaranteed for the next operation. Committed movement
+ * is not restarted by tuning. Defaults are the
+ * \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf values.
+ * Locality and authority: read-only; callable anywhere.
+ *
+ * Repeat/JIP: read-only and repeat-safe; CBA uses this same registration list on joining owners.
+ * Arguments:
+ * None
+ *
+ * Return Value:
+ * Array of [variable, label, tooltip, kind, options, default, section, activation]:
+ * - activation LIVE: worker callback or next owner-local update
+ * - activation NEXT_OPERATION: guaranteed for new intent; active jobs may adopt safety values earlier
+ * - activation RESTART_REQUIRED: effective only after mission restart (none currently)
+ * - kind "SLIDER": options [min, max, decimals]
+ * - kind "CHECKBOX": options []
+ * - kind "COMBO": options [values, labels]
+ *
+ * Example:
+ * private _variables = ([] call WAIT_fnc_CortexTuningSpec) apply {_x select 0};
+ * Result: every tunable Cortex variable name.
+ *
+ * Current callers: WAIT_fnc_CortexTuning and WAIT_fnc_AITweaksRegisterSettings.
+ */
+
+private _profiles = ["", "MILITIA", "LINE", "VETERAN", "ELITE"];
+private _profileLabels = ["Follow the AI Rebalance profile", "Militia", "Line", "Veteran", "Elite"];
+{
+    if !(_x in _profiles || {_x in ["LEGACY", "PUBLIC", "STANDARD"]}) then {_profiles pushBack _x; _profileLabels pushBack _x};
+} forEach keys (missionNamespace getVariable ["WAIT_AIPass_ProfileBehaviour", createHashMap]);
+
+private _skillProfiles = ["LEGACY","MILITIA","LINE","VETERAN","ELITE"];
+{if !(_x in ["PUBLIC","STANDARD"]) then {_skillProfiles pushBackUnique _x}} forEach keys (missionNamespace getVariable ["WAIT_AI_Profiles",createHashMap]);
+private _skillNames = missionNamespace getVariable ["WAIT_AI_ProfileDisplayNames",createHashMap];
+private _skillLabels = _skillProfiles apply {_skillNames getOrDefault [_x,_x]};
+private _spec = [
+    ["WAIT_Convoy_DefaultSpeed", "Convoy: default maximum speed (km/h)", "New native Zeus convoy orders use this speed; existing convoys retain their selected settings.", "SLIDER", [5, 120, 0], 30, "CONVOY_TRAVEL", "NEXT_OPERATION"],
+    ["WAIT_Convoy_DefaultSeparation", "Convoy: default separation (m)", "New convoy centre spacing; vehicle length may increase the minimum. Applies to new orders.", "SLIDER", [10, 100, 0], 30, "CONVOY_TRAVEL", "NEXT_OPERATION"],
+    ["WAIT_Convoy_DefaultPushThrough", "Convoy: default push through contact", "New convoys continue through contact unless pinned. Off requests a contact halt and cargo dismount.", "CHECKBOX", [], true, "CONVOY_TRAVEL", "NEXT_OPERATION"],
+    ["WAIT_AIRebalance_Enable", "Apply WAIT skill profiles", "Master control for WAIT skill adjustment. When enabled, the selected skill profile is applied by the machine that owns each AI unit.", "CHECKBOX", [], true, "SKILLS", "LIVE"],
+    ["WAIT_ImprovedHelicopterLanding_Enable", "Improved helicopter landing", "Uses terrain-aware approach, flare, touchdown and go-around assistance for eligible local AI helicopter pilots.", "CHECKBOX", [], true, "LANDING", "LIVE"],
+    ["WAIT_HelicopterDeceleration_Enable", "Helicopter deceleration correction", "Suppresses excessive climb during aggressive AI braking while retaining terrain clearance. Disabled by default pending airframe validation.", "CHECKBOX", [], false, "BRAKING", "LIVE"],
+    ["WAIT_AIPass_TickBudgetMs", "AI work budget (ms)", "Soft owner-local budget for due AI jobs. A running job is never interrupted; lower values spread work across more frames.", "SLIDER", [0.2,5,1], 1, "PERFORMANCE", "LIVE"],
+    ["WAIT_AIPass_LowFpsThreshold", "Low-FPS backoff threshold", "Below this owner-machine FPS, non-urgent behaviour jobs are rescheduled less often.", "SLIDER", [10,50,0], 25, "PERFORMANCE", "LIVE"],
+    ["WAIT_AI_InfantryDispersion", "Infantry weapon dispersion", "Owner-local aim coefficient for dismounted AI and vehicle cargo. Higher values reduce precision without changing reaction or movement skill.", "SLIDER", [1,3,2], 1.35, "PRECISION", "LIVE"],
+    ["WAIT_AI_VehicleCrewAimMultiplier", "Vehicle crew precision", "Final multiplier for operating vehicle and aircraft crew aiming skills. Cargo keeps the normal infantry profile.", "SLIDER", [0.25,1,2], 0.6, "PRECISION", "LIVE"],
+    ["WAIT_AI_VehicleCrewDispersion", "Ground vehicle dispersion", "Owner-local aim coefficient for ground-vehicle operators. WAIT skips this layer when an external turret dispersion provider is loaded to avoid double stacking.", "SLIDER", [1,6,2], 3.5, "PRECISION", "LIVE"],
+    ["WAIT_AI_AirCrewDispersion", "Aircraft weapon dispersion", "Owner-local aim coefficient for aircraft operators. Precision-excluded aircraft remain exempt; external turret dispersion prevents double stacking.", "SLIDER", [1,7,2], 4.25, "PRECISION", "LIVE"],
+    ["WAIT_AIPass_Enable", "Enable Cortex automatic tactics", "Master control for Cortex actions and reactions. The purpose switches below choose which tactics Cortex may use; convoy control remains independent.", "CHECKBOX", [], true, "GENERAL", "LIVE"],
+    ["WAIT_AIPass_Regroup_Enable", "Survivor regroup", "Survivors of a destroyed squad walk to and join a nearby friendly squad.", "CHECKBOX", [], true, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Contact_Enable", "Contact handling", "Squads switch to combat on contact and return to their previous behaviour and waypoints afterwards. Needed by every combat option below.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_PostContact_Enable", "Post-contact search", "After contact is lost: hold, send two soldiers to check the last known position, regroup.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_PostContact_LostSeconds", "Contact lost delay (s)", "Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover.", "SLIDER", [3,120,0], 30, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_PostContact_SecuritySeconds", "Security hold (s)", "Seconds spent securing the last contact before a search team moves.", "SLIDER", [0,60,0], 10, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_PostContact_SearchSeconds", "Search limit (s)", "Maximum time for the two-soldier search of the last known enemy position.", "SLIDER", [10,180,0], 45, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_PostContact_RegroupSeconds", "Regroup limit (s)", "Maximum time for surviving squad members to close up before Cortex releases control.", "SLIDER", [10,120,0], 30, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_Enable", "Flanking", "Half the squad flanks in covered bounds while the rest suppresses.", "CHECKBOX", [], true, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_StreetCrossing_Enable", "Street crossing", "Flanking squads stop at roads, throw smoke and cross in one bound.", "CHECKBOX", [], true, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_FireControl_Enable", "Fire control", "Close threats first, spread fire across visible enemies, and alternate suppression inside each squad. A short random delay keeps separate squads from firing in lockstep; every ordered burst checks for friendlies.", "CHECKBOX", [], true, "FIRE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_FireControl_MaxShootersPerTarget", "Shooters per target", "Extra shooters prefer another visible enemy once this many soldiers are assigned to one target. Immediate close threats still take priority.", "SLIDER", [1,12,0], 2, "FIRE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Morale_Enable", "Morale and retreat", "Squads under heavy losses and fire break and fall back under smoke.", "CHECKBOX", [], true, "MORALE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Surrender_Enable", "Surrender", "One or two broken survivors surrender only when an enemy is within 60 m and no friendly squad is within 300 m (ACE Captives when loaded).", "CHECKBOX", [], true, "MORALE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_GrenadeEvasion_Enable", "Grenade evasion", "AI move away from a live grenade they can see. Test before live use.", "CHECKBOX", [], true, "FIRE", "LIVE"],
+    ["WAIT_AIPass_AntiArmour_Enable", "Anti-armour", "The best anti-tank gunner engages known armour, clear of backblast.", "CHECKBOX", [], true, "FIRE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Vehicles_Enable", "Enable Cortex vehicle tactics", "Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent.", "CHECKBOX", [], true, "VEHICLES", "NEXT_OPERATION"],
+    ["WAIT_AIPass_DrivingAssist_Enable", "General driving assist", "Ordinary AI ground vehicles only: applies a sparse terrain-grade speed cap while following their existing native waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately.", "CHECKBOX", [], true, "VEHICLES", "NEXT_OPERATION"],
+    ["WAIT_AIPass_NavalAssault_Enable", "Naval infantry landing", "AI boat crews make one finite shallow-water approach and deliver embarked infantry onto dry ground. An installed external naval provider takes priority.", "CHECKBOX", [], true, "NAVAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_ContactReports_Enable", "Contact reports", "Squads share sighted enemies by radio (blocked by jamming) or by voice.", "CHECKBOX", [], true, "COMMS", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Reinforce_Enable", "Reinforcement", "Idle nearby squads move up behind a squad in contact.", "CHECKBOX", [], true, "COORD", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_Enable", "Enable spotter artillery support", "Parent control for spotter-requested support and retreat smoke missions. Explicitly assign a spotter and configure a friendly battery first.", "CHECKBOX", [], false, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_Enable", "Counter-battery", "AI artillery answers enemy artillery whose position is known.", "CHECKBOX", [], false, "COUNTER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Airborne_Enable", "Airborne insertion", "AI squads riding in AI-flown helicopters or planes parachute out when their aircraft nears a known enemy.", "CHECKBOX", [], false, "AIRBORNE", "NEXT_OPERATION"],
+    ["WAIT_Cortex_AttackRunFlares_Enable", "Proactive attack-run countermeasures", "AI aircraft expend countermeasures while approaching and leaving an assigned hostile target. This is based on attack-run geometry, not a detected missile.", "CHECKBOX", [], true, "AIR_DEFENCE", "NEXT_OPERATION"],
+    ["WAIT_Cortex_AirAttack_Enable", "Adaptive aircraft attack patterns", "Eligible planes choose finite strafe, offset, hook or standoff runs. Helicopters also use hover-capable standoff and lateral gun runs. Observed AA and live weapons influence the choice; Zeus orders immediately take priority.", "CHECKBOX", [], true, "AIR_ATTACK", "NEXT_OPERATION"],
+    ["WAIT_AIPass_AircraftFlares_Enable", "Missile-threat countermeasures", "Eligible AI aircraft expend a staggered countermeasure sequence after an incoming missile is detected.", "CHECKBOX", [], true, "AIR_DEFENCE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Investigate_Enable", "Investigation", "Squads send two riflemen to check enemies they know about but have not seen.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Assault_Enable", "Final assault", "A flank can finish with a grenade and a rush on the enemy position.", "CHECKBOX", [], true, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Advance_Enable", "Bounding advance", "Squads in a long firefight push a fire team towards their waypoint in covered bounds.", "CHECKBOX", [], true, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Advance_MinContactSeconds", "Advance contact delay", "Seconds of confirmed contact before a bounding advance may begin. The default reacts quickly enough to take ownership before native waypoint travel consumes the manoeuvre; other movement, knowledge and eligibility checks still apply.", "SLIDER", [0,300,0], 5, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Advance_Cooldown", "Advance repeat delay", "Seconds after an advance ends before the same squad may start another. This is shorter than the flank delay so a squad can continue progressing in successive tactical bounds without immediately restarting a finished drill.", "SLIDER", [0,180,0], 20, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CoordinatedAssault_Enable", "Coordinated assault", "Reinforcing squads assault from both sides while the squad in contact fires.", "CHECKBOX", [], true, "COORD", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Stance_Enable", "Stance from cover", "Soldiers stand, kneel or go prone to match the cover in front of them.", "CHECKBOX", [], true, "COVER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_AmmoShare_Enable", "Ammo sharing", "Soldiers down to their last magazine get one from a nearby squad-mate.", "CHECKBOX", [], true, "RESUPPLY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_VehicleGunnery_Enable", "Vehicle gunnery", "Gunners engage AT soldiers first, then armour; armour backs away from AT teams.", "CHECKBOX", [], true, "VEHICLES", "NEXT_OPERATION"],
+    ["WAIT_AIPass_ArtillerySmoke_Enable", "Retreat artillery smoke mission", "Allows a retreating squad to request a non-lethal smoke screen. Requires Enable spotter artillery support and an eligible battery.", "CHECKBOX", [], true, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_AircraftBreak_Enable", "Aircraft break-away", "Eligible AI aircraft preserve forward energy while jinking away from missile launches. Test addon aircraft first.", "CHECKBOX", [], true, "AIR_DEFENCE", "NEXT_OPERATION"],
+    ["WAIT_AIRebalance_Mode", "Lighting", "Automatic follows ambient darkness and equipped night vision. Day disables the extra penalty; Low light retains the legacy night profile.", "COMBO", [["AUTO","DAY","NIGHT"],["Automatic visibility","Daylight override","Low light (legacy)"]], "AUTO", "SKILLS", "LIVE"],
+    ["WAIT_AIRebalance_Profile", "Selected WAIT skill profile", "Skill values used when Apply WAIT skill profiles is enabled. This is independent of the tactical behaviour profile.", "COMBO", [_skillProfiles,_skillLabels], "LINE", "SKILLS", "LIVE"],
+    ["WAIT_AIPass_InfantryOwnership", "Infantry controller ownership", "Shared ownership keeps the base danger FSM active. A finite WAIT manoeuvre reserves only its responder and restores prior ownership afterwards. WAIT only gives this addon full group control. The building-task backend remains active in either mode; independent weapon configuration is preserved.", "COMBO", [["SPLIT","WAIT"],["Shared ownership (recommended)","WAIT only"]], "SPLIT", "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CivilianReaction_Enable", "Civilian danger reactions", "Unarmed civilians flee nearby gunfire or a hit using event handlers and one finite move. WAIT yields completely when an external civilian controller owns the actor.", "CHECKBOX", [], true, "CIVILIAN", "LIVE"],
+    ["WAIT_AIPass_CivilianReaction_Radius", "Civilian gunfire radius (m)", "FiredNear events inside this distance may trigger an escape response.", "SLIDER", [10,150,0], 45, "CIVILIAN", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CivilianReaction_Distance", "Civilian escape distance (m)", "Approximate length of the safe escape leg away from the threat.", "SLIDER", [50,500,0], 180, "CIVILIAN", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CivilianReaction_Cooldown", "Civilian reaction cooldown (s)", "Minimum delay before another danger event can replace the current escape order.", "SLIDER", [2,120,0], 20, "CIVILIAN", "NEXT_OPERATION"],
+    ["WAIT_AIPass_VehicleDismount_Enable", "Contact: dismount passengers", "Under Enable Cortex vehicle tactics, unloads capable passengers only when safely stopped on dry ground.", "CHECKBOX", [], true, "PASSENGERS", "NEXT_OPERATION"],
+    ["WAIT_AIPass_VehicleRemount_Enable", "Contact: remount released passengers", "Under Enable Cortex vehicle tactics, allows safe conscious passengers to reboard after contact. A newer Zeus order cancels remount intent.", "CHECKBOX", [], true, "PASSENGERS", "NEXT_OPERATION"],
+    ["WAIT_AIPass_VehicleWithdraw_Enable", "Damage: withdraw mobile vehicle", "Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke.", "CHECKBOX", [], true, "VEHICLES", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CoverValidation_Enable", "Additional cover checks", "Adds bounded slope and body clearance checks to shared cover selection.", "CHECKBOX", [], true, "COVER", "NEXT_OPERATION"],
+    ["WAIT_Convoy_MountedFire_Enable", "Convoy mounted targeting", "Registered convoys only: assigns weapon-crew targets under existing ROE. Independent of general vehicle gunnery.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
+    ["WAIT_Convoy_Cover_Enable", "Convoy dismount movement", "Moves dismounted passengers clear of vehicles; seeks cover during contact.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
+    ["WAIT_Convoy_AvoidInfantry_Enable", "Convoy infantry avoidance", "Registered convoys only: short-range friendly-infantry corridor checks before driving. Does not enable general vehicle driving assistance.", "CHECKBOX", [], false, "CONVOY_DRIVING", "NEXT_OPERATION"],
+    ["WAIT_Convoy_DrivingAssist_Enable", "Convoy driving assist", "Registered convoys only: uses low-frequency road look-ahead and damped speed changes for smoother curves, junctions and grades. It does not bypass obstacles or replace authored routes.", "CHECKBOX", [], true, "CONVOY_DRIVING", "NEXT_OPERATION"],
+    ["WAIT_Convoy_RouteRecovery_Enable", "Convoy route recovery", "Re-selects the same unchanged final MOVE waypoint when the engine completes it more than 75 m early. It never creates a route, teleports, repairs or defeats an obstruction.", "CHECKBOX", [], true, "CONVOY_DRIVING", "NEXT_OPERATION"],
+    ["WAIT_Convoy_ContactHalt_Enable", "Convoy contact halts", "Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
+    ["WAIT_Convoy_Unload_Enable", "Convoy cargo unloading", "Registered convoys only: unloads cargo on halt. Operating crews remain aboard; general passenger remount settings do not initiate convoy reboarding.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Danger_Enable", "Danger assessment", "Up to twelve owner-local group members wake one existing squad decision job. Native danger behaviour remains; no additional movement controller. Live acceptance pending.", "CHECKBOX", [], true, "CONTACT", "LIVE"],
+    ["WAIT_AIPass_Hearing_Enable", "Nearby gunfire investigation", "Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
+    // Squad behaviour
+    ["WAIT_AIPass_BehaviourProfile", "Behaviour profile", "Tactics profile for every squad without a group or faction profile of its own. Skill values are not changed.", "COMBO", [_profiles, _profileLabels], "", "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Aggression", "Aggression", "Scales flank/advance preference, optional grenade preparation, investigation and coordinated-assault participation. Positive local preferences choose which viable manoeuvre starts instead of deciding whether the squad acts. Default 1.2 adds initiative; 1 is the profile value and 0 excludes proactive tactics.", "SLIDER", [0, 2, 2], 1.2, "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Cohesion", "Cohesion", "How much punishment squads take before morale breaks. Above 1 they hold longer, below 1 they break sooner.", "SLIDER", [0.5, 2, 2], 1, "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_ReactionSpeed", "Reaction speed", "How often squads re-assess. Above 1 they react faster and use more server time; below 1 slower.", "SLIDER", [0.5, 2, 2], 1, "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_EngageRange", "Engagement range (m)", "Known enemies within this range of a squad leader are acted on.", "SLIDER", [200, 1500, 0], 800, "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_MaxRange", "Flank range (m)", "Enemies farther than this are not flanked.", "SLIDER", [100, 800, 0], 400, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Morale_RetreatDistance", "Retreat distance (m)", "How far a broken squad falls back.", "SLIDER", [50, 500, 0], 200, "MORALE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_ZeusHoldSeconds", "Zeus hold (s)", "How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it.", "SLIDER", [0, 600, 0], 120, "GENERAL", "NEXT_OPERATION"],
+    // Support
+    ["WAIT_AIPass_ContactReports_Radius", "Radio report range (m)", "How far squads pass sightings by radio.", "SLIDER", [0, 1500, 0], 500, "COMMS", "NEXT_OPERATION"],
+    ["WAIT_Cortex_CombinedArms_AirRange", "Aircraft support range (m)", "How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius.", "SLIDER", [500, 10000, 0], 4000, "GENERAL", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Reinforce_Radius", "Reinforcement radius (m)", "How far away idle squads may be sent to help.", "SLIDER", [100, 2000, 0], 600, "COORD", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Reinforce_MaxResponders", "Reinforcing squads", "Squads sent to help one squad in contact.", "SLIDER", [0, 5, 0], 2, "COORD", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_Bursts", "Burst limit", "Maximum HE bursts per mission; smoke uses one burst.", "SLIDER", [1, 5, 0], 3, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_RoundInterval", "Within-burst interval (s)", "Minimum seconds between confirmed rounds inside one burst.", "SLIDER", [1, 15, 0], 2, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_LocationResetDistance", "New location distance (m)", "Reported movement in metres that resets opening offset and safety checks.", "SLIDER", [50, 500, 0], 150, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_RadarDelay", "Counter-battery: radar delay (s)", "Counter-battery acquisition seconds with radar coverage; capped by the normal delay.", "SLIDER", [1, 120, 0], 20, "COUNTER", "NEXT_OPERATION"],
+    // Artillery support
+    ["WAIT_AIPass_Artillery_Rounds", "Support: rounds per burst", "Rounds in each support burst. The burst limit caps the mission.", "SLIDER", [1, 10, 0], 3, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_MaxError", "Support: accuracy needed (m)", "Largest target position error a squad may call fire on. Lower means fewer, more accurate missions.", "SLIDER", [10, 200, 0], 50, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_Cooldown", "Support: cooldown (s)", "Cooldown after a finite support mission ends.", "SLIDER", [30, 600, 0], 120, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_MinFriendlyDistance", "Support: safety distance (m)", "No mission lands this close to friendlies or civilians.", "SLIDER", [50, 500, 0], 200, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_ShootAndScoot", "Support: shoot and scoot", "Mobile guns move after a support mission.", "CHECKBOX", [], true, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_DefaultRole", "Default battery role", "Missions taken by guns without a role of their own.", "COMBO", [["BOTH", "SUPPORT", "COUNTER"], ["Support and counter-battery", "Support only", "Counter-battery only"]], "BOTH", "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_OpeningSafeDistance", "Opening safety distance (m)", "Minimum commanded opening aim distance from the reported target and living players. Player positions are rejection-only.", "SLIDER", [100, 500, 0], 200, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_OpeningBuffer", "Opening extra buffer (m)", "Additional room for ballistic spread and player movement. Live shells are not a guarantee of harmless impacts.", "SLIDER", [50, 300, 0], 100, "ARTILLERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Artillery_WarningInterval", "Ranging warning interval (s)", "Minimum pause after estimated impact before the next burst.", "SLIDER", [10, 60, 0], 20, "ARTILLERY", "NEXT_OPERATION"],
+    // Existing production controls, shared with CBA and the validated script API.
+    ["WAIT_AIPass_Regroup_MaxRemnantSize", "Remnant size", "Maximum surviving members eligible for remnant recovery.", "SLIDER", [1, 8, 0], 2, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_MinimumPeakSize", "Minimum previous squad size", "Protects deliberately small teams from automatic merging.", "SLIDER", [2, 16, 0], 3, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_SearchRadius", "Recovery host search (m)", "Search radius for a compatible friendly host squad.", "SLIDER", [50, 1000, 0], 400, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_MaxGroupSize", "Recovery host size limit", "Maximum host membership after a physical survivor merge.", "SLIDER", [4, 24, 0], 12, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_JoinDistance", "Recovery join distance (m)", "Survivors must reach the host before joining.", "SLIDER", [5, 60, 0], 30, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_StuckSeconds", "Recovery no-progress limit (s)", "Retry an isolated survivor after this interval without progress; never remotely merge it.", "SLIDER", [5, 60, 0], 20, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_TimeoutSeconds", "Recovery time limit (s)", "Maximum recovery attempt duration before explicit abandonment.", "SLIDER", [30, 300, 0], 120, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Regroup_SettleSeconds", "Casualty assessment delay (s)", "Brief delay to assess simultaneous casualties before survivor recovery.", "SLIDER", [0, 15, 1], 5, "RECOVERY", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_MinGroupSize", "Minimum flanking squad size", "Capable soldiers on foot required to split movement and support elements.", "SLIDER", [2, 16, 0], 6, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_MinRange", "Minimum flank range (m)", "Nearer contacts are engaged without opening a flank route.", "SLIDER", [20, 200, 0], 60, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundDistance", "Flank bound distance (m)", "Intended distance of a covered bound; actual terrain may shorten it.", "SLIDER", [15, 100, 0], 55, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundPause", "Flank overwatch interval (s)", "Overwatch interval between bounds; does not require grenade completion.", "SLIDER", [0, 10, 1], 2, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundTimeout", "Bound no-progress limit (s)", "No-progress limit for a bound; reaching the limit never counts as arrival.", "SLIDER", [5, 60, 0], 25, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_Cooldown", "Flank retry cooldown (s)", "Minimum interval before the same squad starts another flank.", "SLIDER", [10, 300, 0], 90, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_FireControl_MaxSuppressors", "Simultaneous suppressors", "Maximum soldiers assigned suppression simultaneously.", "SLIDER", [1, 8, 0], 2, "FIRE", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TriggerDistance", "Landing acquisition range (m)", "Landing assistance may acquire an eligible approach within this range.", "SLIDER", [100, 1500, 0], 500, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TransitAltitude", "Landing approach altitude (m)", "Clear-terrain approach height; terrain and canopy safety still apply.", "SLIDER", [15, 150, 0], 30, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_GlideSlopeRatio", "Landing glide ratio", "Horizontal approach distance per metre of descent.", "SLIDER", [2, 10, 1], 4, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumClimbRate", "Landing climb limit (m/s)", "Maximum commanded climb during assisted landing.", "SLIDER", [2, 15, 1], 8, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumDescentRate", "Landing descent limit (m/s)", "Maximum commanded descent during assisted landing.", "SLIDER", [2, 15, 1], 10, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_MaximumGoArounds", "Landing retry limit", "Maximum automatic go-arounds for one landing order.", "SLIDER", [0, 3, 0], 1, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TouchdownRadius", "Touchdown tolerance (m)", "Horizontal acceptance radius for touchdown.", "SLIDER", [2, 15, 1], 5, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_ImprovedHelicopterLanding_TouchdownHoldSeconds", "Touchdown hold (s)", "Hold after touchdown before releasing flight control.", "SLIDER", [0, 60, 0], 20, "LANDING", "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_MinimumSpeed", "Braking detection speed (km/h)", "Ignore climb corrections below this airspeed.", "SLIDER", [40, 200, 0], 80, "BRAKING", "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_TerrainClearance", "Braking terrain clearance (m)", "Required clearance over sampled terrain ahead.", "SLIDER", [15, 100, 0], 25, "BRAKING", "NEXT_OPERATION"],
+    ["WAIT_HelicopterDeceleration_MaximumCorrectionSeconds", "Braking correction duration (s)", "Finite correction cap before native control resumes.", "SLIDER", [1, 8, 1], 4, "BRAKING", "NEXT_OPERATION"],
+    // Counter-battery
+    ["WAIT_AIPass_CounterBattery_Rounds", "Counter-battery: rounds per burst", "Rounds in each counter-battery burst; ranging changes between bursts.", "SLIDER", [1, 10, 0], 4, "COUNTER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_Delay", "Counter-battery: delay (s)", "Acquisition delay without radar. Radar can shorten it.", "SLIDER", [1, 120, 0], 60, "COUNTER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_Interval", "Counter-battery: interval (s)", "Cooldown after the finite response ends; a new firing event is needed.", "SLIDER", [10, 600, 0], 60, "COUNTER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_MinFriendlyDistance", "Counter-battery: safety distance (m)", "No fire back when friendlies or civilians are this close to the enemy gun.", "SLIDER", [50, 500, 0], 200, "COUNTER", "NEXT_OPERATION"],
+    ["WAIT_AIPass_CounterBattery_ShootAndScoot", "Counter-battery: shoot and scoot", "Mobile guns move after a counter-battery mission.", "CHECKBOX", [], true, "COUNTER", "NEXT_OPERATION"],
+    // Airborne insertion
+    ["WAIT_AIPass_Airborne_DeployDistance", "Airborne: jump distance (m)", "AI passengers jump when their aircraft is this close to a known enemy.", "SLIDER", [200, 2000, 0], 700, "AIRBORNE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Airborne_Altitude", "Airborne: jump altitude (m)", "Height the aircraft climbs to for the drop.", "SLIDER", [150, 600, 0], 250, "AIRBORNE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Airborne_MinAltitude", "Airborne: lowest jump (m)", "Never jump lower than this.", "SLIDER", [80, 300, 0], 120, "AIRBORNE", "NEXT_OPERATION"]
+];
+// Literal sections are shared with CBA and generated guides; no name-based guessing.
+_spec

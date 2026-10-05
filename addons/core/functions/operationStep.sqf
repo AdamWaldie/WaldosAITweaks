@@ -1,0 +1,95 @@
+/*
+ * Author: WaldoTheWarfighter
+ * Purpose: Maintains physical progress for one existing operation and identifies bounded recovery needs.
+ * Locality/authority: Current group owner only; it never creates a replacement route or issues a movement order.
+ * Repeat/JIP: Updates the current generation only. Progress summary is public; cadence is local and rebuilt after migration.
+ * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 minimum progress <NUMBER, 3>; 3 stale seconds <NUMBER, 12>.
+ * Return Value: STRING - ACTIVE, STALLED, LOST_OWNER, ZEUS, EXTERNAL or COMPLETE.
+ * Current callers: shared group operation jobs.
+ * Example: [group player,4] call WAIT_fnc_OperationStep;
+ */
+params [["_group",grpNull,[grpNull]],["_generation",-1,[0]],["_minimum",3,[0]],["_staleSeconds",12,[0]]];
+if (isNull _group || {!local _group}) exitWith {"LOST_OWNER"};
+private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {"REPLACED"};
+// The route and callback belong to the owner epoch that created them.  Locality handlers normally
+// retire that generation before discovery rebuilds semantic intent, but this guard also covers an
+// out-of-order Local event or an HC handoff that races a queued callback.
+if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])) exitWith {"LOST_OWNER"};
+if ([_group] call WAIT_fnc_CortexZeusHeld) exitWith {"ZEUS"};
+if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"EXTERNAL"};
+// Progress belongs to the actors committed to this operation, not automatically to the group
+// leader. A leader can deliberately provide exterior security during CLEAR while the entry element
+// is advancing through rooms; leader-only accounting would misclassify that working operation as stalled.
+private _originalParticipants=(_operation getOrDefault ["participants",[]]) select {
+    alive _x && {local _x} && {!isPlayer _x} && {group _x == _group}
+        && {lifeState _x != "INCAPACITATED"}
+};
+// A recovery order has one bounded observation window. If its actor remains stationary after that
+// window, record the actor as unavailable and let the remaining element continue. Do not turn one
+// failed path into a group-wide retry loop or fabricate the actor's progress.
+private _recovery=_operation getOrDefault ["recovery",createHashMap];
+private _unavailable=_operation getOrDefault ["unavailable",[]];
+{
+    private _actor=_x;
+    private _record=_recovery getOrDefault [netId _actor,[]];
+    if (_record isEqualType [] && {count _record >= 2}) then {
+        _record params ["_attempts","_startedAt"];
+        if (_attempts > 0 && {time-_startedAt >= _staleSeconds}) then {
+            _unavailable pushBackUnique _actor;
+        };
+    };
+} forEach _originalParticipants;
+private _participants=_originalParticipants select {!(_x in _unavailable)};
+private _records=_operation getOrDefault ["participantProgress",[]];
+private _updated=[];
+private _progressed=false;
+private _progressActor=objNull;
+{
+    _x params ["_actor","_lastPosition"];
+    if (_actor in _participants) then {
+        private _currentPosition=getPosATL _actor;
+        if (_currentPosition distance2D _lastPosition >= _minimum) then {
+            _progressed=true;
+            _progressActor=_actor;
+            _recovery deleteAt (netId _actor);
+        };
+        _updated pushBack [_actor,_currentPosition];
+    };
+} forEach _records;
+{
+    private _participant=_x;
+    if (_updated findIf {(_x select 0) == _participant} < 0) then {
+        _updated pushBack [_participant,getPosATL _participant];
+    };
+} forEach _participants;
+// Some finite operations intentionally have no foot participants. Preserve leader-based progress
+// only for that case, rather than requiring a vehicle or support operation to manufacture an actor roster.
+if (_participants isEqualTo [] && {_originalParticipants isEqualTo []}) then {
+    private _leader=leader _group;
+    private _position=getPosATL _leader;
+    if (_position distance2D (_operation getOrDefault ["lastProgressPosition",_position]) >= _minimum) then {
+        _progressed=true;
+        _progressActor=_leader;
+        _operation set ["lastProgressPosition",_position];
+    };
+};
+if (_progressed) then {
+    _operation set ["participantProgress",_updated];
+    _operation set ["recovery",_recovery];
+    _operation set ["unavailable",_unavailable];
+    _operation set ["lastProgressActor",_progressActor];
+    if (!isNull _progressActor) then {_operation set ["lastProgressPosition",getPosATL _progressActor]};
+    _operation set ["lastProgressAt",time];
+    _operation set ["replans",0];
+    _group setVariable ["WAIT_Operation",_operation,true];
+    "ACTIVE"
+} else {
+    _operation set ["participantProgress",_updated];
+    _operation set ["recovery",_recovery];
+    _operation set ["unavailable",_unavailable];
+    _group setVariable ["WAIT_Operation",_operation,true];
+    if (_originalParticipants isNotEqualTo [] && {_participants isEqualTo []}) then {"STALLED"} else {
+        if (time-(_operation getOrDefault ["lastProgressAt",time]) >= _staleSeconds) then {"STALLED"} else {"ACTIVE"}
+    }
+}

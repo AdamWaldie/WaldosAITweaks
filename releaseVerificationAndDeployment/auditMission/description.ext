@@ -1,0 +1,7 @@
+author="WaldoTheWarfighter";
+onLoadName="Waldos AI Tweaks: packaged audit";
+respawn=3;
+respawnDelay=2;
+skipLobby=1;
+disabledAI=1;
+class Header {gameType="COOP"; minPlayers=1; maxPlayers=3;};

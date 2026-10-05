@@ -1,0 +1,1 @@
+# WAIT uses Python 3.11+ standard-library validation. HEMTT 1.22.0 supplies SQF/config/PBO tools.

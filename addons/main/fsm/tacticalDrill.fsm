@@ -1,0 +1,107 @@
+class FSM
+{
+    fsmName = "WAIT finite tactical drill";
+    class States
+    {
+        class Init
+        {
+            name = "Init";
+            init = "_group = _this param [0,grpNull,[grpNull]]; _token = _this param [1,"""",[""""]]; _epoch = _group getVariable [""WAIT_AIPass_Epoch"",0]; _job = createHashMapFromArray [[""group"",_group],[""drillToken"",_token],[""done"",false],[""cancelled"",false]]; _zeusToken = +(_group getVariable [""WAIT_AIPass_ZeusHold"",[]]); _finished = false;";
+            precondition = "";
+            class Links
+            {
+                class Invalid
+                {
+                    priority = 2.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "isNull _group || {_token == """"} || {!local _group}";
+                    action = "_finished = true;";
+                };
+                class Start
+                {
+                    priority = 0.000000;
+                    to = "Step";
+                    precondition = "";
+                    condition = "true";
+                    action = "";
+                };
+            };
+        };
+        class Step
+        {
+            name = "Step";
+            init = "[{params [""_job""]; if (_job get ""cancelled"") exitWith {-1}; private _delay = [_job] call WAIT_fnc_CortexFlankStep; if (isNil ""_delay"" || {!(_delay isEqualType 0)} || {_delay < 0}) exitWith {_job set [""done"",true]; -1}; _delay},_job,0] call WAIT_fnc_CortexQueueJob;";
+            precondition = "";
+            class Links
+            {
+                class Complete
+                {
+                    priority = 2.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "_finished";
+                    action = "";
+                };
+                class Wait
+                {
+                    priority = 0.000000;
+                    to = "Waiting";
+                    precondition = "";
+                    condition = "true";
+                    action = "";
+                };
+            };
+        };
+        class Waiting
+        {
+            name = "Waiting";
+            init = "";
+            precondition = "";
+            class Links
+            {
+                class ZeusPriority
+                {
+                    priority = 5.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "local _group && {(_group getVariable [""WAIT_AIPass_Epoch"",0]) == _epoch} && {(_group getVariable [""WAIT_AIPass_ZeusHold"",[]]) isNotEqualTo _zeusToken || {_group getVariable [""WAIT_AIPass_ZeusWaypoints"",false]}}";
+                    action = "_job set [""cancelled"",true]; [_group,_token,_epoch,""ZEUS""] call WAIT_fnc_CortexDrillInterrupt;";
+                };
+                class Disabled
+                {
+                    priority = 4.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "local _group && {(_group getVariable [""WAIT_AIPass_Epoch"",0]) == _epoch} && {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])}";
+                    action = "_job set [""cancelled"",true]; [_group,_token,_epoch,""RELEASE""] call WAIT_fnc_CortexDrillInterrupt;";
+                };
+                class OwnershipLost
+                {
+                    priority = 3.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "isNull _group || {!local _group} || {(_group getVariable [""WAIT_AIPass_Epoch"",0]) != _epoch} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])}";
+                    action = "_finished = true;";
+                };
+                class CompletedJob
+                {
+                    priority = 0.000000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "_job get ""done""";
+                    action = "";
+                };
+            };
+        };
+        class Finished
+        {
+            name = "Finished";
+            init = "_job set [""cancelled"",true]; if (!isNull _group) then {private _record = _group getVariable [""WAIT_Cortex_DrillFSM"",[]]; if (count _record == 2 && {(_record select 0) == _token} && {(_record select 1) == _thisFSM}) then {_group setVariable [""WAIT_Cortex_DrillFSM"",nil]}};";
+            precondition = "";
+            class Links {};
+        };
+    };
+    initState = "Init";
+    finalStates[] = {"Finished"};
+};

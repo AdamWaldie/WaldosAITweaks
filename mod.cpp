@@ -1,0 +1,9 @@
+name = "Waldos AI Tweaks";
+author = "WaldoTheWarfighter";
+tooltip = "Performant, efficient and tactically sound AI enhancement for Arma 3.";
+tooltipOwned = "Waldos AI Tweaks";
+overview = "Finite, locality-aware infantry, vehicle, convoy, aircraft, artillery and combined-arms behaviours built on CBA.";
+actionName = "GitHub";
+action = "https://github.com/AdamWaldie/WaldosAITweaks";
+hideName = 0;
+hidePicture = 1;

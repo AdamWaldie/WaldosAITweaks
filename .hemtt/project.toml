@@ -1,0 +1,16 @@
+name = "Waldos AI Tweaks"
+prefix = "waldo_ai_tweaks"
+mainprefix = "z"
+
+[version]
+major = 0
+minor = 1
+patch = 0
+git_hash = 0
+
+[files]
+include = ["README.md", "LICENSE", "CONTRIBUTING.md", "docs/*.md"]
+
+[properties]
+author = "WaldoTheWarfighter"
+url = "https://github.com/AdamWaldie/WaldosAITweaks"

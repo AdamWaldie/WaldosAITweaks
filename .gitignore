@@ -1,0 +1,16 @@
+.vscode/
+.idea/
+__pycache__/
+.pytest_cache/
+*.log
+*.rpt
+runtime-*/
+
+.test-deps/
+.test-tmp/
+.tools/
+.hemttout/
+.qa/
+releases/
+.hemttprivatekey
+*.biprivatekey
