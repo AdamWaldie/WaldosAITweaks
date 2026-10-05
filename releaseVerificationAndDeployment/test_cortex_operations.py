@@ -495,6 +495,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit forceSpeed _clearSpeed',text)
         self.assertIn('WAIT_Cortex_ClearAppliedSpeed',text)
         self.assertIn('private _retryDelay=[12,4] select _commandEnded',text)
+        self.assertIn('private _commandEnded=currentCommand _point in ["","STOP"];',text)
+        self.assertNotIn('_pair findIf {currentCommand _x in ["","STOP"]}',text)
         self.assertNotIn('setVehiclePosition',text)
         self.assertIn('_triedEntries pushBackUnique _entryIndex',text)
         self.assertIn('_cursor=_cursor+1',text)

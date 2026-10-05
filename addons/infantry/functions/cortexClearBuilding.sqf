@@ -497,7 +497,9 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         _retries=0;
                         _lastProgress=_now;
                     } else {
-                        private _commandEnded=_pair findIf {currentCommand _x in ["","STOP"]} >= 0;
+                        // Only the assigned mover ending its order shortens the retry interval. A security partner may
+                        // deliberately hold cover, so treating any pair member as stopped churns a working clear.
+                        private _commandEnded=currentCommand _point in ["","STOP"];
                         private _retryDelay=[12,4] select _commandEnded;
                         if (_now-_lastProgress > _retryDelay) then {
                             if (_retries < 3) then {
