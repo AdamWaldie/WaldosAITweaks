@@ -195,6 +195,31 @@ class AddonSettingLifecycleContracts(unittest.TestCase):
         for phrase in ['when COMPAT Turrets', 'external naval controller takes', 'Simple Civilian Behaviour owns']:
             self.assertNotIn(phrase, spec)
 
+class SharedSchedulerLifecycleContracts(unittest.TestCase):
+    def test_skills_and_tactics_share_one_installer(self):
+        self.assertIn('call WAIT_fnc_SchedulerReconcile', src('cortexInit'))
+        self.assertIn('call WAIT_fnc_SchedulerReconcile', src('aiRebalanceInit'))
+        self.assertNotIn('addPerFrameHandler', src('aiRebalanceInit'))
+        self.assertNotIn('addPerFrameHandler', src('cortexInit'))
+        self.assertIn('call CBA_fnc_addPerFrameHandler', src('schedulerReconcile'))
+
+    def test_stops_preserve_the_other_runtime_and_stale_work_cannot_restart(self):
+        for name in ['cortexStop', 'aiRebalanceStop']:
+            self.assertIn('call WAIT_fnc_SchedulerReconcile', src(name))
+            self.assertNotIn('call CBA_fnc_removePerFrameHandler', src(name))
+        self.assertNotIn('setVariable ["WAIT_AIPass_Jobs", []]', src('cortexStop'))
+        self.assertIn('WAIT_AI_LightingGeneration', src('aiRebalanceStop'))
+        self.assertIn('exitWith {-1}', src('aiLightingStep'))
+        self.assertIn('WAIT_AI_LightingGeneration', src('schedulerReconcile'))
+
+    def test_lighting_is_bounded_and_does_not_pause_with_manoeuvres(self):
+        step = src('aiLightingStep')
+        self.assertNotIn('allUnits', step)
+        self.assertIn('_cursor + 9', step)
+        self.assertIn('_signature isNotEqualTo', step)
+        self.assertIn('_paused && {!_skillsJob}', src('cortexSchedulerTick'))
+        self.assertIn('&& {!_skillsJob}', src('cortexSchedulerTick'))
+
 class StandaloneApiMigrationContracts(unittest.TestCase):
     def test_runtime_settings_use_cba_authority(self):
         tuning = src('cortexTuning')

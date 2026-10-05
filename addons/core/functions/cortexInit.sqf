@@ -64,9 +64,7 @@ if !(missionNamespace getVariable ["WAIT_AIPass_Enable", false]) exitWith {
 };
 missionNamespace setVariable ["WAIT_AIPass_Active", true];
 
-if (isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}) then {
-    missionNamespace setVariable ["WAIT_AIPass_SchedulerHandle", [{[] call WAIT_fnc_CortexSchedulerTick}, 0] call CBA_fnc_addPerFrameHandler];
-};
+[] call WAIT_fnc_SchedulerReconcile;
 if (isNil {missionNamespace getVariable "WAIT_AIPass_KilledHandler"}) then {
     missionNamespace setVariable ["WAIT_AIPass_KilledHandler", addMissionEventHandler ["EntityKilled", {
         params ["_unit"];

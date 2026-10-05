@@ -11,7 +11,7 @@ Feature cases: **63**. Required variant categories: **14**.
 | TERRAIN-BATTLE - Equal-force live battle on measured terrain | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | CORE - Master, exclusions and ownership | 3 | 1 | 27 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
 | COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 5 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
-| SCHED - Scheduler and distance tiers | 11 | 0 | 4 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
+| SCHED - Scheduler and distance tiers | 11 | 0 | 6 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
 | PROFILE - Behaviour profiles and aggression | 4 | 1 | 1 | `runProfiles.sqf` | 1 | implemented_partial |
 | SKILL - AI skill rebalance | 14 | 0 | 4 | `runMechanics.sqf` | 0 | implemented_partial |
 | LAND - Helicopter landing | 21 | 0 | 7 | `runLanding.sqf` | 1 | implemented_partial |
@@ -118,7 +118,7 @@ Feature cases: **63**. Required variant categories: **14**.
 
 **Expected:** All 50 groups must remain responsive without significant overhead versus the matched native baseline. User-confirmed budget: <=5% median and <=10% p95 added frame time at 50 groups, with no stalled AI jobs. No starvation, duplicate controllers, or disabled-feature work. The twelve one-unit queue fixture and historical 100-group results are not primary scale acceptance.
 
-**Automation and open work:** runScheduler.sqf covers twelve production-queued squad movements at minimum soft budget. runPerformance.sqf runs the matched 50x6 server-only scheduler baseline without adding the historical 100-group saturation workload to every full audit. runPerformanceContact.sqf runs matched OFF/ON/ON/OFF primary comparisons distributed across the server and two HCs: 50 six-soldier infantry groups through performancecontact, or 30 infantry squads, ten ground vehicles, six helicopters and four jets through performancemixed. runPerformanceOwner.sqf records server, HC and rendered-client median/p95/p99 frame time, queue age, owner heartbeat and actor counts. Running without COMPAT compares vanilla with Cortex; -IncludeCompatibility compares COMPAT alone with Cortex plus COMPAT SPLIT. All three 50-group paths require fresh acceptance.
+**Automation and open work:** runScheduler.sqf covers twelve production-queued squad movements at minimum soft budget. runPerformance.sqf runs the matched 50x6 server-only scheduler baseline without adding the historical 100-group saturation workload to every full audit. runPerformanceContact.sqf runs matched OFF/ON/ON/OFF primary comparisons distributed across the server and two HCs: 50 six-soldier infantry groups through performancecontact, or 30 infantry squads, ten ground vehicles, six helicopters and four jets through performancemixed. runPerformanceOwner.sqf records server, HC and rendered-client median/p95/p99 frame time, queue age, owner heartbeat and actor counts. Running without COMPAT compares vanilla with Cortex; -IncludeCompatibility compares COMPAT alone with Cortex plus COMPAT SPLIT. All three 50-group paths require fresh acceptance. The scheduler suite also verifies a measured skill refresh with tactics disabled, last-runtime callback removal, and physical squad movement with skills disabled, using CBA configuration rather than direct enable writes.
 
 ### PROFILE - Behaviour profiles and aggression
 

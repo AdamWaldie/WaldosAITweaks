@@ -2,7 +2,8 @@
  * Author: WaldoTheWarfighter
  * Stops Cortex on this machine and hands every affected group back to its own orders.
  *
- * Removes the scheduler and every event handler and discards queued jobs. Every locally managed
+ * Removes tactical event handlers and discards tactical jobs. The shared scheduler and skill jobs
+ * remain while skill adjustment is enabled. Every locally managed
  * group is released (WAIT_fnc_CortexReleaseGroup): drills end with only the AI features they
  * disabled re-enabled, pass waypoints are removed, behaviour and speed are restored and COMPAT group AI
  * is handed back. Survivors still walking to a host get doFollow. Defence, garrison and clear
@@ -99,11 +100,6 @@ missionNamespace setVariable ["WAIT_AIPass_InitPending", false];
 } forEach (missionNamespace getVariable ["WAIT_AIPass_FlareVehicles", []]);
 missionNamespace setVariable ["WAIT_AIPass_FlareVehicles", []];
 
-private _handle = missionNamespace getVariable "WAIT_AIPass_SchedulerHandle";
-if (!isNil "_handle") then {
-    [_handle] call CBA_fnc_removePerFrameHandler;
-    missionNamespace setVariable ["WAIT_AIPass_SchedulerHandle", nil];
-};
 {
     _x params ["_variable", "_event"];
     private _handler = missionNamespace getVariable _variable;
@@ -210,8 +206,6 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
         _group setVariable ["WAIT_AIPass_RegroupHost", nil];
     };
 } forEach _jobs;
-missionNamespace setVariable ["WAIT_AIPass_Jobs", []];
-missionNamespace setVariable ["WAIT_AIPass_PendingJobs", []];
-missionNamespace setVariable ["WAIT_AIPass_NextJobDue", -1];
+[] call WAIT_fnc_SchedulerReconcile;
 missionNamespace setVariable ["WAIT_AIPass_DiscoveryQueued", false];
 diag_log "[WAIT] Stopped.";

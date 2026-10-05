@@ -58,6 +58,8 @@ class CfgFunctions {
             class CortexCivilianSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianSetup.sqf";};
             class CortexIsPaused {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexIsPaused.sqf";};
             class CortexQueueJob {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexQueueJob.sqf";};
+            class SchedulerReconcile {file = "\z\waldo_ai_tweaks\addons\core\functions\schedulerReconcile.sqf";};
+            class AILightingStep {file = "\z\waldo_ai_tweaks\addons\core\functions\aiLightingStep.sqf";};
             class CortexSchedulerTick {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexSchedulerTick.sqf";};
             class CortexRegroupOnKill {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexRegroupOnKill.sqf";};
             class CortexRegroupStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexRegroupStep.sqf";};

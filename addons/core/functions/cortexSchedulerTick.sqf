@@ -27,10 +27,11 @@
  * [] call WAIT_fnc_CortexSchedulerTick;
  * Result: due jobs run and are rescheduled or retired.
  *
- * Current caller: the per-frame handler installed by WAIT_fnc_CortexInit.
+ * Current caller: the shared per-frame handler installed by WAIT_fnc_SchedulerReconcile.
  */
 
-if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {};
+if (!(missionNamespace getVariable ["WAIT_AIPass_Active", false])
+    && {!(missionNamespace getVariable ["WAIT_AI_RebalanceActive", false])}) exitWith {};
 private _jobs = missionNamespace getVariable ["WAIT_AIPass_Jobs", []];
 private _pending = missionNamespace getVariable ["WAIT_AIPass_PendingJobs", []];
 private _now = time;
@@ -63,12 +64,15 @@ private _earliest = -1;
         if (_earliest < 0 || {_dueAt < _earliest}) then {_earliest = _dueAt};
     } else {
         _processed = _processed + 1;
+        private _skillsJob = (_state getOrDefault ["subsystem", "TACTICS"]) == "SKILLS";
+        private _enabled = missionNamespace getVariable [["WAIT_AIPass_Active", "WAIT_AI_RebalanceActive"] select _skillsJob, false];
+        private _jobPaused = _paused && {!_skillsJob};
         private _group = _state getOrDefault ["group", grpNull];
-        private _stale = !isNull _group && {!local _group || {(_state getOrDefault ["ownerEpoch", -1]) != (_group getVariable ["WAIT_AIPass_Epoch", 0])}};
-        private _delay = if (_stale) then {-1} else {if (_paused) then {5} else {[_state] call _job}};
+        private _stale = !_enabled || {!isNull _group && {!local _group || {(_state getOrDefault ["ownerEpoch", -1]) != (_group getVariable ["WAIT_AIPass_Epoch", 0])}}};
+        private _delay = if (_stale) then {-1} else {if (_jobPaused) then {5} else {[_state] call _job}};
         if (!_stale && {!_paused} && {!isNull _group}) then {[_group] call WAIT_fnc_CortexCheckpoint};
         if (!isNil "_delay" && {_delay isEqualType 0} && {_delay >= 0}) then {
-            if (_slow && {!_paused}) then {_delay = _delay * 2};
+            if (_slow && {!_jobPaused} && {!_skillsJob}) then {_delay = _delay * 2};
             _rescheduled pushBack [_now + _delay, _job, _state];
             private _rescheduledAt = _now + _delay;
             if (_earliest < 0 || {_rescheduledAt < _earliest}) then {_earliest = _rescheduledAt};

@@ -6,7 +6,7 @@
  * A job is code that takes one state HASHMAP and returns the number of seconds until it should run
  * again, or -1 when it has finished. Jobs never sleep: the scheduler runs them unscheduled inside a
  * per-tick time budget. New jobs wait in a pending list that the next tick merges, so a job may
- * safely queue another job while it runs. The earliest queued due time is cached so the 0.25-second
+ * safely queue another job while it runs. The earliest queued due time is cached so the frame
  * scheduler callback can return without walking every group while all work is still waiting.
  * Locality and authority: machine-local. Jobs and their state are never broadcast.
  *

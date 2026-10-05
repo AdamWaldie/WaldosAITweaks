@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Configures AI skill profiles once per machine and applies the selected profile to local AI.
  * Repeat/JIP: one repeat-safe lighting/seat worker refreshes ten registered local units per second;
- * unchanged lighting/equipment/vehicle seat causes no skill writes. Stop removes the worker; replay reinstalls it.
+ * unchanged lighting/equipment/vehicle seat causes no skill writes. Stop invalidates its queue generation; replay reinstalls one job.
  *
  * Existing local AI are processed immediately. A CBA CAManBase init handler catches newly created
  * units, including Zeus placements, and a per-unit Local event handler reapplies the active profile
@@ -182,34 +182,16 @@ if (toUpperANSI (missionNamespace getVariable ["WAIT_AI_ApplyMode", "BOTH"]) != 
     } forEach allUnits;
 };
 
-// One bounded owner-local worker. At most ten registered units are examined each second;
-// unchanged state does not write skills. No worker or scan is created per unit or group.
-if (isNil "WAIT_Cortex_LightingPFH") then {
-    WAIT_Cortex_LightingPFH = [{
-        private _units = missionNamespace getVariable ["WAIT_Cortex_LightingUnits",[]];
-        private _cursor = missionNamespace getVariable ["WAIT_Cortex_LightingCursor",0];
-        if (_cursor >= count _units) then {
-            _units = _units select {!isNull _x && {alive _x} && {local _x} && {!isPlayer _x}};
-            missionNamespace setVariable ["WAIT_Cortex_LightingUnits",_units];
-            _cursor = 0;
-        };
-        private _mode = missionNamespace getVariable ["WAIT_AIRebalance_Mode","AUTO"];
-        private _dark = (getLighting select 1) <= (missionNamespace getVariable ["WAIT_AI_DarknessThreshold",5]);
-        for "_i" from _cursor to ((_cursor + 9) min ((count _units)-1)) do {
-            private _unit = _units select _i;
-            private _seat = assignedVehicleRole _unit;
-            private _profileVehicle = vehicle _unit;
-            private _profileSeat = toUpperANSI (_seat param [0,""]);
-            private _precisionExcluded = _unit getVariable ["Waldo_AI_PrecisionExclude", false]
-                || {_profileVehicle != _unit && {_profileVehicle getVariable ["Waldo_AI_PrecisionExclude", false]}}
-                || {(group _unit) getVariable ["Waldo_AI_PrecisionExclude", false]};
-            private _signature = [_mode,_dark,hmd _unit,netId _profileVehicle,_profileSeat,_precisionExcluded];
-            if (local _unit && {alive _unit} && {_signature isNotEqualTo (_unit getVariable ["WAIT_Cortex_LightingSignature",[]])}) then {
-                [_unit] call WAIT_fnc_AIApplyProfile;
-            };
-        };
-        missionNamespace setVariable ["WAIT_Cortex_LightingCursor",_cursor+10];
-    },1] call CBA_fnc_addPerFrameHandler;
+// Skills share the same bounded scheduler as tactics. Generation ownership prevents duplicate
+// refresh jobs and makes queued work harmless after disable/re-enable.
+if !(missionNamespace getVariable ["WAIT_AI_LightingQueued", false]) then {
+    missionNamespace setVariable ["WAIT_AI_LightingQueued", true];
+    private _state = createHashMapFromArray [
+        ["subsystem", "SKILLS"],
+        ["generation", missionNamespace getVariable ["WAIT_AI_LightingGeneration", 0]]
+    ];
+    [WAIT_fnc_AILightingStep, _state, 1] call WAIT_fnc_CortexQueueJob;
 };
+[] call WAIT_fnc_SchedulerReconcile;
 if (isServer) then {diag_log format ["[WAIT AI] %1 profile active in %2 mode.", _profile, _mode]};
 true

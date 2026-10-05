@@ -78,3 +78,18 @@ median frame time and 10 percent added p95 frame time. Static checks cannot esta
 Owner-local startup waits for CBA's settings-initialized event after post-init refresh.
 Guarded pre-init defaults do not establish effective settings readiness. Direct server start/stop
 requests use the CBA server layer; callbacks perform local setup and cleanup.
+
+## Shared queue ownership
+
+Tactics and skill adjustment share one owner-local callback and the configured soft budget.
+Skill refresh examines at most ten registered units per second, writes only changed layers and
+continues when tactics are disabled or paused. Tactical job delays retain low-FPS backoff;
+the bounded skill refresh does not inherit that backoff. Stopping either runtime retires its jobs
+without disabling the other. Stopping the last runtime removes the callback. Skill stop advances
+its generation so stale jobs cannot revive after a quick restart. No job is replayed across owners;
+locality adoption registers the new owner's units.
+
+The scheduler audit checks actual skill refresh with tactics disabled and physical queued movement
+with skills disabled, then callback removal when both stop. These new cases await batched game
+acceptance. The shared budget is soft and cannot pre-empt an executing SQF function; 50 mixed-group
+median/p95 frame-time acceptance remains required.

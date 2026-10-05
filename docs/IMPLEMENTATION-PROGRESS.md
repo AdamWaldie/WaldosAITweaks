@@ -20,6 +20,9 @@
 - Repeated skill startup before settings readiness shares a cancellable waiter and reads the joining owner's current effective profile.
 - Existing survivor recovery, flank bounds, suppression, landing and braking controls exposed through the authoritative settings specification without changing production defaults.
 
+- Skills and tactics now share one generation-aware owner-local scheduler; disabling either retains the other runtime's jobs and the last runtime releases the callback. Skill refresh retains a ten-unit budget.
+- Additive scheduler audits exercise measured skill refresh while tactics are off, callback cleanup and physical movement while skills are off; live evidence is pending.
+
 ## Still outstanding
 
 - Original danger FSM, optional engine-policy PBOs and remaining medical/behaviour implementations.

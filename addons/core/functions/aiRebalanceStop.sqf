@@ -27,10 +27,10 @@ if (isServer && {missionNamespace getVariable ["WAIT_AIRebalance_Enable", true]}
 };
 missionNamespace setVariable ["WAIT_AI_RebalanceInitPending", false];
 missionNamespace setVariable ["WAIT_AI_RebalanceActive", false];
-if !(isNil "WAIT_Cortex_LightingPFH") then {
-    [WAIT_Cortex_LightingPFH] call CBA_fnc_removePerFrameHandler;
-    WAIT_Cortex_LightingPFH = nil;
-};
+missionNamespace setVariable ["WAIT_AI_LightingGeneration",
+    (missionNamespace getVariable ["WAIT_AI_LightingGeneration", 0]) + 1];
+missionNamespace setVariable ["WAIT_AI_LightingQueued", false];
+[] call WAIT_fnc_SchedulerReconcile;
 missionNamespace setVariable ["WAIT_Cortex_LightingUnits",[]];
 missionNamespace setVariable ["WAIT_Cortex_LightingCursor",0];
 if (missionNamespace getVariable ["WAIT_AI_RestoreOnStop", true]) then {

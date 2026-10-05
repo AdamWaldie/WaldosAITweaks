@@ -9,8 +9,13 @@
  */
 params ["_check","_phase","_wait"];
 [createHashMapFromArray [["WAIT_AIPass_Enable",true]]] call WAIT_fnc_CortexTuning;
-private _savedBudget=missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1];
-missionNamespace setVariable ["WAIT_AIPass_TickBudgetMs",0.2,true];
+private _saved = createHashMapFromArray [
+    ["WAIT_AIPass_TickBudgetMs", missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1]],
+    ["WAIT_AIRebalance_Enable", missionNamespace getVariable ["WAIT_AIRebalance_Enable",true]],
+    ["WAIT_AIRebalance_Mode", missionNamespace getVariable ["WAIT_AIRebalance_Mode","AUTO"]],
+    ["WAIT_AIRebalance_Profile", missionNamespace getVariable ["WAIT_AIRebalance_Profile","LINE"]]
+];
+[createHashMapFromArray [["WAIT_AIPass_TickBudgetMs",0.2]]] call WAIT_fnc_CortexTuning;
 private _groups=[];
 private _actors=[];
 private _states=[];
@@ -31,6 +36,26 @@ for "_i" from 0 to 11 do {
 };
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_actors,true];
 ["Scheduler: twelve physical movements","Twelve independent squads must walk 80 m to their markers. The real Cortex queue has its minimum 0.2 ms soft budget. Every job must start within ten seconds and retire once; accepted orders alone do not pass.",[1860,1740,0]] call _phase;
+// Exercise independent runtime ownership through real CBA settings before measuring movements.
+[createHashMapFromArray [["WAIT_AIRebalance_Enable",true],["WAIT_AIRebalance_Mode","DAY"],["WAIT_AIRebalance_Profile","LINE"]]] call WAIT_fnc_CortexTuning;
+private _skillsReady = [{missionNamespace getVariable ["WAIT_AI_RebalanceActive",false]},20] call _wait;
+["SCHED-skill-start-prerequisite",_skillsReady] call _check;
+private _skillActor = _actors select 0;
+private _expectedSpot = _skillActor skill "spotDistance";
+[createHashMapFromArray [["WAIT_AIPass_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _skillsOnly = [{!(missionNamespace getVariable ["WAIT_AIPass_Active",false]) && {missionNamespace getVariable ["WAIT_AI_RebalanceActive",false]}},20] call _wait;
+["Scheduler: skills remain after tactics stop","The labelled soldier must retain skill updates while tactical jobs are disabled. This is a measured skill-layer check, not combat acceptance.",getPosATL _skillActor] call _phase;
+_skillActor setVariable ["WAIT_CortexQA_Label","SKILL REFRESH / TACTICS OFF",true];
+_skillActor setSkill ["spotDistance",0];
+_skillActor setVariable ["WAIT_Cortex_LightingSignature",nil];
+private _refreshLimit = (ceil ((count (missionNamespace getVariable ["WAIT_Cortex_LightingUnits",[]])) / 10)) + 10;
+private _refreshed = [{abs ((_skillActor skill "spotDistance")-_expectedSpot) < 0.01},_refreshLimit] call _wait;
+["SCHED-skills-survive-tactics-stop",_skillsOnly && {_expectedSpot > 0} && {_refreshed},str [_expectedSpot,_skillActor skill "spotDistance"]] call _check;
+[createHashMapFromArray [["WAIT_AIRebalance_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _allStopped = [{!(missionNamespace getVariable ["WAIT_AI_RebalanceActive",false]) && {isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}}},20] call _wait;
+["SCHED-last-runtime-releases-callback",_allStopped] call _check;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true]]] call WAIT_fnc_CortexTuning;
+["Scheduler: tactics without skills","With skill adjustment disabled, twelve real queued squads must still walk to their markers. Every job must start, physically arrive and retire once.",[1860,1740,0]] call _phase;
 private _active=[{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
 ["SCHED-active-prerequisite",_active] call _check;
 {
@@ -59,4 +84,4 @@ sleep 5;
 {deleteVehicle _x} forEach _actors;
 {deleteGroup _x} forEach _groups;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
-missionNamespace setVariable ["WAIT_AIPass_TickBudgetMs",_savedBudget,true];
+[_saved] call WAIT_fnc_CortexTuning;
