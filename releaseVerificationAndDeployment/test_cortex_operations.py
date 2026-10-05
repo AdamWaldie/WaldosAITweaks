@@ -39,6 +39,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact',step)
         self.assertIn('time+_responseLifetime',step)
         self.assertIn('time >= (_existing select 3)',step)
+        self.assertLess(step.index('private _replace='),step.index('WAIT_fnc_DangerReact', step.index('if (_replace) then {')))
+        self.assertIn('Keep the surviving highest-priority response authoritative',step)
         self.assertIn('WAIT_Danger_Response',source('cortexGroupTick'))
         self.assertIn('private _tacticalTier=_nearTier || _dangerActive',source('cortexGroupTick'))
         self.assertIn('if (_tacticalTier)',source('cortexGroupTick'))

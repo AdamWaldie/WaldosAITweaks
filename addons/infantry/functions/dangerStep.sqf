@@ -70,7 +70,6 @@ if (_selected isEqualTo []) exitWith {
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
-[leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact;
 // This is a finite handoff, not a target assignment or movement order. GroupTick can respond on
 // its already-owned scheduler cycle while retaining its route, operation and external ownership.
 private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
@@ -83,6 +82,11 @@ private _replace=_existing isEqualTo [] || {count _existing != 5}
     || {time >= (_existing select 3)}
     || {(_priority getOrDefault [_cause,-1]) >= (_priority getOrDefault [_existing select 0,-1])};
 if (_replace) then {
+    // Keep the surviving highest-priority response authoritative. A lower-priority gunfire event
+    // must not turn a still-live HIDE response into ENGAGE while diagnostics continue to report
+    // the hit/explosion that caused it. Equal priority updates deliberately refresh the short
+    // lease from the newest observation.
+    [leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
 };
