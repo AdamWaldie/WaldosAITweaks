@@ -12,12 +12,11 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - CBA extended post-init starts only the systems enabled for that owner;
 - the established `WAIT_fnc_*` API remains available through `CfgFunctions`;
 - CBA Settings owns global addon configuration and JIP synchronization;
-- ZEN is a required operator dependency and supplies the live control surface;
+- Native Zeus orders are included; optional ZEN supplies an extended convoy dialog;
 - the standalone settings request validates the requesting curator and updates the CBA server layer;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+, CBA_A3 and
-ZEN are required. Native engine danger behaviour remains active until an original WAIT replacement
+Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+ and CBA_A3 are required; ZEN is optional. Native engine danger behaviour remains active until an original WAIT replacement
 passes acceptance. No external AI addon is required or bundled.
 
 The new function and settings API uses `WAIT_*` with no forwarding aliases. See
@@ -69,3 +68,14 @@ See [modding and operations](docs/MODDING-AND-OPERATIONS.md) for packaged local 
 signed release promotion and the execution-method assessment.
 
 See [contribution and documentation requirements](CONTRIBUTING.md) and [all CBA settings](docs/SETTINGS-REFERENCE.md).
+
+Native Zeus provides **Convoy: start / resume**, **Convoy: hold and unload passengers**, and
+**Convoy: release control** under Waldos AI Tweaks. Place the order directly on a crewed AI land
+vehicle; group at least two AI-driven vehicles and give the leader its route before starting.
+New convoys use the CBA default speed, separation and push-through options. Resume preserves
+existing convoy settings. Optional ZEN adds a dialog for per-convoy settings. Neither interface
+replaces ordinary Zeus waypoints. Missions still determine which addons/modules a curator may use.
+
+The audit launcher defaults to CBA only. Use `-WithZen` for the optional-dialog compatibility batch.
+Native module placement, late Zeus assignment and both dependency variants remain queued for
+physical acceptance; static validation alone does not establish those behaviours.

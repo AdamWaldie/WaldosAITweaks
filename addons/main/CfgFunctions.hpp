@@ -28,6 +28,7 @@ class CfgFunctions {
             class ConvoySync {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoySync.sqf";};
             class ConvoyReleaseLocal {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyReleaseLocal.sqf";};
             class ConvoyTick {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyTick.sqf";};
+            class ModuleConvoy {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\moduleConvoy.sqf";};
             class ZenConvoyModule {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\zenConvoyModule.sqf";};
             class SimpleAiConvoy {
                 file =  "\z\waldo_ai_tweaks\addons\vehicles\functions\simpleAiConvoy.sqf";

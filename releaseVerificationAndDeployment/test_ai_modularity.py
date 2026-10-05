@@ -159,7 +159,7 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
     def test_standalone_foundation_requires_only_infrastructure(self):
         config = (ROOT/'addons/main/config.cpp').read_text(encoding='utf-8')
         launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
-        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "zen_main", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
 

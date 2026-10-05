@@ -2,7 +2,7 @@
 
 WAIT behaviour guides, settings, diagnostics and internal API names describe behaviour rather than
 source projects. Necessary external config classes, public functions, animation markers and ownership
-fields remain inside compatibility adapters and their tests. CBA and ZEN remain required infrastructure.
+fields remain inside compatibility adapters and their tests. CBA remains required infrastructure; ZEN is optional.
 Existing applicable notices remain intact; changing names never removes notice obligations.
 
 History cleanup preserves an external Git bundle before rewriting published branches. Rewritten refs

@@ -29,7 +29,7 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 
 ## Foundation and optional integrations
 
-CBA and ZEN are required infrastructure. Native engine danger remains the baseline. Optional external
+CBA is required infrastructure; ZEN is optional. Native engine danger remains the baseline. Optional external
 controllers receive explicit ownership checks; detection alone is not proof of compatibility.
 Each operation uses finite ownership and exact restoration, without disabling unrelated behaviour.
 

@@ -8,6 +8,7 @@
  * Current callers: optional ZEN module registration in bootstrap/zenRegister.sqf.
  * Example: [getPosATL truck1, truck1] call WAIT_fnc_ZenConvoyModule;
  */
+if (!hasInterface || {isNil "zen_dialog_fnc_create"}) exitWith {false};
 params ["_modulePos", ["_target", objNull, [objNull]]];
 if (isNull _target || {!(_target isKindOf "LandVehicle")} || {!alive driver _target}) exitWith {
     ["CONVOY", "Place the module on a crewed AI land vehicle.", "ERROR"] call WAIT_fnc_AITweaksNotifyLocal;
@@ -26,9 +27,9 @@ private _operationLabels = if (_config isEqualTo []) then {["Start convoy on its
     format ["Cortex convoy: %1 / %2 vehicles / %3",groupId _group,count _vehicles,_config param [5,"Not started"]],
     [
         ["COMBO", ["Operation", "Configure/resume applies travel settings. Stop holds vehicles and dismounts cargo. Release restores prior settings and removes control."], [_operations, _operationLabels, 0]],
-        ["SLIDER", ["Maximum speed (km/h)", "The lead slows for sharp bends and stretched spacing."], [5, 120, _config param [1,30], 0]],
-        ["SLIDER", ["Separation (m)", "Minimum centre spacing; vehicle length can increase it. Mixed convoys pace for slower vehicles."], [10, 100, _config param [2,30], 0]],
-        ["CHECKBOX", ["Push through contact", "On: move through contact; stop and dismount cargo if pinned for 15 seconds. Off: stop and dismount cargo on contact. Weapon crew remain mounted. Resume does not automatically reboard dismounted passengers."], _config param [3,true]]
+        ["SLIDER", ["Maximum speed (km/h)", "The lead slows for sharp bends and stretched spacing."], [5, 120, _config param [1, missionNamespace getVariable ["WAIT_Convoy_DefaultSpeed", 30]], 0]],
+        ["SLIDER", ["Separation (m)", "Minimum centre spacing; vehicle length can increase it. Mixed convoys pace for slower vehicles."], [10, 100, _config param [2, missionNamespace getVariable ["WAIT_Convoy_DefaultSeparation", 30]], 0]],
+        ["CHECKBOX", ["Push through contact", "On: move through contact; stop and dismount cargo if pinned for 15 seconds. Off: stop and dismount cargo on contact. Weapon crew remain mounted. Resume does not automatically reboard dismounted passengers."], _config param [3, missionNamespace getVariable ["WAIT_Convoy_DefaultPushThrough", true]]]
     ],
     {
         params ["_values", "_target"];

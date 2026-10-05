@@ -211,3 +211,7 @@ WAIT_AIPass_ProfileBehaviour has these defaults. Chance values are weighted by a
 WAIT_AI_ProfileDisplayNames: LEGACY = Existing Mission Balance; MILITIA = WMP Militia; LINE = WMP Line; VETERAN = WMP Veteran; ELITE = WMP Elite.
 
 The table includes all single-line shared settings. The two multiline maps are documented above.
+
+| `WAIT_Convoy_DefaultSpeed` | `30` | Maximum km/h for new native Zeus convoy orders; existing registrations retain their speed. |
+| `WAIT_Convoy_DefaultSeparation` | `30` | Centre separation in metres for new native orders; vehicle length may increase the minimum. |
+| `WAIT_Convoy_DefaultPushThrough` | `true` | New convoy contact policy; existing registrations retain their selected policy. |

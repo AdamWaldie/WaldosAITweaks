@@ -8,6 +8,9 @@ Live controls follow their owner-local update or worker callback. Next-operation
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
+| `WAIT_Convoy_DefaultSpeed` | Convoy: default maximum speed (km/h) | SLIDER | 30 | [5, 120, 0] | NEXT_OPERATION | New native Zeus convoy orders use this speed; existing convoys retain their selected settings. |
+| `WAIT_Convoy_DefaultSeparation` | Convoy: default separation (m) | SLIDER | 30 | [10, 100, 0] | NEXT_OPERATION | New convoy centre spacing; vehicle length may increase the minimum. Applies to new orders. |
+| `WAIT_Convoy_DefaultPushThrough` | Convoy: default push through contact | CHECKBOX | true | [] | NEXT_OPERATION | New convoys continue through contact unless pinned. Off requests a contact halt and cargo dismount. |
 | `WAIT_AIRebalance_Enable` | Apply WAIT skill profiles | CHECKBOX | true | [] | LIVE | Master control for WAIT skill adjustment. When enabled, the selected skill profile is applied by the machine that owns each AI unit. |
 | `WAIT_ImprovedHelicopterLanding_Enable` | Improved helicopter landing | CHECKBOX | true | [] | LIVE | Uses terrain-aware approach, flare, touchdown and go-around assistance for eligible local AI helicopter pilots. |
 | `WAIT_HelicopterDeceleration_Enable` | Helicopter deceleration correction | CHECKBOX | false | [] | LIVE | Suppresses excessive climb during aggressive AI braking while retaining terrain clearance. Disabled by default pending airframe validation. |

@@ -8,6 +8,7 @@ param(
     [int]$ResolutionWidth=3840,
     [int]$ResolutionHeight=2160,
     [ValidateRange(0,2)][int]$HeadlessClients=2,
+    [switch]$WithZen,
     [switch]$StageOnly
 )
 $ErrorActionPreference='Stop'
@@ -20,7 +21,8 @@ if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyConti
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
 if (!$Mods.Count) {
-    $Mods=@('!Workshop/@CBA_A3','!Workshop/@Zeus Enhanced') | ForEach-Object {Join-Path $ArmaPath $_}
+    $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')
+    if ($WithZen) {$Mods+=Join-Path $ArmaPath '!Workshop/@Zeus Enhanced'}
 }
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))

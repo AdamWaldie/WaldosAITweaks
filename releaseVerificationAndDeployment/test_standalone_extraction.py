@@ -25,7 +25,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
         pre = (ROOT / "addons/main/XEH_preInit.sqf").read_text(encoding="utf-8")
         post = (ROOT / "addons/main/XEH_postInit.sqf").read_text(encoding="utf-8")
-        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "zen_main", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertIn("Extended_PreInit_EventHandlers", config)
         self.assertIn("Extended_PostInit_EventHandlers", config)
         self.assertIn("addons\\main\\settings\\aiConfig.sqf", pre)
@@ -65,7 +65,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         )
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
         self.assertIn("class WAIT_AI_Tweaks_Main", config)
-        self.assertIn("zen_main", config)
+        self.assertNotIn("zen_main", config)
 
     def test_cba_settings_and_compatibility_are_native_addon_services(self):
         pre = (ROOT / "addons/main/XEH_preInit.sqf").read_text(encoding="utf-8")
@@ -78,9 +78,28 @@ class StandaloneExtractionContracts(unittest.TestCase):
         self.assertIn("CBA_fnc_addSetting", settings)
         self.assertIn("_this] call WAIT_fnc_AITweaksSettingChanged", settings)
         self.assertNotIn("params ['_value']", settings)
-        self.assertIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
+        self.assertNotIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
         for capability in ("dangerBackend", "alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
             self.assertIn(f'"{capability}"', compat)
+
+    def test_native_curator_commands_do_not_require_optional_dialogs(self):
+        config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
+        native = (ROOT / "addons/vehicles/functions/moduleConvoy.sqf").read_text(encoding="utf-8")
+        watcher = (ROOT / "addons/core/functions/cortexZeusWatchLocal.sqf").read_text(encoding="utf-8")
+        dialog = (ROOT / "addons/vehicles/functions/zenConvoyModule.sqf").read_text(encoding="utf-8")
+        for name in ("WAIT_ModuleConvoyStart", "WAIT_ModuleConvoyHold", "WAIT_ModuleConvoyRelease"):
+            self.assertIn(name, config)
+        self.assertIn("Extended_DisplayLoad_EventHandlers", config)
+        self.assertIn("RscDisplayCurator", config)
+        self.assertIn('WAIT_AIPass_ZeusInstallLocal', watcher)
+        self.assertIn('attachedTo _logic', native)
+        self.assertIn('!local _logic', native)
+        self.assertIn('WAIT_processed', native)
+        self.assertNotIn('nearest', native.lower().replace('no nearby vehicle', ''))
+        self.assertNotIn('zen_dialog_fnc_create', native)
+        self.assertIn('isNil "zen_dialog_fnc_create"', dialog)
+        launcher = (ROOT / "releaseVerificationAndDeployment/launch_mod_audit.ps1").read_text(encoding="utf-8")
+        self.assertIn('if ($WithZen)', launcher)
 
     def test_product_boundary_is_documented(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

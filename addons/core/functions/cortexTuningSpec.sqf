@@ -40,6 +40,9 @@ private _skillProfiles = ["LEGACY","MILITIA","LINE","VETERAN","ELITE"];
 private _skillNames = missionNamespace getVariable ["WAIT_AI_ProfileDisplayNames",createHashMap];
 private _skillLabels = _skillProfiles apply {_skillNames getOrDefault [_x,_x]};
 private _spec = [
+    ["WAIT_Convoy_DefaultSpeed", "Convoy: default maximum speed (km/h)", "New native Zeus convoy orders use this speed; existing convoys retain their selected settings.", "SLIDER", [5, 120, 0], 30, "NEXT_OPERATION"],
+    ["WAIT_Convoy_DefaultSeparation", "Convoy: default separation (m)", "New convoy centre spacing; vehicle length may increase the minimum. Applies to new orders.", "SLIDER", [10, 100, 0], 30, "NEXT_OPERATION"],
+    ["WAIT_Convoy_DefaultPushThrough", "Convoy: default push through contact", "New convoys continue through contact unless pinned. Off requests a contact halt and cargo dismount.", "CHECKBOX", [], true, "NEXT_OPERATION"],
     ["WAIT_AIRebalance_Enable", "Apply WAIT skill profiles", "Master control for WAIT skill adjustment. When enabled, the selected skill profile is applied by the machine that owns each AI unit.", "CHECKBOX", [], true, "LIVE"],
     ["WAIT_ImprovedHelicopterLanding_Enable", "Improved helicopter landing", "Uses terrain-aware approach, flare, touchdown and go-around assistance for eligible local AI helicopter pilots.", "CHECKBOX", [], true, "LIVE"],
     ["WAIT_HelicopterDeceleration_Enable", "Helicopter deceleration correction", "Suppresses excessive climb during aggressive AI braking while retaining terrain clearance. Disabled by default pending airframe validation.", "CHECKBOX", [], false, "LIVE"],

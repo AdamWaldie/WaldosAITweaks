@@ -3,7 +3,7 @@
 ## Implemented and statically checked
 
 - Breaking WAIT function, setting, state and event namespace migration without forwarding aliases.
-- Only CBA and ZEN as required external infrastructure; native danger stays active.
+- CBA as required external infrastructure, with optional ZEN; native danger stays active.
 - Core, infantry, vehicles, aircraft, support and compatibility PBOs with one shared scheduler.
 - Settings-only ZEN panel and its independent variable-writing bridge removed; CBA is the configuration UI.
 - Runtime tuning uses the CBA server layer instead of independently publishing effective values.
@@ -26,6 +26,20 @@
 - Coordinated final bounds now require a COMPLETE owner result; PARTIAL progress yields a turn without falsely retiring the squad's unfinished assault objective.
 - Drill eligibility is checked before combat/speed mutations; ownership loss releases the drill without ordering formation return or holding troops against replacement commands. Physical interruption acceptance is pending.
 - Audit observer launch explicitly selects its resolution config and 3840x2160 command-line dimensions. Curator assignment is corrected; fresh VR entry and observer Zeus use were visibly verified. Reassignment after respawn is implemented and remains a separate pending physical check.
+
+## Order of implementation
+
+1. Finish addon ownership, CBA configuration and native Zeus controls; validate CBA-only and optional-dialog operation.
+2. Repair continuous infantry intent and communication-based squad coordination, including casualty replacement, fire lanes and interruption.
+3. Repair building entry, clearance and traversal across models and squad sizes.
+4. Consolidate vehicle driving, convoy obstruction recovery, passenger ownership and gunnery.
+5. Repair capability-based aircraft attacks, flight/aiming, countermeasures and support operations.
+6. Complete additive acceptance batches, roughly balanced live battles, JIP/HC migration and the 50 mixed-group performance comparison.
+
+Each subsystem retains its gates, documents behaviour and queues physical acceptance before promotion.
+This is an implementation order, not a timed automation. Unfinished acceptance remains visible.
+
+- Optional-dialog dependency removed. Native Zeus START/HOLD/RELEASE convoy modules and display-load interruption installation are packaged; new-order speed, separation and contact defaults use CBA. The launcher defaults to CBA only and supports an explicit optional-dialog batch. Static checks passed; physical placement, late assignment and both dependency variants remain unverified.
 
 ## Still outstanding
 

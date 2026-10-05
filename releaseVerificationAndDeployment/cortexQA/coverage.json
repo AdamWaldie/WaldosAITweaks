@@ -91,6 +91,7 @@
         "addons/core/functions/aiTweaksUiTheme.sqf",
         "addons/core/functions/headlessResolveSender.sqf",
         "addons/vehicles/functions/zenConvoyModule.sqf",
+        "addons/vehicles/functions/moduleConvoy.sqf",
         "addons/infantry/functions/cortexDrillStart.sqf",
         "addons/main/XEH_postInit.sqf",
         "addons/main/XEH_preInit.sqf",
@@ -661,11 +662,14 @@
       "expected": "Each traces its predecessor, maintains spacing and makes progress without wedge formation; recovery is bounded.",
       "settings": [
         "WAIT_Convoy_DrivingAssist_Enable",
-        "WAIT_Convoy_RouteRecovery_Enable"
+        "WAIT_Convoy_RouteRecovery_Enable",
+        "WAIT_Convoy_DefaultSpeed",
+        "WAIT_Convoy_DefaultSeparation",
+        "WAIT_Convoy_DefaultPushThrough"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runServer.sqf CNV-* and runConvoyMatrix.sqf CNVM-*; continuity and restart failures retained. Outside VR the matrix performs one bounded search across eight headings for its complete 1.8 km straight-and-corner route, requires at least 30 m of relief and rejects water, unsafe vehicle surface normals and grades above 0.8. Startup direction, lateral offset, vehicle order and restart-turn measurements are projected onto the selected route axes rather than hard-coded world X/Y. One bounded road walk per convoy every three seconds anticipates curves, junctions and grades; followers reuse predecessor trail geometry and speed changes are damped without replacing route or obstacle authority. The route watchdog stores only the final MOVE identity and may re-select it after premature engine completion when its type and position remain unchanged and the convoy is still over 75 m outside the completion radius. external controller steering, unstuck and crew-return ownership is paused only for WMP-controlled convoy vehicles and exact variable presence/value is restored on final release. Dependency-loaded physical acceptance remains pending.",
+      "automation": "runServer.sqf CNV-* and runConvoyMatrix.sqf CNVM-*; continuity and restart failures retained. Outside VR the matrix performs one bounded search across eight headings for its complete 1.8 km straight-and-corner route, requires at least 30 m of relief and rejects water, unsafe vehicle surface normals and grades above 0.8. Startup direction, lateral offset, vehicle order and restart-turn measurements are projected onto the selected route axes rather than hard-coded world X/Y. One bounded road walk per convoy every three seconds anticipates curves, junctions and grades; followers reuse predecessor trail geometry and speed changes are damped without replacing route or obstacle authority. The route watchdog stores only the final MOVE identity and may re-select it after premature engine completion when its type and position remain unchanged and the convoy is still over 75 m outside the completion radius. external controller steering, unstuck and crew-return ownership is paused only for WMP-controlled convoy vehicles and exact variable presence/value is restored on final release. Dependency-loaded physical acceptance remains pending. Queued: native curator START/HOLD/RELEASE placement with CBA-only and optional-dialog batches; vary CBA defaults and confirm resulting authoritative convoy configuration, physical movement, unloading and release. No live acceptance claimed.",
       "executable_sources": [
         "runServer.sqf",
         "runConvoyMatrix.sqf"

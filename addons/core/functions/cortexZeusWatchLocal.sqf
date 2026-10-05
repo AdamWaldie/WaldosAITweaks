@@ -4,7 +4,7 @@
  * Installs, on each player's machine, the curator event handlers that give Zeus priority over the
  * Smart AI Pass.
  *
- * Whenever this player's Zeus interface opens (ZEN's zen_curatorDisplayLoaded event), the assigned
+ * Whenever this player's native Zeus interface opens (or the optional dialog event fires), the assigned
  * curator logic gets these handlers once:
  * Plain selection is observation and does not take control. Handlers cover:
  * - group and object double-click (attributes);
@@ -30,7 +30,7 @@
  * [] call WAIT_fnc_CortexZeusWatchLocal;
  * Result: this player's Zeus orders always take priority over the pass.
  *
- * Current caller: initPlayerLocal.sqf.
+ * Current callers: addon post-init and native/optional curator display-load hooks.
  */
 
 if (!hasInterface || {missionNamespace getVariable ["WAIT_AIPass_ZeusWatchInstalled", false]}) exitWith {};
@@ -66,5 +66,6 @@ private _install = {
         }];
     } forEach ["CuratorWaypointEdited", "CuratorWaypointDeleted", "CuratorWaypointDoubleClicked"];
 };
+missionNamespace setVariable ["WAIT_AIPass_ZeusInstallLocal", _install];
 ["zen_curatorDisplayLoaded", _install] call CBA_fnc_addEventHandler;
 call _install;

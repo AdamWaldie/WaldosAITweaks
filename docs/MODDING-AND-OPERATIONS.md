@@ -1,6 +1,6 @@
 # Mod build, testing and architecture
 
-WAIT requires Arma 3 2.18+, CBA and ZEN. Other controllers are optional. Native danger remains
+WAIT requires Arma 3 2.18+ and CBA; ZEN is optional. Other controllers are optional. Native danger remains
 active while the original standalone danger implementation awaits acceptance.
 
 ## Change validation and local deployment
@@ -23,7 +23,7 @@ or terrain assets only with the corresponding binarization step restored and ver
 Each audit receives its own `@WaldosAITweaks` folder, mission, profiles, manifest and RPT directory.
 The launcher verifies every packaged file before staging. It uses a dedicated server, an interface
 client, two optional headless clients, `-noBattlEye`, no file patching and a 3840x2160 client profile.
-Dependencies default to installed CBA and Zeus Enhanced Workshop folders; `-Mods` accepts an explicit
+Dependencies default to the installed CBA folder; `-WithZen` adds the optional dialog provider; `-Mods` accepts an explicit
 array for compatibility batches. `-Package` also accepts a signed release candidate folder.
 An existing Arma session prevents another launch. Processes are left available for inspection.
 

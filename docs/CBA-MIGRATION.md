@@ -7,7 +7,7 @@
 3. Functions use the breaking `WAIT_fnc_*` API through addon `CfgFunctions` paths.
 4. Global mission options are registered with CBA Settings, which owns persistence and JIP replay
    with `WAIT_*` variables exposing effective values; scripts change configuration through the validated tuning API.
-5. ZEN is a hard dependency and provides the live curator control surface.
+5. Native Zeus orders work without ZEN; optional ZEN adds a richer convoy dialog.
 6. Product-specific Dynamic AA, Dynamic AO, transport and paradrop coupling was removed. Other
    systems use `Waldo_AI_ExternalControl` or `Waldo_AI_PrecisionExclude` instead.
 7. Accepted flank, advance and coordinated-bound lifecycles now run in a finite scripted FSM. The
@@ -27,7 +27,7 @@
 
 ## Runtime rules
 
-- CBA and ZEN are hard dependencies.
+- CBA is required; ZEN is optional.
 - ACE and other AI addons are optional.
 - One controller owns movement at a time. Compatibility uses finite leases and exact restoration.
 - Zeus and newer authored orders always win.

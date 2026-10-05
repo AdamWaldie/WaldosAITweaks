@@ -397,7 +397,7 @@ taken over once they land (see Exclusions).
 
 ## External controller ownership
 
-WAIT requires CBA and ZEN. Optional controllers may retain immediate danger, driving, civilian or
+WAIT requires CBA; ZEN is optional. Optional controllers may retain immediate danger, driving, civilian or
 specialist animation ownership. Compatibility detection does not make these additional dependencies.
 
 Finite movement leases refuse conflicting active tactics. Completion, cancellation, expiry, locality
@@ -789,3 +789,7 @@ The saved correction now sends each worker directly to its claimed interior posi
 Coordinated final-bound completion requires the owner to report COMPLETE. PARTIAL releases the
 current turn while keeping that squad eligible to finish the remaining objective distance; it
 does not count as a completed assault. This repair requires fresh physical multi-squad acceptance.
+
+| `WAIT_Convoy_DefaultSpeed` | `30` | Maximum km/h for new native Zeus convoy orders; existing registrations retain their speed. |
+| `WAIT_Convoy_DefaultSeparation` | `30` | Centre separation in metres for new native orders; vehicle length may increase the minimum. |
+| `WAIT_Convoy_DefaultPushThrough` | `true` | New convoy contact policy; existing registrations retain their selected policy. |

@@ -362,6 +362,9 @@ createHashMapFromArray [
         ["WAIT_AIPass_VehicleRemount_Enable", true], // Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit.
         ["WAIT_AIPass_VehicleWithdraw_Enable", true], // Allows damaged vehicles to withdraw and use existing smoke.
         ["WAIT_AIPass_CoverValidation_Enable", true], // Adds bounded slope and body clearance checks to shared cover selection.
+        ["WAIT_Convoy_DefaultSpeed", 30], // New convoy order speed; existing registrations retain selected values.
+        ["WAIT_Convoy_DefaultSeparation", 30], // New convoy order centre spacing.
+        ["WAIT_Convoy_DefaultPushThrough", true], // New convoy order contact policy.
         ["WAIT_Convoy_MountedFire_Enable", true], // WMP assigns targets to weapon crew under existing ROE. Disable to leave targeting to another AI mod.
         ["WAIT_Convoy_Cover_Enable", true], // Moves dismounted passengers clear of vehicles; seeks cover during contact.
         ["WAIT_Convoy_AvoidInfantry_Enable", false], // Optional short-range friendly infantry corridor checks before driving.
