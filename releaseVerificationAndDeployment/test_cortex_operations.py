@@ -2634,7 +2634,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_vehicle_gunnery_refreshes_fire_when_contact_was_already_shared(self):
         vehicles=source('cortexVehicles')
-        target_change=vehicles.index('if (assignedTarget _gunner != _target) then {')
+        target_change=vehicles.index('if ([] call _mayIssueVehicle && {assignedTarget _gunner != _target}) then {')
         target_change_end=vehicles.index('};',target_change)
         fire=vehicles.index('_gunner doFire _target;',target_change)
         hold=vehicles.index('_gunner setVariable ["WAIT_AIPass_TargetHold", time + 8]',fire)
@@ -3343,6 +3343,18 @@ class CortexOperations(unittest.TestCase):
                         '{_x doMove (_searchPos getPos [4 + _forEachIndex * 4, random 360])} forEach _team',
                         '_x doMove ((getPosATL _leader) getPos [_slot,(_forEachIndex*137) mod 360])']:
             self.assertLess(tick.rindex('[] call _mayIssueMovement',0,tick.index(command)+len(command)),tick.index(command))
+
+    def test_vehicle_contact_commands_yield_to_external_owner_at_issue_time(self):
+        vehicles=source('cortexVehicles')
+        self.assertIn('private _mayIssueVehicle = {',vehicles)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',vehicles)
+        self.assertIn('if !([] call _mayIssueVehicle) exitWith {_movementOwned};',vehicles)
+        for command in ['_vehicle forceSpeed 0',
+                        'doGetOut _unit',
+                        '_gunner doTarget _target',
+                        '_gunner doFire _target',
+                        '[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease']:
+            self.assertLess(vehicles.rindex('[] call _mayIssueVehicle',0,vehicles.index(command)+len(command)),vehicles.index(command))
 
     def test_delegated_building_release_removes_its_task_without_overwriting_a_new_owner(self):
         release=source('cortexBuildingBackendRelease')

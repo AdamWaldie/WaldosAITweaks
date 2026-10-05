@@ -82,6 +82,13 @@ private _vehicles = [];
     if (_vehicle != _x && {alive _x} && {!(_vehicle in _vehicles)} ) then {_vehicles pushBack _vehicle};
 } forEach units _group;
 if (_vehicles isEqualTo []) exitWith {_movementOwned};
+// Vehicle contact work can select an escape route or rank targets before it reaches the local
+// crew command. A newer curator, player or specialist owner must win at that point rather than
+// being followed by a stale forced speed, dismount, withdrawal or gunner request.
+private _mayIssueVehicle = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
+if !([] call _mayIssueVehicle) exitWith {_movementOwned};
 // Cross-group safe-stop handshake. The passenger owner publishes only an expiring identity request;
 // the vehicle authority validates current occupants and changes speed locally. This avoids remote
 // driver commands, unsafe moving exits and permanent stops after an interrupted/expired handover.
@@ -109,9 +116,9 @@ if (_vehicles isEqualTo []) exitWith {_movementOwned};
             _saved=[getForcedSpeed _vehicle];
             _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved];
         };
-        _vehicle forceSpeed 0;
+        if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
     } else {
-        if (_saved isNotEqualTo [] && {local _vehicle}) then {_vehicle forceSpeed (_saved param [0,-1])};
+        if (_saved isNotEqualTo [] && {local _vehicle} && {[] call _mayIssueVehicle}) then {_vehicle forceSpeed (_saved param [0,-1])};
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };
@@ -162,7 +169,7 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
                 _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle]];
             };
-            _vehicle forceSpeed 0;
+            if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
         };
         private _cargo = (crew _vehicle) select {
             group _x == _group && {[_x, _vehicle] call WAIT_fnc_CortexPassengerReady}
@@ -175,9 +182,11 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
                 // Still aboard on a later tick: reissue the order but record only once.
                 if (_dismounted findIf {(_x select 0) == _unit} < 0) then {_dismounted pushBack [_unit, _vehicle]};
                 _state set ["dismounted", _dismounted];
-                [_unit] orderGetIn false;
-                unassignVehicle _unit;
-                doGetOut _unit;
+                if ([] call _mayIssueVehicle) then {
+                    [_unit] orderGetIn false;
+                    unassignVehicle _unit;
+                    doGetOut _unit;
+                };
             } forEach _cargo;
             _state set ["dismounted", _dismounted];
         };
@@ -202,7 +211,7 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         if ((units _group) findIf {alive _x && {vehicle _x == _x}} < 0) then {
             private _threat=(_enemies select 0) select 0;
             private _away=[_vehicle,_enemyPos,_threat,300] call _selectVehicleEscape;
-            if (_away isNotEqualTo [] && {[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease}) then {
+            if (_away isNotEqualTo [] && {[] call _mayIssueVehicle} && {[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease}) then {
                 private _operation=[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
                 if (count _operation == 0) then {
                     [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
@@ -244,14 +253,16 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             && {combatMode _group in ["YELLOW", "RED"]} && {unitCombatMode _gunner in ["YELLOW", "RED"]}
             && {(_gunner getVariable ["WAIT_AIPass_TargetHold", -1]) < time}) then {
             private _target = (_enemies select ((_ranked select 0) select 2)) select 0;
-            if (assignedTarget _gunner != _target) then {
+            if ([] call _mayIssueVehicle && {assignedTarget _gunner != _target}) then {
                 _gunner doTarget _target;
             };
             // Target sharing may have assigned this contact before the vehicle layer runs. Fire refresh
             // therefore follows its own bounded hold instead of depending on a target identity change.
-            _gunner doFire _target;
-            _gunner setVariable ["WAIT_AIPass_TargetHold", time + 8];
-            _gunner setVariable ["WAIT_AIPass_VehicleTarget", _target, true];
+            if ([] call _mayIssueVehicle) then {
+                _gunner doFire _target;
+                _gunner setVariable ["WAIT_AIPass_TargetHold", time + 8];
+                _gunner setVariable ["WAIT_AIPass_VehicleTarget", _target, true];
+            };
         };
         private _standoff = missionNamespace getVariable ["WAIT_AIPass_Vehicles_StandoffDistance", 250];
         private _atIndex = _enemies findIf {
@@ -265,7 +276,7 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             private _atThreat=(_enemies select _atIndex) select 0;
             private _away=[_vehicle,_atPos,_atThreat,(_standoff - (_vehicle distance2D _atPos)) max 60]
                 call _selectVehicleEscape;
-            if (_away isNotEqualTo [] && {[_group,"VEHICLE_STANDOFF",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease}) then {
+            if (_away isNotEqualTo [] && {[] call _mayIssueVehicle} && {[_group,"VEHICLE_STANDOFF",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease}) then {
                 private _operation=[_group,"VEHICLE_STANDOFF",_atThreat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
                 if (count _operation == 0) then {
                     [_group,"VEHICLE_STANDOFF",false] call WAIT_fnc_CortexOwnershipLease;
