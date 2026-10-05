@@ -3445,6 +3445,13 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(landing.count('WAIT_fnc_CortexExternalTakeover'),2)
         final=landing.split('actual mutation boundary',1)[1]
         self.assertLess(final.index('WAIT_fnc_CortexExternalTakeover'),final.index('setVectorDirAndUp'))
+        anchor=(ROOT/'addons/aircraft/functions/improvedHelicopterLandingAnchorLocal.sqf').read_text(encoding='utf-8')
+        self.assertGreaterEqual(anchor.count('WAIT_fnc_CortexExternalTakeover'),2)
+        self.assertLess(anchor.index('WAIT_fnc_CortexExternalTakeover', anchor.index('EXTERNAL_REPOSITION')),anchor.index('_helicopter addForce'))
+        airborne=source('cortexAirborneCheck')
+        self.assertLess(airborne.index('WAIT_fnc_CortexExternalTakeover'),airborne.index('_aircraft flyInHeight'))
+        eligible=source('cortexAircraftEligible')
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',eligible)
 
     def test_deceleration_impulse_uses_elapsed_simulation_time(self):
         text=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')

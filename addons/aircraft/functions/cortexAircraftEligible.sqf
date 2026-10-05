@@ -4,8 +4,8 @@
  * Locality/authority: on the aircraft owner; the aircraft does not need to originate from another
  * WAIT feature. This prevents the global missile-reaction setting from silently depending on the
  * separate Gunship or Dynamic AA systems.
- * Repeat/JIP: no installation; rechecks external actor/transport ownership and uses the shared
- * local Zeus-hold cache. No external addon state is changed.
+ * Repeat/JIP: no installation; rechecks the shared player, curator and specialist ownership boundary.
+ * No external addon state is changed.
  * Arguments: 0: aircraft <OBJECT>, objNull.
  * Return: Boolean. Current callers: WAIT_fnc_CortexDiscover missile handler and delayed flare bursts.
  * Example: private _allowed=[_aircraft] call WAIT_fnc_CortexAircraftEligible;
@@ -17,10 +17,9 @@ if (isNull _aircraft || {!local _aircraft} || {!alive _aircraft}
 private _pilot=driver _aircraft;
 if (isNull _pilot || {!alive _pilot} || {isPlayer _pilot} || {unitIsUAV _aircraft} || {_pilot getVariable ["ACE_isUnconscious",false]} || {lifeState _pilot == "INCAPACITATED"}) exitWith {false};
 private _group=group _pilot;
-if ([_group] call WAIT_fnc_CompatibilityExternalControl
+if ([_group] call WAIT_fnc_CortexExternalTakeover
     || {[_aircraft] call WAIT_fnc_CompatibilityExternalControl}
-    || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
+    || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])}) exitWith {false};
 private _sideKey=switch (side _group) do {case west:{"WEST"}; case east:{"EAST"}; case independent:{"GUER"}; case civilian:{"CIV"}; default {""}};
 if !(_sideKey in (missionNamespace getVariable ["WAIT_AIPass_IncludedSides",["WEST","EAST","GUER"]])) exitWith {false};
 private _included=missionNamespace getVariable ["WAIT_AI_IncludedFactions",[]];

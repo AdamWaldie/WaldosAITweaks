@@ -3,7 +3,7 @@
  * Keeps a successfully landed local AI helicopter committed to the ground until its orders or
  * ownership genuinely change. The anchor survives vanilla completion of the final landing
  * waypoint, but releases for a moved, deleted or retyped landing waypoint, a valid onward
- * waypoint after the settling delay, Zeus/player pilot takeover, locality migration, feature
+ * waypoint after the settling delay, player, curator or specialist takeover, locality migration, feature
  * disablement or loss of a usable AI pilot. This function is scheduled and locality-safe.
  * Locality and authority: Runs only on the current helicopter owner and releases control when
  * that locality or the owning landing order changes.
@@ -45,6 +45,7 @@ if (
     || {!local _helicopter}
     || {_controlRevision < 0}
     || {(_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", -1]) != _controlRevision}
+    || {[_group] call WAIT_fnc_CortexExternalTakeover}
 ) exitWith {false};
 
 private _normalisedType = toUpperANSI _waypointType;
@@ -91,6 +92,10 @@ while {!_release} do {
         _release = true;
         _releaseReason = "EXTERNAL_REPOSITION";
     };
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {
+        _release = true;
+        _releaseReason = "EXTERNAL_TAKEOVER";
+    };
     _anchorPosition = getPosASL _helicopter;
 
     if (isTouchingGround _helicopter || {((getPosATL _helicopter) select 2) <= 1.5}) then {
@@ -110,8 +115,7 @@ while {!_release} do {
             || {group _pilot != _group}
             || {!alive _pilot}
             || {!_pilotAwake}
-            || {isPlayer _pilot}
-            || {!isNull (remoteControlled _pilot)}
+            || {[_group] call WAIT_fnc_CortexExternalTakeover}
         ) then {
             _release = true;
             _releaseReason = "CONTROL_OR_FEATURE_CHANGE";
