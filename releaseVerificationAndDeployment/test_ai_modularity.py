@@ -59,6 +59,9 @@ class AIModularityContracts(unittest.TestCase):
         text = src('cortexPassengerReady')
         for check in ['local _unit','isPlayer','WAIT_fnc_CortexCombatEffective','abs speed _vehicle','surfaceIsWater','lineIntersectsSurfaces','fullCrew','emptyPositions']:
             self.assertIn(check,text)
+        dismount = src('convoyDismountLocal')
+        self.assertIn('WAIT_fnc_CortexExternalOwner',dismount)
+        self.assertIn('private _operator =',dismount)
         for name in ['cortexVehicles','cortexRestoreCalm']:
             self.assertIn('WAIT_fnc_CortexPassengerReady',src(name))
         locality=src('cortexLocality')
