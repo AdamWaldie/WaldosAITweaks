@@ -1030,7 +1030,8 @@
         "runAircraft.sqf"
       ],
       "production_sources": [
-        "addons/infantry/functions/cortexFireCountermeasure.sqf"
+        "addons/infantry/functions/cortexFireCountermeasure.sqf",
+        "addons/aircraft/functions/cortexMissileDefenceStep.sqf"
       ]
     },
     {
