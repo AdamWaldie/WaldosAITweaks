@@ -3095,6 +3095,25 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)',operation_start)
         self.assertLess(operation_start.index('CortexIsEligible'),operation_start.index('private _previous'))
 
+    def test_operation_callers_handle_an_unavailable_owner_before_they_issue_work(self):
+        callers={
+            'cortexAirAttack': 'if (count _operation == 0)',
+            'cortexAdvanceStart': 'if (count _operation == 0) exitWith',
+            'cortexClearBuilding': 'if (count _operation == 0) exitWith {false}',
+            'cortexCombinedArmsLocal': 'if (count _operation == 0) exitWith',
+            'cortexFlankStart': 'if (count _operation == 0) exitWith',
+            'cortexMedicalStep': 'if (count _operation == 0) exitWith {false}',
+            'cortexRetreat': 'if (count _operation == 0) exitWith',
+            'cortexSupportApply': 'if (count _operation == 0) exitWith',
+            'cortexArtilleryScoot': 'if (count _operation == 0) exitWith',
+            'cortexVehicles': 'if (count _operation == 0)',
+            'cortexNavalAssault': 'if (count _crewOperationRecord == 0) exitWith {',
+        }
+        for name,guard in callers.items():
+            self.assertIn(guard,source(name),name)
+        convoy=source('convoyTick')
+        self.assertIn('ownerSuspended',convoy)
+        self.assertLess(convoy.index('ownerSuspended'),convoy.index('call WAIT_fnc_OperationStart'))
     def test_vehicle_withdraw_and_standoff_use_finite_operation_generations(self):
         vehicles=source('cortexVehicles')
         self.assertIn('[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart',vehicles)
