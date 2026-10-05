@@ -3125,6 +3125,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('drivingAssist=%3 routeRecoveryEnabled=%4',diagnostics)
         self.assertIn('drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7',diagnostics)
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
+        self.assertIn('private _externalCrew',release)
+        self.assertIn('[_x] call WAIT_fnc_CortexExternalOwner != ""',release)
+        self.assertIn('[_crewGroup] call WAIT_fnc_CompatibilityExternalControl',release)
+        self.assertIn('{!_externalCrew}',release)
 
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')

@@ -58,7 +58,15 @@ if (_restore isNotEqualTo []) then {
             _vehicle forceSpeed _speed;
             if !(_vehicle in _keepCrew) then {_vehicle setUnloadInCombat _unload;};
             private _driver = driver _vehicle;
-            if (!isNull _driver && {!isPlayer _driver} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
+            private _externalCrew = (crew _vehicle) findIf {
+                private _crewGroup = group _x;
+                [_x] call WAIT_fnc_CortexExternalOwner != ""
+                || {[_crewGroup] call WAIT_fnc_CompatibilityExternalControl}
+                || {[_crewGroup] call WAIT_fnc_CortexZeusHeld}
+                || {isPlayer _x}
+                || {isPlayer leader _crewGroup}
+            } >= 0;
+            if (!isNull _driver && {!_externalCrew} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
         };
     } forEach _vehicles;
 };
