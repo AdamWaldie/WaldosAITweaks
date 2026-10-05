@@ -130,6 +130,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('lastCallbackMs',source('cortexSchedulerTick'))
         self.assertIn('queueLatency',source('cortexSchedulerTick'))
 
+    def test_combined_ground_manoeuvre_uses_common_operation_lifecycle(self):
+        combined=source('cortexCombinedArmsLocal')
+        step=source('cortexCombinedGroundStep')
+        self.assertIn('"COMBINED_GROUND",_target,[],[_destination],"MANOEUVRE"',combined)
+        self.assertIn('"operationGeneration",_operation get "generation"',combined)
+        self.assertIn('WAIT_fnc_OperationRelease',step)
+        self.assertIn('WAIT_fnc_OperationCancel',step)
+
     def test_recovery_quarantines_only_an_exhausted_actor_from_common_operation_progress(self):
         start=source('operationStart')
         step=source('operationStep')

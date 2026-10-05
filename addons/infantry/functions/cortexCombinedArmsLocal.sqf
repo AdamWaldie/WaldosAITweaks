@@ -90,12 +90,22 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"EXTERNAL_BUSY",serverTime,_target],true];
         false
     };
+    // This remains native vehicle pathfinding, but the temporary firing-area move has a common
+    // lifecycle so a later Zeus order, locality migration or role expiry cannot leave an orphaned
+    // combined-arms waypoint behind.
+    private _operation=[_group,"COMBINED_GROUND",_target,[],[_destination],"MANOEUVRE"] call WAIT_fnc_OperationStart;
+    if (count _operation == 0) exitWith {
+        [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"OWNER_LOST",serverTime,_target],true];
+        false
+    };
     [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
     private _state=[_group] call WAIT_fnc_CortexGroupState;
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
     [WAIT_fnc_CortexCombinedGroundStep,createHashMapFromArray [
         ["group",_group],["asset",_asset],["target",_target],["token",_token],
-        ["expiry",_expiry],["destination",_destination],["lastPosition",_start],
+        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],["lastPosition",_start],
         ["progressAt",time],["stalls",0]
     ],1] call WAIT_fnc_CortexQueueJob;
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];

@@ -19,9 +19,18 @@ private _asset=_job getOrDefault ["asset",objNull];
 private _target=_job getOrDefault ["target",objNull];
 private _token=_job getOrDefault ["token",""];
 private _destination=_job getOrDefault ["destination",[]];
+private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
 private _finish={
     params ["_reason"];
     if (!isNull _group && {local _group}) then {
+        private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+        if (count _operation > 0 && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}) then {
+            if (_reason == "POSITION_REACHED") then {
+                [_group,_operationGeneration,"COMPLETE","FIRING_POSITION_REACHED"] call WAIT_fnc_OperationRelease;
+            } else {
+                [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
+            };
+        };
         [_group] call WAIT_fnc_CortexGroupMoveClear;
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
