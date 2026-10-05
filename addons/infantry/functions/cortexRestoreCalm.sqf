@@ -62,7 +62,10 @@ private _releaseOwnedHold={
         };
         private _command=toUpperANSI currentCommand _unit;
         private _ownedHold=_command in ["","STOP","ATTACK","FIRE","SUPPRESS"];
-        if (_ownedHold || {_returnSearchTeam && {!_yieldToExternal}}) then {
+        // A replacement controller may intentionally leave a unit stationary, firing or holding
+        // position. Remove only WAIT's PATH lease during that handover; do not turn a neutral
+        // engine command into a new follow order.
+        if ((!_yieldToExternal && {_ownedHold}) || {_returnSearchTeam && {!_yieldToExternal}}) then {
             _unit doFollow leader _group;
         };
     };

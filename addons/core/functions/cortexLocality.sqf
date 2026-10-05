@@ -137,7 +137,10 @@ private _withdrawalResumeEligible=count _withdrawalIntent == 7
     && {[_group] call WAIT_fnc_CortexIsEligible}
     && {_withdrawalGateOpen}
     && {!([_group] call WAIT_fnc_CortexZeusHeld)};
-[_group, _restore, false, false, "OWNERSHIP_ADOPTED",!(_transitionResumeEligible || {_withdrawalResumeEligible})] call WAIT_fnc_CortexRestoreCalm;
+// A newly local group may already be under Zeus or an external controller. Treat the former
+// owner's checkpoint as a release-only record in that case: cancelling WAIT's own restrictions
+// must not issue a fresh follow order or restore a speed/ROE value into the replacement task.
+[_group, _restore, false, !_restoreEligible, "OWNERSHIP_ADOPTED",!(_transitionResumeEligible || {_withdrawalResumeEligible})] call WAIT_fnc_CortexRestoreCalm;
 // The public token is semantic state only. CortexNavalAssault validates its unchanged deadline,
 // plan owner and boat before issuing any replacement-owner command on the normal group tick.
 if (count _navalIntent == 5 && {serverTime < (_navalIntent select 4)}
