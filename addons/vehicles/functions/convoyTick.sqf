@@ -24,6 +24,19 @@ _configuration params ["_revision", "_speed", "_separation", "_pushThrough", "_r
 if (time < (_group getVariable ["WAIT_Convoy_NextTick", -1])) exitWith {};
 _group setVariable ["WAIT_Convoy_NextTick", time + 1];
 private _state = _group getVariable ["WAIT_Convoy_LocalState", createHashMap];
+// Convoy may own its own active marker, but must otherwise yield before it reaches crew, route or
+// formation commands. A later eligible tick starts from the current native route rather than
+// cancelling a possibly newer external order.
+if !([_group,false,false,true] call WAIT_fnc_CortexIsEligible) exitWith {
+    _state set ["ownerSuspended",true];
+    _group setVariable ["WAIT_Convoy_LocalState",_state];
+    _group setVariable ["WAIT_Convoy_Suspended",true];
+};
+if (_state getOrDefault ["ownerSuspended",false]) then {
+    _group setVariable ["WAIT_Operation",nil,true];
+    _state set ["ownerSuspended",false];
+    _state set ["revision",-1];
+};
 private _externalCrew = _registered findIf {(crew _x) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0} >= 0;
 private _paused = [] call WAIT_fnc_CortexIsPaused || {[_group] call WAIT_fnc_CompatibilityExternalControl} || {_externalCrew} || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])};
 private _playerCrew = _registered findIf {(crew _x) findIf {isPlayer _x || {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}} >= 0} >= 0;
