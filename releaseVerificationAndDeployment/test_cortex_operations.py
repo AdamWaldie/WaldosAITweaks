@@ -35,6 +35,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_Response',step)
         self.assertIn('WAIT_Danger_Action',step)
         self.assertIn('WAIT_fnc_DangerActionSelect',step)
+        self.assertIn('[leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact',step)
         self.assertIn('time+_responseLifetime',step)
         self.assertIn('time >= (_existing select 3)',step)
         self.assertIn('WAIT_Danger_Response',source('cortexGroupTick'))
@@ -68,6 +69,14 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(contract,action)
         for forbidden in [' doMove ', ' doTarget ', 'reveal', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,action)
+
+    def test_danger_action_owns_posture_without_owning_movement(self):
+        reaction=source('dangerReact')
+        self.assertIn('_action == "MAINTAIN"',reaction)
+        self.assertIn('_action == "ENGAGE"',reaction)
+        self.assertIn('private _desiredCombat',reaction)
+        self.assertNotIn('doMove',reaction)
+        self.assertNotIn('doTarget',reaction)
 
     def test_operations_are_generation_scoped_and_zeus_cancels_before_release(self):
         start=source('operationStart')

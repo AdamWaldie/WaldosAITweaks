@@ -69,7 +69,7 @@ if (_selected isEqualTo []) exitWith {
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
-[leader _group,_cause,_position] call WAIT_fnc_DangerReact;
+[leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact;
 // This is a finite handoff, not a target assignment or movement order. GroupTick can respond on
 // its already-owned scheduler cycle while retaining its route, operation and external ownership.
 private _responseLifetime=[3,2,1.5,1] select (["HIT","SUPPRESSED","DETECTED","GUNFIRE"] find _cause);

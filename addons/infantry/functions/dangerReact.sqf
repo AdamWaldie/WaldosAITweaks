@@ -1,14 +1,14 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Applies a short, local danger posture without replacing an active WAIT or external movement operation.
+ * Purpose: Applies a short, local danger posture selected by the danger FSM without replacing an active WAIT or external movement operation.
  * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned.
  * Repeat/JIP: One public lease contains the prior and applied values. Repeated events extend the lease; restore changes only values still matching WAIT's application and discards its lease on external takeover. DangerStep owns the finite response context.
- * Arguments: 0 actor <OBJECT>; 1 cause <STRING, RESTORE or RELEASE>; 2 approximate danger position <ARRAY, []>.
+ * Arguments: 0 actor <OBJECT>; 1 cause <STRING, RESTORE or RELEASE>; 2 approximate danger position <ARRAY, []>; 3 classified action <STRING, "">.
  * Return Value: STRING - RESTORED, ASSESS, POSTURE or IGNORED.
  * Current callers: DangerStep and CortexGroupTick cleanup.
- * Example: [leader group player,"SUPPRESSED",getPosATL player] call WAIT_fnc_DangerReact;
+ * Example: [leader group player,"SUPPRESSED",getPosATL player,"HIDE"] call WAIT_fnc_DangerReact;
  */
-params [["_actor",objNull,[objNull]],["_cause","RESTORE",[""]],["_position",[],[[]]]];
+params [["_actor",objNull,[objNull]],["_cause","RESTORE",[""]],["_position",[],[[]]],["_action","",[""]]];
 if (isNull _actor || {!local _actor} || {!alive _actor}) exitWith {"IGNORED"};
 private _group=group _actor;
 if (isNull _group || {!local _group}) exitWith {"IGNORED"};
@@ -41,6 +41,12 @@ if (_yieldToOwner) exitWith {"IGNORED"};
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {
     "ASSESS"
 };
+// The immediate FSM response is deliberately posture-only. Movement, target assignment and route
+// ownership stay with native AI or the already-running WAIT operation. This makes the classifier
+// useful without creating a second combat controller.
+if (_action == "MAINTAIN") exitWith {"ASSESS"};
+if (_action == "RELEASE") exitWith {"IGNORED"};
+if !(_action in ["HIDE","ENGAGE","VEHICLE",""]) then {_action=""};
 private _leaseIntact=count _lease == 5 && {time < (_lease select 4)}
     && {behaviour leader _group == (_lease select 1)} && {combatMode _group == (_lease select 3)};
 private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour leader _group};
@@ -53,9 +59,10 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
     _group setBehaviour "COMBAT";
     _appliedBehaviour="COMBAT";
 };
-if (_priorCombat == "BLUE") then {
-    _group setCombatMode "YELLOW";
-    _appliedCombat="YELLOW";
+private _desiredCombat=if (_action == "ENGAGE") then {"RED"} else {"YELLOW"};
+if (_priorCombat == "BLUE" || {_action == "ENGAGE" && {_priorCombat != "RED"}}) then {
+    _group setCombatMode _desiredCombat;
+    _appliedCombat=_desiredCombat;
 };
 private _until=(time + ([3,2,1.5,1] select (["HIT","SUPPRESSED","DETECTED","GUNFIRE"] find _cause))) max (_lease param [4,-1]);
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until],true];
