@@ -48,6 +48,10 @@
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_allowRemount",true,[true]], ["_yieldToExternal",false,[true]], ["_reason","RESTORED",[""]], ["_forcePhase",false,[true]]];
 if (isNull _group || {!local _group}) exitWith {};
+// A cleanup can run before the engine elects a replacement leader. All WAIT-owned followers use
+// this viable local anchor; external handovers still suppress the follow command below.
+private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 // A pending drill step may not run until after a checkpoint or ownership change.
 // Restore its movement restrictions now, before clearing the checkpoint below.
 if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
@@ -66,7 +70,7 @@ private _releaseOwnedHold={
         // position. Remove only WAIT's PATH lease during that handover; do not turn a neutral
         // engine command into a new follow order.
         if ((!_yieldToExternal && {_ownedHold}) || {_returnSearchTeam && {!_yieldToExternal}}) then {
-            _unit doFollow leader _group;
+            _unit doFollow _leader;
         };
     };
 };
@@ -86,7 +90,6 @@ if (count _supportLease == 6 && {(_state getOrDefault ["supportToken",""]) == (_
 private _movementOwner=(_state getOrDefault ["movementLease",[]]) param [0,""];
 if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
 {_state deleteAt _x} forEach ["supportHeld","supportBoundSequence","supportToken","responding","assaulting","respondingTo","respondUntil"];
-private _leader = leader _group;
 // Zeus may deliberately replace Cortex's disabled autonomous-attack state while taking over.
 // The external handover owns that setting, just as it owns replacement movement and ROE.
 if (!_yieldToExternal && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};

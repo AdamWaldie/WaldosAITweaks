@@ -211,6 +211,16 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('spawn',defence)
         self.assertNotIn('sleep',defence)
         self.assertIn('class CortexMissileDefenceStep',functions)
+    def test_cleanup_and_regroup_use_surviving_anchors_without_global_group_scans(self):
+        """Cleanup and remnant recovery remain viable after leadership loss at large group counts."""
+        calm=source('cortexRestoreCalm')
+        self.assertIn('private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;',calm)
+        self.assertIn('_unit doFollow _leader;',calm)
+        regroup=source('cortexRegroupStep')
+        self.assertIn('_origin nearEntities ["Man",_radius]',regroup)
+        self.assertIn('private _leader = [_candidate] call WAIT_fnc_CortexGroupAnchor;',regroup)
+        self.assertNotIn('} forEach allGroups;',regroup)
+
     def test_morale_surrender_support_check_is_spatially_bounded_and_leader_resilient(self):
         """Broken squads must not scan every group or lose their surrender context during succession."""
         morale=source('cortexMorale')
@@ -1225,7 +1235,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit setVariable ["WAIT_Cortex_SupportPathHold",nil,true]',release_hold)
         self.assertIn('_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]',release_hold)
         self.assertIn('_returnSearchTeam && {!_yieldToExternal}',release_hold)
-        self.assertIn('_unit doFollow leader _group',release_hold)
+        self.assertIn('_unit doFollow _leader',release_hold)
         for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
             self.assertNotIn(f'"{external}"',release_hold)
         self.assertIn('[_x,true,false] call _releaseOwnedHold',restore)

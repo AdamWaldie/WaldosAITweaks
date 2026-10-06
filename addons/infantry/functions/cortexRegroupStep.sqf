@@ -98,11 +98,21 @@ if (_phase == "EVALUATE") exitWith {
     private _minimumHost = (missionNamespace getVariable ["WAIT_AIPass_Regroup_MaxRemnantSize", 2]) + 1;
     private _host = grpNull;
     private _hostDistance = _radius;
+    // Regroup is exceptional but can coincide across several casualty remnants. Bound discovery to
+    // actual nearby soldiers instead of scanning every group on the server.
+    private _candidateGroups=[];
+    {
+        private _candidateGroup=group _x;
+        if (!isNull _candidateGroup && {_candidateGroup != _group} && {!(_candidateGroup in _candidateGroups)}) then {
+            _candidateGroups pushBack _candidateGroup;
+        };
+    } forEach (_origin nearEntities ["Man",_radius]);
     {
         private _candidate = _x;
-        private _leader = leader _candidate;
+        private _leader = [_candidate] call WAIT_fnc_CortexGroupAnchor;
+        if (isNull _leader) then {_leader=leader _candidate};
         if (_candidate != _group && {side _candidate == _side} && {local _candidate}
-            && {alive _leader} && {vehicle _leader == _leader}) then {
+            && {!isNull _leader} && {alive _leader} && {vehicle _leader == _leader}) then {
             private _hostAlive = {alive _x} count units _candidate;
             private _distance = _leader distance2D _origin;
             if (_distance < _hostDistance && {_hostAlive >= _minimumHost}
@@ -113,7 +123,7 @@ if (_phase == "EVALUATE") exitWith {
                 _hostDistance = _distance;
             };
         };
-    } forEach allGroups;
+    } forEach _candidateGroups;
 
     if (isNull _host) exitWith {
         if (time - (_state get "firstEvaluation") >= _timeout) then {call _finish} else {20}
