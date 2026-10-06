@@ -3963,7 +3963,7 @@ class CortexOperations(unittest.TestCase):
                             'magazinesAllTurrets','airLock','aiAmmoUsageFlags','STANDOFF','OFFSET','HOOK','STRAFE','BOMB','LATERAL',
                             'INTERCEPT','_airToAir','airWeapon','airWeaponTurret','pylonWeapon','hardpoints','indirectHit']:
             self.assertIn(requirement,planner)
-        for requirement in ['groundWeapon','groundTurret','_groundCandidates','shotbullet','shotshell',
+        for requirement in ['groundWeapon','groundTurret','_groundCandidates','_hasGun=_groundCandidates findIf {(_x select 4) == "GUN"}','shotbullet','shotshell',
                             'shotrocket','shotmissile','shotbomb','_rocketHint','selectedWeapon','selectedSimulation','selectedWeaponClass',
                             '_simulation in ["shotbullet","shotshell"]',
                             '_simulation in ["shotbullet","shotshell","shotrocket","shotbomb"]']:
