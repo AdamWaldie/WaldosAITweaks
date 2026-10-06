@@ -70,6 +70,10 @@ private _restore = createHashMapFromArray (_group getVariable ["WAIT_AIPass_Chec
 // into the new owner's task.  Eligible WAIT groups still recover only the values WAIT recorded.
 private _restoreEligible=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;
 if (_restoreEligible) then {
+    // Locality can change before the engine elects a replacement leader. Restore only WAIT-owned
+    // followers toward a combat-effective local anchor, never an incapacitated former leader.
+    private _restoreAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _restoreAnchor) then {_restoreAnchor=leader _group};
     private _groupModeLease = _restore getOrDefault ["restoreGroupCombatMode",[]];
     if (count _groupModeLease == 2 && {combatMode _group == (_groupModeLease select 1)}) then {
         _group setCombatMode (_groupModeLease select 0);
@@ -83,7 +87,7 @@ if (_restoreEligible) then {
         if (local _unit) then {_unit enableAI _feature};
     } forEach (_restore getOrDefault ["restoreDisabled", []]);
     {
-        if (alive _x && {local _x} && {group _x == _group}) then {_x doFollow leader _group};
+        if (alive _x && {local _x} && {group _x == _group} && {!isNull _restoreAnchor}) then {_x doFollow _restoreAnchor};
     } forEach (_restore getOrDefault ["restoreMovers", []]);
     {
         _x params ["_unit","_mode",["_ownedMode","BLUE"]];
@@ -227,7 +231,8 @@ if (_transitionResumeEligible) then {
     };
     if (_transitionGateOpen && {_transitionPhase in ["INVESTIGATE","SEARCH"]} && {count _target >= 2}) then {
         private _adopted = [_group] call WAIT_fnc_CortexGroupState;
-        private _leader = leader _group;
+        private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+        if (isNull _leader) then {_leader=leader _group};
         private _team = _savedTeam select {alive _x && {group _x == _group} && {local _x} && {vehicle _x == _x}};
         if (_transitionPhase == "SEARCH" && {_team isEqualTo []}) then {
             private _riflemen = (units _group) select {alive _x && {local _x} && {_x != _leader} && {vehicle _x == _x} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};

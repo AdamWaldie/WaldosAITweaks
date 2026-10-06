@@ -2502,6 +2502,14 @@ class CortexOperations(unittest.TestCase):
         arrival=garrison_apply.split('if (_x distance (_assignment select 0) <= 2) then {',1)[1].split('} else {',1)[0]
         self.assertIn('if (call _mayIssueMovement) then {',arrival)
         self.assertLess(arrival.index('if (call _mayIssueMovement) then {'),arrival.index('_x disableAI "PATH"'))
+    def test_locality_handover_uses_a_surviving_anchor_for_restoration_and_search(self):
+        """A handoff during leader succession must restore only toward a viable local actor."""
+        locality=source('cortexLocality')
+        self.assertIn('private _restoreAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;',locality)
+        self.assertIn('_x doFollow _restoreAnchor',locality)
+        self.assertIn('private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;',locality)
+        self.assertIn('if (isNull _leader) then {_leader=leader _group};',locality)
+
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
         checkpoint=source('cortexCheckpoint')
         locality=source('cortexLocality')
