@@ -68,6 +68,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_spotters resize ((count _spotters) min 12)',setup)
         self.assertIn('_spotters findIf {_x knowsAbout _target >= 1} < 0',setup)
         self.assertNotIn('_observer knowsAbout _target < 1',setup)
+        self.assertIn('WAIT_Danger_ObservedContacts',setup)
+        self.assertIn('time+10',setup)
+        self.assertIn('count _contacts > 8',setup)
         self.assertIn('"DETECTED"',request)
         self.assertIn('"DETECTED"',selection)
         self.assertIn('"EXPLOSION"',request)
@@ -95,6 +98,17 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('doMove',reaction)
         self.assertNotIn('doTarget',reaction)
         self.assertIn('"EXPLOSION",2.5',reaction)
+
+    def test_native_group_contacts_survive_a_leader_cover_blind_spot(self):
+        knowledge=source('cortexKnowledge')
+        setup=source('dangerSetup')
+        self.assertIn('WAIT_Danger_ObservedContacts',setup)
+        self.assertIn('WAIT_Danger_ObservedContacts',knowledge)
+        self.assertIn('private _candidateTargets=+(_leader targets [true, _range])',knowledge)
+        self.assertIn('{_candidateTargets pushBackUnique (_x select 0)} forEach _observed',knowledge)
+        self.assertIn('private _knower=_members param [_members findIf {_x knowsAbout _enemy >= 1},objNull]',knowledge)
+        self.assertIn('private _position=_knower getHideFrom _enemy',knowledge)
+        self.assertNotIn('getPosATL (_x select 0)',knowledge)
 
     def test_operations_are_generation_scoped_and_zeus_cancels_before_release(self):
         start=source('operationStart')

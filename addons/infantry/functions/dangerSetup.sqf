@@ -43,6 +43,7 @@ if (_tracked isNotEqualTo [] && {!_enabled || {_membershipChanged}}) then {
         _group setVariable ["WAIT_Danger_Generation",(_group getVariable ["WAIT_Danger_Generation",0])+1];
         _group setVariable ["WAIT_Danger_Events",nil];
         _group setVariable ["WAIT_Danger_EventCadence",nil];
+        _group setVariable ["WAIT_Danger_ObservedContacts",nil];
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
     };
@@ -68,6 +69,20 @@ if (_groupHandlers isEqualTo []) then {
         _spotters resize ((count _spotters) min 12);
         if (isNull _observer || {!local _observer} || {!alive _observer} || {_friendly}
             || {_spotters findIf {_x knowsAbout _target >= 1} < 0}) exitWith {};
+        // Keep only a short owner-local record of contacts the engine has already confirmed for
+        // this group. CortexKnowledge validates every record against native knowledge before it
+        // can affect a decision. It is deliberately not public: this is a local candidate source,
+        // not a target-sharing channel or a replacement for normal contact reports.
+        private _contacts=_observingGroup getVariable ["WAIT_Danger_ObservedContacts",[]];
+        _contacts=_contacts select {
+            _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+                && {alive (_x select 0)} && {(_x select 1) > time}
+        };
+        private _contactIndex=_contacts findIf {(_x select 0) == _target};
+        private _contact=[_target,time+10];
+        if (_contactIndex >= 0) then {_contacts set [_contactIndex,_contact]} else {_contacts pushBack _contact};
+        if (count _contacts > 8) then {_contacts=_contacts select ((count _contacts)-8)};
+        _observingGroup setVariable ["WAIT_Danger_ObservedContacts",_contacts];
         // The engine has already confirmed this contact. Pass only the observer position into
         // the queue: WAIT wakes the existing decision job but does not publish or assign a target.
         [_observer,"DETECTED",getPosATL _observer] call WAIT_fnc_DangerRequest;
