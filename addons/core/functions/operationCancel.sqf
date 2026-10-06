@@ -17,7 +17,11 @@ _operation set ["phase","CANCELLED"];
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
 // Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval
 // operations share the generation record without touching their native combat state on release.
-if (_operation getOrDefault ["dangerPosture",false]) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
+if (_operation getOrDefault ["dangerPosture",false]) then {
+    private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+    if (isNull _dangerActor) then {_dangerActor=leader _group};
+    [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
+};
 _group setVariable ["WAIT_Operation",nil,true];
 _group setVariable ["WAIT_OperationResult",[_operation getOrDefault ["intent",""],"CANCELLED",_generation,serverTime,toUpperANSI _reason],true];
 true
