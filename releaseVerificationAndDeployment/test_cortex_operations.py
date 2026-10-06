@@ -211,6 +211,14 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('spawn',defence)
         self.assertNotIn('sleep',defence)
         self.assertIn('class CortexMissileDefenceStep',functions)
+    def test_morale_surrender_support_check_is_spatially_bounded_and_leader_resilient(self):
+        """Broken squads must not scan every group or lose their surrender context during succession."""
+        morale=source('cortexMorale')
+        self.assertIn('private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;',morale)
+        self.assertIn('_leaderPos nearEntities ["Man",300]',morale)
+        self.assertNotIn('private _friendsNear = allGroups',morale)
+        self.assertNotIn('allGroups findIf',morale)
+
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
         medical=source('cortexMedicalStep')
