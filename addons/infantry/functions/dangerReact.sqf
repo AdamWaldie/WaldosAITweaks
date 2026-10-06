@@ -13,6 +13,11 @@ if (isNull _actor || {!local _actor} || {!alive _actor}) exitWith {"IGNORED"};
 private _group=group _actor;
 if (isNull _group || {!local _group}) exitWith {"IGNORED"};
 private _lease=_group getVariable ["WAIT_Danger_ReactionLease",[]];
+// Use the same local surviving actor used by danger setup and cleanup when comparing WAIT's
+// temporary posture. A leader casualty or reassignment must not make an intact WAIT lease look
+// externally changed, or restore a stale posture over the new leader.
+private _postureActor=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _postureActor) then {_postureActor=leader _group};
 // Use the shared takeover decision used by every operation cleanup. A partial copy here previously
 // missed player-controlled members and could restore a short WAIT posture over a newer controller.
 private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
@@ -28,7 +33,7 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
     // immediately; otherwise the old COMBAT/ROE posture can outlive the controller that set it.
     if (count _lease == 5 && {_cause == "RELEASE" || {time >= (_lease select 4)}}) then {
         _lease params ["_behaviour","_ownedBehaviour","_combatMode","_ownedCombatMode"];
-        if (behaviour leader _group == _ownedBehaviour) then {_group setBehaviour _behaviour};
+        if (behaviour _postureActor == _ownedBehaviour) then {_group setBehaviour _behaviour};
         if (combatMode _group == _ownedCombatMode) then {_group setCombatMode _combatMode};
         _group setVariable ["WAIT_Danger_ReactionLease",nil,true];
         "RESTORED"
@@ -48,8 +53,8 @@ if (_action == "MAINTAIN") exitWith {"ASSESS"};
 if (_action == "RELEASE") exitWith {"IGNORED"};
 if !(_action in ["HIDE","ENGAGE","VEHICLE",""]) then {_action=""};
 private _leaseIntact=count _lease == 5 && {time < (_lease select 4)}
-    && {behaviour leader _group == (_lease select 1)} && {combatMode _group == (_lease select 3)};
-private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour leader _group};
+    && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
+private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour _postureActor};
 private _priorCombat=if (_leaseIntact) then {_lease select 2} else {combatMode _group};
 private _appliedBehaviour=if (_leaseIntact) then {_lease select 1} else {_priorBehaviour};
 private _appliedCombat=if (_leaseIntact) then {_lease select 3} else {_priorCombat};
