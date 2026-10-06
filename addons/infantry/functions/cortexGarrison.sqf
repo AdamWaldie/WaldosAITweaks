@@ -47,7 +47,9 @@ if (!local _group) exitWith {
 };
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {false};
 if (_centre isEqualType objNull) then {_centre = getPosATL _centre};
-if (count _centre < 2) then {_centre = getPosATL leader _group};
+private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _anchor) then {_anchor=leader _group};
+if (count _centre < 2) then {_centre = getPosATL _anchor};
 private _units = (units _group) select {alive _x && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {vehicle _x == _x}};
 if (_units isEqualTo []) exitWith {false};
 // Refuse an empty search before releasing the existing order or claiming success.

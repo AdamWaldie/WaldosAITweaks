@@ -46,7 +46,8 @@ if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _gro
 // is not an external order: it must release the held element back to its formation.
 private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 private _canRestore = _restore && {!_externalTakeover};
-private _leader = leader _group;
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 {
     if (local _x) then {
         private _unit = _x;

@@ -133,7 +133,7 @@ for "_exitIndex" from 0 to 15 do {
     };
 };
 if (_entries isNotEqualTo []) then {
-    private _entryOrigin=getPosATL leader _group;
+    private _entryOrigin=getPosATL _leader;
     _entries=[_entries,[],{_x distance2D _entryOrigin},"ASCEND"] call BIS_fnc_sortBy;
     _entries resize ((count _entries) min 4);
 };

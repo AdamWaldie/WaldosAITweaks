@@ -193,9 +193,11 @@ private _desiredStrength=_drill getOrDefault ["desiredStrength",count (_drill ge
 private _reinforcements=[];
 private _rankCandidates={
     params ["_candidates"];
+    private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _anchor) then {_anchor=leader _group};
     private _rifles=_candidates select {!(([_x] call WAIT_fnc_CortexUnitRole) in ["MG","AT","LEADER"])};
-    private _support=_candidates select {!(_x in _rifles) && {_x != leader _group}};
-    _rifles+_support+(_candidates select {_x == leader _group})
+    private _support=_candidates select {!(_x in _rifles) && {_x != _anchor}};
+    _rifles+_support+(_candidates select {_x == _anchor})
 };
 private _units=[];
 if (_teams isEqualTo []) then {
@@ -266,7 +268,7 @@ if (_main isNotEqualTo []) then {
         private _peers = _main;
         private _teamIndex = _teams findIf {_actor in _x};
         if (_teamIndex >= 0) then {_peers = (_teams select _teamIndex) select {_x in _main}};
-        private _rally = getPosATL leader _group;
+        private _rally = getPosATL ([_group] call WAIT_fnc_CortexGroupAnchor);
         if (_peers isNotEqualTo []) then {
             _rally = [0,0,0];
             {_rally = _rally vectorAdd getPosATL _x} forEach _peers;

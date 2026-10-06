@@ -38,7 +38,8 @@ if ((_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo [] && {units _group
 // still returns the released defence element to formation; it is not an external movement order.
 private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 private _canRestore = _restore && {!_externalTakeover};
-private _leader = leader _group;
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 {
     private _ownedHold = (_x getVariable ["WAIT_AIPass_DefendHolding",false])
         || {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []};

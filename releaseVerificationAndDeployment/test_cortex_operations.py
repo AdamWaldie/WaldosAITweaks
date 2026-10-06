@@ -558,6 +558,18 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_x commandFollow _leader',clear)
         self.assertNotIn('_x commandFollow _leader',release)
 
+    def test_explicit_building_and_hold_orders_anchor_on_a_surviving_local_actor(self):
+        """Leader loss must not turn an otherwise viable CQB, garrison or defence operation inert."""
+        clear=source('cortexClearBuilding')
+        self.assertIn('private _entryOrigin=getPosATL _leader;',clear)
+        for name in ['cortexDefend','cortexGarrison','cortexDefendRelease','cortexGarrisonRelease']:
+            text=source(name)
+            self.assertIn('WAIT_fnc_CortexGroupAnchor',text,name)
+            self.assertIn('if (isNull _',text,name)
+        flank=source('cortexFlankStep')
+        self.assertIn('private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;',flank)
+        self.assertIn('getPosATL ([_group] call WAIT_fnc_CortexGroupAnchor)',flank)
+
     def test_clearance_release_cancels_only_its_matching_common_operation(self):
         release=source('cortexClearRelease')
         self.assertIn('private _operation=_group getVariable ["WAIT_Operation",createHashMap];',release)
