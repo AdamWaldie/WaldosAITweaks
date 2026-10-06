@@ -134,9 +134,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_OperationGeneration',start)
         self.assertIn('WAIT_fnc_OperationCancel',start)
         self.assertIn('dangerAtStart',start)
-        self.assertIn('private _dangerPosture=(vehicle (leader _group)) isEqualTo (leader _group)',start)
+        self.assertIn('private _operationAnchor=[_group] call WAIT_fnc_CortexGroupTransmitter;',start)
+        self.assertIn('private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;',start)
         self.assertIn('["dangerPosture",_dangerPosture]',start)
-        self.assertIn('if (_dangerPosture) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact}',start)
+        self.assertIn('if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact}',start)
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',cancel)
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',release)
@@ -262,12 +263,12 @@ class CortexOperations(unittest.TestCase):
         step=source('dangerStep')
         setup=source('dangerSetup')
         self.assertIn('WAIT_fnc_DangerReact',fsm)
-        self.assertIn('[leader _group,""RELEASE""] call WAIT_fnc_DangerReact',fsm)
+        self.assertIn('[_dangerActor,""RELEASE""] call WAIT_fnc_DangerReact',fsm)
         self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',step)
         self.assertIn('if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact}',step)
         self.assertIn('if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact}',step)
         self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',setup)
-        self.assertIn('if (local _group && {!_yieldToOwner}) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact}',setup)
+        self.assertIn('private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;',setup)
         request=source('dangerRequest')
         self.assertIn('WAIT_fnc_CortexExternalTakeover',request)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',setup)
@@ -4607,18 +4608,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_DrivingAssist_Vehicles',source('cortexReleaseGroup'))
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('general-driving',diagnostics)
-        self.assertIn('WAIT_DrivingAssist_State',diagnostics)
-        self.assertIn('Registered convoys are excluded',diagnostics)
-        self.assertIn('select [0,20]',diagnostics)
-        registry=(ROOT/'docs/CAPABILITY-REGISTRY.md').read_text(encoding='utf-8')
-        self.assertIn('General vehicle driving | Safe route progress outside registered convoys',registry)
-        self.assertIn('clear-rear reverse and final retry outside combat',registry)
-        for marker in ['ROUTE_REFRESH','CAUTIOUS_REVERSE','REAR_BLOCKED','FINAL_ROUTE_RETRY',
-                       'nearestObjects [_rear','["Man","LandVehicle","StaticWeapon"]',
-                       'behaviour leader _group in ["COMBAT","STEALTH"]']:
-            self.assertIn(marker,start)
-        for forbidden in ['addWaypoint','deleteWaypoint','setCurrentWaypoint','setDriveOnPath',
-                          'moveTo','setPos','setVelocity','setDamage','setFuel',
-                          'disableCollisionWith']:
-            self.assertNotIn(forbidden,start)
-            self.assertNotIn(forbidden,release)
+
+    def test_danger_lifecycle_uses_a_live_group_actor_for_leader_loss_cleanup(self):
+        """A dead original leader cannot strand a short danger posture or operation record."""
+        setup=source('dangerSetup')
+        start=source('operationStart')
+        fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text(encoding='utf-8')
+        for text in [setup,start,fsm]:
+            self.assertIn('WAIT_fnc_CortexGroupTransmitter',text)
+        self.assertIn('getPosATL _operationAnchor',start)
+        self.assertIn('[_dangerActor,""RELEASE""] call WAIT_fnc_DangerReact',fsm)

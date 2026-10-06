@@ -25,15 +25,17 @@ if (count _previous > 0) then {
 // A finite danger posture is meaningful only for an on-foot group. Aircraft, vehicles and boats
 // use this common record too, but must not have their native flight or combat state altered merely
 // because a lifecycle record starts. Retain the decision so release is equally narrow later.
-private _dangerPosture=(vehicle (leader _group)) isEqualTo (leader _group);
-if (_dangerPosture) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
+private _operationAnchor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+if (isNull _operationAnchor) then {_operationAnchor=leader _group};
+private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;
+if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact};
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
 private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
 private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
 private _operation=createHashMapFromArray [
     ["intent",toUpperANSI _intent], ["generation",_generation], ["ownerEpoch",_group getVariable ["WAIT_AIPass_Epoch",0]],
     ["objective",_objective], ["participants",_capable], ["route",+_route], ["phase",toUpperANSI _phase],
-    ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL leader _group],
+    ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL _operationAnchor],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
     ["replans",0], ["recovery",createHashMap], ["unavailable",[]], ["restore",createHashMap],
     ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]

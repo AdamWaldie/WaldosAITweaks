@@ -39,7 +39,11 @@ if (_tracked isNotEqualTo [] && {!_enabled || {_membershipChanged}}) then {
     // Membership churn is normal during casualties, dismounts and recovery. Reinstalling observer
     // handlers must not discard a valid group-level danger response or stop its finite FSM.
     if (!_enabled) then {
-        if (local _group && {!_yieldToOwner}) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
+        if (local _group && {!_yieldToOwner}) then {
+            private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+            if (isNull _dangerActor) then {_dangerActor=leader _group};
+            [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact
+        };
         _group setVariable ["WAIT_Danger_Generation",(_group getVariable ["WAIT_Danger_Generation",0])+1];
         _group setVariable ["WAIT_Danger_Events",nil];
         _group setVariable ["WAIT_Danger_EventCadence",nil];
