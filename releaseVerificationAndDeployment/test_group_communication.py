@@ -34,12 +34,14 @@ class GroupCommunicationTests(unittest.TestCase):
         report_local = source('cortexReportLocal')
         self.assertIn('private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;', report)
         self.assertIn('private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);', report)
-        self.assertIn('leader _x distance2D _senderPosition <= _range', report)
+        self.assertIn('_receiverAnchor distance2D _senderPosition <= _range', report)
         self.assertIn('private _receiverTransmitter = [_receiver] call WAIT_fnc_CortexGroupTransmitter;', report_local)
         self.assertIn('private _receiverPosition = getPosATL ([_receiverTransmitter, leader _receiver] select isNull _receiverTransmitter);', report_local)
         self.assertIn('_receiverPosition distance2D _senderPosition > _range', report_local)
         self.assertNotIn(' reveal ', report)
         self.assertNotIn('doTarget', report)
+        self.assertIn('private _receiverTransmitter = [_receiver] call WAIT_fnc_CortexGroupTransmitter;', report)
+        self.assertIn('_receiverAnchor distance2D _senderPosition <= _range', report)
 
     def test_support_and_combined_arms_use_live_communication_anchors(self):
         support = source('cortexSupportServer')
@@ -56,6 +58,8 @@ class GroupCommunicationTests(unittest.TestCase):
         self.assertIn('private _routeOrigin=getPosATL _helperTransmitter;', assault)
         self.assertIn('private _requesterAnchor=if (isNull _requesterTransmitter)', combined)
         self.assertIn('_candidateAnchor distance2D _requesterAnchor', combined)
+        self.assertIn('[_candidate] call WAIT_fnc_CortexGroupTransmitter', source('cortexCombinedAirFallbackServer'))
+        self.assertIn('private _requesterTransmitter=[_requester] call WAIT_fnc_CortexGroupTransmitter;', source('cortexSupportCoordinateStep'))
 
     def test_group_transmitter_is_registered_as_a_wait_function(self):
         config = (ROOT / 'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')

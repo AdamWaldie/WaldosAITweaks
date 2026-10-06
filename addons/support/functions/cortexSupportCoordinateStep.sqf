@@ -121,7 +121,8 @@ for "_slot" from count _active to (_maxConcurrent-1) do {
                 _candidateRoutes pushBack [_centre getPos [_distance,_bearing+_x]];
             } forEach [0,-18,18];
             private _requester=_job getOrDefault ["requester",grpNull];
-            private _supportOrigins=if (isNull _requester) then {[]} else {[getPosATL leader _requester]};
+            private _requesterTransmitter=[_requester] call WAIT_fnc_CortexGroupTransmitter;
+            private _supportOrigins=if (isNull _requesterTransmitter) then {[]} else {[getPosATL _requesterTransmitter]};
             private _selected=[_centre,_candidateRoutes,_job get "assaultEnemy",_supportOrigins]
                 call WAIT_fnc_CortexSelectAvenue;
             if (_selected isNotEqualTo []) then {
