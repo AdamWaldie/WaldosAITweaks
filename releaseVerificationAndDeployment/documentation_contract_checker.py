@@ -53,7 +53,7 @@ def audit(root=ROOT):
     scripts = list((root/'addons').rglob('*.sqf')) + list((root/'releaseVerificationAndDeployment/cortexQA').glob('*.sqf')) + list((root/'releaseVerificationAndDeployment/auditMission').glob('*.sqf'))
     for path in sorted(scripts):
         findings.extend(f'{path.relative_to(root)}: {f}' for f in audit_header(path.read_text(encoding='utf-8-sig')))
-    for path in [root/'README.md', root/'CONTRIBUTING.md', *sorted((root/'docs').glob('*.md'))]:
+    for path in [root/'README.md', root/'CONTRIBUTING.md', *sorted((root/'docs').glob('*.md')), *sorted((root/'docs/wiki').glob('*.md'))]:
         findings.extend(f'{path.relative_to(root)}: {f}' for f in local_links(path, root))
     return findings
 
