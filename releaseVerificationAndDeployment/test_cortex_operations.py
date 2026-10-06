@@ -279,7 +279,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',reaction)
         self.assertIn('if (_yieldToOwner) exitWith {',reaction)
         self.assertIn('private _dangerYield=[_group] call WAIT_fnc_CortexExternalTakeover;',tick)
-        self.assertIn('if (!_dangerYield) then {[leader _group,"RESTORE"] call WAIT_fnc_DangerReact}',tick)
+        self.assertIn('private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;',tick)
+        self.assertIn('[_dangerActor,"RESTORE"] call WAIT_fnc_DangerReact',tick)
 
     def test_live_danger_setting_reconfigures_owner_local_observers_without_a_second_worker(self):
         callback=source('aiTweaksSettingChanged')
