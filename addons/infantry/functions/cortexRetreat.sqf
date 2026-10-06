@@ -45,7 +45,9 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_resume",[],[[]]]];
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 private _resuming = count _resume == 7 && {(_resume select 0) == "INFANTRY"};
 private _enemyPos = if (_resuming) then {_resume select 3} else {_state getOrDefault ["enemyPos", []]};
 if (count _enemyPos < 2) exitWith {false};

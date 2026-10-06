@@ -72,7 +72,9 @@ if (_pendingUntil > 0 && {_publicResponders isEqualTo []}) then {
 if ([_state, "coordinated"] call WAIT_fnc_CortexCooldown) exitWith {false};
 if ((_state getOrDefault ["moraleState", "STEADY"]) != "STEADY") exitWith {false};
 private _enemyPos = _state getOrDefault ["enemyPos", []];
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 if (count _enemyPos < 2 || {time - (_state getOrDefault ["lastSeen", -1e6]) > 60} || {_leader distance2D _enemyPos > 400}) exitWith {false};
 private _responders = [];
 private _acknowledged = false;

@@ -65,7 +65,9 @@ if ((_state getOrDefault ["moraleState", "STEADY"]) != "STEADY") exitWith {["MOR
 private _contactAge=time-(_state getOrDefault ["phaseStart",time]);
 private _minimumContact=missionNamespace getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 5];
 if (_contactAge < _minimumContact) exitWith {["CONTACT_DELAY",[_contactAge,_minimumContact]] call _refuse};
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 if (vehicle _leader != _leader) exitWith {["LEADER_MOUNTED"] call _refuse};
 if (_enemies isEqualTo []) exitWith {["NO_TARGET"] call _refuse};
 if (((_enemies select 0) select 3) < 60) exitWith {["TARGET_TOO_CLOSE",[(_enemies select 0) select 3]] call _refuse};

@@ -180,6 +180,12 @@ class CortexOperations(unittest.TestCase):
                        'skipReasons=','recoveryAttempts=','unavailableActors=']:
             self.assertIn(marker,diagnostics)
 
+    def test_manoeuvre_starts_use_a_surviving_local_anchor_instead_of_requiring_the_leader(self):
+        for name in ['cortexAdvanceStart','cortexFlankStart','cortexRetreat','cortexCoordinatedAssault']:
+            text=source(name)
+            self.assertIn('private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;',text)
+            self.assertIn('if (isNull _leader) then {_leader=leader _group};',text)
+            self.assertNotIn('private _leader = leader _group;',text)
     def test_combined_ground_manoeuvre_uses_common_operation_lifecycle(self):
         combined=source('cortexCombinedArmsLocal')
         step=source('cortexCombinedGroundStep')

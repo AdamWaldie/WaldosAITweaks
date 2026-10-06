@@ -65,7 +65,9 @@ if (count _movementLease == 2 && {time < (_movementLease select 1)}) exitWith {[
 if (count (_state getOrDefault ["drill", createHashMap]) > 0) exitWith {["DRILL_ACTIVE"] call _refuse};
 if ([_state, "flank"] call WAIT_fnc_CortexCooldown) exitWith {["COOLDOWN"] call _refuse};
 if ((_state getOrDefault ["moraleState", "STEADY"]) != "STEADY") exitWith {["MORALE",[_state getOrDefault ["moraleState","UNKNOWN"]]] call _refuse};
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 if (vehicle _leader != _leader) exitWith {["LEADER_MOUNTED"] call _refuse};
 private _onFoot = (units _group) select {
     private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
