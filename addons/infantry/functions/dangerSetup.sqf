@@ -58,7 +58,6 @@ if (_groupHandlers isEqualTo []) then {
     private _handler=_group addEventHandler ["EnemyDetected",{
         params ["_observingGroup","_target"];
         if (isNull _observingGroup || {!local _observingGroup} || {isNull _target} || {!alive _target}) exitWith {};
-        private _observer=leader _observingGroup;
         private _targetGroup=group _target;
         private _friendly=!isNull _targetGroup && {(side _observingGroup) getFriend (side _targetGroup) >= 0.6};
         // EnemyDetected belongs to the group, not necessarily its leader. A covered leader often
@@ -67,7 +66,14 @@ if (_groupHandlers isEqualTo []) then {
         // without turning this handler into a squad scan or granting the leader target knowledge.
         private _spotters=(units _observingGroup) select {alive _x && {local _x} && {!isPlayer _x}};
         _spotters resize ((count _spotters) min 12);
-        if (isNull _observer || {!local _observer} || {!alive _observer} || {_friendly}
+        // Native group leadership can lag immediately after a casualty. Use the living leader
+        // where available, otherwise retain the first engine-confirmed wingman as the event actor;
+        // DangerRequest still resolves the same owner-local group and never transfers target data.
+        private _leader=leader _observingGroup;
+        private _observer=if (!isNull _leader && {alive _leader} && {local _leader}) then {_leader} else {
+            _spotters param [0,objNull]
+        };
+        if (isNull _observer || {_friendly}
             || {_spotters findIf {_x knowsAbout _target >= 1} < 0}) exitWith {};
         // Keep only a short owner-local record of contacts the engine has already confirmed for
         // this group. CortexKnowledge validates every record against native knowledge before it
