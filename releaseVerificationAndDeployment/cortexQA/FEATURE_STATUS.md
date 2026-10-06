@@ -10,7 +10,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | TERRAIN - Cross-cutting uneven-terrain movement and air attack | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | TERRAIN-BATTLE - Equal-force live battle on measured terrain | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | CORE - Master, exclusions and ownership | 3 | 1 | 29 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
-| COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 10 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
+| COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 11 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
 | SCHED - Scheduler and distance tiers | 11 | 0 | 6 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
 | PROFILE - Behaviour profiles and aggression | 4 | 1 | 1 | `runProfiles.sqf` | 1 | implemented_partial |
 | SKILL - AI skill rebalance | 14 | 0 | 4 | `runMechanics.sqf` | 0 | implemented_partial |
@@ -47,7 +47,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | CB - Counter-battery | 10 | 0 | 3 | `runServer.sqf` | 0 | implemented_partial |
 | AIRBORNE - Parachute passengers | 6 | 0 | 4 | `runAirborne.sqf` | 0 | implemented_partial |
 | GARRISON - Garrison and dynamic AO | 1 | 0 | 3 | `runServer.sqf`, `runBuildingComparison.sqf` | 1 | implemented_partial |
-| FLARES - Aircraft countermeasures | 1 | 0 | 1 | `runAircraft.sqf` | 2 | implemented_partial |
+| FLARES - Aircraft countermeasures | 1 | 0 | 2 | `runAircraft.sqf` | 2 | implemented_partial |
 | INVESTIGATE - Known-area investigation | 3 | 0 | 2 | `runSupport.sqf` | 0 | implemented_partial |
 | ASSAULT - Final assault | 2 | 0 | 0 | `runCombat.sqf` | 3 | implemented_partial |
 | ADVANCE - Bounding advance | 3 | 0 | 2 | `runCombat.sqf` | 2 | implemented_partial |

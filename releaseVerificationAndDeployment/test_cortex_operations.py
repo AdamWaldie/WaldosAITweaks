@@ -1157,176 +1157,36 @@ class CortexOperations(unittest.TestCase):
         search_release=restore.split('forEach (_state getOrDefault ["searchTeam", []])',1)[0].rsplit('{if (alive _x)',1)[-1]
         self.assertNotIn('enableAI "PATH"',search_release)
 
-    @unittest.skip('Standalone audit launcher is queued separately from WAIT full-pack staging')
-    def test_feature_fixtures_are_staged_and_dispatched(self):
-        from check_cortex_coverage import audit,render_markdown
-        data,errors,pending=audit(ROOT)
-        self.assertEqual(errors,[])
-        self.assertEqual(len(data['cases']),63)
-        self.assertIn('COMPAT',pending)
-        self.assertIn('COORD',pending)
-        self.assertIn('COMBINED-ARMS',pending)
-        self.assertIn('COMBINED-OPERATION',pending)
-        self.assertIn('TERRAIN',pending)
-        production={
+    def test_feature_registry_is_packaged_and_dispatched_by_the_standalone_pipeline(self):
+        from check_cortex_coverage import audit, render_markdown
+        from mod_pipeline import ALIASES
+        data, errors, pending = audit(ROOT)
+        self.assertEqual(errors, [])
+        self.assertGreaterEqual(len(data['cases']), 65)
+        self.assertIn('COMPAT', pending)
+        self.assertIn('COORD', pending)
+        self.assertIn('COMBINED-ARMS', pending)
+        self.assertIn('AIR-ATTACK', pending)
+        production = {
             path.relative_to(ROOT).as_posix()
-            for path in (ROOT/'addons/main/functions').rglob('*.sqf')
+            for path in (ROOT / 'addons').rglob('*.sqf')
         }
-        assigned=[path for case in data['cases'] for path in case['production_sources']]
-        self.assertEqual(151,len(production))
-        self.assertEqual(production,set(assigned))
-        self.assertEqual(len(assigned),len(set(assigned)))
-        self.assertTrue(all((ROOT/path).is_file() for path in assigned))
-        report=render_markdown(data)
-        self.assertEqual(report,(ROOT/'releaseVerificationAndDeployment/cortexQA/FEATURE_STATUS.md').read_text(encoding='utf-8'))
+        assigned = [path for case in data['cases'] for path in case['production_sources']]
+        self.assertEqual(production, set(assigned))
+        self.assertEqual(len(assigned), len(set(assigned)))
+        self.assertTrue(all((ROOT / path).is_file() for path in assigned))
+        report = render_markdown(data)
+        self.assertEqual(report, (ROOT / 'releaseVerificationAndDeployment/cortexQA/FEATURE_STATUS.md').read_text(encoding='utf-8'))
         for case in data['cases']:
-            self.assertIn(f"| {case['id']} - {case['title']} |",report)
-
-        combined=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombinedArms.sqf').read_text()
-        for marker in ['COMBINED-terrain-scenario','for "_heading" from 0 to 315 step 45',
-                       'forEach [-120,0,180]','_normal < 0.68','_grade > 0.9',
-                       'COMBINED-air-fixture-moving','COMBINED-natural-contact','COMBINED-opportunity-created','COMBINED-no-infantry-assembly',
-                       'COMBINED-ground-route-preserved','COMBINED-ground-target-shared',
-                       'COMBINED-ground-actual-fire','COMBINED-ground-manoeuvre-role',
-                       'COMBINED-ground-manoeuvre-physical-travel','COMBINED-air-controller-started',
-                       'COMBINED-independent-feature-gates','COMBINED-finite-cleanup','COMBINED-no-blocking-state']:
-            self.assertIn(marker,combined)
-        self.assertNotIn(' addWaypoint ',combined.split('*/',1)[1])
-        self.assertIn('waypointDescription _x == "WAIT AI PASS"',combined)
-        self.assertIn('_groundRemaining < _fireRouteStart-50',combined)
-        self.assertIn('_groundLease isEqualTo []',combined)
-        self.assertIn('_apc limitSpeed 30',combined)
-        self.assertIn('_ifv limitSpeed 30',combined)
-        self.assertIn('private _fireIndex=_groundEntries findIf',combined)
-        self.assertIn('private _manoeuvreIndex=_groundEntries findIf',combined)
-        self.assertIn('_heli flyInHeight 140',combined)
-        self.assertIn('_heli limitSpeed 170',combined)
-        self.assertIn('(driver _heli) doMove ([3900,3900,140] call _terrainPosition)',combined)
-        self.assertIn('WAIT_HelicopterDeceleration_Enable',combined)
-        self.assertIn('WAIT_CortexQA_Combined',combined)
-        guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
-        self.assertIn('WAIT_CortexQA_Combined',guide)
-        self.assertIn('phase %2 | tactic %3/%4 | movement %5 | support %6',guide)
-        operation=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombinedOperation.sqf').read_text()
-        for marker in ['COMBINED-OP-terrain-layout','worldName == "VR"','surfaceNormal _x',
-                       'getTerrainHeightASL _x','COMBINED-OP-natural-contact','COMBINED-OP-separated-approaches',
-                       'COMBINED-OP-multiple-squads-manoeuvred','COMBINED-OP-composed-tactics',
-                       'COMBINED-OP-infantry-actual-fire','COMBINED-OP-fire-while-moving',
-                       'COMBINED-OP-no-operation-wide-pause','COMBINED-OP-ground-route-and-fire',
-                       'COMBINED-OP-air-controller-and-travel','COMBINED-OP-concurrent-arms',
-                       'COMBINED-OP-no-shared-completion-barrier']:
-            self.assertIn(marker,operation)
-        for forbidden in ['WAIT_fnc_CortexFlank','WAIT_fnc_CortexAdvance',
-                          'WAIT_fnc_CortexCoordinatedAssault','WAIT_CortexQA_Readiness']:
-            self.assertNotIn(forbidden,operation)
-        self.assertIn('setWaypointType "SAD"',operation)
-        self.assertIn('WAIT_AIPass_Flank_Enable",true',operation)
-        self.assertIn('WAIT_AIPass_Advance_Enable",true',operation)
-        self.assertIn('WAIT_AIPass_CoordinatedAssault_Enable",true',operation)
-        combined_server=source('cortexCombinedArmsServer')
-        combined_local=source('cortexCombinedArmsLocal')
-        for implementation in [combined_server,combined_local]:
-            self.assertIn('effectiveCommander _vehicle',implementation)
-            self.assertIn('driver _vehicle',implementation)
-            self.assertIn('group _driver == _',implementation)
-        crossing=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCrossing.sqf').read_text()
-        for marker in ['CROSS-engine-road-prerequisite','CROSS-natural-contact-prerequisite',
-                       'CROSS-real-smoke-projectile','CROSS-all-members-physical-far-side']:
-            self.assertIn(marker,crossing)
-        self.assertNotIn(' reveal ',crossing.split('*/',1)[1])
-        compatibility=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCompatibility.sqf').read_text()
-        for marker in ['COMPAT-fallback-physical-arrival','COMPAT-active-tactic-keeps-ownership',
-                       'COMPAT-lease-survives-headless-adoption','COMPAT-new-owner-restores-baseline',
-                       'COMPAT-zeus-replacement-physical-arrival','COMPAT-zeus-clean-release']:
-            self.assertIn(marker,compatibility)
-        self.assertIn('private _assignment=_x getVariable ["WAIT_AIPass_DefendPos",[]];',compatibility)
-        self.assertIn('_x distance2D (_assignment select 0)',compatibility)
-        self.assertIn('} forEach _units;',compatibility)
-        self.assertNotIn('findIf {_x distance2D (_starts select _forEachIndex)',compatibility)
-        self.assertNotIn('findIf {_x distance2D (_handoverStart select _forEachIndex)',compatibility)
-        self.assertIn('}) < 0\n},90] call _wait;',compatibility)
-        building=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text()
-        self.assertNotIn('findIf {!alive _x || {_x distance2D (_beforeMove select _forEachIndex)',building)
-        self.assertIn('private _roomIndex=_forEachIndex;',building)
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text()
-        self.assertIn('[switch]$IncludeCompatibility',launcher)
-        self.assertIn('@LAMBS_Danger.fsm',launcher)
-        self.assertIn('cortexQACompatibility.sqf',launcher)
-        self.assertIn('"combinedarms"',launcher)
-        self.assertIn('cortexQACombinedArms.sqf',launcher)
-        self.assertIn('cortexQACombinedOperation.sqf',launcher)
-        self.assertIn('"supportflows"',launcher)
-        server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text()
-        self.assertEqual(server.count('"supportflows"'),2)
-        lighting=(ROOT/'releaseVerificationAndDeployment/cortexQA/runLighting.sqf').read_text()
-        for marker in ['LIGHTING-modded-nvg-prerequisite','LIGHTING-owner-adoption-reapplies',
-                       'LIGHTING-flashlight-no-global-skill-boost',
-                       'LIGHTING-light-off-control',
-                       'LIGHTING-forward-beam-acquisition-and-fire',
-                       'LIGHTING-rear-target-not-omnidirectional']:
-            self.assertIn(marker,lighting)
-        self.assertIn('cortexQALighting.sqf',launcher)
-        distributed=(ROOT/'releaseVerificationAndDeployment/cortexQA/runPerformanceContact.sqf').read_text()
-        owner_sampler=(ROOT/'releaseVerificationAndDeployment/cortexQA/runPerformanceOwner.sqf').read_text()
-        server_baseline=(ROOT/'releaseVerificationAndDeployment/cortexQA/runPerformance.sqf').read_text()
-        self.assertIn('for "_i" from 0 to 49 do',server_baseline)
-        self.assertIn('count _groups == 50',server_baseline)
-        self.assertIn('count _actors == 300',server_baseline)
-        self.assertIn('PERF-50-patrol',server_baseline)
-        self.assertNotIn('PERF-100-patrol',server_baseline)
-        self.assertNotIn('from 0 to 99',server_baseline)
-        for marker in ['["PERF-CONTACT","PERF-MIXED"]','two-headless-prerequisite','comparable-arms',
-                       'balanced-ownership','physical-workload','median-budget','p95-budget',
-                       'WAIT_CortexQA_PerformanceContactCompleted']:
-            self.assertIn(marker,distributed)
-        self.assertIn('private _contactGroups=[];',distributed)
-        self.assertIn('(_index mod 4) == 0',distributed)
-        self.assertIn('_fired >= ([8,6] select _mixed)',distributed)
-        self.assertIn('_responding >= ([10,8] select _mixed)',distributed)
-        self.assertIn('for "_row" from 0 to 4',distributed)
-        self.assertIn('"O_MRAP_02_F"',distributed)
-        self.assertIn('"O_Heli_Light_02_unarmed_F"',distributed)
-        self.assertIn('"O_Plane_CAS_02_dynamicLoadout_F"',distributed)
-        self.assertIn('_ownerCounts isEqualTo [24,13,13]',distributed)
-        self.assertIn('_vehicle setVelocityModelSpace [0,140,0]',distributed)
-        self.assertIn('if (_mixed && {_index >= 40}) then {2}',distributed)
-        self.assertIn('for "_retry" from 0 to 4',distributed)
-        self.assertIn('groupOwner _x != _desiredOwner',distributed)
-        self.assertIn('WAIT_CortexQA_PerformanceStarted',distributed)
-        self.assertIn('WAIT_CortexQA_PerformanceFired',distributed)
-        self.assertIn('owner-prerequisite',distributed)
-        self.assertIn('owner-survival',distributed)
-        self.assertIn('owner-responsive',distributed)
-        self.assertIn('PerformanceHeartbeat_',distributed)
-        self.assertIn('count _results == 4',distributed)
-        self.assertGreaterEqual(distributed.count('sleep 0.05'),2)
-        self.assertIn('(units _x) apply {[_x,getPosATL _x]}',distributed)
-        self.assertNotIn('_leader ammo (primaryWeapon _leader)',distributed)
-        self.assertIn('forEach _sampleOwners',distributed)
-        self.assertIn('["WAIT_AIPass_InfantryOwnership","SPLIT"]',distributed)
-        server_runner=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text()
-        self.assertIn('PERF-CONTACT-run-completed',server_runner)
-        self.assertIn('WAIT_CortexQA_PerformanceStartGroup',owner_sampler)
-        self.assertIn('WAIT_CortexQA_PerformanceDeleteGroup',owner_sampler)
-        self.assertIn('units _x isNotEqualTo []',owner_sampler)
-        self.assertIn('addEventHandler ["FiredMan"',owner_sampler)
-        for marker in ['diag_deltaTime*1000','WAIT_CortexQA_PerformanceGroup','[0.99] call _percentile']:
-            self.assertIn(marker,owner_sampler)
-        self.assertIn('PerformanceHeartbeat_',owner_sampler)
-        self.assertIn('serverTime,true',owner_sampler)
-        self.assertIn('performancecontact',launcher)
-        self.assertIn('performancemixed',launcher)
-        self.assertIn('PERF-MIXED-run-completed',server_runner)
-        self.assertIn('cortexQAPerformanceOwner.sqf',launcher)
-        self.assertIn('flyInHeight 90',owner_sampler)
-        self.assertIn('flyInHeight 250',owner_sampler)
-        self.assertGreaterEqual(owner_sampler.count('allowDamage false'),2)
-        self.assertIn('remoteExecCall ["WAIT_CortexQA_PerformanceDeleteGroup",_ownedBy]',distributed)
-        guide=(ROOT/'releaseVerificationAndDeployment/cortexQA/runGuide.sqf').read_text()
-        self.assertIn('player allowDamage false',guide)
-        self.assertIn('player setCaptive true',guide)
-        self.assertIn('addMissionEventHandler ["EntityRespawned"',guide)
-
+            self.assertIn(f"| {case['id']} - {case['title']} |", report)
+        pipeline = (ROOT / 'releaseVerificationAndDeployment/mod_pipeline.py').read_text(encoding='utf-8')
+        server = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        self.assertIn("glob('run*.sqf')", pipeline)
+        for source in {source for case in data['cases'] for source in case['executable_sources']}:
+            if source not in ['runServer.sqf', 'runClient.sqf']:
+                suffix = Path(source).stem[3:]
+                staged = 'cortexQA' + ALIASES.get(suffix, suffix) + '.sqf'
+                self.assertIn(staged, server)
     def test_external_ownership_markers_are_isolated_to_compatibility(self):
         compatibility = ROOT / 'addons/compatibility/functions'
         for name in ['compatibilityExternalControl.sqf', 'compatibilityPrecisionExcluded.sqf']:
@@ -3108,23 +2968,38 @@ class CortexOperations(unittest.TestCase):
     def test_no_building_garrison_cannot_report_success(self):
         text=source('cortexGarrison')
         self.assertLess(text.index('Refuse an empty search'),text.index('call WAIT_fnc_CortexClearRelease'))
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_selection_requires_choice_and_has_no_distance_cutoff(self):
-        text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeZen.sqf').read_text(encoding='utf-8')
-        self.assertIn('private _groups = [grpNull]',text)
-        self.assertNotIn('_leader distance2D _modulePos <= 250',text)
-        self.assertIn('call WAIT_fnc_CortexOrderReason',text)
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_snapshot_cannot_rollback_applied_ai_revision(self):
-        text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeReceiveState.sqf').read_text(encoding='utf-8')
-        self.assertIn('WAIT_AIPass_SettingsApplied',text)
-        self.assertIn('_staleAI && {_name in _aiNames}',text)
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_expected_revision_is_sent_and_checked_on_server(self):
-        self.assertIn('WAIT_fnc_CortexTuningSpec',source('aiTweaksRegisterSettings'))
-        text=(ROOT/'MissionScripts/ZenModules/RuntimeControl/featureRuntimeApply.sqf').read_text(encoding='utf-8')
-        self.assertIn('_values deleteAt "__expectedRevision"',text)
-        self.assertIn('if !(_expected isEqualTo',text)
+    def test_explicit_native_order_dispatch_has_no_distance_or_module_selection_gate(self):
+        dispatch = source('cortexOrderDispatch')
+        local = source('cortexOrderLocal')
+        self.assertIn('private _group = _settings getOrDefault ["group", grpNull];', dispatch)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexOrderLocal", groupOwner _group];', dispatch)
+        self.assertNotIn('distance2D', dispatch)
+        self.assertNotIn('nearestObjects', dispatch)
+        self.assertIn('[_group,_order,_building] call WAIT_fnc_CortexOrderReason', local)
+        self.assertIn('if (isNull _group || {!local _group}', local)
+        self.assertIn('(units _group) findIf {isPlayer _x}', local)
+
+    def test_cba_is_the_single_authoritative_setting_store(self):
+        register = source('aiTweaksRegisterSettings')
+        changed = source('aiTweaksSettingChanged')
+        tuning = source('cortexTuning')
+        self.assertIn('call CBA_fnc_addSetting', register)
+        self.assertIn('true, _callback, _activation == "RESTART_REQUIRED"', register)
+        self.assertIn('missionNamespace setVariable [_name, _value];', changed)
+        self.assertIn('CBA handles callback/JIP replay.', tuning)
+        self.assertIn('call CBA_settings_fnc_set', tuning)
+        self.assertIn('private _revision = (missionNamespace getVariable ["WAIT_AIPass_SettingsRevision",0])+1;', tuning)
+        self.assertNotIn('publicVariable "WAIT_AIPass_Settings', tuning)
+
+    def test_tuning_is_server_validated_and_does_not_accept_client_snapshot_rollback(self):
+        tuning = source('cortexTuning')
+        self.assertIn('if (!isServer) exitWith {', tuning)
+        self.assertIn('remoteExecCall ["WAIT_fnc_CortexTuning", 2];', tuning)
+        self.assertIn('only the server or an assigned curator may change it.', tuning)
+        self.assertIn('private _spec = [] call WAIT_fnc_CortexTuningSpec;', tuning)
+        self.assertIn('_updates pushBack [_variable, _value];', tuning)
+        self.assertIn('CBA is the sole effective configuration store.', tuning)
+        self.assertNotIn('WAIT_AIPass_SettingsApplied', tuning)
     def test_engine_suite_uses_real_commands_and_ui_handlers(self):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         client=(ROOT/'releaseVerificationAndDeployment/cortexQA/runClient.sqf').read_text(encoding='utf-8')
@@ -3145,12 +3020,15 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('WAIT_fnc_AIPass',text)
         for path in (ROOT/'addons').rglob('*.sqf'):
             self.assertNotIn('WAIT_fnc_AIPass',path.read_text(encoding='utf-8'),path)
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_headless_overlay_reads_one_coherent_snapshot(self):
-        text=(ROOT/'MissionScripts/Headless/headlessDebugDisplayLocal.sqf').read_text(encoding='utf-8')
-        self.assertNotIn('getVariable ["WAIT_Headless_ManagedGroups"',text)
-        self.assertIn('TRANSFERRING',text)
-        self.assertIn('private _mismatch = !_pending',text)
+    def test_headless_diagnostics_are_read_only_and_bound_their_snapshot(self):
+        diagnostics = source('aiGetDiagnostics')
+        self.assertIn('if !(isServer) exitWith', diagnostics)
+        self.assertIn('private _hcOwners = (entities "HeadlessClient_F") apply {owner _x};', diagnostics)
+        self.assertIn('WAIT_AI_LastHeadlessAdoption', diagnostics)
+        self.assertIn('WAIT_fnc_CompatibilityHeadlessRecord', diagnostics)
+        self.assertIn('select [0,20]', diagnostics)
+        self.assertNotIn('setGroupOwner', diagnostics)
+        self.assertNotIn('doMove', diagnostics)
 
     def test_focused_convoy_keeps_contact_scenarios(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
@@ -3202,15 +3080,14 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_units apply {[_x distance2D (_spots select _forEachIndex)',text)
         self.assertIn('{_progress pushBack [_x distance2D (_spots select _forEachIndex),_now,getPosATL _x,_now]} forEach _units',text)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_new_visual_suites_are_staged_and_additive(self):
-        server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
-        for suite in ['Reactions','Support','Airborne']:
-            self.assertIn('cortexQA'+suite+'.sqf',server)
-            self.assertIn('cortexQA/run'+suite+'.sqf',launcher)
-        for case in ['ORD-04b-garrison-arrival','CNV-08-destination-halt','AMB-04-pinned-halt','ART-04-finite-burst']:
-            self.assertIn(case,server)
+    def test_visual_audit_suites_are_staged_and_dispatched_by_the_standalone_pipeline(self):
+        server = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        pipeline = (ROOT / 'releaseVerificationAndDeployment/mod_pipeline.py').read_text(encoding='utf-8')
+        self.assertIn("glob('run*.sqf')", pipeline)
+        for suite in ['Reactions', 'Support', 'Airborne']:
+            self.assertIn('cortexQA' + suite + '.sqf', server)
+        for case in ['ORD-04b-garrison-arrival', 'CNV-08-destination-halt', 'AMB-04-pinned-halt', 'ART-04-finite-burst']:
+            self.assertIn(case, server)
 
     def test_convoy_resume_keeps_local_trails_and_does_not_project_recovery(self):
         text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text()
@@ -3639,16 +3516,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('DECEL-aircraft-exclusion-live-envelope',exclusion)
         self.assertIn('DECEL-aircraft-exclusion-route-preserved',exclusion)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_new_qa_suites_are_additive_and_staged(self):
-        server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
-        for name in ['Deceleration','Aircraft','Lifecycle','Coordinated','Profiles','Scheduler','ArtillerySmoke','Contact','Avoidance','Landing','Cover','Gates','Gunnery','Seats','Buildings','ConvoyMatrix','Combat','Mechanics','Reactions','Support','Airborne','Vehicles','Fire']:
-            self.assertIn('cortexQA'+name+'.sqf',server)
-            self.assertIn('cortexQA'+name+'.sqf',launcher)
-        matrix=(ROOT/'releaseVerificationAndDeployment/cortexQA/runConvoyMatrix.sqf').read_text(encoding='utf-8')
-        self.assertIn('{deleteVehicle (_x select 0)} forEach _fixtureCrew',matrix)
-        self.assertIn('-operating-crew-retained',matrix)
+    def test_qa_suites_are_additive_and_staged_by_the_standalone_pipeline(self):
+        server = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        pipeline = (ROOT / 'releaseVerificationAndDeployment/mod_pipeline.py').read_text(encoding='utf-8')
+        self.assertIn("glob('run*.sqf')", pipeline)
+        for name in ['Deceleration', 'Aircraft', 'Lifecycle', 'Coordinated', 'Profiles', 'Scheduler', 'ArtillerySmoke', 'Contact', 'Avoidance', 'Landing', 'Cover', 'Gates', 'Gunnery', 'Seats', 'Buildings', 'ConvoyMatrix', 'Combat', 'Mechanics', 'Reactions', 'Support', 'Airborne', 'Vehicles', 'Fire']:
+            self.assertIn('cortexQA' + name + '.sqf', server)
+        matrix = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runConvoyMatrix.sqf').read_text(encoding='utf-8')
+        self.assertIn('{deleteVehicle (_x select 0)} forEach _fixtureCrew', matrix)
+        self.assertIn('-operating-crew-retained', matrix)
 
     def test_drill_steps_cannot_adopt_a_replacement_action(self):
         step=source('cortexFlankStep')
