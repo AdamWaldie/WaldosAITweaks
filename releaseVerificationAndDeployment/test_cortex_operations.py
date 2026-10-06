@@ -3261,6 +3261,22 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['addWaypoint','deleteWaypoint','setPos','setVelocity','setDamage','setFuel']:
             self.assertNotIn(forbidden,recovery)
 
+    def test_convoy_classifies_a_confirmed_physical_block_without_bypassing_it(self):
+        tick=source('convoyTick')
+        halt=source('convoyHaltServer')
+        registration=source('simpleAiConvoy')
+        classifier=tick.split('private _classifyStall = {',1)[1].split('private _vehicles =',1)[0]
+        self.assertIn('nearestObjects [_vehicle, ["LandVehicle", "Static"], 20, true]',classifier)
+        self.assertIn('!(_candidate in _registered)',classifier)
+        self.assertIn('["STALLED", "OBSTRUCTION"] select',classifier)
+        for forbidden in ['doMove','doFollow','setDriveOnPath','setPos','setVelocity','setDamage','setFuel']:
+            self.assertNotIn(forbidden,classifier)
+        self.assertIn('([_lead] call _classifyStall)',tick)
+        self.assertIn('([_vehicle] call _classifyStall)',tick)
+        self.assertIn('"OBSTRUCTION"',halt)
+        self.assertIn('"OBSTRUCTION"',registration)
+        self.assertIn('_reason in ["STALLED", "OBSTRUCTION"]',registration)
+
     def test_convoy_temporarily_yields_driving_vehicle_workers_and_restores_exact_state(self):
         start=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         release=(ROOT/'addons/vehicles/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
@@ -3418,14 +3434,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('orderGetIn false; unassignVehicle _unit',tick)
         self.assertNotIn('moveInCargo',tick)
 
-    def test_stalled_convoy_halt_preserves_passengers_and_validates_vehicle(self):
+    def test_recovery_halts_preserve_passengers_and_validate_vehicle(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         halt=(ROOT/'addons/vehicles/functions/convoyHaltServer.sqf').read_text(encoding='utf-8')
         api=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         self.assertEqual(tick.count('if (_attempts > 3)'),2)
         self.assertNotIn('doFollow driver _front',tick)
         self.assertIn('_blockedVehicle in (_configuration select 4)',halt)
-        self.assertIn('_reason != "STALLED" && {alive _unit}',api)
+        self.assertIn('if !(_reason in ["STALLED", "OBSTRUCTION"]) then',api)
+        self.assertIn('"OBSTRUCTION"',halt)
         self.assertNotIn('setPos',tick)
         self.assertNotIn('disableCollisionWith',tick)
 

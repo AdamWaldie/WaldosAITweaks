@@ -69,6 +69,31 @@ if (!local _group) exitWith {};
 private _mayIssueDriving = {
     !([_group] call WAIT_fnc_CortexExternalTakeover)
 };
+// A stalled engine route and a deliberate physical roadblock require different Zeus advice.
+// This bounded check runs only after the existing recovery attempts are exhausted; it never
+// changes the route, collision, vehicle position or the stopped vehicle.  The frontal cone
+// deliberately excludes the registered column so a predecessor inside normal convoy spacing
+// cannot be misreported as an obstruction.
+private _classifyStall = {
+    params ["_vehicle"];
+    private _origin = getPosATL _vehicle;
+    private _forward = vectorDir _vehicle;
+    _forward set [2, 0];
+    private _blocker = (nearestObjects [_vehicle, ["LandVehicle", "Static"], 20, true]) findIf {
+        private _candidate = _x;
+        !isNull _candidate && {_candidate != _vehicle} && {!(_candidate in _registered)} && {
+            private _delta = (getPosATL _candidate) vectorDiff _origin;
+            _delta set [2, 0];
+            private _distance = vectorMagnitude _delta;
+            _distance > 2 && {_distance < 20} && {
+                private _forwardDistance = _delta vectorDotProduct _forward;
+                private _lateralSquared = ((_distance * _distance) - (_forwardDistance * _forwardDistance)) max 0;
+                _forwardDistance > (_distance * 0.45) && {sqrt _lateralSquared < 8}
+            }
+        }
+    };
+    ["STALLED", "OBSTRUCTION"] select (_blocker >= 0)
+};
 private _vehicles = _registered select {alive _x && {canMove _x} && {local _x} && {alive driver _x} && {local driver _x}
     && {group driver _x == _group} && {!((driver _x) getVariable ["ACE_isUnconscious", false])} && {lifeState driver _x != "INCAPACITATED"}};
 // Do not treat temporary split locality as damage or arrival.
@@ -379,7 +404,7 @@ if (!_routeDone && {_leadLimit > 0} && {_waypointIndex < count waypoints _group}
     if (waypointType _waypoint == "MOVE" && {_lead distance2D _destination > (waypointCompletionRadius _waypoint max 20)}) then {
         private _attempts=(_leadProgress param [2,0])+1;
         if (_attempts > 3) then {
-            [_group,_revision,"STALLED",[],_lead] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
+            [_group,_revision,([_lead] call _classifyStall),[],_lead] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
         } else {if ([] call _mayIssueDriving) then {driver _lead doMove _destination}};
         _leadProgress set [2,_attempts];
     };
@@ -439,7 +464,7 @@ for "_i" from 1 to (count _vehicles - 1) do {
         && {_frontSpeed > 1 || {_gap > _gapHigh}}) then {
         private _attempts=(_progress param [4,0])+1;
         if (_attempts > 3) then {
-            [_group,_revision,"STALLED",[],_vehicle] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
+            [_group,_revision,([_vehicle] call _classifyStall),[],_vehicle] remoteExecCall ["WAIT_fnc_ConvoyHaltServer",2];
         } else {
             _pathOwners set [_key,false];
             if ([] call _mayIssueDriving) then {
