@@ -16,7 +16,7 @@ if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _ge
 // Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval
 // operations share the generation record without touching their native combat state on release.
 if (_operation getOrDefault ["dangerPosture",false]) then {
-    private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+    private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
 };

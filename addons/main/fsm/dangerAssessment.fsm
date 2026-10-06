@@ -29,7 +29,7 @@ class FSM {
         };
         class Finished {
             name = "Finished";
-            init = "if (!isNull _group && {local _group} && {_epoch == (_group getVariable [""WAIT_AIPass_Epoch"",0])} && {_generation == (_group getVariable [""WAIT_Danger_Generation"",0])}) then {_dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter; if (isNull _dangerActor) then {_dangerActor=leader _group}; [_dangerActor,""RELEASE""] call WAIT_fnc_DangerReact; _group setVariable [""WAIT_Danger_FSM"",nil]; _group setVariable [""WAIT_Danger_Events"",nil]; _group setVariable [""WAIT_Danger_Response"",nil,true]; _group setVariable [""WAIT_Danger_Action"",nil,true]; _job=_group getVariable [""WAIT_Cortex_GroupJob"",createHashMap]; if (count _job > 0) then {_job deleteAt ""responsiveUntil""}};";
+            init = "if (!isNull _group && {local _group} && {_epoch == (_group getVariable [""WAIT_AIPass_Epoch"",0])} && {_generation == (_group getVariable [""WAIT_Danger_Generation"",0])}) then {_dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor; if (isNull _dangerActor) then {_dangerActor=leader _group}; [_dangerActor,""RELEASE""] call WAIT_fnc_DangerReact; _group setVariable [""WAIT_Danger_FSM"",nil]; _group setVariable [""WAIT_Danger_Events"",nil]; _group setVariable [""WAIT_Danger_Response"",nil,true]; _group setVariable [""WAIT_Danger_Action"",nil,true]; _job=_group getVariable [""WAIT_Cortex_GroupJob"",createHashMap]; if (count _job > 0) then {_job deleteAt ""responsiveUntil""}};";
             precondition = ""; class Links {};
         };
     };

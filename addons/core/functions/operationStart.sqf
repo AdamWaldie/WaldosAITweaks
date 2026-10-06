@@ -25,7 +25,7 @@ if (count _previous > 0) then {
 // A finite danger posture is meaningful only for an on-foot group. Aircraft, vehicles and boats
 // use this common record too, but must not have their native flight or combat state altered merely
 // because a lifecycle record starts. Retain the decision so release is equally narrow later.
-private _operationAnchor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+private _operationAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _operationAnchor) then {_operationAnchor=leader _group};
 private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;
 if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact};

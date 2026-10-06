@@ -21,7 +21,7 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"MAINTAIN"};
-private _actor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _actor) then {_actor=leader _group};
 if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
 if (vehicle _actor != _actor) exitWith {"VEHICLE"};

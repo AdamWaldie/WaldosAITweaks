@@ -12,7 +12,7 @@
 params [["_group",grpNull,[grpNull]],["_epoch",-1,[0]],["_generation",-1,[0]]];
 if (isNull _group || {!local _group} || {_epoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {-1};
-private _actor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _actor) then {_actor=leader _group};
 // Danger response owns only its finite posture. Reuse the common narrow takeover question so
 // ordinary setting changes can restore that posture, while Zeus, players and specialist owners

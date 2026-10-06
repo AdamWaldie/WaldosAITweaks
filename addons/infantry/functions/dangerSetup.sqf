@@ -40,7 +40,7 @@ if (_tracked isNotEqualTo [] && {!_enabled || {_membershipChanged}}) then {
     // handlers must not discard a valid group-level danger response or stop its finite FSM.
     if (!_enabled) then {
         if (local _group && {!_yieldToOwner}) then {
-            private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+            private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
             if (isNull _dangerActor) then {_dangerActor=leader _group};
             [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact
         };

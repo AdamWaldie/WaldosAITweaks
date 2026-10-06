@@ -91,7 +91,7 @@ if (!local _group || {!(missionNamespace getVariable ["WAIT_AIPass_Active", fals
 // claims any member of the group.
 private _dangerYield=[_group] call WAIT_fnc_CortexExternalTakeover;
 if (!_dangerYield) then {
-    private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+    private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RESTORE"] call WAIT_fnc_DangerReact
 };

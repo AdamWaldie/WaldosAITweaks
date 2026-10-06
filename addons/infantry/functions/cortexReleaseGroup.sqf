@@ -78,7 +78,7 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
-    private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+    private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
     [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
