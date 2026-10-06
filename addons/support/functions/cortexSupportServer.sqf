@@ -44,15 +44,19 @@ private _configuredMaximum = missionNamespace getVariable ["WAIT_AIPass_Reinforc
 private _maximum = ([_configuredMaximum,_configuredMaximum max 2] select _requesterCoordinated) + ([0,1] select _at);
 if (_maximum <= 0) exitWith {};
 private _radius = missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600];
-private _candidates = [];
-{if (_x != _requester && {side _x == side _requester} && {alive leader _x}
-    && {!isNull ([_x] call WAIT_fnc_CortexGroupTransmitter)}
-    && {count ((units _x) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
-    && {leader _x distance2D leader _requester <= _radius}) then {
-    _candidates pushBack [leader _x distance2D leader _requester,_forEachIndex,_x];
-}} forEach allGroups;
-_candidates sort true;
 private _requesterPosition=getPosATL _requesterTransmitter;
+private _candidates = [];
+{
+    private _candidate = _x;
+    private _candidateTransmitter = [_candidate] call WAIT_fnc_CortexGroupTransmitter;
+    private _distance = if (isNull _candidateTransmitter) then {-1} else {_candidateTransmitter distance2D _requesterPosition};
+    if (_candidate != _requester && {side _candidate == side _requester} && {!isNull _candidateTransmitter}
+        && {count ((units _candidate) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
+        && {_distance <= _radius}) then {
+        _candidates pushBack [_distance,_forEachIndex,_candidate];
+    };
+} forEach allGroups;
+_candidates sort true;
 private _rallyDirection=_requesterPosition getDir _enemy;
 private _rallyCandidates=[];
 {

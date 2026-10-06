@@ -31,12 +31,31 @@ class GroupCommunicationTests(unittest.TestCase):
         for caller in callers:
             self.assertIn('WAIT_fnc_CortexGroupTransmitter', source(caller), caller)
         report = source('cortexReportServer')
+        report_local = source('cortexReportLocal')
         self.assertIn('private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;', report)
         self.assertIn('private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);', report)
         self.assertIn('leader _x distance2D _senderPosition <= _range', report)
-        self.assertIn('leader _receiver distance2D _senderPosition > _range', source('cortexReportLocal'))
+        self.assertIn('private _receiverTransmitter = [_receiver] call WAIT_fnc_CortexGroupTransmitter;', report_local)
+        self.assertIn('private _receiverPosition = getPosATL ([_receiverTransmitter, leader _receiver] select isNull _receiverTransmitter);', report_local)
+        self.assertIn('_receiverPosition distance2D _senderPosition > _range', report_local)
         self.assertNotIn(' reveal ', report)
         self.assertNotIn('doTarget', report)
+
+    def test_support_and_combined_arms_use_live_communication_anchors(self):
+        support = source('cortexSupportServer')
+        apply = source('cortexSupportApply')
+        step = source('cortexSupportStep')
+        assault = source('cortexSupportAssaultServer')
+        combined = source('cortexCombinedArmsServer')
+        self.assertIn('private _requesterPosition=getPosATL _requesterTransmitter;', support)
+        self.assertIn('_candidateTransmitter distance2D _requesterPosition', support)
+        self.assertIn('_groupTransmitter distance2D _requesterTransmitter', apply)
+        self.assertIn('private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;', step)
+        self.assertIn('private _helperTransmitter = [_helper] call WAIT_fnc_CortexGroupTransmitter;', step)
+        self.assertIn('private _supportOrigin=getPosATL _requesterTransmitter;', assault)
+        self.assertIn('private _routeOrigin=getPosATL _helperTransmitter;', assault)
+        self.assertIn('private _requesterAnchor=if (isNull _requesterTransmitter)', combined)
+        self.assertIn('_candidateAnchor distance2D _requesterAnchor', combined)
 
     def test_group_transmitter_is_registered_as_a_wait_function(self):
         config = (ROOT / 'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')

@@ -33,7 +33,8 @@ if (_observedPhase != "CALM") then {_job set ["sawContact",true]};
 private _requesterReinforce = !isNull _requester && {[_requester,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterCoordinated = !isNull _requester && {[_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterSupport = _requesterReinforce || {_requesterCoordinated};
-private _valid = !isNull _requester && {alive leader _requester} && {serverTime < (_job get "expiry")}
+private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
+private _valid = !isNull _requester && {!isNull _requesterTransmitter} && {serverTime < (_job get "expiry")}
     && {missionNamespace getVariable ["WAIT_AIPass_Enable",false]}
     && {[_requester,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {_requesterSupport}
@@ -49,7 +50,8 @@ private _kept = [];
     private _sharedReinforce = _requesterReinforce && {_helperReinforce};
     private _sharedCoordinated = _requesterCoordinated && {_helperCoordinated};
     private _helperSupport = _sharedReinforce || {_sharedCoordinated};
-    private _keep = _valid && {!isNull _helper} && {alive leader _helper} && {_status != "REJECTED"}
+    private _helperTransmitter = [_helper] call WAIT_fnc_CortexGroupTransmitter;
+    private _keep = _valid && {!isNull _helper} && {!isNull _helperTransmitter} && {_status != "REJECTED"}
         && {count _footFit >= 3}
         && {[_helper] call WAIT_fnc_CortexIsEligible}
         && {[_helper,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
@@ -82,7 +84,8 @@ for "_i" from 1 to 8 do {
     private _sharedReinforce = _requesterReinforce && {_helperReinforce};
     private _sharedCoordinated = _requesterCoordinated && {_helperCoordinated};
     private _helperSupport = _sharedReinforce || {_sharedCoordinated};
-    if (!isNull _helper && {alive leader _helper} && {(_helper getVariable ["WAIT_AIPass_SupportLease",[]]) isEqualTo []}
+    private _helperTransmitter = [_helper] call WAIT_fnc_CortexGroupTransmitter;
+    if (!isNull _helper && {!isNull _helperTransmitter} && {(_helper getVariable ["WAIT_AIPass_SupportLease",[]]) isEqualTo []}
         && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
         && {[_helper] call WAIT_fnc_CortexIsEligible} && {[_helper,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
         && {_helperSupport}) then {
@@ -104,8 +107,8 @@ for "_i" from 1 to 8 do {
             };
         };
         if (_rallyCandidates isNotEqualTo []) then {
-            private _selected=[getPosATL leader _helper,_rallyCandidates,
-                _job getOrDefault ["enemy",getPosATL leader _requester]] call WAIT_fnc_CortexSelectAvenue;
+            private _selected=[getPosATL _helperTransmitter,_rallyCandidates,
+                _job getOrDefault ["enemy",getPosATL _requesterTransmitter]] call WAIT_fnc_CortexSelectAvenue;
             if (_selected isNotEqualTo []) then {_rally=+(_selected select 0)};
         };
         if (_rally isNotEqualTo []) then {

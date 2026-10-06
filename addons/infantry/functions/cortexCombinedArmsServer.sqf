@@ -46,14 +46,19 @@ private _airCandidates=[];
 private _voiceRange=missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35];
 private _groundRange=missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500];
 private _airRange=missionNamespace getVariable ["WAIT_Cortex_CombinedArms_AirRange",4000];
-private _senderRadio=!isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter);
+private _requesterTransmitter=[_requester] call WAIT_fnc_CortexGroupTransmitter;
+private _requesterAnchor=if (isNull _requesterTransmitter) then {leader _requester} else {_requesterTransmitter};
+private _senderRadio=!isNull _requesterTransmitter;
 // Consider assets in a stable suitability order. Raw allGroups iteration could select an
 // unarmed aircraft first, consume the sole air role and leave a capable local asset idle.
 // The owner still performs the authoritative weapon/turret preflight before it starts a run.
 private _orderedGroups=[];
 {
-    if (!isNull _x && {alive leader _x}) then {
+    if (!isNull _x) then {
         private _candidateGroup=_x;
+        private _candidateTransmitter=[_candidateGroup] call WAIT_fnc_CortexGroupTransmitter;
+        private _candidateAnchor=if (isNull _candidateTransmitter) then {leader _candidateGroup} else {_candidateTransmitter};
+        if (!isNull _candidateAnchor && {alive _candidateAnchor}) then {
         private _candidateAsset=objNull;
         {
             private _vehicle=vehicle _x;
@@ -76,15 +81,18 @@ private _orderedGroups=[];
         // keeps support local without inventing a fixed assembly position or formation.
         private _kind=if (!isNull _candidateAsset && {_candidateAsset isKindOf "Air"} && {_damagingMagazine >= 0}) then {0}
             else {if (!isNull _candidateAsset && {_damagingMagazine >= 0}) then {1} else {2}};
-        _orderedGroups pushBack [[_kind,leader _candidateGroup distance2D leader _requester],_candidateGroup];
+        _orderedGroups pushBack [[_kind,_candidateAnchor distance2D _requesterAnchor],_candidateGroup];
+        };
     };
 } forEach allGroups;
 _orderedGroups sort true;
 {
     private _candidate=_x select 1;
-    private _distance=leader _candidate distance2D leader _requester;
-    private _candidateRadio=!isNull ([_candidate] call WAIT_fnc_CortexGroupTransmitter);
-    if (_candidate != _requester && {side _candidate == side _requester} && {alive leader _candidate}
+    private _candidateTransmitter=[_candidate] call WAIT_fnc_CortexGroupTransmitter;
+    private _candidateAnchor=if (isNull _candidateTransmitter) then {leader _candidate} else {_candidateTransmitter};
+    private _distance=_candidateAnchor distance2D _requesterAnchor;
+    private _candidateRadio=!isNull _candidateTransmitter;
+    if (_candidate != _requester && {side _candidate == side _requester} && {!isNull _candidateAnchor} && {alive _candidateAnchor}
         && {[_candidate] call WAIT_fnc_CortexIsEligible}
         && {_distance <= _voiceRange || {_senderRadio && {_candidateRadio}}}) then {
         private _asset=objNull;

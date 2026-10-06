@@ -20,11 +20,10 @@ if (remoteExecutedOwner > 2) then {
 };
 if (!(_purpose in ["SUPPORT", "COUNTER"]) || {!(_mode in ["HE", "SMOKE"])} || {count _target < 2} || {_target findIf {!(_x isEqualType 0)} >= 0}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active", false])} || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
-if (_retreatSmoke && {!alive leader _requester
+if (_retreatSmoke && {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)
     || {!([_requester] call WAIT_fnc_CortexIsEligible)}
     || {!([_requester,"WAIT_AIPass_Artillery_Enable",false] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)}) exitWith {false};
+    || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {false};
 private _requestSide = if (_retreatSmoke) then {side _requester} else {side group _spotter};
 private _counter = _purpose == "COUNTER";
 private _feature = ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select _counter;

@@ -23,11 +23,13 @@
  * Example: [_group,_enemyPos,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAssaultServer",2];
  */
 params [["_requester",grpNull,[grpNull]],["_enemy",[],[[]]],["_replyOwner",-1,[0]]];
+private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
 if (!isServer || {isNull _requester} || {([_replyOwner,groupOwner _requester] call WAIT_fnc_HeadlessResolveSender) < 0}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Enable",false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {!([_requester] call WAIT_fnc_CortexIsEligible)}
     || {!([_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {count _enemy != 3} || {_enemy findIf {!(_x isEqualType 0)} >= 0} || {leader _requester distance2D _enemy > 400}) exitWith {};
+    || {isNull _requesterTransmitter}
+    || {count _enemy != 3} || {_enemy findIf {!(_x isEqualType 0)} >= 0} || {_requesterTransmitter distance2D _enemy > 400}) exitWith {};
 private _requests = missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
 private _job = _requests getOrDefault [netId _requester,createHashMap];
 if (count _job == 0 || {_job getOrDefault ["assaultIssued",false]} || {serverTime >= (_job get "expiry")}) exitWith {};
@@ -35,7 +37,7 @@ private _sent = 0;
 _job set ["assaultEnemy",+_enemy];
 // Allow finite fire-team bounds rather than a single sprint before lease expiry.
 _job set ["expiry",serverTime+600];
-private _supportOrigin=getPosATL leader _requester;
+private _supportOrigin=getPosATL _requesterTransmitter;
 private _laneX=(_enemy select 0)-(_supportOrigin select 0);
 private _laneY=(_enemy select 1)-(_supportOrigin select 1);
 private _laneLength=sqrt (_laneX*_laneX+_laneY*_laneY);
@@ -52,7 +54,8 @@ private _dispatched=[];
         && {[_helper] call WAIT_fnc_CortexIsEligible} && {[_helper,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
         // A coordinated route always begins at the squad's physical live position. The lease's
         // optional rally coordinate is reservation metadata and must never become a synthetic start.
-        private _routeOrigin=getPosATL leader _helper;
+        private _helperTransmitter = [_helper] call WAIT_fnc_CortexGroupTransmitter;
+        private _routeOrigin=getPosATL _helperTransmitter;
         private _originX=(_routeOrigin select 0)-(_supportOrigin select 0);
         private _originY=(_routeOrigin select 1)-(_supportOrigin select 1);
         private _originSide=if (_laneLength > 0) then {(_laneX*_originY-_laneY*_originX)/_laneLength} else {0};
@@ -67,7 +70,7 @@ private _dispatched=[];
         private _candidateRoutes=[];
         {
             _x params ["_radius","_offset"];
-            private _candidate=_enemy getPos [_radius,(_enemy getDir leader _requester)+_offset];
+            private _candidate=_enemy getPos [_radius,(_enemy getDir _requesterTransmitter)+_offset];
             private _candidateX=(_candidate select 0)-(_supportOrigin select 0);
             private _candidateY=(_candidate select 1)-(_supportOrigin select 1);
             private _candidateSide=if (_laneLength > 0) then {(_laneX*_candidateY-_laneY*_candidateX)/_laneLength} else {0};

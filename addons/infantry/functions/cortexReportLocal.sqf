@@ -17,9 +17,11 @@ if (remoteExecutedOwner != 2 || {!local _receiver} || {isNull _sender} || {(unit
 if ((missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded",false]) && {missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership","SPLIT"] == "SPLIT"}
     && {!([_receiver,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)}) exitWith {};
 private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
+private _receiverTransmitter = [_receiver] call WAIT_fnc_CortexGroupTransmitter;
 private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
 private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);
-if (side _receiver != side _sender || {leader _receiver distance2D _senderPosition > _range}) exitWith {};
+private _receiverPosition = getPosATL ([_receiverTransmitter, leader _receiver] select isNull _receiverTransmitter);
+if (side _receiver != side _sender || {isNull _receiverTransmitter && {!alive leader _receiver}} || {_receiverPosition distance2D _senderPosition > _range}) exitWith {};
 private _best = _reports param [0,[]];
 if (_best isEqualTo []) exitWith {};
 private _previous = _receiver getVariable ["WAIT_AIPass_AreaReport",[]];
