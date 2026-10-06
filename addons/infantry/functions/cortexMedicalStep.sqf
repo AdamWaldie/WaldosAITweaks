@@ -101,7 +101,9 @@ private _members=(units _group) select {
         && {!(_x getVariable ["ACE_isUnconscious",false])}
 };
 private _threshold=missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_DamageThreshold",0.35];
-private _casualties=_members select {_x != leader _group && {damage _x >= _threshold}};
+// Command succession is independent of medical eligibility. A wounded current leader still needs a
+// living medic; the pair selection below excludes only self-treatment.
+private _casualties=_members select {damage _x >= _threshold};
 if (_casualties isEqualTo []) exitWith {false};
 private _medics=_members select {_x getUnitTrait "Medic" || {(_x getVariable ["ace_medical_medicClass",0]) > 0}};
 if (_medics isEqualTo []) exitWith {false};
@@ -111,7 +113,7 @@ private _best=1e9;
     private _medic=_x;
     {
         private _distance=_medic distance2D _x;
-        if (_distance < _best && {_distance <= (missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Range",80])}) then {
+        if (_medic != _x && {_distance < _best} && {_distance <= (missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Range",80])}) then {
             _best=_distance;
             _pair=[_medic,_x];
         };

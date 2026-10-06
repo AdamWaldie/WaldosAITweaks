@@ -211,6 +211,13 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('spawn',defence)
         self.assertNotIn('sleep',defence)
         self.assertIn('class CortexMissileDefenceStep',functions)
+    def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
+        """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
+        medical=source('cortexMedicalStep')
+        self.assertIn('private _casualties=_members select {damage _x >= _threshold};',medical)
+        self.assertIn('if (_medic != _x && {_distance < _best}',medical)
+        self.assertNotIn('_x != leader _group && {damage _x >= _threshold}',medical)
+
     def test_medical_assistance_is_bounded_and_yields_to_competing_owners(self):
         medical=source('cortexMedicalStep')
         tick=source('cortexGroupTick')
