@@ -60,8 +60,14 @@ if (_groupHandlers isEqualTo []) then {
         private _observer=leader _observingGroup;
         private _targetGroup=group _target;
         private _friendly=!isNull _targetGroup && {(side _observingGroup) getFriend (side _targetGroup) >= 0.6};
+        // EnemyDetected belongs to the group, not necessarily its leader. A covered leader often
+        // has no direct knowledge while a wingman has made the native-confirmed sighting. Read a
+        // bounded local roster so that event-driven danger still wakes the existing group decision
+        // without turning this handler into a squad scan or granting the leader target knowledge.
+        private _spotters=(units _observingGroup) select {alive _x && {local _x} && {!isPlayer _x}};
+        _spotters resize ((count _spotters) min 12);
         if (isNull _observer || {!local _observer} || {!alive _observer} || {_friendly}
-            || {_observer knowsAbout _target < 1}) exitWith {};
+            || {_spotters findIf {_x knowsAbout _target >= 1} < 0}) exitWith {};
         // The engine has already confirmed this contact. Pass only the observer position into
         // the queue: WAIT wakes the existing decision job but does not publish or assign a target.
         [_observer,"DETECTED",getPosATL _observer] call WAIT_fnc_DangerRequest;
