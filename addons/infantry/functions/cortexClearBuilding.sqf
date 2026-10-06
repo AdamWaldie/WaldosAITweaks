@@ -206,15 +206,17 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
             {
                 if (local _x && {!isPlayer _x} && {group _x == _group}) then {
                     if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
-                        if (unitPos _x == "UP" && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
+                        // Do not undo a replacement controller's stance or speed. The clear job
+                        // restores temporary movement state only when it is returning to formation.
+                        if (_restore && {unitPos _x == "UP"} && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
                             _x setUnitPos (_x getVariable ["WAIT_Cortex_ClearStance","AUTO"]);
                         };
-                        if (!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
+                        if (_restore && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
                             _x forceSpeed (_x getVariable ["WAIT_Cortex_ClearForcedSpeed",-1]);
                         };
                         if (_restore) then {
-                        _x doWatch objNull;
-                        _x doFollow _leader;
+                            _x doWatch objNull;
+                            _x doFollow _leader;
                         };
                     };
                     _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];

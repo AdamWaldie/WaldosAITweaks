@@ -2534,6 +2534,27 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',release)
         self.assertIn('then {_restore=false}',release)
         self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore) then {_x doFollow _leader}'))
+    def test_building_handover_never_restores_or_locks_wait_state_after_takeover(self):
+        clear_release=source('cortexClearRelease')
+        clear_job=source('cortexClearBuilding')
+        garrison_release=source('cortexGarrisonRelease')
+        garrison_apply=source('cortexGarrisonApplyLocal')
+        # Replacement orders may set posture and speed independently. Cleanup only restores either
+        # after a normal WAIT release, never after the shared external-ownership boundary fired.
+        self.assertIn('if (_restore && {unitPos _x == "UP"}',clear_release)
+        self.assertIn('if (_restore && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}}',clear_release)
+        self.assertIn('if (_restore && {unitPos _x == "UP"}',clear_job)
+        self.assertIn('if (_restore && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}}',clear_job)
+        self.assertIn('if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {',garrison_release)
+        self.assertIn('if (!_externalTakeover) then {',garrison_release)
+        self.assertIn('if (!_externalTakeover && {getForcedSpeed _x ==',garrison_release)
+        # The garrison job must release its own PATH lock at loss of eligibility and recheck
+        # ownership before its arrival hold or first individual move can mutate a unit.
+        self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease;',garrison_apply)
+        self.assertIn('if (call _mayIssueMovement) then {doStop _unit};',garrison_apply)
+        arrival=garrison_apply.split('if (_x distance (_assignment select 0) <= 2) then {',1)[1].split('} else {',1)[0]
+        self.assertIn('if (call _mayIssueMovement) then {',arrival)
+        self.assertLess(arrival.index('if (call _mayIssueMovement) then {'),arrival.index('_x disableAI "PATH"'))
     def test_post_contact_movement_resumes_across_locality_with_original_deadline(self):
         checkpoint=source('cortexCheckpoint')
         locality=source('cortexLocality')

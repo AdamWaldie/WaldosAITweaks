@@ -111,9 +111,9 @@ private _buildingAnchor = {
                 ["Hit", _unit addEventHandler ["Hit", _duck]]
             ]];
         };
-        // Release from the former formation command before assigning an individual building slot.
-        // Defence release issues doFollow; clear that formation task before issuing the new move.
-        doStop _unit;
+        // Release the former formation task only while WAIT still owns movement. A curator or
+        // specialist can take over between setup and this first individual building command.
+        if (call _mayIssueMovement) then {doStop _unit};
         private _destination = _assignment select 0;
         private _building = _assignment param [2,objNull];
         private _entries=[_building,_unit,_destination] call _buildingEntries;
@@ -138,7 +138,12 @@ private _buildingAnchor = {
     private _group = _job get "group";
     if (isNull _group || {!local _group} || {(_group getVariable ["WAIT_AIPass_Garrison", []]) isEqualTo []}) exitWith {-1};
     if ((_group getVariable ["WAIT_AIPass_GarrisonGeneration", -1]) != (_job get "generation")) exitWith {-1};
-    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {2};
+    // Retire the hold immediately when a player, Zeus or specialist controller owns the group.
+    // Returning a delay alone would leave WAIT's PATH lock and published assignment behind.
+    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {
+        [_group,false] call WAIT_fnc_CortexGarrisonRelease;
+        -1
+    };
     private _mayIssueMovement = {
         !([_group] call WAIT_fnc_CortexExternalTakeover)
     };
@@ -156,11 +161,15 @@ private _buildingAnchor = {
                 [_x,_assignment param [2,objNull]] call WAIT_fnc_CortexBuildingDoor
             } else {false};
             if (_x distance (_assignment select 0) <= 2) then {
-                doStop _x;
-                _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
-                _x setVariable ["WAIT_AIPass_GarrisonDisabledPath", true, true];
-                _x disableAI "PATH";
-                _x doWatch ((_assignment select 0) getPos [50, _assignment select 1]);
+                // Arrival locks are movement ownership too. Do not freeze or retask a soldier
+                // whose group changed owner while this bounded callback was already running.
+                if (call _mayIssueMovement) then {
+                    doStop _x;
+                    _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
+                    _x setVariable ["WAIT_AIPass_GarrisonDisabledPath", true, true];
+                    _x disableAI "PATH";
+                    _x doWatch ((_assignment select 0) getPos [50, _assignment select 1]);
+                };
             } else {
                 if (time > (_job get "deadline")) then {
                     _x setVariable ["WAIT_AIPass_GarrisonFailed",true,true];

@@ -59,12 +59,15 @@ private _leader = leader _group;
 
         if (_x getVariable ["WAIT_AIPass_GarrisonDisabledPath", false]) then {_x enableAI "PATH"};
         if (alive _x && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}) then {
-            // Do not overwrite a subsequent Zeus or mission-script stance change.
+            // A replacement owner receives untouched posture, watch and speed. Normal release
+            // still restores WAIT's temporary hold exactly when its own lease remains intact.
             if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
-                _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
+                if (!_externalTakeover) then {
+                    _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
+                };
             };
             if (!_externalTakeover) then {_x doWatch objNull;};
-            if (getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2]) && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
+            if (!_externalTakeover && {getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2])} && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
             };
             private _command = toUpperANSI currentCommand _x;

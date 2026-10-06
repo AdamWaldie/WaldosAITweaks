@@ -41,10 +41,12 @@ private _leader=leader _group;
 {
     if (local _x && {!isPlayer _x}) then {
         if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
-            if (unitPos _x == "UP" && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
+            // A replacement owner receives untouched stance and speed. These values are only
+            // WAIT's lease while the clear release is returning control to the formation.
+            if (_restore && {unitPos _x == "UP"} && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
                 _x setUnitPos (_x getVariable ["WAIT_Cortex_ClearStance","AUTO"]);
             };
-            if (!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
+            if (_restore && {!isNil {_x getVariable "WAIT_Cortex_ClearForcedSpeed"}} && {abs ((getForcedSpeed _x)-(_x getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _x])) <= 0.1}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_ClearForcedSpeed",-1]);
             };
             if (_restore) then {_x doFollow _leader};
