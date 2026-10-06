@@ -142,6 +142,24 @@ private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
     private _actionName=if (count _action == 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
     format ["%1:%2/%3/%4s",groupId _x,_actionName,_response select 0,(((_response select 3)-time) max 0) toFixed 1]
 };
+// Engine-confirmed contacts are local candidate records, never a public targeting channel. Show
+// only their bounded group/count summary so an operator can diagnose a leader-in-cover contact
+// handoff without exposing target identity or adding background work.
+private _dangerObservedGroups=_groups select {
+    private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
+    _contacts findIf {
+        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+            && {alive (_x select 0)} && {(_x select 1) > time}
+    } >= 0
+};
+private _dangerObservedSummary=(_dangerObservedGroups select [0,20]) apply {
+    private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
+    private _live={
+        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+            && {alive (_x select 0)} && {(_x select 1) > time}
+    } count _contacts;
+    format ["%1:%2",groupId _x,_live]
+};
 private _operatingCrew=allUnits select {
     !isPlayer _x && {vehicle _x != _x}
         && {toUpperANSI ((assignedVehicleRole _x) param [0,""]) != "CARGO"}
@@ -220,7 +238,7 @@ private _checks = [
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["Up to twelve local AI group members provide Hit/Suppressed/hostile FiredNear observations; the group also records engine-confirmed EnemyDetected contact after verifying native knowledge. Records cap at 16 and expire after two seconds; same-cause callbacks throttle to 0.25 s; wake an existing group job at most twice per second. Published responses=%1 [action/cause/remaining: %2]. No target reveal, second movement owner or native danger replacement. Physical/latency and mixed-group performance acceptance pending.",count _dangerResponses,_dangerResponseSummary joinString ","]],
+    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["Up to twelve local AI group members provide Hit/Suppressed/hostile FiredNear observations; the group also records engine-confirmed EnemyDetected contact after verifying native knowledge. Records cap at 16 and expire after two seconds; same-cause callbacks throttle to 0.25 s; wake an existing group job at most twice per second. Published responses=%1 [action/cause/remaining: %2]; local observed contacts=%3 [group/count: %4]. No target reveal, second movement owner or native danger replacement. Physical/latency and mixed-group performance acceptance pending.",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ","]],
     ["ai", "cortex-danger-ownership", if (_dangerBackend || {_buildingBackend} || {_turretPolicy} || {_suppressionPolicy} || {_launcherPolicy}) then {"ACTIVE"} else {"UNAVAILABLE"}, format ["danger=%1 waypoints=%2 turrets=%3 suppression=%4 rpg=%5 mode=%6 scopedMovementLeases=%7 externalDangerOwnedGroups=%8 busyLeaseRefusals=%9; config companions remain active in every mode", _dangerBackend, _buildingBackend, _turretPolicy, _suppressionPolicy, _launcherPolicy, missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"], _dangerMovementLeases, _dangerBusyGroups, missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals", 0]]],
     ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
     ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies terrain-grade safety only while a native waypoint is active; a non-combat vehicle receives at most one route refresh, clear-rear reverse and final route retry. Registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes cap, grade, owner group, sample age and recovery state. Headless owners retain local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],
