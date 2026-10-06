@@ -1,5 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
+ * Purpose: Summarises bounded, engine-confirmed enemy knowledge for one local AI group without
+ * creating or sharing target knowledge.
+ * Locality/authority: Read-only; call where the group is local. It reads native AI knowledge and
+ * prunes only that owner's short-lived observation cache. Nothing is broadcast or commanded.
  * Repeat/JIP: Repeat calls recompute or update the same bounded state; public state is replayable to JIP where this function publishes it.
  * Summarises what a group already knows about nearby enemies, using only engine knowledge.
  *
@@ -10,7 +14,7 @@
  * hide a firefight the rest of the squad is in. An enemy counts only if the group knows about it
  * (knownByGroup and knowsAbout of at least 1), which also covers `lastSeen` being 0 before any sighting.
  * At most eight enemies, nearest first, are examined.
- * Locality and authority: read-only; call where the group is local. Nothing is broadcast.
+ * Locality and authority: see the authority statement above.
  *
  * Arguments:
  * 0: group <GROUP>

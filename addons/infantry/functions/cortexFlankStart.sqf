@@ -6,7 +6,9 @@
  * which WAIT_fnc_CortexFireControl uses to suppress. Up to half the squad (2-5 riflemen) becomes
  * the manoeuvre element. Candidate two-leg routes are sampled against the firing corridors from the
  * squad's own base of fire and at most four nearby friendly squads which are actually in CONTACT
- * or assigned a coordinated COVER role. Merely knowing about the target does not create a firing
+ * or assigned a coordinated COVER role. A bounded sample of each supporting squad's members must
+ * already know the target; the leader being in cover cannot erase an active wingman's fire lane.
+ * Merely knowing about the target does not create a firing
  * corridor. Cortex chooses a side and
  * width that stays outside a 30 m firing corridor and, when it begins clearly on one side of another
  * supporting squad's fire axis, remains on that side. All six bounded candidates are scored once at start;
@@ -109,10 +111,14 @@ if (_base isNotEqualTo []) then {
     if (_friendlyGroup != _group && {!isNull _friendlyLeader} && {alive _friendlyLeader}
         && {_activeSupport}
         && {(side _group) getFriend (side _friendlyGroup) >= 0.6}
-        && {_friendlyLeader distance2D _enemyPos < 500}
-        && {_friendlyLeader knowsAbout _target > 0.5}) then {
+        && {_friendlyLeader distance2D _enemyPos < 500}) then {
         private _friendlyFoot = (units _friendlyGroup) select {alive _x && {vehicle _x == _x}};
-        if (_friendlyFoot isNotEqualTo []) then {
+        // A leader can be behind cover while a wingman is actively engaging. Use a small native
+        // knowledge sample rather than leader-only knowledge, but keep the support-lane planning
+        // cost bounded even around large groups.
+        private _supportSpotters=_friendlyFoot select [0,(count _friendlyFoot) min 8];
+        private _supportKnows=_supportSpotters findIf {_x knowsAbout _target > 0.5} >= 0;
+        if (_friendlyFoot isNotEqualTo [] && {_supportKnows}) then {
             private _origin = [0,0,0];
             {_origin = _origin vectorAdd getPosATL _x} forEach _friendlyFoot;
             _supportCandidates pushBack [

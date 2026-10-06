@@ -1348,11 +1348,14 @@ class CortexOperations(unittest.TestCase):
         selector = source('cortexSelectAvenue')
         for marker in ['private _supportOrigins = []', 'private _supportCandidates = []',
                        'WAIT_AIPass_PublicPhase','WAIT_Cortex_SupportRole',
-                       '(_supportRole select 2) == "COVER"','knowsAbout _target > 0.5',
+                       '(_supportRole select 2) == "COVER"','private _supportSpotters=',
+                       '(count _friendlyFoot) min 8','private _supportKnows=',
+                       '_supportSpotters findIf {_x knowsAbout _target > 0.5} >= 0',
                        '(count _supportCandidates) min 4',
                        'private _avenueCandidates=[]','[1,110,90]',
                        'call WAIT_fnc_CortexSelectAvenue']:
             self.assertIn(marker, start)
+        self.assertNotIn('_friendlyLeader knowsAbout _target > 0.5', start)
         for marker in ['_lateral < 30','_pointSide*_startSide < 0',
                        'forEach [0.25,0.5,0.75]',
                        'terrainIntersectASL [_threatASL,_sampleASL]',
