@@ -23,8 +23,9 @@ private _valid = (_reports select [0,3]) select {
 if (_valid isEqualTo []) exitWith {};
 private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
 private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
+private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);
 private _receivers = allGroups select {_x != _sender && {side _x == side _sender} && {alive leader _x}
-    && {leader _x distance2D leader _sender <= _range} && {[_x] call WAIT_fnc_CortexIsEligible}};
+    && {leader _x distance2D _senderPosition <= _range} && {[_x] call WAIT_fnc_CortexIsEligible}};
 // One bounded delivery job; do not fan out an unbounded remote-call burst.
 [{
     params ["_job"];

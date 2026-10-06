@@ -18,7 +18,8 @@ if ((missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded",false]) && 
     && {!([_receiver,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)}) exitWith {};
 private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
 private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
-if (side _receiver != side _sender || {leader _receiver distance2D leader _sender > _range}) exitWith {};
+private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);
+if (side _receiver != side _sender || {leader _receiver distance2D _senderPosition > _range}) exitWith {};
 private _best = _reports param [0,[]];
 if (_best isEqualTo []) exitWith {};
 private _previous = _receiver getVariable ["WAIT_AIPass_AreaReport",[]];

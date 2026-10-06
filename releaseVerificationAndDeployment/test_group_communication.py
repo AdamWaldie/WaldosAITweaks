@@ -32,6 +32,9 @@ class GroupCommunicationTests(unittest.TestCase):
             self.assertIn('WAIT_fnc_CortexGroupTransmitter', source(caller), caller)
         report = source('cortexReportServer')
         self.assertIn('private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;', report)
+        self.assertIn('private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);', report)
+        self.assertIn('leader _x distance2D _senderPosition <= _range', report)
+        self.assertIn('leader _receiver distance2D _senderPosition > _range', source('cortexReportLocal'))
         self.assertNotIn(' reveal ', report)
         self.assertNotIn('doTarget', report)
 
