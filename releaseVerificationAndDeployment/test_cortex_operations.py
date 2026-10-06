@@ -7,6 +7,12 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'addons/main/functions/Cortex'
 def source(name): return next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
+    def test_scheduler_diagnostics_clear_transient_skip_state_after_resumption(self):
+        scheduler=source('cortexSchedulerTick')
+        self.assertIn('_state set ["skippedReason","PAUSED"]',scheduler)
+        self.assertIn('_state deleteAt "skippedReason"',scheduler)
+        self.assertLess(scheduler.index('_state set ["skippedReason","PAUSED"]'),scheduler.index('_state deleteAt "skippedReason"'))
+
     def test_danger_observations_preserve_one_tactical_owner(self):
         request=source('dangerRequest')
         step=source('dangerStep')

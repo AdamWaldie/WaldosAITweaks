@@ -89,7 +89,14 @@ private _earliest = -1;
         _state set ["lastCallbackMs",(diag_tickTime-_callbackStarted)*1000];
         _state set ["queueLatency",(_now-_dueAt) max 0];
         _state set ["lastRunAt",_now];
-        if (_stale) then {_state set ["skippedReason",if (!_enabled) then {"DISABLED"} else {"LOCALITY"}]};
+        // Diagnostics describe the current queued state, not an old transient skip. A paused job
+        // remains intentionally queued, while a later successful callback clears its previous
+        // pause marker before it is reported as healthy again.
+        if (_stale) then {
+            _state set ["skippedReason",if (!_enabled) then {"DISABLED"} else {"LOCALITY"}]
+        } else {
+            if (_jobPaused) then {_state set ["skippedReason","PAUSED"]} else {_state deleteAt "skippedReason"};
+        };
         if (!_stale && {!_paused} && {!isNull _group}) then {[_group] call WAIT_fnc_CortexCheckpoint};
         if (!isNil "_delay" && {_delay isEqualType 0} && {_delay >= 0}) then {
             // A finite danger response has already been observed locally. Preserve its prompt
