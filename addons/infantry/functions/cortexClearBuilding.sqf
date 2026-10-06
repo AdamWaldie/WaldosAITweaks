@@ -4,7 +4,8 @@
  * Orders an AI group to clear a building room by room.
  *
  * A squad-aware interior element, including the leader when needed, joins the clear up to a bounded
- * capacity. Each interior lane has a lead and security partner, then draws the nearest unclaimed room from a
+ * capacity. Each interior lane has a lead and security partner, receives a distinct viable entrance
+ * where the topology provides one, then draws the nearest unclaimed room from a
  * shared low-floor-first queue. Only roofed interior positions are clearance objectives; exposed
  * balconies and roof posts belong to garrisoning. This avoids a support partner waiting outside while only one soldier
  * attempts every room, and makes a large squad flow through the building instead of parking around it.
@@ -180,6 +181,11 @@ private _pairs=[];
 private _pairRoutes=_pairs apply {[]};
 private _pending=+_routeOrder;
 private _pairStates=[];
+// Avoid turning a multi-lane clear into a queue at one doorway. Each pair initially claims a
+// distinct real entrance where possible; only when there are more pairs than entrances do later
+// pairs reuse the nearest entry. Retry logic below still selects another entrance after a real
+// path failure, so this is dispersion rather than a permanent door reservation.
+private _claimedEntryIndices=[];
 {
     private _pair=_x;
     private _pairLead=_pair select 0;
@@ -187,7 +193,10 @@ private _pairStates=[];
     if (_entries isNotEqualTo []) then {
         private _ranked=_entries apply {[_pairLead distance2D _x,_forEachIndex]};
         _ranked sort true;
-        _entryIndex=(_ranked select 0) select 1;
+        private _unclaimed=_ranked select {!((_x select 1) in _claimedEntryIndices)};
+        private _choice=if (_unclaimed isEqualTo []) then {_ranked} else {_unclaimed};
+        _entryIndex=(_choice select 0) select 1;
+        _claimedEntryIndices pushBackUnique _entryIndex;
     };
     _pairStates pushBack [0,false,_pair apply {getPosATL _x},time,0,-1,
         time+(_forEachIndex*1.25),0,-1,_entryIndex,[],0,false];
