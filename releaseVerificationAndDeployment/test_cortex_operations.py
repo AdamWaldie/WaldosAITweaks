@@ -1340,14 +1340,14 @@ class CortexOperations(unittest.TestCase):
                 self.assertNotIn('Waldo_AI_ExternalControl', text, path)
                 self.assertNotIn('Waldo_AI_PrecisionExclude', text, path)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_terrain_focus_requires_measured_relief_and_physical_travel(self):
         launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         terrain=(ROOT/'releaseVerificationAndDeployment/cortexQA/runTerrain.sqf').read_text(encoding='utf-8')
-        self.assertIn('"buildings", "terrain"',launcher)
-        self.assertIn('WAIT_CortexQA_AuditTerrain',launcher)
-        self.assertIn('runTerrain.sqf") -Destination (Join-Path $missionRoot "cortexQATerrain.sqf")',launcher)
+        self.assertIn('[string]$Focus=\'all\'',launcher)
+        self.assertIn("mod_pipeline.py') stage $Package $runtime --focus $Focus",launcher)
+        pipeline=(ROOT/'releaseVerificationAndDeployment/mod_pipeline.py').read_text(encoding='utf-8')
+        self.assertIn("glob('run*.sqf')",pipeline)
         self.assertIn('if (_focus == "terrain")',server)
         self.assertIn('cortexQATerrain.sqf',server)
         self.assertIn('toLower worldName != "vr"',terrain)
