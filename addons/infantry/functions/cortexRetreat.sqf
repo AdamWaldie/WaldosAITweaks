@@ -173,7 +173,7 @@ if (!_resuming) then {
     } forEach _smokers;
     // A communicating retreating squad asks server-coordinated artillery for smoke; no radio item is required.
     if ((missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false]) && {[_group,"WAIT_AIPass_ArtillerySmoke_Enable", true] call WAIT_fnc_CortexFeatureEnabled}
-        && {[_leader] call WAIT_fnc_CortexCanTransmit}) then {
+        && {!isNull ([_group] call WAIT_fnc_CortexGroupTransmitter)}) then {
         private _screen = _enemyPos getPos [((_enemyPos distance2D _leader) * 0.4) min 80, _enemyPos getDir _leader];
         private _side = side _group;
         private _friendlyNear = (_screen nearEntities [["CAManBase", "LandVehicle"], 50]) findIf {

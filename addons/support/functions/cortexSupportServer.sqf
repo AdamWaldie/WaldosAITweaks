@@ -25,11 +25,12 @@ params [["_requester",grpNull,[grpNull]],["_enemy",[],[[]]],["_at",false,[true]]
 private _requesterReinforce = !isNull _requester && {[_requester,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterCoordinated = !isNull _requester && {[_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _supportEnabled = _requesterReinforce || {_requesterCoordinated};
+private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
 if (!isServer || {isNull _requester} || {remoteExecutedOwner > 0 && {remoteExecutedOwner != groupOwner _requester}}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Enable",false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {!([_requester,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!_supportEnabled}
-    || {!([_requester] call WAIT_fnc_CortexIsEligible)} || {!([leader _requester] call WAIT_fnc_CortexCanTransmit)}
+    || {!([_requester] call WAIT_fnc_CortexIsEligible)} || {isNull _requesterTransmitter}
     || {count _enemy != 3} || {_enemy findIf {!(_x isEqualType 0)} >= 0}) exitWith {};
 private _requests = missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
 private _key = netId _requester;
@@ -45,13 +46,13 @@ if (_maximum <= 0) exitWith {};
 private _radius = missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600];
 private _candidates = [];
 {if (_x != _requester && {side _x == side _requester} && {alive leader _x}
-    && {[leader _x] call WAIT_fnc_CortexCanTransmit}
+    && {!isNull ([_x] call WAIT_fnc_CortexGroupTransmitter)}
     && {count ((units _x) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
     && {leader _x distance2D leader _requester <= _radius}) then {
     _candidates pushBack [leader _x distance2D leader _requester,_forEachIndex,_x];
 }} forEach allGroups;
 _candidates sort true;
-private _requesterPosition=getPosATL leader _requester;
+private _requesterPosition=getPosATL _requesterTransmitter;
 private _rallyDirection=_requesterPosition getDir _enemy;
 private _rallyCandidates=[];
 {

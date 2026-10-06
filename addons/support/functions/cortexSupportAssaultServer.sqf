@@ -47,7 +47,7 @@ private _dispatched=[];
     private _status = _helper getVariable ["WAIT_AIPass_SupportStatus",[]];
     if (_accepted == "ACCEPTED" && {count _lease == 6} && {(_lease select 0) == _token}
         && {count _status == 4} && {(_status select 0) == _token} && {_status select 2}
-        && {[leader _helper] call WAIT_fnc_CortexCanTransmit}
+        && {!isNull ([_helper] call WAIT_fnc_CortexGroupTransmitter)}
         && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
         && {[_helper] call WAIT_fnc_CortexIsEligible} && {[_helper,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
         // A coordinated route always begins at the squad's physical live position. The lease's

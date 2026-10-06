@@ -68,7 +68,7 @@ private _contactPeer = _phase in ["CONTACT","SECURITY"] && {_sharedCoordinated};
 private _supportEnabled = _sharedReinforce || {_sharedCoordinated};
 private _okay = missionNamespace getVariable ["WAIT_AIPass_Active",false] && {!([] call WAIT_fnc_CortexIsPaused)}
     && {serverTime < _expiry} && {!isNull _requester} && {side _requester == side _group}
-    && {[leader _group] call WAIT_fnc_CortexCanTransmit}
+    && {!isNull ([_group] call WAIT_fnc_CortexGroupTransmitter)}
     && {[_group] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {_supportEnabled}
     && {count _footFit >= 3} && {behaviour leader _group != "CARELESS"} && {!fleeing leader _group}

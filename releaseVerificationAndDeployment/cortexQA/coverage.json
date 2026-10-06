@@ -867,6 +867,7 @@
       ],
       "production_sources": [
         "addons/infantry/functions/cortexCanTransmit.sqf",
+        "addons/infantry/functions/cortexGroupTransmitter.sqf",
         "addons/infantry/functions/cortexReportLocal.sqf",
         "addons/infantry/functions/cortexReportServer.sqf"
       ]

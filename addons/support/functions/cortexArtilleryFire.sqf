@@ -24,7 +24,7 @@ if (_retreatSmoke && {!alive leader _requester
     || {!([_requester] call WAIT_fnc_CortexIsEligible)}
     || {!([_requester,"WAIT_AIPass_Artillery_Enable",false] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!([leader _requester] call WAIT_fnc_CortexCanTransmit)}}) exitWith {false};
+    || {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)}) exitWith {false};
 private _requestSide = if (_retreatSmoke) then {side _requester} else {side group _spotter};
 private _counter = _purpose == "COUNTER";
 private _feature = ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select _counter;

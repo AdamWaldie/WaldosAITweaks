@@ -9,14 +9,15 @@
  * Example: [_receiver, _sender, _reports, serverTime] remoteExecCall ["WAIT_fnc_CortexReportLocal", groupOwner _receiver];
  */
 params [["_receiver",grpNull,[grpNull]],["_sender",grpNull,[grpNull]],["_reports",[],[[]]],["_sent",-1,[0]]];
-if (remoteExecutedOwner != 2 || {!local _receiver} || {isNull _sender} || {!alive leader _sender}
+if (remoteExecutedOwner != 2 || {!local _receiver} || {isNull _sender} || {(units _sender) findIf {alive _x} < 0}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {serverTime - _sent > 15} || {!([_receiver] call WAIT_fnc_CortexIsEligible)}
     || {!([_receiver,"WAIT_AIPass_ContactReports_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_sender,"WAIT_AIPass_ContactReports_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {};
 if ((missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded",false]) && {missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership","SPLIT"] == "SPLIT"}
     && {!([_receiver,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)}) exitWith {};
-private _range = if ([leader _sender] call WAIT_fnc_CortexCanTransmit) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
+private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
+private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
 if (side _receiver != side _sender || {leader _receiver distance2D leader _sender > _range}) exitWith {};
 private _best = _reports param [0,[]];
 if (_best isEqualTo []) exitWith {};

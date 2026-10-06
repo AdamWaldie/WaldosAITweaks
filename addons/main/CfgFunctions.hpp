@@ -123,6 +123,7 @@ class CfgFunctions {
             class CortexArtilleryFire {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryFire.sqf";};
             class CortexArtilleryRequest {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryRequest.sqf";};
             class CortexCanTransmit {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCanTransmit.sqf";};
+            class CortexGroupTransmitter {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTransmitter.sqf";};
             class CortexBuildingDoor {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexBuildingDoor.sqf";};
             class CortexClearBuilding {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexClearBuilding.sqf";};
             class CortexReportServer {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexReportServer.sqf";};

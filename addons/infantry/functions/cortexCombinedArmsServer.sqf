@@ -46,7 +46,7 @@ private _airCandidates=[];
 private _voiceRange=missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35];
 private _groundRange=missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500];
 private _airRange=missionNamespace getVariable ["WAIT_Cortex_CombinedArms_AirRange",4000];
-private _senderRadio=[leader _requester] call WAIT_fnc_CortexCanTransmit;
+private _senderRadio=!isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter);
 // Consider assets in a stable suitability order. Raw allGroups iteration could select an
 // unarmed aircraft first, consume the sole air role and leave a capable local asset idle.
 // The owner still performs the authoritative weapon/turret preflight before it starts a run.
@@ -83,7 +83,7 @@ _orderedGroups sort true;
 {
     private _candidate=_x select 1;
     private _distance=leader _candidate distance2D leader _requester;
-    private _candidateRadio=[leader _candidate] call WAIT_fnc_CortexCanTransmit;
+    private _candidateRadio=!isNull ([_candidate] call WAIT_fnc_CortexGroupTransmitter);
     if (_candidate != _requester && {side _candidate == side _requester} && {alive leader _candidate}
         && {[_candidate] call WAIT_fnc_CortexIsEligible}
         && {_distance <= _voiceRange || {_senderRadio && {_candidateRadio}}}) then {
