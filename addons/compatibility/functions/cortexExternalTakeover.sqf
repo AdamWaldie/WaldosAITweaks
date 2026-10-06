@@ -18,12 +18,14 @@
 
 params [["_group",grpNull,[grpNull]], ["_ignoreZeusHold",false,[true]]];
 if (isNull _group) exitWith {true};
+// This is called immediately before every WAIT command boundary. Cache the membership once and
+// evaluate specialist ownership once per actor; the leader is a group member, so a separate
+// leader probe only duplicated configuration and marker reads on the most frequent path.
+private _members=units _group;
 
-isPlayer leader _group
-|| {(units _group) findIf {isPlayer _x} >= 0}
+{_members findIf {isPlayer _x} >= 0}
 || {!_ignoreZeusHold && {[_group] call WAIT_fnc_CortexZeusHeld}}
-|| {(units _group) findIf {!isNull (remoteControlled _x)} >= 0}
-|| {(units _group) findIf {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])} >= 0}
-|| {([leader _group] call WAIT_fnc_CortexExternalOwner) != ""}
-|| {(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
+|| {_members findIf {!isNull (remoteControlled _x)} >= 0}
+|| {_members findIf {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])} >= 0}
+|| {_members findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0}
 || {[_group] call WAIT_fnc_CompatibilityExternalControl}

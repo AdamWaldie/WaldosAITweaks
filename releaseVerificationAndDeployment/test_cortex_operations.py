@@ -1821,9 +1821,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_canRestoreGroup && {"team" in (_x select 2)}',stop)
         self.assertLess(stop.index('private _canRestoreGroup='),stop.index('doFollow leader _group'))
 
+    def test_external_takeover_uses_one_cached_member_scan(self):
+        takeover=source('cortexExternalTakeover')
+        self.assertIn('private _members=units _group;',takeover)
+        self.assertIn('_members findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',takeover)
+        self.assertNotIn('([leader _group] call WAIT_fnc_CortexExternalOwner)',takeover)
+        self.assertNotIn('isPlayer leader _group',takeover)
+
     def test_delayed_vehicle_and_building_release_restore_shutdown_but_yield_to_external_owners(self):
         takeover=source('cortexExternalTakeover')
-        for marker in ['isPlayer leader _group','WAIT_fnc_CortexZeusHeld',
+        for marker in ['_members findIf {isPlayer _x} >= 0','WAIT_fnc_CortexZeusHeld',
                        'WAIT_fnc_CortexExternalOwner','WAIT_fnc_CompatibilityExternalControl']:
             self.assertIn(marker,takeover)
         self.assertIn('if (isNull _group) exitWith {true};',takeover)
