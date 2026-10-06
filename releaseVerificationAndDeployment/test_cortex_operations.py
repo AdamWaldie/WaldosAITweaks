@@ -3955,7 +3955,6 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(drop.index('WAIT_fnc_CortexExternalTakeover'),drop.index('WAIT_fnc_CortexParachuteJump'))
         self.assertLess(landing.index('WAIT_fnc_CortexExternalTakeover'),landing.index('_group addWaypoint'))
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_attack_run_flares_are_separate_gated_owner_job(self):
         text=source('cortexAttackRunFlares')
         for requirement in ['local _aircraft','CortexIsEligible','CortexAircraftEligible','WAIT_Cortex_AttackRunFlares_Enable','isTouchingGround','vectorDotProduct','closest','APPROACH','DEPARTURE','serverTime+30','CortexFireCountermeasure','effectiveCommander _aircraft','gunner _aircraft','commander _aircraft','crew _aircraft','assignedTarget _x']:
@@ -3966,9 +3965,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('burstExpires',text)
         self.assertIn('burstNext',text)
         self.assertIn('if ([_aircraft] call WAIT_fnc_CortexFireCountermeasure)',text)
-        for name in ['featureRuntimeApply','featureRuntimeRequestState']:
-            transport=(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{name}.sqf').read_text()
-            self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',transport)
+        spec=source('cortexTuningSpec')
+        settings=source('aiConfig')
+        discover=source('cortexDiscover')
+        controller=source('cortexAirAttack')
+        self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',spec)
+        self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',settings)
+        self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',discover)
+        self.assertIn('WAIT_Cortex_AttackRunFlares_Enable',controller)
+        self.assertIn('CortexFeatureEnabled',discover)
+        self.assertIn('CortexFireCountermeasure',controller)
 
     def test_standoff_release_remains_on_the_inbound_side_of_the_target(self):
         planner=source('cortexAirAttackPlan')
@@ -4002,7 +4008,6 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('&& {(_x select 0) == _selectedMagazine}',controller)
         self.assertNotIn('(_x select 0) == _selectedMagazine || {(_x select 0) in compatibleMagazines _weapon}',controller)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_adaptive_air_attack_is_bounded_physical_and_zeus_safe(self):
         planner=source('cortexAirAttackPlan')
         for requirement in ['nearTargets ([8000,5000]','select [0,16]','WAIT_Cortex_AirAmmoFacts',
@@ -4236,14 +4241,14 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('(crew _aircraft) doFollow leader _handoverGroup',controller)
         self.assertNotIn('_handoverPilot commandMove _handoverPosition',controller)
         self.assertNotIn('_handoverPilot setDestination [_handoverPosition',controller)
-        self.assertIn('(crew _aircraft) commandTarget objNull',controller)
-        self.assertEqual(controller.count('(crew _aircraft) commandTarget objNull'),1)
+        self.assertIn('_x commandTarget objNull',controller)
+        self.assertEqual(controller.count('_x commandTarget objNull'),1)
         self.assertNotIn('_handoverPilot doFollow leader _handoverGroup',controller)
         self.assertNotIn('(driver _aircraft) doMove _handoverPosition',controller)
         self.assertNotIn('(crew _aircraft) doFollow leader _group',controller)
         self.assertIn('WAIT_Cortex_AirHandoverLease',controller)
         self.assertIn('private _resumeExternal',controller)
-        self.assertIn('[_x] call WAIT_fnc_CortexExternalOwner != ""',controller)
+        self.assertIn('[group _x] call WAIT_fnc_CortexExternalTakeover',controller)
         self.assertIn('{!_resumeExternal}',controller)
         self.assertNotIn('private _deadline=serverTime+90',controller)
         self.assertNotIn('_handoverPilot setUnitCombatMode "BLUE"',controller)
@@ -4308,9 +4313,12 @@ class CortexOperations(unittest.TestCase):
                             'WAIT_Cortex_AirAttackTarget','WAIT_Cortex_AirAttackGuidedWeapon',
                             'removeEventHandler ["Fired"','limitSpeed -1','previousAttackEnabled']:
             self.assertIn(requirement,stop)
-        for name in ['featureRuntimeApply','featureRuntimeRequestState']:
-            transport=(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{name}.sqf').read_text()
-            self.assertIn('WAIT_Cortex_AirAttack_Enable',transport)
+        spec=source('cortexTuningSpec')
+        settings=source('aiConfig')
+        self.assertIn('WAIT_Cortex_AirAttack_Enable',spec)
+        self.assertIn('WAIT_Cortex_AirAttack_Enable',settings)
+        self.assertIn('WAIT_Cortex_AirAttack_Enable',discover)
+        self.assertIn('WAIT_Cortex_AirAttack_Enable',controller)
         diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text()
         for requirement in ['adaptiveAirAttacks','activeAirAttacks','cortex-air-attack-',
                             'lastCountermeasureRequest','actualShots','observedAA']:
