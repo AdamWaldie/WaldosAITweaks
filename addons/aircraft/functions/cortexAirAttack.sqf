@@ -241,6 +241,7 @@ private _explicitlyExcluded=[_group] call WAIT_fnc_CompatibilityExternalControl
 private _allowed=local _aircraft && {alive _aircraft} && {!isNull _pilot} && {alive _pilot} && {!isPlayer _pilot}
     && {!unitIsUAV _aircraft} && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {!([] call WAIT_fnc_CortexIsPaused)}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {!([_group] call WAIT_fnc_CortexZeusHeld)}
     && {[_group,"WAIT_Cortex_AirAttack_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {!_explicitlyExcluded}
@@ -980,4 +981,3 @@ switch _stage do {
     case "EGRESS": {};
 };
 0.5
-

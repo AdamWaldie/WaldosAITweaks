@@ -4011,7 +4011,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(requirement,planner)
         self.assertNotIn('private _choices=["STRAFE",0.3,"LATERAL"',planner)
         controller=source('cortexAirAttack')
-        for requirement in ['local _aircraft','WAIT_Cortex_AirAttack_Enable','CortexZeusHeld',
+        for requirement in ['local _aircraft','WAIT_Cortex_AirAttack_Enable','CortexExternalTakeover','CortexZeusHeld',
                             'addEventHandler ["Fired"','ownedWaypointName','setWaypointPosition',
                             'limitSpeed','INGRESS','ATTACK','EGRESS','GROUND_CLEARANCE','EGRESS_NONPROGRESS',
                             'routeSignature','AUTHORED_ROUTE_CHANGED','CortexFireCountermeasure','WAIT_Cortex_AirAttackOutcome',
