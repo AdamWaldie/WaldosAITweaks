@@ -1909,14 +1909,34 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('LIFE-no-old-order-resurrection', qa)
         self.assertIn('_drift <= 12', qa)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_refused_migration_preserves_existing_owner_registry(self):
-        text = (ROOT/'MissionScripts/Headless/headlessMigrateGroup.sqf').read_text(encoding='utf-8')
-        refusal = text.split('if (_targetOwner != 2 && {_serverOwned}) exitWith {')[1].split('private _recordFailure')[0]
-        self.assertNotIn('call _removeRegistryEntry', refusal)
-        self.assertNotIn('setGroupOwner', refusal)
-        self.assertIn('MIGRATE_BLOCKED', refusal)
-        self.assertIn('if (_finalOwner == 2) then {[] call _removeRegistryEntry}', text)
+    def test_refused_headless_migration_preserves_owner_and_registry_contract(self):
+        # WAIT does not select a headless client or transfer groups itself.  It adopts on the
+        # confirmed destination owner, so the packaged audit must delegate to an available
+        # migration provider and prove that a provider refusal leaves the actual owner and its
+        # published registry untouched.
+        adapter = (ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text(encoding='utf-8')
+        adopt = source('aiHeadlessAdoptLocal')
+        adopt_body = adopt.split('params [', 1)[1]
+        lifecycle = (ROOT/'releaseVerificationAndDeployment/cortexQA/runLifecycle.sqf').read_text(encoding='utf-8')
+        self.assertIn('if !(isNil "Waldo_fnc_HeadlessMigrateGroup") exitWith {[_group,_owner] call Waldo_fnc_HeadlessMigrateGroup};', adapter)
+        self.assertIn('_group setGroupOwner _owner;', adapter)
+        self.assertIn('Engine-only HC transfer', adapter)
+        self.assertNotIn('setGroupOwner', adopt_body)
+        self.assertIn('clientOwner != _newOwner', adopt)
+        self.assertIn('!local _group', adopt)
+        self.assertIn('WAIT_AI_LastAdoptionKey', adopt)
+        self.assertIn('WAIT_fnc_CortexLocality', adopt)
+        self.assertIn('WAIT_fnc_SchedulerReconcile', adopt)
+        for token in [
+            'WAIT_Headless_ExcludeGroup',
+            'WAIT_Headless_ManagedGroups',
+            'LIFE-refused-transfer-owner-retained',
+            'LIFE-refused-transfer-registry-retained',
+            'groupOwner _group == _targetOwner',
+            'count _records == 1',
+            '(_records select 0 select 1) == _targetOwner',
+        ]:
+            self.assertIn(token, lifecycle)
 
     def test_reinforcement_readiness_requires_physical_squad_arrival(self):
         text=source('cortexSupportMaintain')
