@@ -98,6 +98,10 @@ class AIModularityContracts(unittest.TestCase):
         report = src('cortexContactReport')
         self.assertIn('+(_x select 1)',report)
         self.assertIn('serverTime - (_x select 2)',report)
+        self.assertIn('private _reporters=',report)
+        self.assertIn('if (count _reporters > 8) then {_reporters resize 8}',report)
+        self.assertIn('_confidence=_confidence max (_x knowsAbout _target)',report)
+        self.assertNotIn('leader _group knowsAbout (_x select 0)',report)
         for name in ['cortexReportServer','cortexReportLocal']:
             text = src(name)
             self.assertNotIn(' reveal ',text)
