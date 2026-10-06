@@ -68,6 +68,14 @@ class FSM
                     condition = "local _group && {(_group getVariable [""WAIT_AIPass_Epoch"",0]) == _epoch} && {(_group getVariable [""WAIT_AIPass_ZeusHold"",[]]) isNotEqualTo _zeusToken || {_group getVariable [""WAIT_AIPass_ZeusWaypoints"",false]}}";
                     action = "_job set [""cancelled"",true]; [_group,_token,_epoch,""ZEUS""] call WAIT_fnc_CortexDrillInterrupt;";
                 };
+                class ExternalOwnership
+                {
+                    priority = 4.500000;
+                    to = "Finished";
+                    precondition = "";
+                    condition = "local _group && {(_group getVariable [""WAIT_AIPass_Epoch"",0]) == _epoch} && {[_group] call WAIT_fnc_CortexExternalTakeover}";
+                    action = "_job set [""cancelled"",true]; [_group,_token,_epoch,""RELEASE""] call WAIT_fnc_CortexDrillInterrupt;";
+                };
                 class Disabled
                 {
                     priority = 4.000000;

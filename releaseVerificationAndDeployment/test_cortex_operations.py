@@ -2758,6 +2758,9 @@ class CortexOperations(unittest.TestCase):
     def test_fsm_interrupts_restore_only_the_matching_operation(self):
         fsm=(ROOT/'addons/main/fsm/tacticalDrill.fsm').read_text()
         self.assertIn('class ZeusPriority',fsm)
+        self.assertIn('class ExternalOwnership',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('""RELEASE""] call WAIT_fnc_CortexDrillInterrupt',fsm)
         self.assertIn('class Disabled',fsm)
         self.assertIn('isNotEqualTo _zeusToken',fsm)
         self.assertIn('WAIT_AIPass_ZeusWaypoints',fsm)
