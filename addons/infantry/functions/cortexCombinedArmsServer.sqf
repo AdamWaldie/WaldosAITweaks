@@ -49,9 +49,17 @@ private _airRange=missionNamespace getVariable ["WAIT_Cortex_CombinedArms_AirRan
 private _requesterTransmitter=[_requester] call WAIT_fnc_CortexGroupTransmitter;
 private _requesterAnchor=if (isNull _requesterTransmitter) then {leader _requester} else {_requesterTransmitter};
 private _senderRadio=!isNull _requesterTransmitter;
-// Consider assets in a stable suitability order. Raw allGroups iteration could select an
-// unarmed aircraft first, consume the sole air role and leave a capable local asset idle.
-// The owner still performs the authoritative weapon/turret preflight before it starts a run.
+// Every selected asset must be inside either the air or ground response envelope. Build a
+// distinct candidate set from the larger envelope; this avoids a global group walk whenever a
+// contact opens a combined-arms opportunity. The owner still performs the authoritative
+// weapon/turret preflight before it starts a run.
+private _candidateGroups=[];
+{
+    private _candidateGroup=group _x;
+    if (!isNull _candidateGroup && {!(_candidateGroup in _candidateGroups)}) then {
+        _candidateGroups pushBack _candidateGroup;
+    };
+} forEach (_requesterAnchor nearEntities ["Man",_airRange max _groundRange]);
 private _orderedGroups=[];
 {
     if (!isNull _x) then {
@@ -84,7 +92,7 @@ private _orderedGroups=[];
         _orderedGroups pushBack [[_kind,_candidateAnchor distance2D _requesterAnchor],_candidateGroup];
         };
     };
-} forEach allGroups;
+} forEach _candidateGroups;
 _orderedGroups sort true;
 {
     private _candidate=_x select 1;

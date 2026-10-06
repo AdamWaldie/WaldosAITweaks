@@ -2079,6 +2079,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_footFit findIf {"AT" in',apply)
         self.assertIn(dismount_guard,assault)
 
+    def test_server_opportunity_discovery_uses_spatial_candidate_sets(self):
+        support=source('cortexSupportServer')
+        reports=source('cortexReportServer')
+        combined=source('cortexCombinedArmsServer')
+        for text in [support,reports,combined]:
+            self.assertIn('nearEntities ["Man",',text)
+            self.assertNotIn('} forEach allGroups;',text)
+        self.assertIn('} forEach _candidateGroups;',support)
+        self.assertIn('} forEach _receiverGroups;',reports)
+        self.assertIn('} forEach _candidateGroups;',combined)
+
     def test_combined_arms_opportunities_are_bounded_and_never_gate_infantry(self):
         request=source('cortexCombinedArmsRequest')
         server=source('cortexCombinedArmsServer')

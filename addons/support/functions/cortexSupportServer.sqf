@@ -45,6 +45,15 @@ private _maximum = ([_configuredMaximum,_configuredMaximum max 2] select _reques
 if (_maximum <= 0) exitWith {};
 private _radius = missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600];
 private _requesterPosition=getPosATL _requesterTransmitter;
+// A reinforcement candidate must have a transmitter inside the configured response radius.
+// Build a unique group set from that local envelope instead of walking every mission group.
+private _candidateGroups=[];
+{
+    private _candidateGroup=group _x;
+    if (!isNull _candidateGroup && {!(_candidateGroup in _candidateGroups)}) then {
+        _candidateGroups pushBack _candidateGroup;
+    };
+} forEach (_requesterPosition nearEntities ["Man",_radius]);
 private _candidates = [];
 {
     private _candidate = _x;
@@ -55,7 +64,7 @@ private _candidates = [];
         && {_distance <= _radius}) then {
         _candidates pushBack [_distance,_forEachIndex,_candidate];
     };
-} forEach allGroups;
+} forEach _candidateGroups;
 _candidates sort true;
 private _rallyDirection=_requesterPosition getDir _enemy;
 private _rallyCandidates=[];

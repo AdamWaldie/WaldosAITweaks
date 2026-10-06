@@ -24,6 +24,15 @@ if (_valid isEqualTo []) exitWith {};
 private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
 private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
 private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);
+// A receiver is eligible only when its transmitter or local command anchor is inside this report's
+// delivery envelope. Derive distinct groups from nearby actors rather than scanning every group.
+private _receiverGroups=[];
+{
+    private _receiverGroup=group _x;
+    if (!isNull _receiverGroup && {!(_receiverGroup in _receiverGroups)}) then {
+        _receiverGroups pushBack _receiverGroup;
+    };
+} forEach (_senderPosition nearEntities ["Man",_range]);
 private _receivers = [];
 {
     private _receiver = _x;
@@ -33,7 +42,7 @@ private _receivers = [];
         && {_receiverAnchor distance2D _senderPosition <= _range} && {[_receiver] call WAIT_fnc_CortexIsEligible}) then {
         _receivers pushBack _receiver;
     };
-} forEach allGroups;
+} forEach _receiverGroups;
 // One bounded delivery job; do not fan out an unbounded remote-call burst.
 [{
     params ["_job"];
