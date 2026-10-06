@@ -68,13 +68,17 @@ private _contactPeer = _phase in ["CONTACT","SECURITY"] && {_sharedCoordinated};
 private _supportEnabled = _sharedReinforce || {_sharedCoordinated};
 private _groupTransmitter = [_group] call WAIT_fnc_CortexGroupTransmitter;
 private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
+// Communication remains tied to a qualified transmitter, but local tactical readiness must survive
+// the formal leader becoming a casualty before the engine elects a replacement.
+private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _anchor) then {_anchor=leader _group};
 private _okay = missionNamespace getVariable ["WAIT_AIPass_Active",false] && {!([] call WAIT_fnc_CortexIsPaused)}
     && {serverTime < _expiry} && {!isNull _requester} && {side _requester == side _group}
     && {!isNull _groupTransmitter} && {!isNull _requesterTransmitter}
     && {[_group] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {_supportEnabled}
-    && {count _footFit >= 3} && {behaviour leader _group != "CARELESS"} && {!fleeing leader _group}
-    && {_same || {getSuppression leader _group <= ([0.2,0.65] select _contactPeer)}}
+    && {count _footFit >= 3} && {!isNull _anchor} && {behaviour _anchor != "CARELESS"} && {!fleeing _anchor}
+    && {_same || {getSuppression _anchor <= ([0.2,0.65] select _contactPeer)}}
     && {_groupTransmitter distance2D _requesterTransmitter <= (missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600])}
     && {(_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo []} && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []}
     && {!(_group getVariable ["WAIT_AIPass_ClearBuilding",false])} && {!(_group getVariable ["WAIT_AIPass_RegroupQueued",false])}

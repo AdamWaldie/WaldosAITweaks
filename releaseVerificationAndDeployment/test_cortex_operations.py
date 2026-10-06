@@ -4558,6 +4558,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_NavalOperation',release)
         self.assertIn('_vehicle isKindOf "LandVehicle"',vehicles)
 
+    def test_support_acceptance_uses_a_surviving_anchor_but_keeps_radio_qualification(self):
+        """A dead or pinned formal leader cannot reject a viable local support element."""
+        apply=source('cortexSupportApply')
+        self.assertIn('private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;',apply)
+        self.assertIn('!isNull _anchor',apply)
+        self.assertIn('behaviour _anchor != "CARELESS"',apply)
+        self.assertIn('getSuppression _anchor',apply)
+        self.assertIn('WAIT_fnc_CortexGroupTransmitter',apply)
+
     def test_support_reservations_use_the_common_generation_lifecycle(self):
         apply=source('cortexSupportApply')
         maintain=source('cortexSupportMaintain')
