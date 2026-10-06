@@ -1342,7 +1342,7 @@ class CortexOperations(unittest.TestCase):
 
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_terrain_focus_requires_measured_relief_and_physical_travel(self):
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         terrain=(ROOT/'releaseVerificationAndDeployment/cortexQA/runTerrain.sqf').read_text(encoding='utf-8')
         self.assertIn('"buildings", "terrain"',launcher)
@@ -2575,7 +2575,6 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('CBA_fnc_waitAndExecute',locality)
         self.assertIn('setVariable ["WAIT_Cortex_TransitionIntent",nil,true]',restore)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_vehicle_withdrawal_records_and_resumes_physical_progress(self):
         vehicles=source('cortexVehicles')
         locality=source('cortexLocality')
@@ -2607,10 +2606,11 @@ class CortexOperations(unittest.TestCase):
             'VEHICLE_OWNERSHIP_RESUME',
         ]:
             self.assertIn(marker,audit)
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        self.assertIn('"stateflows"',launcher)
-        self.assertEqual(server.count('"stateflows"'),2)
+        self.assertIn('[string]$Focus=\'all\'',launcher)
+        self.assertIn('mod_pipeline.py\') stage $Package $runtime --focus $Focus',launcher)
+        self.assertIn('"stateflows"',server)
 
     def test_mounted_survivors_withdraw_instead_of_selecting_impossible_surrender(self):
         morale=source('cortexMorale')
@@ -3185,7 +3185,7 @@ class CortexOperations(unittest.TestCase):
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_new_visual_suites_are_staged_and_additive(self):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         for suite in ['Reactions','Support','Airborne']:
             self.assertIn('cortexQA'+suite+'.sqf',server)
             self.assertIn('cortexQA/run'+suite+'.sqf',launcher)
@@ -3622,7 +3622,7 @@ class CortexOperations(unittest.TestCase):
     @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_new_qa_suites_are_additive_and_staged(self):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         for name in ['Deceleration','Aircraft','Lifecycle','Coordinated','Profiles','Scheduler','ArtillerySmoke','Contact','Avoidance','Landing','Cover','Gates','Gunnery','Seats','Buildings','ConvoyMatrix','Combat','Mechanics','Reactions','Support','Airborne','Vehicles','Fire']:
             self.assertIn('cortexQA'+name+'.sqf',server)
             self.assertIn('cortexQA'+name+'.sqf',launcher)
@@ -4613,11 +4613,10 @@ class CortexOperations(unittest.TestCase):
                        'WAIT_fnc_OperationCancel','NAVAL_']:
             self.assertIn(marker,release)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
     def test_naval_audit_requires_real_coast_travel_dismount_and_cleanup(self):
         audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runNaval.sqf').read_text(encoding='utf-8')
         runner=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         for marker in ['for "_bearing" from 0 to 350 step 10','surfaceIsWater _water',
                        'NAVAL-terrain-coast','forEach [false,true]',
                        'NAVAL-"+_suffix+"-physical-water-travel',
@@ -4630,7 +4629,8 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['setPos','moveInCargo','addWaypoint','setVariable ["WAIT_Cortex_NavalPlan"']:
             self.assertNotIn(forbidden,post_setup)
         self.assertIn('cortexQANaval.sqf',runner)
-        self.assertIn('cortexQA/runNaval.sqf',launcher)
+        self.assertIn("mod_pipeline.py') stage $Package $runtime --focus $Focus",launcher)
+        self.assertIn("glob('run*.sqf')", (ROOT/'releaseVerificationAndDeployment/mod_pipeline.py').read_text(encoding='utf-8'))
 
 
 
