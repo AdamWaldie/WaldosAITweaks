@@ -156,16 +156,21 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 ## 05 Vehicles
 
-### 01 Combat
+### 01 General driving and route safety
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
+| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles only: applies sparse terrain-grade safety and one bounded native-route recovery while following an existing waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately. |
+
+### 02 Combat and withdrawal
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Vehicles_Enable` | Enable Cortex vehicle tactics | CHECKBOX | true | [] | NEXT_OPERATION | Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent. |
-| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles only: applies sparse terrain-grade safety and one bounded native-route recovery while following an existing waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately. |
 | `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Gunners engage AT soldiers first, then armour; armour backs away from AT teams. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | Damage: withdraw mobile vehicle | CHECKBOX | true | [] | NEXT_OPERATION | Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke. |
 
-### 02 Passengers
+### 03 Passengers
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
