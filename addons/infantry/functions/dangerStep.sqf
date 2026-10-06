@@ -12,12 +12,14 @@
 params [["_group",grpNull,[grpNull]],["_epoch",-1,[0]],["_generation",-1,[0]]];
 if (isNull _group || {!local _group} || {_epoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {-1};
+private _actor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+if (isNull _actor) then {_actor=leader _group};
 // Danger response owns only its finite posture. Reuse the common narrow takeover question so
 // ordinary setting changes can restore that posture, while Zeus, players and specialist owners
 // retain their current state immediately.
 private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
 if (_yieldToOwner) exitWith {
-    [leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
+    [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
@@ -28,7 +30,7 @@ if (_yieldToOwner) exitWith {
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {
-    if (!_yieldToOwner) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
+    if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
@@ -39,7 +41,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
 if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     // A pause can arrive in the same scheduler interval as a curator or specialist takeover.
     // Release only WAIT's still-owned posture; external ownership must retain its latest state.
-    if (!_yieldToOwner) then {[leader _group,"RELEASE"] call WAIT_fnc_DangerReact};
+    if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
@@ -59,7 +61,7 @@ if (_selected isEqualTo []) exitWith {
     } else {
         // The last danger observation may expire after an external order has replaced the
         // operation. Do not restore a stale WAIT posture across that ownership boundary.
-        if (!_yieldToOwner) then {[leader _group,"RESTORE"] call WAIT_fnc_DangerReact};
+        if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact};
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         private _existingJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
@@ -86,7 +88,7 @@ if (_replace) then {
     // must not turn a still-live HIDE response into ENGAGE while diagnostics continue to report
     // the hit/explosion that caused it. Equal priority updates deliberately refresh the short
     // lease from the newest observation.
-    [leader _group,_cause,_position,_action] call WAIT_fnc_DangerReact;
+    [_actor,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
 };

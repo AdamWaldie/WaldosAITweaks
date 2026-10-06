@@ -3,7 +3,7 @@
  * Purpose: Classifies a coalesced danger observation for the native AI and WAIT diagnostics without
  * creating a second target, route, firing or movement owner.
  * Locality/authority: Runs on the current group owner after WAIT_fnc_DangerSelect has already bounded
- * and validated an observation. It reads only the leader vehicle state and an existing operation.
+ * and validated an observation. It reads one bounded living group representative and an existing operation.
  * Repeat/JIP: Pure selection with no side effects. The caller publishes the finite result with its
  * generation, so a new owner reconstructs it from a fresh local observation.
  * Arguments: 0: group <GROUP>; 1: selected event <ARRAY> [cause, position, observedAt, expires].
@@ -21,9 +21,10 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"MAINTAIN"};
-private _leader=leader _group;
-if (isNull _leader || {!alive _leader}) exitWith {"RELEASE"};
-if (vehicle _leader != _leader) exitWith {"VEHICLE"};
+private _actor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+if (isNull _actor) then {_actor=leader _group};
+if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
+if (vehicle _actor != _actor) exitWith {"VEHICLE"};
 private _cause=_event select 0;
 if (_cause in ["HIT","EXPLOSION","SUPPRESSED"]) exitWith {"HIDE"};
 "ENGAGE"
