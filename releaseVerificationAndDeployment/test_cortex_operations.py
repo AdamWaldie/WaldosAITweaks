@@ -141,7 +141,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('getOrDefault ["dangerPosture",false]',cancel)
         self.assertIn('getOrDefault ["dangerPosture",false]',release)
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',release)
-        self.assertIn('[leader _group,"RELEASE"] call WAIT_fnc_DangerReact',release)
+        self.assertIn('private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;',release)
+        self.assertIn('[_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact',release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',step)
         self.assertIn('participantProgress',start)
         self.assertIn('participantProgress',step)
@@ -252,7 +253,7 @@ class CortexOperations(unittest.TestCase):
         step=source('dangerStep')
         self.assertIn('WAIT_fnc_DangerReact',step)
         self.assertIn('[_actor,"RELEASE"] call WAIT_fnc_DangerReact',step)
-        self.assertIn('[leader _group,"RELEASE"] call WAIT_fnc_DangerReact',source('cortexReleaseGroup'))
+        self.assertIn('[_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact',source('cortexReleaseGroup'))
 
     def test_danger_cleanup_never_restores_wait_posture_after_ownership_takeover(self):
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text(encoding='utf-8')

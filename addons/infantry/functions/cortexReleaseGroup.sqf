@@ -78,7 +78,9 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
-    [leader _group,"RELEASE"] call WAIT_fnc_DangerReact;
+    private _dangerActor=[_group] call WAIT_fnc_CortexGroupTransmitter;
+    if (isNull _dangerActor) then {_dangerActor=leader _group};
+    [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
     [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
     // A release or Zeus takeover invalidates any still-published danger handoff before another
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
