@@ -79,7 +79,8 @@ private _positions = _allPositions select {
 };
 if (_positions isEqualTo []) then {_positions=+_allPositions};
 if (_positions isEqualTo []) exitWith {false};
-private _leader = leader _group;
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 private _available = (units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {vehicle _x == _x}};
 private _team = +_available;
 if (_team isEqualTo []) exitWith {false};
@@ -211,7 +212,8 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         params [["_restore",true,[true]],["_reason","CANCELLED",[""]]];
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
         if (!isNull _group) then {
-            private _leader = leader _group;
+            private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+            if (isNull _leader) then {_leader=leader _group};
             {
                 if (local _x && {!isPlayer _x} && {group _x == _group}) then {
                     if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
@@ -315,7 +317,8 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     // evaluated in the existing building job, so it adds no per-unit scheduler or event-handler cost.
     private _reserved=[];
     {_reserved append _x} forEach _pairs;
-    private _leader=leader _group;
+    private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _leader) then {_leader=leader _group};
     private _rotatedOut=_job getOrDefault ["rotatedOut",[]];
     {_rotatedOut pushBackUnique _x} forEach (_reserved select {_x in _unavailable});
     _job set ["rotatedOut",_rotatedOut];

@@ -542,6 +542,11 @@ class CortexOperations(unittest.TestCase):
     def test_clearance_release_resumes_formation_after_do_stop(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
+        self.assertIn('private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;',clear)
+        self.assertIn('private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;',clear)
+        self.assertIn('if (isNull _leader) then {_leader=leader _group};',clear)
+        self.assertIn('private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;',release)
+        self.assertIn('if (isNull _leader) then {_leader=leader _group};',release)
         self.assertIn('_x doFollow _leader',clear)
         self.assertIn('_x doFollow _leader',release)
         self.assertNotIn('_x commandFollow _leader',clear)

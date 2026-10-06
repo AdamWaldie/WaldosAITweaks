@@ -37,7 +37,8 @@ _group setVariable ["WAIT_AIPass_ClearOrder", nil, true];
 _group setVariable ["WAIT_AIPass_ClearBuilding", nil, true];
 _group setVariable ["WAIT_Cortex_ClearEgress",nil,true];
 _group setVariable ["WAIT_AIPass_ClearApplied", nil];
-private _leader=leader _group;
+private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 {
     if (local _x && {!isPlayer _x}) then {
         if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
