@@ -26,18 +26,27 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('if (_mayCommand) then {{_x doFollow _leader}', end)
         self.assertIn('private _hold = _mayCommand', end)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_child_switches_are_configured_validated_and_replayed(self):
+    def test_child_switches_are_registered_by_cba_and_react_on_current_owners(self):
         config = (ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         spec = src('cortexTuningSpec')
+        register = src('aiTweaksRegisterSettings')
+        changed = src('aiTweaksSettingChanged')
         names = ['VehicleDismount','VehicleRemount','VehicleWithdraw','CoverValidation','Hearing']
-        names = ['WAIT_AIPass_'+n+'_Enable' for n in names] + ['WAIT_Convoy_'+n+'_Enable' for n in ['MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']]
+        names = ['WAIT_AIPass_'+name+'_Enable' for name in names] + [
+            'WAIT_Convoy_'+name+'_Enable' for name in ['MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']
+        ]
         for name in names:
             self.assertIn('"'+name+'"',config)
             self.assertEqual(spec.count('"'+name+'"'),1)
-        self.assertIn('WAIT_fnc_CortexTuningSpec',src('aiTweaksRegisterSettings'))
-        for path in ['featureRuntimeRequestState']:
-            self.assertIn('WAIT_fnc_CortexTuningSpec',(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{path}.sqf').read_text(encoding='utf-8'))
+        # CBA is the sole settings authority. WAIT registers every declared row and defers
+        # runtime work until postInit, where callbacks change only the current owner's work.
+        for contract in ['WAIT_fnc_CortexTuningSpec', 'CBA_fnc_addSetting',
+                         'WAIT_fnc_AITweaksSettingChanged', 'WAIT_AITweaks_CBASettingsRegistered']:
+            self.assertIn(contract,register)
+        self.assertIn('missionNamespace setVariable [_name, _value]',changed)
+        self.assertIn('WAIT_AITweaks_PostInitComplete',changed)
+        self.assertIn('WAIT_AIPass_Danger_Enable',changed)
+        self.assertIn('if (local _x) then {[_x] call WAIT_fnc_DangerSetup}',changed)
         self.assertIn('"CHECKBOX"',src('cortexTuning'))
     def test_group_opt_out_cannot_enable_a_global_switch(self):
         gate = src('cortexFeatureEnabled')

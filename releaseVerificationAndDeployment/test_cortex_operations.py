@@ -1397,13 +1397,16 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,guide)
         self.assertNotIn('if (count _track > 90) then {_track deleteAt 0}',guide)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_pr_audit_requests_the_declared_window_resolution(self):
-        launcher=(ROOT/'releaseVerificationAndDeployment/launch_pr_review_audit.ps1').read_text(encoding='utf-8')
-        for marker in ['[int]$ResolutionWidth = 3840','[int]$ResolutionHeight = 2160',
+    def test_packaged_audit_requests_the_declared_window_resolution_and_observer_zeus(self):
+        launcher=(ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
+        for marker in ['[int]$ResolutionWidth=3840','[int]$ResolutionHeight=2160',
+                       'winW=$ResolutionWidth;','winH=$ResolutionHeight;',
+                       'resolutionW=$ResolutionWidth;','resolutionH=$ResolutionHeight;',
                        '"-x=$ResolutionWidth"','"-y=$ResolutionHeight"',
-                       '"-windowWidth=$ResolutionWidth"','"-windowHeight=$ResolutionHeight"']:
+                       "'-noBattlEye'", "'-showScriptErrors'", 'sole observer Zeus slot automatically']:
             self.assertIn(marker,launcher)
+        self.assertIn("$auditWindowStyle = if ($Interactive) {'Normal'} else {'Hidden'}",launcher)
+        self.assertIn("Start-AuditProcess 'arma3_x64.exe'",launcher)
 
     def test_coordinated_handoffs_do_not_stack_fixed_tactical_pauses(self):
         text = source('cortexFlankStep')
