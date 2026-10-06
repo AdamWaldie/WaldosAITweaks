@@ -21,7 +21,7 @@ Each changed feature needs a guide containing:
 - Performance cost, scan limits, cache lifetime and scheduling budget.
 - Audit cases, measured results, known limitations and outstanding live retests.
 
-Keep the README as the installation and first-use entry point. Link new guides from it or the inventory. Regenerate [the settings reference](docs/SETTINGS-REFERENCE.md) when the shared tuning specification changes. Retained WAIT guides describe the extracted script design; they are historical context, not proof of addon acceptance.
+Keep the README as the installation and first-use entry point. Link new guides from it or the inventory. Regenerate [the settings reference](docs/SETTINGS-REFERENCE.md) when the shared tuning specification changes. The GitHub wiki is generated from `docs/` and the README, with a custom home page in `docs/wiki/Home.md`. Edit the docs here, never the wiki. Retained WAIT guides describe the extracted script design; they are historical context, not proof of addon acceptance.
 
 Keep PR descriptions current with the final scope. List changed behaviour, controls/defaults, dependencies, ownership and validation. Clearly separate static/package checks from live game evidence. Record breaking changes and migration instructions before a release.
 
