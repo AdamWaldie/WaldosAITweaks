@@ -2079,6 +2079,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_footFit findIf {"AT" in',apply)
         self.assertIn(dismount_guard,assault)
 
+    def test_flank_support_lane_selection_is_spatially_bounded(self):
+        flank=source('cortexFlankStart')
+        self.assertIn('_enemyPos nearEntities ["Man",500]',flank)
+        self.assertIn('} forEach _supportGroups;',flank)
+        self.assertNotIn('} forEach allGroups;',flank)
+
     def test_server_opportunity_discovery_uses_spatial_candidate_sets(self):
         support=source('cortexSupportServer')
         reports=source('cortexReportServer')

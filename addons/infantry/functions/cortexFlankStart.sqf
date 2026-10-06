@@ -104,6 +104,15 @@ if (_base isNotEqualTo []) then {
     {_origin = _origin vectorAdd getPosATL _x} forEach _base;
     _supportOrigins pushBack (_origin vectorMultiply (1/count _base));
 };
+// Supporting fire lanes can only originate from groups near the observed enemy. Build the
+// distinct candidate set from that envelope, rather than scanning every group on the machine.
+private _supportGroups=[];
+{
+    private _supportGroup=group _x;
+    if (!isNull _supportGroup && {!(_supportGroup in _supportGroups)}) then {
+        _supportGroups pushBack _supportGroup;
+    };
+} forEach (_enemyPos nearEntities ["Man",500]);
 {
     private _friendlyGroup = _x;
     private _friendlyLeader = leader _friendlyGroup;
@@ -130,7 +139,7 @@ if (_base isNotEqualTo []) then {
             ];
         };
     };
-} forEach allGroups;
+} forEach _supportGroups;
 _supportCandidates sort true;
 {
     _supportOrigins pushBack (_x select 2);
