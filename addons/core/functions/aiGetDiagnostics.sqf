@@ -106,6 +106,19 @@ private _decelerationLandingConflict = _decelerationActive select {
 private _passEnabled = missionNamespace getVariable ["WAIT_AIPass_Enable", true];
 private _passActive = missionNamespace getVariable ["WAIT_AIPass_Active", false];
 private _passJobs = count (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + count (missionNamespace getVariable ["WAIT_AIPass_PendingJobs", []]);
+// The scheduler keeps these values on each queued operation already. Sample only twenty jobs here,
+// on demand, so diagnostics expose backlog and stale progress without becoming a background scan.
+private _schedulerQueue=(missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) select [0,20];
+private _schedulerCallbackMs=0;
+private _schedulerLatency=0;
+private _schedulerStaleProgress=0;
+{
+    _x params ["_dueAt","","_state"];
+    _schedulerCallbackMs=_schedulerCallbackMs+(_state getOrDefault ["lastCallbackMs",0]);
+    _schedulerLatency=_schedulerLatency max (_state getOrDefault ["queueLatency",0]);
+    private _progressAt=_state getOrDefault ["lastProgressAt",_dueAt];
+    if (time-_progressAt > 20) then {_schedulerStaleProgress=_schedulerStaleProgress+1};
+} forEach _schedulerQueue;
 private _externalActors=(allUnits select {alive _x}) apply {[_x,[_x] call WAIT_fnc_CortexExternalOwner]};
 _externalActors=_externalActors select {(_x select 1) != ""};
 private _alternativeBackendMovementLeases={_x getVariable ["WAIT_Cortex_AlternativeLease",[]] isNotEqualTo []} count _groups;
@@ -205,6 +218,7 @@ private _navalBackend=(["navalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _navalGroups=_groups select {(_x getVariable ["WAIT_Cortex_NavalStatus",[]]) isNotEqualTo []};
 private _checks = [
     ["ai", "cortex", _passState, format ["enabled=%1 serverActive=%2 serverJobs=%3 paused=%4 includedSides=%5. %6", _passEnabled, _passActive, _passJobs, [] call WAIT_fnc_CortexIsPaused, missionNamespace getVariable ["WAIT_AIPass_IncludedSides", []], _passHint]],
+    ["ai", "cortex-scheduler", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["sampledJobs=%1 callbackMs=%2 maxQueueLatency=%3 staleProgress=%4",count _schedulerQueue,_schedulerCallbackMs toFixed 3,_schedulerLatency toFixed 2,_schedulerStaleProgress]],
     ["ai", "cortex-regroup", if (_passEnabled && {_regroupEnabled}) then {"LOADED"} else {"DISABLED"}, format ["enabled=%1 serverRegroupsCompleted=%2 serverUnitsJoined=%3", _regroupEnabled, missionNamespace getVariable ["WAIT_AIPass_RegroupsCompleted", 0], missionNamespace getVariable ["WAIT_AIPass_RegroupJoined", 0]]],
     ["ai", "cortex-medical", if (!_passEnabled || {!_medicalEnabled}) then {"DISABLED"} else {if (_medicalBackend) then {"EXTERNAL"} else {if (_medicalAidGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}}, format ["enabled=%1 externalMedicalOwner=%2 activeAidGroups=%3 completed=%4. WAIT only issues one bounded native treatment command during CALM or SECURITY; combat, Zeus, a direct order or an external owner cancels it without changing health.",_medicalEnabled,_medicalBackend,count _medicalAidGroups,missionNamespace getVariable ["WAIT_AIPass_MedicalAssists",0]]],
     ["ai", "cortex-groups", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["serverManaged=%1 inContact=%2 retreating=%3 garrisons=%4 flanksCompleted=%5 retreats=%6 surrenders=%7 reinforcementsSent=%8 grenadeReactions=%9",

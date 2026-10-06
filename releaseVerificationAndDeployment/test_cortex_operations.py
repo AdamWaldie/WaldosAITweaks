@@ -53,6 +53,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_tacticalTier)',source('cortexGroupTick'))
         self.assertIn('_contactDelay=_contactDelay min 0.5',source('cortexGroupTick'))
         diagnostics=source('aiGetDiagnostics')
+        self.assertIn('private _schedulerQueue=(missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) select [0,20];',diagnostics)
+        self.assertIn('"cortex-scheduler"',diagnostics)
         self.assertIn('WAIT_Danger_ObservedContacts',diagnostics)
         self.assertIn('private _dangerObservedGroups=',diagnostics)
         self.assertIn('local observed contacts=',diagnostics)
