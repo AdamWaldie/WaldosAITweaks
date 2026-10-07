@@ -116,3 +116,9 @@ combat response while waiting for another engine event.
 Completion or cancellation now performs the inverse handoff: after removing the old movement owner, it
 reclassifies an unexpired danger context and restores only the bounded posture. Zeus, player and specialist
 takeover still rejects that reaction, so a new external order cannot be overwritten.
+
+A validated live danger response now moves a CALM squad into CONTACT during that same awakened group tick,
+even when the engine has not supplied a visible or known enemy. The transition does not carry shooter identity,
+reveal a target or manufacture an enemy position; it enables the finite combat lifecycle, interruption and
+post-contact cleanup that previously remained dormant until a separate visual sighting occurred. Physical event
+delivery, no-knowledge contact behaviour and expiry back through the post-contact chain remain pending acceptance.

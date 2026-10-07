@@ -52,6 +52,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _tacticalTier=_nearTier || _dangerActive',source('cortexGroupTick'))
         self.assertIn('if (_tacticalTier)',source('cortexGroupTick'))
         self.assertIn('_contactDelay=_contactDelay min 0.5',source('cortexGroupTick'))
+        self.assertIn('if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};',source('cortexGroupTick'))
+        calm=source('cortexGroupTick').split('case "CALM": {',1)[1].split('case "INVESTIGATE": {',1)[0]
+        self.assertLess(calm.index('_dangerActive || {_visible isNotEqualTo []}'),calm.index('WAIT_AIPass_AreaReport'))
+        begin_contact=source('cortexGroupTick').split('private _beginContact = {',1)[1].split('};\n\nswitch',1)[0]
+        self.assertGreaterEqual(begin_contact.count('_visible isNotEqualTo []'),3)
+        for dispatch in ['WAIT_fnc_CortexContactReport','WAIT_fnc_CortexCombinedArmsRequest','WAIT_fnc_CortexReinforce']:
+            self.assertIn('_visible isNotEqualTo []',begin_contact[max(0,begin_contact.index(dispatch)-500):begin_contact.index(dispatch)])
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('private _schedulerQueue=(missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) select [0,20];',diagnostics)
         self.assertIn('"cortex-scheduler"',diagnostics)

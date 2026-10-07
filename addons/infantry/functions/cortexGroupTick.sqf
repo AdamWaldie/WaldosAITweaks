@@ -417,19 +417,21 @@ private _beginContact = {
         _group setBehaviour "COMBAT";
         _state set ["behaviourChanged", true];
     };
-    if (_tacticalTier && {!_dangerCombat} && {["WAIT_AIPass_ContactReports_Enable", true] call _get}) then {
+    if (_visible isNotEqualTo [] && {_tacticalTier} && {!_dangerCombat}
+        && {["WAIT_AIPass_ContactReports_Enable", true] call _get}) then {
         [_group, _state, _visible] call WAIT_fnc_CortexContactReport;
     };
     // The first fresh contact may occur outside the player-proximity cadence. Publish one bounded
     // combined-arms opportunity here so distant AI can cooperate naturally; ongoing refreshes remain
     // in the near CONTACT tier below and the request cooldown rejects a duplicate in this tick.
-    if (!_dangerCombat && {["WAIT_AIPass_ContactReports_Enable",true] call _get}) then {
+    if (_visible isNotEqualTo [] && {!_dangerCombat}
+        && {["WAIT_AIPass_ContactReports_Enable",true] call _get}) then {
         [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
     };
     // Shared support discovery is needed by either ordinary reinforcement or coordinated assault.
     // It is a bounded once-per-engagement request, so first contact may publish it outside the
     // player-detail tier without enabling the expensive near-tier combat loop.
-    if (!_ordered && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
+    if (_visible isNotEqualTo [] && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
         || {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}}) then {
         [_group, _state] call WAIT_fnc_CortexReinforce;
     };
@@ -471,7 +473,12 @@ switch (_state get "phase") do {
                 // Arrival is measured by SupportMaintain in every contact phase.
             };
         };
-        if (_visible isNotEqualTo []) exitWith {call _beginContact};
+        // A validated native danger event is itself a combat-state trigger. It carries no shooter
+        // identity or target knowledge, but leaving the public phase at CALM after a hit, explosion,
+        // suppression or hostile near-fire response delayed withdrawal, support and cleanup until a
+        // separate visual contact arrived. Enter the same finite CONTACT state now; native knowledge
+        // remains the only source of enemies and target positions.
+        if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};
         private _area = _group getVariable ["WAIT_AIPass_AreaReport",[]];
         if (_area isNotEqualTo [] && {serverTime >= (_area select 2)}) then {_group setVariable ["WAIT_AIPass_AreaReport",nil,true]; _area = []};
         if (!_ordered && {!_groupMovementOwned} && {!_dangerCombat} && {!(_state getOrDefault ["responding",false])} && {_enemies isEqualTo []} && {_area isNotEqualTo []}
