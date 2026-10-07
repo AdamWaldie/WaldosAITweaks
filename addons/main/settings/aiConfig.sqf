@@ -105,7 +105,7 @@
  * - WAIT_AIPass_VehicleRemount_Enable (MISSION MAKER): Reboard recorded passengers on a normal return to CALM. Default true.
  * - WAIT_AIPass_VehicleWithdraw_Enable (MISSION MAKER): Damaged vehicle smoke and withdrawal. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
- * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Bounded member danger events wake the existing squad decision job; native danger remains. Default true.
+ * - WAIT_AIPass_Danger_Enable (MISSION MAKER): WAIT's bounded engine danger FSM wakes the existing squad decision job. Default true.
  * - WAIT_AIPass_Hearing_Enable (MISSION MAKER): Coarse nearby-gunfire reports for eligible squad leaders; requires investigation. Default true.
  * - WAIT_Convoy_MountedFire_Enable (MISSION MAKER): Mounted crew targeting under existing ROE. Default true.
  * - WAIT_Convoy_Cover_Enable (MISSION MAKER): Short passenger movement clear of vehicles after a halt, using cover during contact. Default true.

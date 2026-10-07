@@ -17,7 +17,9 @@ private _group=group _actor;
 if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
 private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIATE",1],["HIDE",1.25],["ENGAGE",1],["ASSESS",0.75]];
-private _delay=_delays getOrDefault [_mode,0.75];
+// A small local offset prevents an entire squad from changing weak stance on the same frame while
+// retaining a strict upper bound and no recurring work.
+private _delay=(_delays getOrDefault [_mode,0.75]) + random 0.25;
 private _cause=_record param [0,-1,[0]];
 
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
@@ -30,6 +32,9 @@ if (_mode == "IMMEDIATE") then {
 };
 if (_mode == "HIDE") then {
     _actor setUnitPosWeak (["MIDDLE","DOWN"] select (getSuppression _actor > 0.25 || {_cause in [5,6]}));
+};
+if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
+    _actor setUnitPosWeak "MIDDLE";
 };
 
 private _stats=_group getVariable ["WAIT_Danger_EngineStats",createHashMap];

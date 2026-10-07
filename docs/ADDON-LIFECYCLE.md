@@ -118,7 +118,7 @@ Tactical drills use a separate fifteen-second same-key recovery before the exist
 movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
 persistent callback failure still releases owned PATH, behaviour and ROE state through common cleanup.
 
-The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
+The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a weak stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 ## Danger assessment
 
