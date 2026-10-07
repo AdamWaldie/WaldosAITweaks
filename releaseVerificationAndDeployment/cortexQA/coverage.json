@@ -390,7 +390,6 @@
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",
         "addons/infantry/functions/dangerReact.sqf",
-        "addons/infantry/functions/dangerActionSelect.sqf",
         "addons/infantry/functions/cortexGroupAnchor.sqf"
       ]
     },
