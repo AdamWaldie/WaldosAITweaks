@@ -42,11 +42,12 @@
  * finish the bound. This short, progress-driven grace avoids turning an active mover into a recovery
  * chase while never holding the element for an actor who has actually stopped.
  * Remaining actors become bounded recovery stragglers and keep moving toward their element; they are
- * never counted as arrived or teleported. Each arrival holds PATH until the next bound, preventing formation return. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Halts last
- * WAIT_AIPass_Flank_BoundPause seconds (also after clearing and consolidation),
- * 3 s at a street edge, and twice the configured pause at a standalone flank final position.
- * Coordinated bounds already have a covering squad: fire-team and final handoffs add no
- * fixed pause. Arrival, normal scheduler cadence and the server role handoff still apply.
+ * never counted as arrived or teleported. Each arrival holds PATH until the next bound, preventing formation return. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Handoffs occur as soon as physical arrival is established. WAIT_AIPass_Flank_BoundPause is an
+ * optional deliberate overwatch interval (default zero), never an internal scheduling requirement.
+ * Road smoke is dispatched opportunistically without holding the crossing for an animation or bloom.
+ * Final, clearing and consolidation transitions use the same optional interval; coordinated bounds
+ * already have a covering squad and therefore never add it. A zero-duration handoff is requeued at the
+ * next shared-scheduler opportunity instead of inheriting the ordinary 1.5 second observation cadence.
  * Final assault (WAIT_AIPass_Assault_Enable): after a flank or advance hold,
  * if the enemy is believed within WAIT_AIPass_Assault_Range of the element and morale is STEADY,
  * the whole viable element reaches its assault position and clears through. The behaviour profile's
@@ -640,13 +641,14 @@ switch (_drill get "stage") do {
                 [_group,_drill,"PAUSE","FIRE_TEAM_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
                 // A separate squad already covers a coordinated bound. Avoid stacking
                 // a fixed team pause on top of the inter-squad handoff.
-                private _teamPause=if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2]};
+                private _teamPause=if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0]};
                 _drill set ["pauseUntil",_now + _teamPause];
             } else {
             switch ((_points select (_drill get "index")) select 1) do {
                 case "CROSS_NEAR": {
                     [_group,_drill,"PAUSE","ROAD_EDGE_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil", _now + 3];
+                    _drill set ["pauseUntil", _now];
+                    // Smoke is opportunistic support, never a mandatory movement gate.
                     // One empty inventory must not suppress another member's carried smoke.
                     // Stop after the first accepted throw; the helper owns safety and cooldowns.
                     {
@@ -655,7 +657,7 @@ switch (_drill get "stage") do {
                 };
                 case "FINAL": {
                     [_group,_drill,"HOLD","FINAL_BOUND_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    private _pause = if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2]};
+                    private _pause = if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0]};
                     private _multiplier = [1,2] select (!_support && {(_drill getOrDefault ["type","FLANK"]) == "FLANK"});
                     _drill set ["pauseUntil",_now + _pause * _multiplier];
                 };
@@ -688,15 +690,15 @@ switch (_drill get "stage") do {
                 };
                 case "CONSOLIDATE": {
                     [_group,_drill,"HOLD","CONSOLIDATION_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2])];
+                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0])];
                 };
                 case "CLEAR": {
                     [_group,_drill,"HOLD","CLEAR_THROUGH_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2])];
+                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0])];
                 };
                 default {
                     [_group,_drill,"PAUSE","BOUND_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil", _now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause", 2])];
+                    _drill set ["pauseUntil", _now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause", 0])];
                 };
             };
             };
@@ -792,6 +794,14 @@ switch (_drill get "stage") do {
             };
         };
     };
+};
+// PAUSE and HOLD remain explicit observable FSM phases, but a ready zero-duration handoff must not
+// inherit the ordinary movement observation cadence. Queue it for the next bounded scheduler
+// opportunity; the scheduler still enforces its global work budget and never spins this callback.
+if (_result >= 0
+    && {(_drill getOrDefault ["stage",""]) in ["PAUSE","HOLD"]}
+    && {_now >= (_drill getOrDefault ["pauseUntil",_now])}) then {
+    _result=0;
 };
 _result
 

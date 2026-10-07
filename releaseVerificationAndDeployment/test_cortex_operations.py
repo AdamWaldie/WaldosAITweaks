@@ -1539,12 +1539,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_supportRole select 0) == _supportToken', text)
         self.assertIn('(_supportRole select 1) == (_drill get "supportSequence")', text)
 
-    def test_tactical_holds_use_configured_pause_without_grenade_state_gate(self):
+    def test_tactical_handoffs_use_optional_pause_without_grenade_state_gate(self):
         text = source('cortexFlankStep')
         for stage in ['FINAL','CONSOLIDATE','CLEAR']:
             block = text.split('case "'+stage+'": {')[1].split('case ')[0]
             self.assertIn('WAIT_AIPass_Flank_BoundPause', block)
+        road = text.split('case "CROSS_NEAR": {')[1].split('case "FINAL":')[0]
+        self.assertIn('_drill set ["pauseUntil", _now]', road)
+        self.assertNotIn('_now + 3', road)
         self.assertIn('!_support &&', text)
+        self.assertIn('(_drill getOrDefault ["stage",""]) in ["PAUSE","HOLD"]', text)
+        self.assertIn('_result=0;', text)
         self.assertIn('_drill set ["grenadeActionUntil",_now]', text)
         self.assertNotIn('case "GRENADE": {', text)
 
@@ -1554,7 +1559,7 @@ class CortexOperations(unittest.TestCase):
         advance=source('cortexAdvanceStart')
         step=source('cortexFlankStep')
         self.assertIn('["WAIT_AIPass_Flank_BoundDistance", 55]',config)
-        self.assertIn('["WAIT_AIPass_Flank_BoundPause", 2]',config)
+        self.assertIn('["WAIT_AIPass_Flank_BoundPause", 0]',config)
         self.assertIn('getVariable ["WAIT_AIPass_Flank_BoundDistance", 55]',route)
         self.assertIn('getVariable ["WAIT_AIPass_Flank_BoundDistance", 55]',advance)
         self.assertIn('private _depth = 0;',step)

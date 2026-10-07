@@ -164,7 +164,7 @@
  * - WAIT_AIPass_Flank_MinRange (ADVANCED): enemies nearer than this are fought, not flanked.
  * - WAIT_AIPass_Flank_MaxRange (ADVANCED): enemies farther than this are not flanked.
  * - WAIT_AIPass_Flank_BoundDistance (ADVANCED): length of one bound in metres.
- * - WAIT_AIPass_Flank_BoundPause (ADVANCED): seconds of overwatch between bounds.
+ * - WAIT_AIPass_Flank_BoundPause (ADVANCED): optional deliberate overwatch seconds after physical arrival; zero keeps movement continuous.
  * - WAIT_AIPass_Flank_BoundTimeout (ADVANCED): seconds without two metres of progress before a bound aborts; absolute bound limit is four times this value. Never counts as arrival.
  * - WAIT_AIPass_Flank_Cooldown (ADVANCED): seconds before the same squad may flank again.
  * - WAIT_AIPass_StreetCrossing_Enable (MISSION MAKER): flanking elements stop at roads, throw smoke and cross in one bound.
@@ -353,7 +353,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Flank_MinRange", 60], // METRES: nearer enemies are fought, not flanked.
         ["WAIT_AIPass_Flank_MaxRange", 400], // METRES: farther enemies are not flanked.
         ["WAIT_AIPass_Flank_BoundDistance", 55], // METRES: length of one bound (minimum 15).
-        ["WAIT_AIPass_Flank_BoundPause", 2], // SECONDS: overwatch halt between bounds.
+        ["WAIT_AIPass_Flank_BoundPause", 0], // SECONDS: optional deliberate overwatch after physical arrival; zero keeps movement continuous.
         ["WAIT_AIPass_Flank_BoundTimeout", 25], // SECONDS without progress before abort; absolute bound limit is 4x. Never counts as arrival.
         ["WAIT_AIPass_Flank_Cooldown", 90], // SECONDS: before the same squad flanks again.
         ["WAIT_AIPass_StreetCrossing_Enable", true], // BOOL: flanks stop at roads, smoke, and cross in one bound.

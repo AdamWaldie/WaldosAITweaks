@@ -1,6 +1,6 @@
 # Cortex and AI configuration defaults
 
-Verified against MissionConfig/aiConfig.sqf and the Cortex Control specification on 30 September 2026. These are shipped configuration defaults, before mission or Zeus overrides. Audit scenarios temporarily change values and restore them afterwards.
+Verified against addons/main/settings/aiConfig.sqf and the shared CBA control specification on 7 October 2026. These are shipped configuration defaults, before mission or Zeus overrides. Audit scenarios temporarily change values and restore them afterwards.
 
 Cortex automatic tactics are enabled by default. AI skill profiles and improved helicopter landings are independently enabled. Convoy options apply when a convoy is explicitly started. Enabled subfeatures still require their parent feature and applicable setup.
 
@@ -112,8 +112,8 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Flank_MinRange` | `60` | METRES: nearer enemies are fought, not flanked. |
 | `WAIT_AIPass_Flank_MaxRange` | `400` | METRES: farther enemies are not flanked. |
 | `WAIT_AIPass_Flank_BoundDistance` | `55` | METRES: length of one bound (minimum 15). |
-| `WAIT_AIPass_Flank_BoundPause` | `2` | SECONDS: overwatch halt between bounds. |
-| `WAIT_AIPass_Flank_BoundTimeout` | `25` | SECONDS: a bound ends after this even if not everyone arrived. |
+| `WAIT_AIPass_Flank_BoundPause` | `0` | SECONDS: optional deliberate overwatch after physical arrival; zero keeps movement continuous. |
+| `WAIT_AIPass_Flank_BoundTimeout` | `25` | SECONDS without physical progress before a bound fails; the absolute limit is four times this value. |
 | `WAIT_AIPass_Flank_Cooldown` | `90` | SECONDS: before the same squad flanks again. |
 | `WAIT_AIPass_StreetCrossing_Enable` | `true` | BOOL: flanks stop at roads, smoke, and cross in one bound. |
 | `WAIT_AIPass_FireControl_Enable` | `true` | BOOL: close threats, fire distribution, disciplined suppression. |

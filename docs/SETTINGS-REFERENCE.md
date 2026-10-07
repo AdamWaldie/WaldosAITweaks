@@ -90,7 +90,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Flank_MinGroupSize` | Minimum flanking squad size | SLIDER | 6 | [2, 16, 0] | NEXT_OPERATION | Capable soldiers on foot required to split movement and support elements. |
 | `WAIT_AIPass_Flank_MinRange` | Minimum flank range (m) | SLIDER | 60 | [20, 200, 0] | NEXT_OPERATION | Nearer contacts are engaged without opening a flank route. |
 | `WAIT_AIPass_Flank_BoundDistance` | Flank bound distance (m) | SLIDER | 55 | [15, 100, 0] | NEXT_OPERATION | Intended distance of a covered bound; actual terrain may shorten it. |
-| `WAIT_AIPass_Flank_BoundPause` | Flank overwatch interval (s) | SLIDER | 2 | [0, 10, 1] | NEXT_OPERATION | Overwatch interval between bounds; does not require grenade completion. |
+| `WAIT_AIPass_Flank_BoundPause` | Optional overwatch interval (s) | SLIDER | 0 | [0, 10, 1] | NEXT_OPERATION | Optional deliberate halt after physical arrival. Zero keeps bounds and assault handoffs continuous; smoke and grenade actions never extend it. |
 | `WAIT_AIPass_Flank_BoundTimeout` | Bound no-progress limit (s) | SLIDER | 25 | [5, 60, 0] | NEXT_OPERATION | No-progress limit for a bound; reaching the limit never counts as arrival. |
 | `WAIT_AIPass_Flank_Cooldown` | Flank retry cooldown (s) | SLIDER | 90 | [10, 300, 0] | NEXT_OPERATION | Minimum interval before the same squad starts another flank. |
 

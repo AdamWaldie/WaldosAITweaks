@@ -153,7 +153,7 @@ private _spec = [
     ["WAIT_AIPass_Flank_MinGroupSize", "Minimum flanking squad size", "Capable soldiers on foot required to split movement and support elements.", "SLIDER", [2, 16, 0], 6, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Flank_MinRange", "Minimum flank range (m)", "Nearer contacts are engaged without opening a flank route.", "SLIDER", [20, 200, 0], 60, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Flank_BoundDistance", "Flank bound distance (m)", "Intended distance of a covered bound; actual terrain may shorten it.", "SLIDER", [15, 100, 0], 55, "MOVEMENT", "NEXT_OPERATION"],
-    ["WAIT_AIPass_Flank_BoundPause", "Flank overwatch interval (s)", "Overwatch interval between bounds; does not require grenade completion.", "SLIDER", [0, 10, 1], 2, "MOVEMENT", "NEXT_OPERATION"],
+    ["WAIT_AIPass_Flank_BoundPause", "Optional overwatch interval (s)", "Optional deliberate halt after physical arrival. Zero keeps bounds and assault handoffs continuous; smoke and grenade actions never extend it.", "SLIDER", [0, 10, 1], 0, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Flank_BoundTimeout", "Bound no-progress limit (s)", "No-progress limit for a bound; reaching the limit never counts as arrival.", "SLIDER", [5, 60, 0], 25, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Flank_Cooldown", "Flank retry cooldown (s)", "Minimum interval before the same squad starts another flank.", "SLIDER", [10, 300, 0], 90, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_FireControl_MaxSuppressors", "Simultaneous suppressors", "Maximum soldiers assigned suppression simultaneously.", "SLIDER", [1, 8, 0], 2, "FIRE", "NEXT_OPERATION"],
