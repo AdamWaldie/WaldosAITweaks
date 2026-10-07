@@ -20,7 +20,7 @@
  * Repeat/JIP: unique tokens, shared deadlines and owner acknowledgements retire stale assignments.
  * Arguments: 0: request job <HASHMAP>.
  * Return Value: Next delay in seconds, or -1 on cleanup.
- * Current callers: Server scheduler.
+ * Current caller: WAIT_fnc_SupportRequestStep as one bounded action under the support request FSM.
  * Example: [_job] call WAIT_fnc_CortexSupportStep;
  */
 params ["_job"];

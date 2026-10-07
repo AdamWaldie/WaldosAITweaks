@@ -187,6 +187,9 @@ class CfgFunctions {
             class CortexSupportServer {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportServer.sqf";};
             class CortexSupportAssaultServer {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportAssaultServer.sqf";};
             class CortexSupportStep {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportStep.sqf";};
+            class SupportRequestStart {file = "\z\waldo_ai_tweaks\addons\support\functions\supportRequestStart.sqf";};
+            class SupportRequestQueue {file = "\z\waldo_ai_tweaks\addons\support\functions\supportRequestQueue.sqf";};
+            class SupportRequestStep {file = "\z\waldo_ai_tweaks\addons\support\functions\supportRequestStep.sqf";};
             class CortexSupportLocal {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportLocal.sqf";};
             class CortexSupportApply {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportApply.sqf";};
             class CortexSupportAck {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSupportAck.sqf";};

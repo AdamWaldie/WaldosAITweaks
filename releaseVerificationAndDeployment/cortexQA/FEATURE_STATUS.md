@@ -51,7 +51,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | INVESTIGATE - Known-area investigation | 3 | 0 | 2 | `runSupport.sqf` | 0 | implemented_partial |
 | ASSAULT - Final assault | 2 | 0 | 0 | `runCombat.sqf` | 3 | implemented_partial |
 | ADVANCE - Bounding advance | 3 | 0 | 2 | `runCombat.sqf` | 2 | implemented_partial |
-| COORD - Coordinated assault | 1 | 0 | 10 | `runCoordinated.sqf` | 10 | implemented_partial |
+| COORD - Coordinated assault | 1 | 0 | 13 | `runCoordinated.sqf` | 10 | implemented_partial |
 | STANCE - Cover stance | 1 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
 | AMMO - Magazine sharing | 2 | 0 | 3 | `runMechanics.sqf` | 0 | implemented_partial |
 | GUNNERY - Vehicle threat priority | 1 | 0 | 0 | `runGunnery.sqf` | 1 | implemented_partial |

@@ -50,6 +50,11 @@ if (isServer) then {
         private _job = _y;
         private _requester=_job getOrDefault ["requester",grpNull];
         if (!isNull _requester) then {
+            private _brain=_requester getVariable ["WAIT_Support_Brain",createHashMap];
+            if (count _brain > 0) then {
+                _brain set ["cancelled",true];
+                _brain set ["cancelReason","CORTEX_STOPPED"];
+            };
             _requester setVariable ["WAIT_Cortex_SupportResponders",nil,true];
             _requester setVariable ["WAIT_Cortex_SupportRequestState",nil,true];
         };

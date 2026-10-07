@@ -115,6 +115,25 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Artillery_Brain',stop)
         self.assertIn('wait-artillery-fsm-',diagnostics)
 
+    def test_support_request_fsm_owns_cross_squad_persistence(self):
+        server=source('cortexSupportServer');bounded=source('cortexSupportStep')
+        start=source('supportRequestStart');queue=source('supportRequestQueue');step=source('supportRequestStep')
+        stop=source('cortexStop');diagnostics=source('aiGetDiagnostics')
+        fsm=(ROOT/'addons/main/fsm/supportRequest.fsm').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_SupportRequestStart',server)
+        self.assertNotIn('[WAIT_fnc_CortexSupportStep,_job,1]',server)
+        self.assertIn('supportRequest.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_fnc_SupportRequestStep',queue)
+        self.assertIn('call WAIT_fnc_CortexSupportStep',step)
+        self.assertIn('WAIT_AIPass_SupportRequests',start+step)
+        self.assertIn('WAIT_Support_BrainGeneration',start+queue+step+fsm)
+        self.assertIn('current caller: wait_fnc_supportrequeststep',bounded.lower())
+        for state in ['Discover','Reserve','Coordinate']:
+            self.assertIn('class '+state,fsm)
+        self.assertIn('WAIT_Support_Brain',stop)
+        self.assertIn('wait-support-fsm-',diagnostics)
+
     def test_aircraft_controllers_share_one_generation_owned_flight_lease(self):
         acquire=source('flightLeaseAcquire');valid=source('flightLeaseValid');release=source('flightLeaseRelease')
         attack_start=source('airAttackOperationStart');attack=source('cortexAirAttack')

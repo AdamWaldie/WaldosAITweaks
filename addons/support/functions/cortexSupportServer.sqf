@@ -38,6 +38,9 @@ private _existing = _requests getOrDefault [_key,createHashMap];
 if (count _existing > 0) exitWith {
     _requester setVariable ["WAIT_Cortex_SupportRequestState",[_existing get "serial","ACTIVE",_existing get "expiry"],true];
     if (_at && {!(_existing getOrDefault ["at",false])}) then {_existing set ["at",true]; _existing set ["maximum",((_existing get "maximum")+1) min 6]};
+    // A locality restart or interrupted scheduler callback can leave the bounded request registered
+    // after its finite brain has gone away. Re-adopt the same serial rather than duplicating leases.
+    [_existing,0] call WAIT_fnc_SupportRequestStart;
 };
 if (count _requests >= 32) exitWith {};
 private _configuredMaximum = missionNamespace getVariable ["WAIT_AIPass_Reinforce_MaxResponders",2];
@@ -88,4 +91,4 @@ _requester setVariable ["WAIT_Cortex_SupportResponders",[],true];
 _requester setVariable ["WAIT_Cortex_SupportRequestState",[_serial,"ACTIVE",_job get "expiry"],true];
 _requests set [_key,_job];
 missionNamespace setVariable ["WAIT_AIPass_SupportRequests",_requests];
-[WAIT_fnc_CortexSupportStep,_job,1] call WAIT_fnc_CortexQueueJob;
+[_job,1] call WAIT_fnc_SupportRequestStart;

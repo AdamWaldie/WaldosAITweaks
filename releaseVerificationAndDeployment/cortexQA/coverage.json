@@ -1146,7 +1146,10 @@
         "addons/support/functions/cortexSupportLocal.sqf",
         "addons/support/functions/cortexSupportMaintain.sqf",
         "addons/support/functions/cortexSupportServer.sqf",
-        "addons/support/functions/cortexSupportStep.sqf"
+        "addons/support/functions/cortexSupportStep.sqf",
+        "addons/support/functions/supportRequestStart.sqf",
+        "addons/support/functions/supportRequestQueue.sqf",
+        "addons/support/functions/supportRequestStep.sqf"
       ]
     },
     {
