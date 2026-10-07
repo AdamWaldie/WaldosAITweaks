@@ -381,10 +381,18 @@ private _enterContact = {
     // leaves a migration race where a new owner could rebuild an obsolete search over live contact.
     _group setVariable ["WAIT_Cortex_TransitionIntent",nil,true];
     _state deleteAt "areaInvestigation";
-    [_group,_state,"CONTACT","VISIBLE_CONTACT",_now] call WAIT_fnc_CortexSetPhase;
+    private _contactPosition=if (_visible isNotEqualTo []) then {(_visible select 0) select 1} else {
+        // A hit, explosion or suppression may legitimately wake CONTACT before native target
+        // knowledge contains a visible actor. Preserve the bounded engine danger position until
+        // CortexKnowledge supplies a believed enemy position; selecting an empty visible array
+        // previously aborted the group step and left the brain apparently idle.
+        _dangerResponse param [1,getPosATL _leader]
+    };
+    private _contactReason=["DANGER_CONTACT","VISIBLE_CONTACT"] select (_visible isNotEqualTo []);
+    [_group,_state,"CONTACT",_contactReason,_now] call WAIT_fnc_CortexSetPhase;
     _state set ["lastSeen", _now];
     _state set ["hadContact", true];
-    _state set ["enemyPos", (_visible select 0) select 1];
+    _state set ["enemyPos", _contactPosition];
     _state set ["contactLeader", _leader];
     // Contact does not revoke a server-reserved rally. SupportMaintain owns its
     // deadline and arrival; otherwise responders abandon the rendezvous on sighting.

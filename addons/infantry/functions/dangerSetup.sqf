@@ -75,6 +75,13 @@ private _handler=_group addEventHandler ["EnemyDetected",{
     if (_contactIndex >= 0) then {_contacts set [_contactIndex,_contact]} else {_contacts pushBack _contact};
     if (count _contacts > 8) then {_contacts=_contacts select ((count _contacts)-8)};
     _observingGroup setVariable ["WAIT_Danger_ObservedContacts",_contacts];
-    [_observer,"DETECTED",getPosATL _observer] call WAIT_fnc_DangerRequest;
+    // EnemyDetected confirms identity but does not justify exact object coordinates. Use the same
+    // native believed position consumed by CortexKnowledge. Submitting the observer position made
+    // the tactical handoff treat the threat as co-located with the squad and produced sideways,
+    // reversing or zero-length approaches even though the contact cache contained the right actor.
+    private _dangerPosition=_observer getHideFrom _target;
+    if (_dangerPosition isNotEqualTo [0,0,0]) then {
+        [_observer,"DETECTED",_dangerPosition] call WAIT_fnc_DangerRequest;
+    };
 }];
 _group setVariable ["WAIT_Danger_GroupHandlers",[["EnemyDetected",_handler]]];

@@ -239,6 +239,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};',source('cortexGroupTick'))
         calm=source('cortexGroupTick').split('case "CALM": {',1)[1].split('case "INVESTIGATE": {',1)[0]
         self.assertLess(calm.index('_dangerActive || {_visible isNotEqualTo []}'),calm.index('WAIT_AIPass_AreaReport'))
+        self.assertIn('private _contactPosition=if (_visible isNotEqualTo [])',source('cortexGroupTick'))
+        self.assertIn('_dangerResponse param [1,getPosATL _leader]',source('cortexGroupTick'))
+        self.assertIn('["DANGER_CONTACT","VISIBLE_CONTACT"] select (_visible isNotEqualTo [])',source('cortexGroupTick'))
         begin_contact=source('cortexGroupTick').split('private _beginContact = {',1)[1].split('};\n\nswitch',1)[0]
         self.assertGreaterEqual(begin_contact.count('_visible isNotEqualTo []'),3)
         for dispatch in ['WAIT_fnc_CortexContactReport','WAIT_fnc_CortexCombinedArmsRequest','WAIT_fnc_CortexReinforce']:
@@ -269,6 +272,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_spotters param [0,objNull]',setup)
         self.assertNotIn('if (isNull _observer || {!local _observer} || {!alive _observer}',setup)
         self.assertIn('WAIT_Danger_ObservedContacts',setup)
+        self.assertIn('_observer getHideFrom _target',setup)
+        self.assertNotIn('["DETECTED",getPosATL _observer]',setup)
         self.assertIn('time+10',setup)
         self.assertIn('count _contacts > 8',setup)
         self.assertIn('"DETECTED"',request)
@@ -290,7 +295,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStats',engine)
         self.assertIn("['bootstraps'",engine)
         self.assertIn("['reflexOnlyRecords'",engine)
-        self.assertIn('private _groupRelevant=if (_cause in [0,3,8]) then {_hostileEngage}',engine)
+        self.assertIn("'ASSESS'",engine)
+        self.assertIn('private _groupRelevant=if (_cause == 10) then {false}',engine)
+        self.assertIn('if (_cause in [0,3,8]) then {_hostileEngage}',engine)
         self.assertLess(engine.index('private _causeNames='),engine.index('call WAIT_fnc_GroupBrainStart'))
         self.assertIn('WAIT_Danger_EngineStats',engine_act)
         self.assertIn('WAIT_Danger_EngineResponse',engine_act)

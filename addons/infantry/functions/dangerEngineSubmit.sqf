@@ -24,7 +24,7 @@ if (isNull _group || {!local _group}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
-private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED'];
+private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
 private _processed=false;
 private _reflexOnly=0;
@@ -43,7 +43,9 @@ private _reflexOnly=0;
                 && {(side _group) getFriend (side group _source) < 0.6};
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
-            private _groupRelevant=if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}};
+            private _groupRelevant=if (_cause == 10) then {false} else {
+                if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
+            };
             if (count _position == 3 && {_groupRelevant}) then {
                 _latest set [_causeNames select _cause,+_position];
             } else {
