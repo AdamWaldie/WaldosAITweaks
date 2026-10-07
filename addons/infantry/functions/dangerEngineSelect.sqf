@@ -1,6 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Select one live engine danger record with a bounded priority pass.
+ * Purpose: Select one live engine danger record with a bounded priority pass. Direct hits remain
+ * highest, but an actor that can fire retains higher priority than casualty observation, shouting
+ * or ambient fire so actionable combat is not displaced by weaker events from the same queue.
  * Locality / Authority: Pure owner-local selection. It performs no commands or state mutation.
  * Repeat/JIP: Stateless and repeat-safe; the engine supplies a fresh queue after locality changes.
  * Arguments: 0: engine danger records <ARRAY>, [].
@@ -10,7 +12,9 @@
  */
 
 params [["_records",[],[[]]]];
-private _priorities=[5,4,8,5,7,3,2,3,4,8,1];
+// Engine causes: enemy detected, fire, hit, enemy near, explosion, own-group casualty,
+// other casualty, scream, can fire, bullet close, synthetic assessment.
+private _priorities=[2,1,9,4,3,6,3,5,8,7,0];
 private _selected=[];
 private _best=-1;
 private _latest=-1;

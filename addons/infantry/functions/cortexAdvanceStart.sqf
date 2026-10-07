@@ -4,7 +4,8 @@
  * forward in covered bounds instead of stalling.
  *
  * Uses bounded fire-team movement so that it cannot freeze or
- * undo itself. The squad must have been in CONTACT for WAIT_AIPass_Advance_MinContactSeconds, its
+ * undo itself. An optional WAIT_AIPass_Advance_MinContactSeconds delay may be configured, but the
+ * default starts as soon as confirmed knowledge and every physical/safety gate permit it. Its
  * current waypoint (MOVE, SAD or DESTROY, not a pass waypoint) must be more than 80 m away, or a squad
  * with no active waypoint must have fresh enemy knowledge that provides a finite contact objective.
  * Active HOLD, GUARD, SENTRY and other authored waypoint types are never replaced. The nearest known
@@ -63,7 +64,7 @@ if (count (_state getOrDefault ["drill", createHashMap]) > 0) exitWith {["DRILL_
 if ([_state, "advance"] call WAIT_fnc_CortexCooldown) exitWith {["COOLDOWN"] call _refuse};
 if ((_state getOrDefault ["moraleState", "STEADY"]) != "STEADY") exitWith {["MORALE",[_state getOrDefault ["moraleState","UNKNOWN"]]] call _refuse};
 private _contactAge=time-(_state getOrDefault ["phaseStart",time]);
-private _minimumContact=missionNamespace getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 5];
+private _minimumContact=missionNamespace getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 0];
 if (_contactAge < _minimumContact) exitWith {["CONTACT_DELAY",[_contactAge,_minimumContact]] call _refuse};
 // Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
 private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;

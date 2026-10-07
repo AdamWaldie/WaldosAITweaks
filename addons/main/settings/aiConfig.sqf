@@ -440,7 +440,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Assault_Enable", true], // BOOL: a flank can finish with a grenade and a rush on the enemy position.
         ["WAIT_AIPass_Assault_Range", 80], // METRES: the enemy must be this close to the flanking element to assault.
         ["WAIT_AIPass_Advance_Enable", true], // BOOL: pinned squads with somewhere to go push a team forward in bounds.
-        ["WAIT_AIPass_Advance_MinContactSeconds", 5], // SECONDS: confirmed contact before an advance is considered.
+        ["WAIT_AIPass_Advance_MinContactSeconds", 0], // SECONDS: optional confirmed-contact delay before an advance is considered.
         ["WAIT_AIPass_Advance_Cooldown", 20], // SECONDS: after an advance ends before the squad may start another.
         ["WAIT_AIPass_CoordinatedAssault_Enable", true], // BOOL: reinforcing squads assault together while the first squad fires.
         ["WAIT_AIPass_Stance_Enable", true], // BOOL: stance chosen from the height of the cover in front.

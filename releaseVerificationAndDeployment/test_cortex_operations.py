@@ -347,6 +347,8 @@ class CortexOperations(unittest.TestCase):
         forced_block=engine_act.split('// Forced orders and vehicle crews',1)[1].split('if (_mode == "IMMEDIATE")',1)[0]
         self.assertNotIn('setUnitPos ',forced_block)
         self.assertIn('_records select [0,12]',engine_select)
+        self.assertIn('private _priorities=[2,1,9,4,3,6,3,5,8,7,0]',engine_select)
+        self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
         self.assertIn('currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         self.assertIn('(side _group) getFriend (side group _source) < 0.6',engine_mode)
         self.assertIn('else {"ASSESS"}',engine_mode)
@@ -2044,17 +2046,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_wall setDir _terrainHeading',qa)
         self.assertNotIn('vectorAdd [0,100,0]',qa)
 
-    def test_bounding_advance_default_reacts_before_native_waypoint_is_consumed(self):
+    def test_bounding_advance_default_has_no_artificial_contact_wait(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text()
         spec=source('cortexTuningSpec')
         advance=source('cortexAdvanceStart')
-        self.assertIn('["WAIT_AIPass_Advance_MinContactSeconds", 5]',config)
+        self.assertIn('["WAIT_AIPass_Advance_MinContactSeconds", 0]',config)
         self.assertIn('["WAIT_AIPass_Advance_Cooldown", 20]',config)
         self.assertIn('"WAIT_AIPass_Advance_MinContactSeconds", "Advance contact delay"',spec)
-        self.assertIn('"SLIDER", [0,300,0], 5, "MOVEMENT", "NEXT_OPERATION"]',spec)
+        self.assertIn('"SLIDER", [0,300,0], 0, "MOVEMENT", "NEXT_OPERATION"]',spec)
         self.assertIn('"WAIT_AIPass_Advance_Cooldown", "Advance repeat delay"',spec)
         self.assertIn('"SLIDER", [0,180,0], 20, "MOVEMENT", "NEXT_OPERATION"]',spec)
-        self.assertIn('getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 5]',advance)
+        self.assertIn('getVariable ["WAIT_AIPass_Advance_MinContactSeconds", 0]',advance)
 
     def test_bounding_advance_uses_fresh_contact_when_no_waypoint_remains(self):
         advance=source('cortexAdvanceStart')
