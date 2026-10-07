@@ -11,7 +11,9 @@
 private _tactics = missionNamespace getVariable ["WAIT_AIPass_Active", false];
 private _skills = missionNamespace getVariable ["WAIT_AI_RebalanceActive", false];
 private _convoy = missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false];
-private _aircraft = missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive", false];
+private _aircraft = (missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false])
+    || {missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive", false]};
+missionNamespace setVariable ["WAIT_Aircraft_SchedulerActive", _aircraft];
 private _generation = missionNamespace getVariable ["WAIT_AI_LightingGeneration", 0];
 private _earliest = -1;
 {

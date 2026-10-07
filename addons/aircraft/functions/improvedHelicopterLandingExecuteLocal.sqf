@@ -24,7 +24,7 @@
  * Example: [_helicopter, _position, "TR UNLOAD", _index, ""] call WAIT_fnc_ImprovedHelicopterLandingExecuteLocal;
  * Result: Returns true after validated touchdown, or false after an ineligible or aborted
  * approach, and updates the aircraft's published LastResult for diagnostics.
- * Current caller: ImprovedHelicopterLandingTrackLocal when a supported landing waypoint enters range.
+ * Current caller: ImprovedHelicopterLandingStep when a supported landing waypoint enters range.
  */
 
 params [

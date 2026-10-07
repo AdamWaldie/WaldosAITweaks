@@ -274,7 +274,7 @@
         "addons/aircraft/functions/improvedHelicopterLandingInit.sqf",
         "addons/aircraft/functions/improvedHelicopterLandingRestoreLocal.sqf",
         "addons/aircraft/functions/improvedHelicopterLandingSetting.sqf",
-        "addons/aircraft/functions/improvedHelicopterLandingTrackLocal.sqf"
+        "addons/aircraft/functions/improvedHelicopterLandingStep.sqf"
       ]
     },
     {

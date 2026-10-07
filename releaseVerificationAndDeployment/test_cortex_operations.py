@@ -3603,7 +3603,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('GenerationLocal",0])+1',init)
         self.assertIn('WAIT_fnc_HelicopterDecelerationStep',init)
         self.assertIn('["subsystem", "AIRCRAFT"]',init)
-        self.assertIn('WAIT_Aircraft_SchedulerActive',init)
+        self.assertIn('WAIT_Aircraft_DecelerationSchedulerActive',init)
         step=(base/'helicopterDecelerationStep.sqf').read_text(encoding='utf-8')
         self.assertIn("getOrDefault ['generation',-1]",step)
         self.assertIn('WAIT_Cortex_AirAttackJob',step)
@@ -3626,23 +3626,27 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('case "AIRCRAFT": {"WAIT_Aircraft_SchedulerActive"}',scheduler)
         self.assertIn('case "AIRCRAFT": {_aircraft};',reconcile)
         self.assertIn('if (_subsystem in ["CONVOY", "AIRCRAFT"]) then {_jobPaused=false};',scheduler)
+        self.assertIn('!(_subsystem in ["CONVOY", "AIRCRAFT"])',scheduler)
+        self.assertIn('find "WAIT_DECEL_" == 0',scheduler)
+        self.assertIn('find "WAIT_LANDING_" == 0',scheduler)
         self.assertIn('WAIT_HelicopterDeceleration_GenerationLocal", (_x getVariable',callback)
-        self.assertIn('WAIT_Aircraft_SchedulerActive", false',callback)
+        self.assertIn('WAIT_Aircraft_DecelerationSchedulerActive", false',callback)
         self.assertIn('WAIT_fnc_SchedulerReconcile',callback)
 
     def test_landing_tracker_generation_prevents_stale_owner_cleanup(self):
         base=ROOT/'addons/aircraft/functions'
         init=(base/'improvedHelicopterLandingInit.sqf').read_text(encoding='utf-8')
-        tracker=(base/'improvedHelicopterLandingTrackLocal.sqf').read_text(encoding='utf-8')
+        step=(base/'improvedHelicopterLandingStep.sqf').read_text(encoding='utf-8')
         self.assertIn('TrackerGenerationLocal", 0]) + 1',init)
-        self.assertIn('[_helicopter, _trackerGeneration] spawn WAIT_fnc_ImprovedHelicopterLandingTrackLocal',init)
-        self.assertIn('["_generation", -1, [0]]',tracker)
-        self.assertIn('TrackerGenerationLocal", 0]) == _generation',tracker)
-        after_sleep=tracker.split('uiSleep 0.5;',1)[1]
-        self.assertLess(after_sleep.index('!= _generation'),after_sleep.index('};\n};'))
-        cleanup=tracker[tracker.rindex('if (!isNull _helicopter'):]
-        self.assertIn('local _helicopter',cleanup)
-        self.assertIn('== _generation',cleanup)
+        self.assertIn('WAIT_fnc_ImprovedHelicopterLandingStep',init)
+        self.assertIn('["subsystem", "AIRCRAFT"]',init)
+        self.assertIn('WAIT_Aircraft_LandingSchedulerActive',init)
+        self.assertIn('getOrDefault ["generation", -1]',step)
+        self.assertIn('TrackerGenerationLocal", 0]) != _generation',step)
+        self.assertIn('TrackerGenerationLocal", 0]) == _generation',step)
+        self.assertNotIn('while {',step)
+        self.assertNotIn('uiSleep',step)
+        self.assertFalse((base/'improvedHelicopterLandingTrackLocal.sqf').exists())
 
     def test_air_attack_reads_driver_weapons_outside_turret_inventory(self):
         text=(ROOT/'addons/aircraft/functions/cortexAirAttackPlan.sqf').read_text(encoding='utf-8')
@@ -4461,7 +4465,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_cortex_air_leases_exclude_other_flight_controllers(self):
         for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',
-                     'improvedHelicopterLandingTrackLocal']:
+                     'improvedHelicopterLandingStep']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')
             self.assertIn('WAIT_Cortex_AirAttackToken',text,name)
@@ -4469,7 +4473,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_direct_zeus_aircraft_orders_exclude_auxiliary_flight_controllers(self):
         for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',
-                     'improvedHelicopterLandingTrackLocal','improvedHelicopterLandingExecuteLocal']:
+                     'improvedHelicopterLandingStep','improvedHelicopterLandingExecuteLocal']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')
             self.assertTrue(

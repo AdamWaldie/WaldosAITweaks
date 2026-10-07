@@ -210,7 +210,7 @@ class CfgFunctions {
 
 
             class ImprovedHelicopterLandingInit {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingInit.sqf";};
-            class ImprovedHelicopterLandingTrackLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingTrackLocal.sqf";};
+            class ImprovedHelicopterLandingStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingStep.sqf";};
             class ImprovedHelicopterLandingExecuteLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingExecuteLocal.sqf";};
             class ImprovedHelicopterLandingAnchorLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingAnchorLocal.sqf";};
             class ImprovedHelicopterLandingRestoreLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingRestoreLocal.sqf";};

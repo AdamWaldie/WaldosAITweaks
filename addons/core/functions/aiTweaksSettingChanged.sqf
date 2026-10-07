@@ -41,8 +41,20 @@ if (_name find "WAIT_AIRebalance_" == 0 || {_name in ["WAIT_AI_InfantryDispersio
         [] call WAIT_fnc_AIRebalanceStop;
     };
 };
-if (_name == "WAIT_ImprovedHelicopterLanding_Enable" && {_value}) then {
-    [] call WAIT_fnc_ImprovedHelicopterLandingInit;
+if (_name == "WAIT_ImprovedHelicopterLanding_Enable") then {
+    if (_value) then {
+        [] call WAIT_fnc_ImprovedHelicopterLandingInit;
+        private _install = missionNamespace getVariable ["WAIT_ImprovedHelicopterLanding_InstallLocal", {}];
+        {if (local _x) then {[_x] call _install}} forEach vehicles;
+    } else {
+        {if (local _x && {_x isKindOf "Helicopter"}) then {
+            _x setVariable ["WAIT_ImprovedHelicopterLanding_TrackerGenerationLocal", (_x getVariable ["WAIT_ImprovedHelicopterLanding_TrackerGenerationLocal",0])+1];
+            _x setVariable ["WAIT_ImprovedHelicopterLanding_TrackedLocal", false];
+            [_x, false, "", true] call WAIT_fnc_ImprovedHelicopterLandingRestoreLocal;
+        }} forEach vehicles;
+        missionNamespace setVariable ["WAIT_Aircraft_LandingSchedulerActive", false];
+        [] call WAIT_fnc_SchedulerReconcile;
+    };
 };
 if (_name == "WAIT_HelicopterDeceleration_Enable") then {
     if (_value) then {
@@ -57,7 +69,7 @@ if (_name == "WAIT_HelicopterDeceleration_Enable") then {
             _x setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", false];
             _x setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
         }} forEach vehicles;
-        missionNamespace setVariable ["WAIT_Aircraft_SchedulerActive", false];
+        missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false];
         [] call WAIT_fnc_SchedulerReconcile;
     };
 };

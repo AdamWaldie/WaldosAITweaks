@@ -107,7 +107,7 @@ private _earliest = -1;
             // reassessment under low FPS; only optional planning keeps the normal backoff. The
             // marker lives on this existing job and expires without another scheduler/loop.
             private _responsive = _now < (_state getOrDefault ["responsiveUntil",-1]);
-            if (_slow && {!_jobPaused} && {!_skillsJob} && {_subsystem != "CONVOY"} && {!_responsive}) then {_delay = _delay * 2};
+            if (_slow && {!_jobPaused} && {!_skillsJob} && {!(_subsystem in ["CONVOY", "AIRCRAFT"])} && {!_responsive}) then {_delay = _delay * 2};
             _rescheduled pushBack [_now + _delay, _job, _state];
             private _rescheduledAt = _now + _delay;
             if (_earliest < 0 || {_rescheduledAt < _earliest}) then {_earliest = _rescheduledAt};
@@ -118,3 +118,19 @@ private _earliest = -1;
 _next append _rescheduled;
 missionNamespace setVariable ["WAIT_AIPass_Jobs", _next];
 missionNamespace setVariable ["WAIT_AIPass_NextJobDue", _earliest];
+// Aircraft observers activate the scheduler only on machines which currently own eligible
+// aircraft. When the final generation-scoped job retires, release that runtime; class/locality
+// handlers will reacquire it if another eligible aircraft becomes local later.
+if (
+    missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false]
+    || {missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive", false]}
+) then {
+    private _aircraftStates = (_next apply {_x select 2}) select {(_x getOrDefault ["subsystem", ""]) == "AIRCRAFT"};
+    private _decelerationActive = (_aircraftStates findIf {(_x getOrDefault ["jobKey", ""]) find "WAIT_DECEL_" == 0}) >= 0;
+    private _landingActive = (_aircraftStates findIf {(_x getOrDefault ["jobKey", ""]) find "WAIT_LANDING_" == 0}) >= 0;
+    private _changed = _decelerationActive != (missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false])
+        || {_landingActive != (missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive", false])};
+    missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", _decelerationActive];
+    missionNamespace setVariable ["WAIT_Aircraft_LandingSchedulerActive", _landingActive];
+    if (_changed) then {[] call WAIT_fnc_SchedulerReconcile};
+};

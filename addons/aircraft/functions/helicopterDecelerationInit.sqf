@@ -41,7 +41,7 @@ private _install = {
             if (_isLocal) then {
                 _aircraft setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
                 _aircraft setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", true];
-                missionNamespace setVariable ["WAIT_Aircraft_SchedulerActive", true];
+                missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", true];
                 [] call WAIT_fnc_SchedulerReconcile;
                 [WAIT_fnc_HelicopterDecelerationStep, createHashMapFromArray [
                     ["aircraft", _aircraft], ["generation", _aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]],
@@ -52,7 +52,7 @@ private _install = {
     };
     if (local _aircraft && {!(_aircraft getVariable ["WAIT_HelicopterDeceleration_TrackedLocal", false])}) then {
         _aircraft setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", true];
-        missionNamespace setVariable ["WAIT_Aircraft_SchedulerActive", true];
+        missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", true];
         [] call WAIT_fnc_SchedulerReconcile;
         [WAIT_fnc_HelicopterDecelerationStep, createHashMapFromArray [
             ["aircraft", _aircraft], ["generation", _aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]],

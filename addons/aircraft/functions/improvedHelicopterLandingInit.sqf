@@ -8,12 +8,12 @@
  * showed airborne helicopters losing stable flight immediately after an ACE `setGroupOwner`
  * transition, before this landing controller ever activated. Keeping the aircraft group on the
  * server avoids that engine/locality transition while still allowing WAIT AI skill values to be
- * applied to its crew. Only the machine owning an aircraft runs its tracker.
+ * applied to its crew. Only the machine owning an aircraft queues its bounded watcher.
  * Locality and authority: Each machine installs local class-init and ownership handlers. The
- * current helicopter owner runs the flight tracker; server-side ownership exclusions remain
+ * current helicopter owner runs the waypoint watcher; server-side ownership exclusions remain
  * with the server.
  * Repeat/JIP: A local installed flag prevents duplicate handlers. JIP and new owners install
- * their own handler but do not share a competing flight controller.
+ * their own generation-scoped job but do not share a competing flight controller.
  *
  * Arguments: None.
  *
@@ -70,7 +70,12 @@ private _install = {
                     [_helicopter, false, "", true] call WAIT_fnc_ImprovedHelicopterLandingRestoreLocal;
                 };
                 _helicopter setVariable ["WAIT_ImprovedHelicopterLanding_TrackedLocal", true];
-                [_helicopter, _trackerGeneration] spawn WAIT_fnc_ImprovedHelicopterLandingTrackLocal;
+                missionNamespace setVariable ["WAIT_Aircraft_LandingSchedulerActive", true];
+                [] call WAIT_fnc_SchedulerReconcile;
+                [WAIT_fnc_ImprovedHelicopterLandingStep, createHashMapFromArray [
+                    ["helicopter", _helicopter], ["generation", _trackerGeneration],
+                    ["subsystem", "AIRCRAFT"], ["jobKey", "WAIT_LANDING_" + netId _helicopter]
+                ], 0.1, "WAIT_LANDING_" + netId _helicopter] call WAIT_fnc_CortexQueueJob;
             };
         }];
     };
@@ -78,7 +83,12 @@ private _install = {
         private _trackerGeneration = (_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_TrackerGenerationLocal", 0]) + 1;
         _helicopter setVariable ["WAIT_ImprovedHelicopterLanding_TrackerGenerationLocal", _trackerGeneration];
         _helicopter setVariable ["WAIT_ImprovedHelicopterLanding_TrackedLocal", true];
-        [_helicopter, _trackerGeneration] spawn WAIT_fnc_ImprovedHelicopterLandingTrackLocal;
+        missionNamespace setVariable ["WAIT_Aircraft_LandingSchedulerActive", true];
+        [] call WAIT_fnc_SchedulerReconcile;
+        [WAIT_fnc_ImprovedHelicopterLandingStep, createHashMapFromArray [
+            ["helicopter", _helicopter], ["generation", _trackerGeneration],
+            ["subsystem", "AIRCRAFT"], ["jobKey", "WAIT_LANDING_" + netId _helicopter]
+        ], 0.1, "WAIT_LANDING_" + netId _helicopter] call WAIT_fnc_CortexQueueJob;
     };
 };
 missionNamespace setVariable ["WAIT_ImprovedHelicopterLanding_InstallLocal", _install];
