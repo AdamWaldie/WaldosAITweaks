@@ -16,7 +16,8 @@
  * Committed units move upright at a bounded assault speed. WAIT
  * records a room only after a physical 1.5 m visit and never teleports a stuck soldier or clears a
  * room from outside. A position is visited only when a soldier physically reaches it within
- * 1.5 m. A casualty or incapacitation is replaced from the uncommitted reserve; without a replacement,
+ * 1.5 m. Each callback checks claimed rooms immediately and rotates a bounded remainder of the
+ * topology, preventing a large building from multiplying clearance cost per worker. A casualty or incapacitation is replaced from the uncommitted reserve; without a replacement,
  * other active workers continue claiming the remaining rooms. A worker quarantined by common recovery is rotated out of its clearance lane and replaced from reserve where possible. Timeouts never clear rooms.
  * After all rooms are visited or attempted, the clearing element exits through the building entry
  * to an exterior release point before formation control is restored. This explicit egress avoids
@@ -370,7 +371,19 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     private _before = count _cleared;
     private _unreachableBefore = count _unreachable;
     // A worker may physically traverse another assigned position on the way to its own.
-    // Record that observed visit too; assignment ownership is not evidence of clearance.
+    // Check claimed rooms first, then rotate a fixed topology sample. This keeps physical arrival
+    // authoritative without making every callback scale with every room and every worker.
+    private _visitIndices=[];
+    {
+        private _claimed=(_x param [0,-1]);
+        if (_claimed >= 0 && {_claimed < count _positions}) then {_visitIndices pushBackUnique _claimed};
+    } forEach _assigned;
+    private _visitBudget=(count _positions) min 24;
+    private _visitCursor=(_job getOrDefault ["visitCursor",0]) mod (count _positions);
+    for "_offset" from 0 to (_visitBudget-1) do {
+        _visitIndices pushBackUnique ((_visitCursor+_offset) mod (count _positions));
+    };
+    _job set ["visitCursor",(_visitCursor+_visitBudget) mod (count _positions)];
     {
         private _visitor = _x;
         if (alive _visitor && {local _visitor} && {!isPlayer _visitor}
@@ -378,19 +391,20 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
             && {vehicle _visitor == _visitor}) then {
             private _actual = getPosASL _visitor;
             {
-                if !(_forEachIndex in _cleared) then {
-                    if (_actual vectorDistance (AGLToASL _x) <= 1.5) then {
-                        _cleared pushBackUnique _forEachIndex;
-                        private _failedIndex = _unreachable find _forEachIndex;
+                private _positionIndex=_x;
+                if !(_positionIndex in _cleared) then {
+                    if (_actual vectorDistance (AGLToASL (_positions select _positionIndex)) <= 1.5) then {
+                        _cleared pushBackUnique _positionIndex;
+                        private _failedIndex = _unreachable find _positionIndex;
                         if (_failedIndex >= 0) then {_unreachable deleteAt _failedIndex};
-                        private _pendingIndex = (_job get "pending") find _forEachIndex;
+                        private _pendingIndex = (_job get "pending") find _positionIndex;
                         if (_pendingIndex >= 0) then {(_job get "pending") deleteAt _pendingIndex};
-                        _failedBy set [_forEachIndex,[]];
+                        _failedBy set [_positionIndex,[]];
                     };
                 };
-            } forEach _positions;
+            } forEach _visitIndices;
         };
-    } forEach (_job get "team");
+    } forEach _activeWorkers;
     private _pairRoutes=_job get "pairRoutes";
     {
         private _pairIndex=_forEachIndex;
@@ -650,7 +664,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
 }, createHashMapFromArray [
     ["group", _group], ["team", _team], ["started", []], ["positions", _positions], ["cleared", _cleared], ["building", _building], ["assigned", _team apply {[]}], ["unreachable",_unreachable], ["retryCounts",_retryCounts],
     ["entry",_entryRoute], ["entries",_entries], ["pairs",_pairs], ["pairRoutes",_pairRoutes], ["pairStates",_pairStates], ["pending",_pending],
-    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt],
+    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt], ["visitCursor",0],
     ["phase","CLEAR"],["rotatedOut",[]],["egressAssignments",[]],["egressDeadline",0],["egressReissue",0],["egressFailed",false]
 ], 0] call WAIT_fnc_CortexQueueJob;
 diag_log format ["[WAIT] %1 clearing %2 (%3 positions, %4 soldiers, %5 entrances)", _group, typeOf _building, count _positions, count _team, count _entries];

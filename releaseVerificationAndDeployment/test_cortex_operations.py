@@ -3255,6 +3255,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_keepCrew isEqualTo (_configuration select 4)',text)
         self.assertIn('setVariable ["WAIT_Convoy_LocalState",_navigation]',text)
 
+    def test_building_clearance_bounds_topology_arrival_checks(self):
+        clear=source('cortexClearBuilding')
+        self.assertIn('private _visitBudget=(count _positions) min 24;',clear)
+        self.assertIn('private _visitCursor=(_job getOrDefault ["visitCursor",0]) mod (count _positions);',clear)
+        self.assertIn('_visitIndices pushBackUnique _claimed',clear)
+        self.assertIn('} forEach _visitIndices;',clear)
+        self.assertIn('} forEach _activeWorkers;',clear)
+        self.assertIn('["visitCursor",0]',clear)
+
     def test_building_clearance_replays_after_a_group_returns_to_a_previous_owner(self):
         discovery=source('cortexDiscover')
         lost_owner=discovery.split('if (!local _group) then {',1)[1].split('};',1)[0]
