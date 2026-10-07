@@ -20,7 +20,8 @@
  * presentation state are invalidated. An active aircraft lease restores its recorded native group
  * attack policy, deletes its finite native guidance target and named movement waypoint, and removes
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
- * Vehicle safe-stop handshakes restore their prior forced speed before their tokens are cleared.
+ * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
+ * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
  * old CBA callback cannot become valid again after a quick restart.
  * Civilian event handlers and their EntityCreated installer are removed; external addon state is
@@ -68,7 +69,11 @@ if (isServer) then {
     {
         [_x] call WAIT_fnc_DrivingAssistRelease;
         private _savedStopSpeed=_x getVariable ["WAIT_Cortex_DismountForcedSpeed",[]];
-        if (_savedStopSpeed isNotEqualTo [] && {local _x}) then {_x forceSpeed (_savedStopSpeed param [0,-1])};
+        private _ownedStop=_savedStopSpeed param [1,-2];
+        if (_savedStopSpeed isNotEqualTo [] && {local _x} && {_ownedStop >= 0}
+            && {abs ((getForcedSpeed _x)-_ownedStop) <= 0.1}) then {
+            _x forceSpeed (_savedStopSpeed param [0,-1]);
+        };
         _x setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         _x setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootToken",nil,true];

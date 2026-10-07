@@ -4638,6 +4638,17 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_Cortex_DismountForcedSpeed',text)
             self.assertIn('WAIT_Cortex_DismountStopRequest',text)
 
+    def test_contact_dismount_speed_restore_requires_the_owned_zero_cap(self):
+        vehicles=source('cortexVehicles')
+        release=source('cortexReleaseGroup')
+        stop=source('cortexStop')
+        self.assertGreaterEqual(vehicles.count('[getForcedSpeed _vehicle,0]'),2)
+        for text in [vehicles,release,stop]:
+            self.assertIn('param [1,-2]',text)
+            self.assertIn('abs ((getForcedSpeed',text)
+            self.assertIn('-_ownedStop) <= 0.1',text)
+        self.assertIn('if (!_externalTakeover && {_saved isNotEqualTo []}',release)
+
     def test_countermeasure_inventory_includes_modded_person_turrets(self):
         for name in ['cortexFireCountermeasure','cortexVehicles']:
             text=source(name)

@@ -7,7 +7,8 @@
  * Exit handlers can therefore identify the initiating controller without racing bookkeeping.
  * Crew owners publish a bounded, expiring approximate contact report for separate onboard groups.
  * A validated passenger-owner request temporarily forces the vehicle to zero speed, preserving and
- * restoring any earlier forced-speed value once that passenger squad is out or the request expires.
+ * restoring any earlier forced-speed value once that passenger squad is out or the request expires,
+ * but only while the zero-speed lease remains current and no newer controller has replaced it.
  * Separate passenger groups handle only their own local cargo. Only the operating
  * crew group may order vehicle withdrawal or gunnery; convoy ownership remains excluded.
  * Dismount: infantry riding as cargo in a ground vehicle get out once an enemy is
@@ -113,12 +114,16 @@ if !([] call _mayIssueVehicle) exitWith {_movementOwned};
     };
     if (_valid) then {
         if (_saved isEqualTo []) then {
-            _saved=[getForcedSpeed _vehicle];
+            _saved=[getForcedSpeed _vehicle,0];
             _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved];
         };
         if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
     } else {
-        if (_saved isNotEqualTo [] && {local _vehicle} && {[] call _mayIssueVehicle}) then {_vehicle forceSpeed (_saved param [0,-1])};
+        private _ownedStop=_saved param [1,-2];
+        if (_saved isNotEqualTo [] && {local _vehicle} && {[] call _mayIssueVehicle}
+            && {_ownedStop >= 0} && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
+            _vehicle forceSpeed (_saved param [0,-1]);
+        };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };
@@ -167,7 +172,7 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         if (_commandsVehicle && {local _vehicle} && {_onboardCargo isNotEqualTo []}) then {
             _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
             if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
-                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle]];
+                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0]];
             };
             if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
         };

@@ -16,7 +16,8 @@
  * restored; repeated cleanup is harmless and never boards passengers.
  * Public remount intent is cancelled even when owner migration left no local behaviour map.
  * A public actor marker likewise releases only PATH restrictions proven to belong to Cortex.
- * A crew owner also restores any forced speed borrowed for an onboard dismount safe stop.
+ * A crew owner restores a forced speed borrowed for an onboard dismount safe stop only while the
+ * exact zero-speed lease remains current and no newer controller owns the group.
  * Naval cleanup restores the exact boat forced speed and removes only the token-matched WAIT plan.
  * Arguments:
  * 0: group <GROUP>
@@ -104,7 +105,11 @@ private _releasedVehicles=[];
         && {local _vehicle} && {effectiveCommander _vehicle in units _group}) then {
         _releasedVehicles pushBack _vehicle;
         private _saved=_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]];
-        if (_saved isNotEqualTo []) then {_vehicle forceSpeed (_saved param [0,-1])};
+        private _ownedStop=_saved param [1,-2];
+        if (!_externalTakeover && {_saved isNotEqualTo []} && {_ownedStop >= 0}
+            && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
+            _vehicle forceSpeed (_saved param [0,-1]);
+        };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
     };
