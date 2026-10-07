@@ -11,6 +11,10 @@
  */
 params ["_group","_state","_role"];
 if (!local _group || {count _role != 5} || {count (_state getOrDefault ["drill",createHashMap]) > 0}) exitWith {false};
+// SupportMaintain can observe the role just before a curator or specialist claims the group.
+// Recheck at the drill-allocation boundary: a rejected bound leaves the existing native/external
+// order untouched and lets the server retire this role on the next acknowledgement.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _role params ["_leaseToken","_sequence","_roleName","_point","_enemy"];
 if (_roleName != "MOVE" || {_role isNotEqualTo (_group getVariable ["WAIT_Cortex_SupportRole",[]])}) exitWith {false};
 private _lease=_group getVariable ["WAIT_AIPass_SupportLease",[]];

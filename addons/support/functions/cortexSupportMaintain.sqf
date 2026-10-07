@@ -109,6 +109,13 @@ private _releaseSupport={
     call _restoreAttack;
     {_state deleteAt _x} forEach ["supportToken","responding","respondingTo","respondUntil","arrivedAt","assaulting"];
 };
+// The cached operation step is intentionally infrequent. A curator or specialist can claim this
+// group between those steps, so retire the matching support lease before any covering hold or bound
+// setup below is allowed to write movement. Release observes _mayRestoreGroup and therefore never
+// restores WAIT's former command over the new owner.
+if (_externalTakeover) exitWith {
+    ["EXTERNAL"] call _releaseSupport;
+};
 private _abort = _group getVariable ["WAIT_Cortex_SupportAbort",[]];
 if (count _abort == 4 && {(_abort select 0) == _token}) exitWith {
     _group setVariable ["WAIT_Cortex_SupportAbort",nil,true];

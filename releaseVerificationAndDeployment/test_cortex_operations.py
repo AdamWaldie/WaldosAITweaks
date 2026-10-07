@@ -3469,6 +3469,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]})',maintain)
         self.assertLess(maintain.index('private _mayRestoreGroup='),maintain.index('private _restoreAttack='))
 
+    def test_coordinated_support_exits_before_a_late_external_owner_can_start_or_hold(self):
+        """A support callback must retire before allocating a bound or taking PATH from a new owner."""
+        maintain=source('cortexSupportMaintain')
+        bound=source('cortexSupportBoundStart')
+        release=maintain.split('private _releaseSupport={',1)[1].split('private _abort =',1)[0]
+        self.assertIn('if (_externalTakeover) exitWith {',release)
+        self.assertIn('["EXTERNAL"] call _releaseSupport;',release)
+        self.assertLess(release.index('if (_externalTakeover) exitWith {'),maintain.index('doStop _x;'))
+        self.assertIn('if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};',bound)
+        self.assertLess(bound.index('CortexExternalTakeover'),bound.index('_state set ["drill",'))
+
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',
