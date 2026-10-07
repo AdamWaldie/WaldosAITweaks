@@ -82,5 +82,5 @@ _missions set [netId _battery, _mission];
 missionNamespace setVariable ["WAIT_AIPass_FireMissions", _missions];
 _battery setVariable ["WAIT_AIPass_FireToken", _token, true];
 _battery setVariable ["WAIT_AIPass_BusyUntil", time + 900, true];
-[WAIT_fnc_CortexArtilleryMissionStep, _mission, 0] call WAIT_fnc_CortexQueueJob;
+[_mission,0] call WAIT_fnc_ArtilleryMissionStart;
 true

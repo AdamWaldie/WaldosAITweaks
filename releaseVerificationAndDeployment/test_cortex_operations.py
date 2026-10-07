@@ -95,6 +95,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CortexAirAttack',stop)
         self.assertIn('WAIT_AirAttack_BrainGeneration',stop)
 
+    def test_artillery_mission_fsm_owns_fire_sequence_persistence(self):
+        fire=source('cortexArtilleryFire');bounded=source('cortexArtilleryMissionStep')
+        start=source('artilleryMissionStart');queue=source('artilleryMissionQueue');step=source('artilleryMissionStep')
+        stop=source('cortexStop');diagnostics=source('aiGetDiagnostics')
+        fsm=(ROOT/'addons/main/fsm/artilleryMission.fsm').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_ArtilleryMissionStart',fire)
+        self.assertNotIn('[WAIT_fnc_CortexArtilleryMissionStep, _mission, 0]',fire)
+        self.assertIn('artilleryMission.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_fnc_ArtilleryMissionStep',queue)
+        self.assertIn('call WAIT_fnc_CortexArtilleryMissionStep',step)
+        self.assertIn('WAIT_AIPass_FireMissions',start+step)
+        self.assertIn('WAIT_Artillery_BrainGeneration',start+queue+step+fsm)
+        self.assertIn('no fire command is retried',step.lower())
+        self.assertIn('current caller: wait_fnc_artillerymissionstep',bounded.lower())
+        for state in ['Requested','Warning','Firing','Relocating']:
+            self.assertIn('class '+state,fsm)
+        self.assertIn('WAIT_Artillery_Brain',stop)
+        self.assertIn('wait-artillery-fsm-',diagnostics)
+
     def test_aircraft_controllers_share_one_generation_owned_flight_lease(self):
         acquire=source('flightLeaseAcquire');valid=source('flightLeaseValid');release=source('flightLeaseRelease')
         attack_start=source('airAttackOperationStart');attack=source('cortexAirAttack')

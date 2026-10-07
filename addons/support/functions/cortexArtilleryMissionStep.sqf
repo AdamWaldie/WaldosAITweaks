@@ -7,8 +7,8 @@
  * Repeat/JIP: mission tokens reject stale work; server state survives HC migration, not restart.
  * Arguments: 0: mission <HASHMAP>, created by ArtilleryFire.
  * Return Value: Number next delay, or -1 to finish.
- * Current callers: Smart AI scheduler.
- * Example: [WAIT_fnc_CortexArtilleryMissionStep, _mission, 0] call WAIT_fnc_CortexQueueJob;
+ * Current caller: WAIT_fnc_ArtilleryMissionStep as one bounded action under the artillery mission FSM.
+ * Example: [_mission] call WAIT_fnc_CortexArtilleryMissionStep;
  */
 params ["_mission"];
 if (!isServer) exitWith {-1};

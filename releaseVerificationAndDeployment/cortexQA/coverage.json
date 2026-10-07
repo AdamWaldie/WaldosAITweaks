@@ -925,6 +925,9 @@
         "runServer.sqf"
       ],
       "production_sources": [
+        "addons/support/functions/artilleryMissionStart.sqf",
+        "addons/support/functions/artilleryMissionQueue.sqf",
+        "addons/support/functions/artilleryMissionStep.sqf",
         "addons/support/functions/cortexArtilleryAim.sqf",
         "addons/support/functions/cortexArtilleryAmmo.sqf",
         "addons/support/functions/cortexArtilleryFire.sqf",

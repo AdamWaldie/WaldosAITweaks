@@ -566,6 +566,12 @@ private _missions=missionNamespace getVariable ["WAIT_AIPass_FireMissions",creat
     private _mission=_missions get _x;
     private _phase=_mission getOrDefault ["phase","UNKNOWN"];
     _checks pushBack ["ai","cortex-fire-"+_x,if (_phase == "UNCERTAIN") then {"ERROR"} else {"LOADED"},format ["purpose=%1 phase=%2 confirmedShots=%3 remaining=%4 burstsLeft=%5 dueInSeconds=%6 owner=%7. PENDING is awaiting a firing event, not confirmed fire; UNCERTAIN must not be retried blindly.",_mission getOrDefault ["purpose","UNKNOWN"],_phase,_mission getOrDefault ["fired",0],_mission getOrDefault ["remaining",0],_mission getOrDefault ["burstsLeft",0],(_mission getOrDefault ["due",time])-time,owner (_mission getOrDefault ["battery",objNull])]];
+    private _battery=_mission getOrDefault ["battery",objNull];
+    private _brain=if (isNull _battery) then {createHashMap} else {_battery getVariable ["WAIT_Artillery_Brain",createHashMap]};
+    private _brainState=if (isNull _battery) then {[]} else {_battery getVariable ["WAIT_Artillery_Brain_State",[]]};
+    private _brainHealthy=count _brain > 0 && {(_brain getOrDefault ["token",""]) == (_mission getOrDefault ["token",""])}
+        && {!(_brain getOrDefault ["cancelled",false])} && {!(_brain getOrDefault ["finished",false])};
+    _checks pushBack ["ai","wait-artillery-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["phase=%1 generation=%2 pending=%3 dueInSeconds=%4 lastStepAge=%5 nativePhase=%6 token=%7 state=%8. The FSM owns persistence; shot, observer and warning work remains bounded.",_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],((_brain getOrDefault ["nextAt",time])-time) max 0,if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},_phase,_mission getOrDefault ["token",""],_brainState]];
 } forEach ((keys _missions) select [0,20]);
 private _convoys=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
 {

@@ -43,7 +43,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | HEARING - Gunfire area reports | 1 | 0 | 1 | `runSupport.sqf` | 0 | implemented_partial |
 | REPORT - Contact sharing | 4 | 0 | 4 | `runSupport.sqf` | 0 | implemented_partial |
 | REINFORCE - Reinforcement | 3 | 0 | 1 | `runSupport.sqf` | 0 | implemented_partial |
-| ART - Spotted artillery bursts | 13 | 0 | 15 | `runServer.sqf` | 0 | implemented_partial |
+| ART - Spotted artillery bursts | 13 | 0 | 18 | `runServer.sqf` | 0 | implemented_partial |
 | CB - Counter-battery | 10 | 0 | 3 | `runServer.sqf` | 0 | implemented_partial |
 | AIRBORNE - Parachute passengers | 6 | 0 | 4 | `runAirborne.sqf` | 0 | implemented_partial |
 | GARRISON - Garrison and dynamic AO | 1 | 0 | 3 | `runServer.sqf`, `runBuildingComparison.sqf` | 1 | implemented_partial |

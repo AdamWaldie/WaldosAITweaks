@@ -59,6 +59,11 @@ if (isServer) then {
     missionNamespace setVariable ["WAIT_AIPass_CounterGeneration", (missionNamespace getVariable ["WAIT_AIPass_CounterGeneration", 0]) + 1];
     {
         private _battery = _y get "battery";
+        private _brain=_battery getVariable ["WAIT_Artillery_Brain",createHashMap];
+        if (count _brain > 0) then {
+            _brain set ["cancelled",true];
+            _brain set ["cancelReason","CORTEX_STOPPED"];
+        };
         _battery setVariable ["WAIT_AIPass_FireToken", nil, true];
         _battery setVariable ["WAIT_AIPass_BusyUntil", nil, true];
     } forEach (missionNamespace getVariable ["WAIT_AIPass_FireMissions", createHashMap]);

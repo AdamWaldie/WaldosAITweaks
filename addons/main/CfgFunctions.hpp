@@ -119,6 +119,9 @@ class CfgFunctions {
             class CortexArtilleryAim {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryAim.sqf";};
             class CortexArtilleryAmmo {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryAmmo.sqf";};
             class CortexArtilleryMissionStep {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryMissionStep.sqf";};
+            class ArtilleryMissionStart {file = "\z\waldo_ai_tweaks\addons\support\functions\artilleryMissionStart.sqf";};
+            class ArtilleryMissionQueue {file = "\z\waldo_ai_tweaks\addons\support\functions\artilleryMissionQueue.sqf";};
+            class ArtilleryMissionStep {file = "\z\waldo_ai_tweaks\addons\support\functions\artilleryMissionStep.sqf";};
             class CortexArtilleryShot {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryShot.sqf";};
             class CortexArtilleryScoot {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryScoot.sqf";};
             class CortexClearRelease {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexClearRelease.sqf";};
