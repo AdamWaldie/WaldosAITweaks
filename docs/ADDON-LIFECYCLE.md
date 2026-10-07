@@ -15,7 +15,7 @@ rename them or invalidate mission overrides. WAIT owns the base-soldier engine d
 the complete danger-response path while loaded. Another addon replacing the same engine slot is incompatible;
 specialist actor ownership still yields through explicit finite compatibility markers.
 Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
-stance, applies one weak stance, and restores it only while that exact value remains owned by WAIT.
+scripted stance, applies one short scripted stance, and restores it only while that exact observable value remains owned by WAIT.
 Any newer engine, Zeus or specialist stance wins and invalidates the lease without restoration.
 
 ## Existing improvements remain in scope
@@ -123,7 +123,7 @@ Tactical drills use a separate fifteen-second same-key recovery before the exist
 movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
 persistent callback failure still releases owned PATH, behaviour and ROE state through common cleanup.
 
-The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a weak stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
+The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 An unidentified hit, explosion or suppression event may wake the finite CONTACT phase and preserve its approximate danger position for immediate safety decisions. It cannot authorise a route, weapon target, artillery request, reinforcement request, coordinated manoeuvre or later search. Those layers require native enemy knowledge. A hazard-only engagement returns directly to calm when its finite contact interval ends. Engine-confirmed contacts use the observer's believed target position, never the observer position, so the handoff cannot manufacture a co-located threat or a zero-length approach.
 
@@ -140,7 +140,7 @@ suppression, casualty and scream observations. One owner-local EnemyDetected obs
 engine-confirmed contact identity already known by a living local group member. It is removed on loss of ownership
 or shutdown and never reveals or assigns a target.
 The engine FSM explicitly branches through forced-command, vehicle, immediate, hide, engage and assess states.
-Immediate and hide states may apply only weak stance suggestions; they never issue a destination, target or firing
+Immediate and hide states may apply only short, exactly restorable scripted stances; they never issue a destination, target or firing
 command. Forced commands, player/Zeus control, external specialist ownership, disabled movement and CARELESS
 behaviour terminate or bypass WAIT action. This keeps the engine response finite while the group brain owns tactics.
 The queued group assessment repeats the forced-command and mounted checks before changing behaviour or ROE, so

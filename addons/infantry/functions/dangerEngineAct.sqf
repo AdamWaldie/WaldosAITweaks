@@ -1,8 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Apply one bounded immediate danger posture without taking movement, target or firing ownership.
+ * Purpose: Apply one bounded, exactly observable danger stance without taking movement, target or firing ownership.
  * Locality / Authority: Runs only for the local AI soldier after ownership and order classification.
- * Repeat/JIP: Uses one machine-local, expiring weak-stance lease. A repeated danger response retains
+ * Repeat/JIP: Uses one machine-local, expiring scripted-stance lease. A repeated danger response retains
  * the original authored stance and refreshes only WAIT's applied value. Native or external stance
  * changes invalidate the lease and are not overwritten. It never creates a movement, target or firing lease.
  * Arguments: 0: soldier <OBJECT>, objNull; 1: mode <STRING>, ASSESS; 2: selected record <ARRAY>, [].
@@ -17,7 +17,7 @@ private _group=group _actor;
 if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
 private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIATE",1],["HIDE",1.25],["ENGAGE",1],["ASSESS",0.75]];
-// A small local offset prevents an entire squad from changing weak stance on the same frame while
+// A small local offset prevents an entire squad from changing stance on the same frame while
 // retaining a strict upper bound and no recurring work.
 private _delay=(_delays getOrDefault [_mode,0.75]) + random 0.25;
 private _cause=_record param [0,-1,[0]];
@@ -25,8 +25,8 @@ private _desiredStance="";
 
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
-// weak posture suggestion; native combat and the generation-owned group operation remain free to
-// replace it immediately.
+// short scripted stance. Direct commander stance orders have higher engine priority, while another
+// script or controller changing the scripted stance invalidates WAIT's exact lease on release.
 if (_mode == "IMMEDIATE") then {
     private _hardCover=(getSuppression _actor > 0.55) || {_cause in [2,4]} || {currentCommand _actor == "STOP"};
     _desiredStance=["MIDDLE","DOWN"] select _hardCover;
@@ -53,7 +53,7 @@ if (_desiredStance != "") then {
         };
     };
     if (_mayApply) then {
-        _actor setUnitPosWeak _desiredStance;
+        _actor setUnitPos _desiredStance;
         _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay]];
     };
 };

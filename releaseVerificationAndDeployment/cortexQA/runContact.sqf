@@ -20,18 +20,19 @@ params ["_check","_phase","_wait"];
 
 // Prove the engine-loaded FSM with a real targetless explosion before introducing any enemy. The
 // fixture reads production diagnostics but never calls DangerEngineSubmit, writes a response, or
-// assigns phase. Its authored UP stance provides an exact baseline for release verification.
+// assigns phase. Its authored AUTO scripted stance provides an exact baseline that the production
+// lease can observe and restore; a higher-priority commanded UP stance would suppress the reflex.
 private _reflexGroup=createGroup [east,true];
 _reflexGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _reflexGroup setVariable ["acex_headless_blacklist",true,true];
 _reflexGroup setCombatMode "BLUE";
 private _reflexUnit=_reflexGroup createUnit ["O_Soldier_F",[2300,1350,0],[],0,"NONE"];
 _reflexUnit allowDamage false;
-_reflexUnit setUnitPos "UP";
+_reflexUnit setUnitPos "AUTO";
 _reflexUnit setVariable ["acex_headless_blacklist",true,true];
 _reflexUnit setVariable ["WAIT_CortexQA_Label","TARGETLESS EXPLOSION REFLEX",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
-["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. The soldier must physically duck, release WAIT's exact posture lease and return to the authored UP stance and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
+["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. The soldier must physically duck, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
 private _nativeStimulus=[{
@@ -43,7 +44,7 @@ private _physicalReflex=[{
 },8] call _wait;
 private _released=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
-        && {toUpperANSI (unitPos _reflexUnit) == "UP"}
+        && {toUpperANSI (unitPos _reflexUnit) == "AUTO"}
         && {((_reflexGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
 },12] call _wait;
 private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0;
