@@ -21,7 +21,7 @@ class FSM {
             class Links {
                 class Interrupted {
                     priority = 2; to = "Finished";
-                    condition = "isNull _group || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_Danger_Generation"",0])} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])} || {_zeusToken isNotEqualTo (_group getVariable [""WAIT_AIPass_ZeusHold"",[]])} || {_group getVariable [""WAIT_AIPass_ZeusWaypoints"",false]} || {[_group] call WAIT_fnc_CortexExternalTakeover}";
+                    condition = "isNull _group || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_Danger_Generation"",0])} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])} || {_zeusToken isNotEqualTo (_group getVariable [""WAIT_AIPass_ZeusHold"",[]])} || {_group getVariable [""WAIT_AIPass_ZeusWaypoints"",false]}";
                     action = "";
                 };
                 class Due { priority = 0; to = "Assessment"; condition = "time >= _nextAt"; action = ""; };

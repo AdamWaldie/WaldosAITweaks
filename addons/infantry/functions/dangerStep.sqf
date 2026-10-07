@@ -79,7 +79,7 @@ private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],[
 private _responseLifetime=_responseDurations getOrDefault [_cause,1];
 private _response=[_cause,+_position,_observedAt,time+_responseLifetime,_generation];
 private _existing=_group getVariable ["WAIT_Danger_Response",[]];
-private _priority=createHashMapFromArray [["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["SCREAM",4],["CASUALTY",3],["DETECTED",2],["GUNFIRE",1]];
+private _priority=createHashMapFromArray [["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["CASUALTY",4],["SCREAM",3],["DETECTED",2],["GUNFIRE",1]];
 private _replace=_existing isEqualTo [] || {count _existing != 5}
     || {(_existing select 4) != _generation}
     || {time >= (_existing select 3)}
