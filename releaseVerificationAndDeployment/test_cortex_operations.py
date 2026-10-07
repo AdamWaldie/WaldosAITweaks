@@ -2171,6 +2171,11 @@ class CortexOperations(unittest.TestCase):
             self.assertNotIn('vehicle _x == _x', text)
             self.assertNotIn('vehicle _unit == _unit', text)
 
+    def test_external_takeover_boolean_chain_starts_with_a_boolean(self):
+        takeover = source('cortexExternalTakeover')
+        self.assertIn('(_members findIf {isPlayer _x} >= 0)\n||', takeover)
+        self.assertNotIn('{_members findIf {isPlayer _x} >= 0}\n||', takeover)
+
     def test_flank_support_lane_selection_is_spatially_bounded(self):
         flank=source('cortexFlankStart')
         self.assertIn('_enemyPos nearEntities ["Man",500]',flank)

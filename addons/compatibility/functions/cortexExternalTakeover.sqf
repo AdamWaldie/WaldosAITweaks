@@ -23,7 +23,7 @@ if (isNull _group) exitWith {true};
 // leader probe only duplicated configuration and marker reads on the most frequent path.
 private _members=units _group;
 
-{_members findIf {isPlayer _x} >= 0}
+(_members findIf {isPlayer _x} >= 0)
 || {!_ignoreZeusHold && {[_group] call WAIT_fnc_CortexZeusHeld}}
 || {_members findIf {!isNull (remoteControlled _x)} >= 0}
 || {_members findIf {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])} >= 0}
