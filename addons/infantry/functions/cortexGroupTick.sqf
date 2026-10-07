@@ -402,6 +402,10 @@ private _enterContact = {
     _state set ["lastSeen", _now];
     _state set ["hadContact", true];
     _state set ["enemyPos", _contactPosition];
+    // Preserve whether this engagement ever contained native enemy knowledge. A danger-only wake
+    // may use its approximate position for immediate safety, but post-contact SEARCH must not turn
+    // that hazard sample into a movement objective after the finite response expires.
+    _state set ["contactKnowledge",(_state getOrDefault ["contactKnowledge",false]) || {_hasTargetKnowledge}];
     _state set ["contactLeader", _leader];
     // Contact does not revoke a server-reserved rally. SupportMaintain owns its
     // deadline and arrival; otherwise responders abandon the rendezvous on sighting.
@@ -572,6 +576,7 @@ switch (_state get "phase") do {
         if (_visible isNotEqualTo []) then {
             _state set ["lastSeen", _now];
             _state set ["enemyPos", (_visible select 0) select 1];
+            _state set ["contactKnowledge",true];
         };
         private _outcome = "";
         if (["WAIT_AIPass_Morale_Enable", true] call _get) then {
@@ -672,11 +677,13 @@ switch (_state get "phase") do {
         if (!_manoeuvreActive
             && {(_state getOrDefault ["phase",""]) == "CONTACT"}
             && {_now - (_state getOrDefault ["lastSeen", _now]) > (["WAIT_AIPass_PostContact_LostSeconds", 30] call _get)}) then {
-            if (["WAIT_AIPass_PostContact_Enable", true] call _get) then {
+            if !(_state getOrDefault ["contactKnowledge",false]) then {
+                [_group,_state,true,false,"DANGER_EXPIRED"] call WAIT_fnc_CortexRestoreCalm;
+            } else {if (["WAIT_AIPass_PostContact_Enable", true] call _get) then {
                 [_group,_state,"SECURITY","CONTACT_LOST",_now] call WAIT_fnc_CortexSetPhase;
             } else {
                 [_group, _state, true, false, "CONTACT_ENDED"] call WAIT_fnc_CortexRestoreCalm;
-            };
+            }};
         };
     };
     case "SECURITY": {

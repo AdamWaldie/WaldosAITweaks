@@ -36,6 +36,8 @@
  * MOVE or other command. Commands which cannot be a combat-side effect of a hold survive.
  * Pending remount intent is public for owner migration; GroupTick retries for up to 60 seconds.
  * Any finite COMPAT movement handover is released before its local support token is erased.
+ * The per-engagement native-contact marker is also cleared so a later danger-only wake cannot
+ * inherit permission to search a previous enemy position.
  * Return Value:
  * Nothing
  *
@@ -147,7 +149,7 @@ if (!_allowRemount) then {
 };
 {_state deleteAt _x} forEach [
     "consolidateIssued", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
-    "withdrawn", "contactLeader", "lastSeen", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
+    "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
     "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];

@@ -4966,6 +4966,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexMorale',contact)
         self.assertIn('WAIT_fnc_CortexStance',contact)
         self.assertIn('WAIT_fnc_CortexVehicles',contact)
+        self.assertIn('_state set ["contactKnowledge",(_state getOrDefault ["contactKnowledge",false]) || {_hasTargetKnowledge}];',tick)
+        self.assertIn('_state set ["contactKnowledge",true];',contact)
+        self.assertIn('if !(_state getOrDefault ["contactKnowledge",false]) then {',contact)
+        self.assertIn('"DANGER_EXPIRED"',contact)
+        self.assertIn('"contactKnowledge"',source('cortexRestoreCalm'))
 
     def test_cross_group_dismount_safe_stop_is_owner_validated_and_reversible(self):
         vehicles=source('cortexVehicles')
