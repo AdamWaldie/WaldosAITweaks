@@ -23,7 +23,15 @@ if (_order isEqualTo []) exitWith {false};
 // also includes normal feature gates and would otherwise leave a released clear element stopped.
 private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
 if (_restore && {_externalTakeover}) then {_restore=false};
+private _buildingBrain=_group getVariable ["WAIT_BuildingBrain",createHashMap];
+if (count _buildingBrain > 0) then {
+    _buildingBrain set ["cancelled",true];
+    _buildingBrain set ["cancelReason","CLEAR_RELEASE"];
+    _buildingBrain set ["completed",true];
+};
 _group setVariable ["WAIT_AIPass_ClearGeneration", (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 1];
+_group setVariable ["WAIT_BuildingBrain",nil];
+_group setVariable ["WAIT_BuildingBrain_FSM",nil];
 // A release often comes from a Zeus replacement order.  Invalidate the common operation now,
 // rather than waiting for the low-frequency building job to notice the cleared flag.  Restrict
 // this to CLEAR so a newer, externally owned operation cannot be cancelled by stale clear state.

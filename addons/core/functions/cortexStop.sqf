@@ -144,6 +144,14 @@ if (!isNil "_civilianCreated") then {
     _x setVariable ["WAIT_GroupBrain",nil];
     _x setVariable ["WAIT_GroupBrain_FSM",nil];
     _x setVariable ["WAIT_Cortex_GroupJob",nil];
+    private _buildingBrain=_x getVariable ["WAIT_BuildingBrain",createHashMap];
+    if (count _buildingBrain > 0) then {
+        _buildingBrain set ["cancelled",true];
+        _buildingBrain set ["cancelReason","CORTEX_STOPPED"];
+        _buildingBrain set ["completed",true];
+    };
+    _x setVariable ["WAIT_BuildingBrain",nil];
+    _x setVariable ["WAIT_BuildingBrain_FSM",nil];
     if (local _x) then {_x setVariable ["WAIT_AIPass_AreaReport",nil,true]};
     if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}}) then {
         [_x,true,"CORTEX_STOPPED"] call WAIT_fnc_CortexReleaseGroup;

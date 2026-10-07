@@ -49,6 +49,14 @@ _group setVariable ["WAIT_GroupBrain_Generation",(_group getVariable ["WAIT_Grou
 _group setVariable ["WAIT_GroupBrain",nil];
 _group setVariable ["WAIT_GroupBrain_FSM",nil];
 _group setVariable ["WAIT_Cortex_GroupJob",nil];
+private _buildingBrain=_group getVariable ["WAIT_BuildingBrain",createHashMap];
+if (count _buildingBrain > 0) then {
+    _buildingBrain set ["cancelled",true];
+    _buildingBrain set ["cancelReason","LOCALITY_CHANGE"];
+    _buildingBrain set ["completed",true];
+};
+_group setVariable ["WAIT_BuildingBrain",nil];
+_group setVariable ["WAIT_BuildingBrain_FSM",nil];
 {
         private _unit = _x;
         // Event-handler IDs are machine-local. Retire this owner's listener on both

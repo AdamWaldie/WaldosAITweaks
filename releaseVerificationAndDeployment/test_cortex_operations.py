@@ -29,6 +29,34 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
 
+    def test_building_operation_fsm_owns_clearance_progression(self):
+        clear=source('cortexClearBuilding')
+        start=source('buildingOperationStart')
+        queue=source('buildingOperationQueue')
+        step=source('buildingOperationStep')
+        release=source('cortexClearRelease')
+        locality=source('cortexLocality')
+        stop=source('cortexStop')
+        fsm=(ROOT/'addons/main/fsm/buildingOperation.fsm').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_BuildingOperationStart',clear)
+        self.assertNotIn('}, createHashMapFromArray [',clear)
+        self.assertIn('buildingOperation.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_fnc_BuildingOperationStep',queue)
+        self.assertIn('WAIT_AIPass_ClearGeneration',step)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',step)
+        self.assertIn('WAIT_fnc_OperationStep',step)
+        self.assertIn('vectorDistance (AGLToASL',step)
+        self.assertIn('WAIT_fnc_RecoveryStep',step)
+        for state in ['Entry','Sweep','Replan','Egress']:
+            self.assertIn('class '+state,fsm)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('WAIT_fnc_CortexClearRelease',fsm)
+        self.assertIn('WAIT_BuildingBrain',release)
+        self.assertIn('WAIT_BuildingBrain',locality)
+        self.assertIn('WAIT_BuildingBrain',stop)
+        self.assertIn('wait-building-fsm-',source('aiGetDiagnostics'))
     def test_scheduler_diagnostics_clear_transient_skip_state_after_resumption(self):
         scheduler=source('cortexSchedulerTick')
         self.assertIn('_state set ["skippedReason","PAUSED"]',scheduler)
@@ -196,7 +224,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _actorProgressed=_currentPosition distance2D _lastPosition >= _minimum',step)
         self.assertIn('[_lastPosition,_currentPosition] select _actorProgressed',step)
         self.assertNotIn('_updated pushBack [_actor,_currentPosition];',step)
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('WAIT_Cortex_ClearStatus',clear)
         self.assertIn('material room/retry progress or egress',clear)
         self.assertIn('if (_entryTarget isEqualTo [] || {!_approachingEntry && {_entered}}) then {_target} else {_entryTarget}',clear)
@@ -420,7 +448,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn(legacy_marker,clear)
 
     def test_building_clearance_uses_the_common_operation_lifecycle(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('[_group,"CLEAR",_building,_team,_positions,"ENTRY"] call WAIT_fnc_OperationStart',clear)
         self.assertIn('operationGeneration',clear)
         self.assertIn('WAIT_fnc_OperationStep',clear)
@@ -541,7 +569,7 @@ class CortexOperations(unittest.TestCase):
             self.assertNotIn(f'missionNamespace getVariable ["{key}", false]',diagnostics)
 
     def test_replacement_clear_retires_old_movement_after_validation(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         marker='if (!_resume && {_previous isNotEqualTo []}) then {[_group] call WAIT_fnc_CortexClearRelease};'
         self.assertIn(marker,text)
         self.assertLess(text.index('if (_positions isEqualTo [])'),text.index(marker))
@@ -580,7 +608,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('setVariable [format ["bis_disabled',text)
 
     def test_native_building_operations_do_not_auto_delegate_when_a_compatibility_provider_is_detected(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         garrison=source('cortexGarrison')
         for text in [clear,garrison]:
             self.assertIn('getOrDefault ["useBuildingBackend", false]',text)
@@ -589,7 +617,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[["useBuildingBackend",true]]',comparison)
         self.assertIn('[["useBuildingBackend",false]]',comparison)
     def test_clearance_releases_casualty_and_transferred_member_reservations(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         release=text.split('// Release reservations before selection',1)[1].split('private _now',1)[0]
         self.assertIn('!alive _x',release)
         self.assertIn('group _x != _group',release)
@@ -603,7 +631,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,false] call WAIT_fnc_CortexClearRelease',tick)
 
     def test_clearance_timeout_cannot_clear_rooms_or_abort_other_workers(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         timeout=text.split('if (_now-_lastProgress > _retryDelay)',1)[1].split('_state set [0,_cursor]',1)[0]
         self.assertNotIn('_cleared pushBack',timeout)
         self.assertNotIn('movementFailed',text)
@@ -617,7 +645,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('count (_job get "cleared") == count (_job get "positions")',text)
 
     def test_clearance_attempts_one_isolated_recovery_before_abandoning_a_room(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         recovery=text.split('private _recovery = if (_operationGeneration >= 0) then {',1)[1].split('private _pairId=format',1)[0]
         self.assertIn('call WAIT_fnc_RecoveryStep',recovery)
         self.assertIn('_recovery == "RECOVERING"',recovery)
@@ -632,7 +660,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(recovery.index('exitWith {"YIELDED"}'),recovery.index('_actor doMove _destination'))
 
     def test_clearance_release_resumes_formation_after_do_stop(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         release=source('cortexClearRelease')
         self.assertIn('private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;',clear)
         self.assertIn('private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;',clear)
@@ -646,7 +674,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_explicit_building_and_hold_orders_anchor_on_a_surviving_local_actor(self):
         """Leader loss must not turn an otherwise viable CQB, garrison or defence operation inert."""
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _entryOrigin=getPosATL _leader;',clear)
         for name in ['cortexDefend','cortexGarrison','cortexDefendRelease','cortexGarrisonRelease']:
             text=source(name)
@@ -677,7 +705,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,false] call WAIT_fnc_CortexDefendRelease',tick)
 
     def test_clearance_rotates_failed_position_between_workers(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _failedBy',text)
         self.assertIn('private _failureThreshold=(count (_job get "pairs")) min 2 max 1',text)
         self.assertIn('(_job get "pending") pushBackUnique _positionIndex',text)
@@ -686,7 +714,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _ranked=_entries apply',text)
 
     def test_clearance_uses_independent_workers_and_continuous_room_routes(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _allPositions = _building buildingPos -1',text)
         self.assertIn('lineIntersectsSurfaces',text)
         self.assertIn('private _pairs=[];',text)
@@ -723,7 +751,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_cursor=_cursor+1',text)
 
     def test_clearance_workers_claim_without_node_crowding(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _point=_pair select (_moverIndex mod count _pair)',text)
         self.assertIn('private _supportTarget=[]',text)
         self.assertIn('_previousPositionIndex=_positionIndex',text)
@@ -732,14 +760,14 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('"ROTATE"',text)
 
     def test_clearance_reinforces_casualties_from_uncommitted_squad_members(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _reserves=(units _group) select',text)
         self.assertIn('_pair set [_slot,_replacement]',text)
         self.assertIn('WAIT_Cortex_ClearReinforcements',text)
         self.assertIn('lifeState _member == "INCAPACITATED"',text)
 
     def test_clearance_rotates_operation_quarantined_workers_without_stalling_other_lanes(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _unavailable=if ((_operation getOrDefault ["generation",-1]) == _operationGeneration',text)
         self.assertIn('(_reserved select {_x in _unavailable})',text)
         self.assertIn('|| {_member in _unavailable}) && {_reserves isNotEqualTo []})',text)
@@ -748,7 +776,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!(_x in _unavailable)',text)
 
     def test_clearance_egresses_before_terminal_handover(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('(_job getOrDefault ["phase","CLEAR"]) == "EGRESS"',text)
         self.assertIn('[_unit,_entry getPos [10,_outward]]',text)
         self.assertIn('_job set ["phase","EGRESS"]',text)
@@ -757,7 +785,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!(_job getOrDefault ["egressFailed",false])',text)
 
     def test_clearance_rechecks_external_ownership_at_each_movement_write(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _mayIssueMovement = {',text)
         self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',text)
         self.assertIn('&& {call _mayIssueMovement}',text)
@@ -835,7 +863,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;',release)
         self.assertIn('if (_saved isNotEqualTo [] && {!_externalTakeover} && {_ownedStop >= 0}',release)
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         release=source('cortexClearRelease')
         self.assertNotIn('_group setBehaviour "COMBAT"',clear)
         self.assertNotIn('_group setBehaviour (_job get "baseBehaviour")',clear)
@@ -897,14 +925,14 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('["deadline", time + 90]',text)
 
     def test_clearance_renews_safety_lease_only_on_observed_progress(self):
-        text=source('cortexClearBuilding')
+        text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _madeProgress=count _cleared != _before',text)
         self.assertIn('_job set ["deadline",(_job get "deadline") max (serverTime+120)]',text)
         self.assertIn('_job set ["lastProgressAt",serverTime]',text)
         self.assertNotIn('_job set ["deadline",serverTime+120]',text)
 
     def test_clearance_preserves_failure_evidence_after_release(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         release=source('cortexClearRelease')
         diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         self.assertIn('_group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared")',clear)
@@ -2662,7 +2690,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore) then {_x doFollow _leader}'))
     def test_building_handover_never_restores_or_locks_wait_state_after_takeover(self):
         clear_release=source('cortexClearRelease')
-        clear_job=source('cortexClearBuilding')
+        clear_job=source('cortexClearBuilding')+source('buildingOperationStep')
         garrison_release=source('cortexGarrisonRelease')
         garrison_apply=source('cortexGarrisonApplyLocal')
         # Replacement orders may set posture and speed independently. Cleanup only restores either
@@ -3396,7 +3424,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('setVariable ["WAIT_Convoy_LocalState",_navigation]',text)
 
     def test_building_clearance_bounds_topology_arrival_checks(self):
-        clear=source('cortexClearBuilding')
+        clear=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('private _visitBudget=(count _positions) min 24;',clear)
         self.assertIn('private _visitCursor=(_job getOrDefault ["visitCursor",0]) mod (count _positions);',clear)
         self.assertIn('_visitIndices pushBackUnique _claimed',clear)
