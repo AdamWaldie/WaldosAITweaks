@@ -28,7 +28,6 @@ if (count _previous > 0) then {
 private _operationAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _operationAnchor) then {_operationAnchor=leader _group};
 private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;
-if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact};
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
 private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
 private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
@@ -43,4 +42,16 @@ private _operation=createHashMapFromArray [
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
 _group setVariable ["WAIT_Operation",_operation,true];
 _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_generation,serverTime],true];
+// The new generation is now authoritative, so a still-live danger response can adopt MAINTAIN
+// without being mistaken for a stale operation. This preserves the committed route while keeping
+// the bounded combat posture across CONTACT -> manoeuvre/CQB/withdrawal transitions. A stale
+// posture is released rather than carried into unrelated work.
+if (_dangerPosture) then {
+    if (_liveDanger isEqualTo []) then {
+        [_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact;
+    } else {
+        _liveDanger params ["_dangerCause","_dangerPosition"];
+        [_operationAnchor,_dangerCause,_dangerPosition,"MAINTAIN"] call WAIT_fnc_DangerReact;
+    };
+};
 _operation

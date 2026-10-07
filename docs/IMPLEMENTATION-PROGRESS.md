@@ -103,3 +103,6 @@ The classification drives only a finite behaviour/combat-mode posture and schedu
 target selection and movement, so it cannot introduce a second route owner or a forced firing loop. `MAINTAIN`
 now means preserve the committed advance/flank/CQB/withdrawal route while still applying that bounded posture.
 Previously, the presence of any operation caused the reaction function to return without responding at all.
+Starting a new on-foot operation now reattaches any still-live danger context only after the new generation is
+authoritative; stale posture is released. Contact-to-manoeuvre transitions therefore do not briefly discard the
+combat response while waiting for another engine event.
