@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Release WAIT's finite scripted danger stance without overwriting a newer owner.
+ * Purpose: Release WAIT's finite weak danger stance without overwriting a newer owner.
  * Locality / Authority: Runs where the AI soldier is local when the engine danger FSM finishes.
  * Repeat/JIP: Repeat-safe and machine-local. Restores the recorded prior stance only while the actor
  * still has WAIT's exact applied stance and no player, Zeus or specialist controller has taken ownership.
@@ -24,5 +24,5 @@ private _prior=toUpperANSI (_lease param [0,"AUTO",[""]]);
 private _applied=toUpperANSI (_lease param [1,"",[""]]);
 if (_applied == "" || {toUpperANSI (unitPos _actor) != _applied}) exitWith {false};
 if !(_prior in ["AUTO","UP","MIDDLE","DOWN"]) then {_prior="AUTO"};
-_actor setUnitPos _prior;
+_actor setUnitPosWeak _prior;
 true

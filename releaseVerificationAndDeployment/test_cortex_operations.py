@@ -342,7 +342,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('toUpperANSI (unitPos _actor) != _applied',engine_release)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',engine_release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',engine_release)
-        self.assertIn('_actor setUnitPos _prior',engine_release)
+        self.assertIn('_actor setUnitPosWeak _prior',engine_release)
         forced_block=engine_act.split('// Forced orders and vehicle crews',1)[1].split('if (_mode == "IMMEDIATE")',1)[0]
         self.assertNotIn('setUnitPos ',forced_block)
         self.assertIn('_records select [0,12]',engine_select)
@@ -351,7 +351,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('else {"ASSESS"}',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:
             self.assertIn(mode,engine_mode+engine_fsm)
-        self.assertIn('_actor setUnitPos _desiredStance',engine_act)
+        self.assertIn('_actor setUnitPosWeak _desiredStance',engine_act)
+        self.assertIn('private _committedMover=',engine_act)
+        self.assertIn('_hardCover && {!_committedMover}',engine_act)
+        self.assertIn('committed operation movers are never forced prone',diagnostics)
         self.assertIn('WAIT_fnc_CortexZeusHeld',engine_act)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
             self.assertNotIn(forbidden,engine_act)
@@ -372,7 +375,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('reflexOnlyRecords=',diagnostics)
         self.assertIn('WAIT_Danger_EngineStanceLease',diagnostics)
         self.assertIn('server-local stance leases=',diagnostics)
-        self.assertIn('Scripted stances use exact finite leases',diagnostics)
+        self.assertIn('Immediate stances are weak, finite and exact-owned',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
@@ -381,6 +384,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_reflexUnit setUnitPos "AUTO";',reflex_fixture)
         self.assertNotIn('_reflexUnit setUnitPos "UP";',reflex_fixture)
         self.assertIn('toUpperANSI (unitPos _reflexUnit) == "AUTO"',reflex_fixture)
+        self.assertIn('DANGER-committed-mover-not-forced-prone',reflex_fixture)
+        self.assertIn('DANGER-committed-route-physical-continuity',reflex_fixture)
+        self.assertIn('WAIT_fnc_OperationStart',reflex_fixture)
+        self.assertIn('WAIT_fnc_CortexGroupMove',reflex_fixture)
         scheduler_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runScheduler.sqf').read_text(encoding='utf-8')
         danger_audit=scheduler_audit.split('// This section diagnoses the real FSM-to-existing-job bridge.',1)[1]
         self.assertIn('WAIT_GroupBrain',danger_audit)

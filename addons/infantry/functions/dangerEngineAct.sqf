@@ -1,10 +1,11 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Apply one bounded, exactly observable danger stance without taking movement, target or firing ownership.
+ * Purpose: Apply one bounded, low-priority danger stance without taking movement, target or firing ownership or arresting a committed operation.
  * Locality / Authority: Runs only for the local AI soldier after ownership and order classification.
- * Repeat/JIP: Uses one machine-local, expiring scripted-stance lease. A repeated danger response retains
+ * Repeat/JIP: Uses one machine-local, expiring weak-stance lease. A repeated danger response retains
  * the original authored stance and refreshes only WAIT's applied value. Native or external stance
- * changes invalidate the lease and are not overwritten. It never creates a movement, target or firing lease.
+ * changes invalidate the lease and are not overwritten. A committed mover is never forced prone.
+ * It never creates a movement, target or firing lease.
  * Arguments: 0: soldier <OBJECT>, objNull; 1: mode <STRING>, ASSESS; 2: selected record <ARRAY>, [].
  * Return Value: Number - short observation deadline in seconds.
  * Current callers: Engine-loaded infantry danger FSM action states.
@@ -22,6 +23,16 @@ private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIAT
 private _delay=(_delays getOrDefault [_mode,0.75]) + random 0.25;
 private _cause=_record param [0,-1,[0]];
 private _desiredStance="";
+private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+private _participants=if (count _operation > 0) then {_operation getOrDefault ["participants",[]]} else {[]};
+private _unavailable=if (count _operation > 0) then {_operation getOrDefault ["unavailable",[]]} else {[]};
+// A live route belongs to the common operation owner. Immediate danger may lower a mover's profile,
+// but a repeated explosion or suppression stream must not pin that actor prone and stall the route.
+private _committedMover=count _operation > 0
+    && {_actor in _participants}
+    && {!(_actor in _unavailable)}
+    && {(_operation getOrDefault ["route",[]]) isNotEqualTo []}
+    && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","MANOEUVRE","MOVING","TRAVEL","WITHDRAW"]};
 
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
@@ -29,10 +40,10 @@ private _desiredStance="";
 // script or controller changing the scripted stance invalidates WAIT's exact lease on release.
 if (_mode == "IMMEDIATE") then {
     private _hardCover=(getSuppression _actor > 0.55) || {_cause in [2,4]} || {currentCommand _actor == "STOP"};
-    _desiredStance=["MIDDLE","DOWN"] select _hardCover;
+    _desiredStance=["MIDDLE","DOWN"] select (_hardCover && {!_committedMover});
 };
 if (_mode == "HIDE") then {
-    _desiredStance=["MIDDLE","DOWN"] select (getSuppression _actor > 0.25 || {_cause in [5,6]});
+    _desiredStance=["MIDDLE","DOWN"] select (!_committedMover && {getSuppression _actor > 0.25 || {_cause in [5,6]}});
 };
 if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
     _desiredStance="MIDDLE";
@@ -53,7 +64,9 @@ if (_desiredStance != "") then {
         };
     };
     if (_mayApply) then {
-        _actor setUnitPos _desiredStance;
+        // Weak stance is deliberate: native combat AI and the active movement owner can override it
+        // immediately. WAIT records the exact applied value only so cleanup remains generation-safe.
+        _actor setUnitPosWeak _desiredStance;
         _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay]];
     };
 };

@@ -193,6 +193,7 @@ class AIModularityContracts(unittest.TestCase):
         for key in ['dangerBackend','turretPolicy','suppressionPolicy','launcherPolicy']:
             self.assertNotIn('"'+key+'"',compat)
         self.assertIn('exclusiveEngineFSM',diagnostics)
+        self.assertIn('Any other fsmDanger replacement is unsupported',diagnostics)
         self.assertNotIn('lambs_',lease.lower())
 class ExtendedSourceOwnershipContracts(unittest.TestCase):
     def test_standalone_foundation_requires_only_infrastructure(self):

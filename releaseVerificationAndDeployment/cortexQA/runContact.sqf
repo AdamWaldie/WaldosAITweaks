@@ -1,8 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests a real targetless explosion reflex and exact release, then real occlusion, physical exposure,
- * sight loss, post-contact flow and reacquisition without injected knowledge, including live contact
- * interrupting an active search.
+ * Tests a real targetless explosion reflex, exact release and danger during committed movement, then
+ * real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without injected
+ * knowledge, including live contact interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
  * Repeat/JIP: fresh actors and walls; public visual targets; removes only its own fixtures.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; required audit callbacks.
@@ -55,6 +55,37 @@ private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitio
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
     str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
 deleteVehicle _grenade;
+
+// Repeat the real engine stimulus while the same actor owns a committed WAIT route. The immediate
+// FSM may lower his profile, but its lease must never request DOWN and repeated danger must not
+// cancel, replace or arrest the operation's physical travel.
+private _movementStart=getPosATL _reflexUnit;
+private _movementDestination=_movementStart getPos [45,90];
+private _movementOperation=[_reflexGroup,"ADVANCE",_movementDestination,[_reflexUnit],[_movementDestination],"MANOEUVRE"] call WAIT_fnc_OperationStart;
+private _movementGeneration=_movementOperation getOrDefault ["generation",-1];
+[_reflexGroup,_movementDestination,4,"MOVE",_movementGeneration] call WAIT_fnc_CortexGroupMove;
+_reflexUnit setVariable ["WAIT_CortexQA_Target",_movementDestination,true];
+["Danger FSM: movement continuity","The soldier now follows a committed WAIT route through another real explosion. The danger reflex may crouch, but it must not request prone, replace the route or stop physical progress.",_movementDestination] call _phase;
+private _movementStarted=[{_reflexUnit distance2D _movementStart >= 4},20] call _wait;
+private _movementStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _movementGrenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _movementDanger=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _movementStatsBefore
+},12] call _wait;
+private _requestedProne=false;
+private _routeGenerationIntact=true;
+for "_sample" from 1 to 12 do {
+    sleep 0.25;
+    private _lease=_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]];
+    if (count _lease >= 2 && {toUpperANSI (_lease select 1) == "DOWN"}) then {_requestedProne=true};
+    private _currentOperation=_reflexGroup getVariable ["WAIT_Operation",createHashMap];
+    if (count _currentOperation == 0 || {(_currentOperation getOrDefault ["generation",-2]) != _movementGeneration}) then {_routeGenerationIntact=false};
+};
+private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] call _wait;
+["DANGER-committed-mover-not-forced-prone",_movementStarted && {_movementDanger} && {!_requestedProne},str [_requestedProne,unitPos _reflexUnit,stance _reflexUnit]] call _check;
+["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+deleteVehicle _movementGrenade;
+[_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
 deleteVehicle _reflexUnit;
 deleteGroup _reflexGroup;
 

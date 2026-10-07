@@ -10,7 +10,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | TERRAIN - Cross-cutting uneven-terrain movement and air attack | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | TERRAIN-BATTLE - Equal-force live battle on measured terrain | 0 | 0 | 0 | `runTerrain.sqf` | 0 | implemented_partial |
 | CORE - Master, exclusions and ownership | 3 | 1 | 32 | `runGates.sqf`, `runAddon.sqf` | 2 | implemented_partial |
-| COMPAT - COMPAT coexistence and Cortex fallback | 1 | 0 | 11 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 2 | implemented_partial |
+| COMPAT - Specialist ownership and alternative-controller handover | 0 | 0 | 9 | `runCompatibility.sqf`, `runBuildingComparison.sqf` | 1 | implemented_partial |
 | SCHED - Scheduler and distance tiers | 11 | 0 | 6 | `runScheduler.sqf`, `runPerformance.sqf`, `runPerformanceContact.sqf` | 3 | implemented_partial |
 | PROFILE - Behaviour profiles and aggression | 4 | 1 | 1 | `runProfiles.sqf` | 1 | implemented_partial |
 | SKILL - AI skill rebalance | 14 | 0 | 4 | `runMechanics.sqf` | 0 | implemented_partial |
@@ -18,7 +18,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | DECEL - Helicopter braking | 14 | 1 | 3 | `runDeceleration.sqf` | 0 | implemented_partial |
 | REGROUP - Survivor regroup | 9 | 0 | 2 | `runMechanics.sqf` | 0 | implemented_partial |
 | MEDICAL - Finite squad medical assistance | 4 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
-| CONTACT - Contact detection | 3 | 0 | 8 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
+| CONTACT - Contact detection | 3 | 0 | 13 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
 | POST - Post-contact search | 5 | 0 | 0 | `runMechanics.sqf`, `runContact.sqf` | 0 | implemented_partial |
 | FLANK - Flanking bounds | 8 | 0 | 4 | `runCombat.sqf` | 3 | implemented_partial |
 | CROSS - Road crossing | 1 | 0 | 1 | `runCrossing.sqf` | 0 | implemented_partial |
@@ -43,7 +43,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | HEARING - Gunfire area reports | 1 | 0 | 1 | `runSupport.sqf` | 0 | implemented_partial |
 | REPORT - Contact sharing | 4 | 0 | 4 | `runSupport.sqf` | 0 | implemented_partial |
 | REINFORCE - Reinforcement | 3 | 0 | 1 | `runSupport.sqf` | 0 | implemented_partial |
-| ART - Spotted artillery bursts | 13 | 0 | 15 | `runServer.sqf` | 0 | implemented_partial |
+| ART - Spotted artillery bursts | 13 | 0 | 18 | `runServer.sqf` | 0 | implemented_partial |
 | CB - Counter-battery | 10 | 0 | 3 | `runServer.sqf` | 0 | implemented_partial |
 | AIRBORNE - Parachute passengers | 6 | 0 | 4 | `runAirborne.sqf` | 0 | implemented_partial |
 | GARRISON - Garrison and dynamic AO | 1 | 0 | 3 | `runServer.sqf`, `runBuildingComparison.sqf` | 1 | implemented_partial |
@@ -51,7 +51,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | INVESTIGATE - Known-area investigation | 3 | 0 | 2 | `runSupport.sqf` | 0 | implemented_partial |
 | ASSAULT - Final assault | 2 | 0 | 0 | `runCombat.sqf` | 3 | implemented_partial |
 | ADVANCE - Bounding advance | 3 | 0 | 2 | `runCombat.sqf` | 2 | implemented_partial |
-| COORD - Coordinated assault | 1 | 0 | 10 | `runCoordinated.sqf` | 10 | implemented_partial |
+| COORD - Coordinated assault | 1 | 0 | 13 | `runCoordinated.sqf` | 10 | implemented_partial |
 | STANCE - Cover stance | 1 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
 | AMMO - Magazine sharing | 2 | 0 | 3 | `runMechanics.sqf` | 0 | implemented_partial |
 | GUNNERY - Vehicle threat priority | 1 | 0 | 0 | `runGunnery.sqf` | 1 | implemented_partial |
@@ -71,7 +71,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | COMBINED-ARMS - Contact-led combined-arms opportunity | 1 | 0 | 5 | `runCombinedArms.sqf` | 0 | implemented_partial |
 | COMBINED-OPERATION - Dynamic multi-squad combined operation | 0 | 0 | 0 | `runCombinedOperation.sqf` | 0 | implemented_partial |
 | ATTACK-FLARES - Attack-run approach and departure flares | 1 | 0 | 1 | `runAircraft.sqf` | 1 | implemented_partial |
-| AIR-ATTACK - Threat-aware finite aircraft attack patterns | 1 | 0 | 3 | `runAircraft.sqf` | 2 | implemented_partial |
+| AIR-ATTACK - Threat-aware finite aircraft attack patterns | 1 | 0 | 9 | `runAircraft.sqf` | 2 | implemented_partial |
 
 ## Required variants
 
@@ -110,11 +110,11 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Automation and open work:** runGates.sqf: five closed-gate refusal and no-movement checks, each followed by reopened physical arrival. All ten passed in runtime-20260927-032658. Player-led, Zeus and locality variants remain outstanding. Standalone addon readiness and catalogue assertions run in runAddon; ZEN notifications, setting changes, diagnostics and compatibility side effects still require live checks.
 
-### COMPAT - COMPAT coexistence and Cortex fallback
+### COMPAT - Specialist ownership and alternative-controller handover
 
-**Expected:** Without COMPAT, Cortex physically moves and holds the whole squad with no upstream dependency. With COMPAT loaded, its public Waypoints tasks are the primary garrison/CQB backend in both Danger ownership modes. Cortex never steals queued or active COMPAT movement, finite leases restore both false and true group baselines, a new HC owner renews or reconstructs semantic intent, Zeus interruption releases ownership, and every soldier physically follows the replacement order without old-route resurrection.
+**Expected:** WAIT physically moves and holds the complete squad using its own danger and building operations. Specialist actors are excluded while their controller is active. A finite independent movement lease preserves its exact baseline, survives owner migration and releases before Zeus replacement movement. No shared danger or building controller is supported.
 
-**Automation and open work:** runCompatibility.sqf stages physical standalone movement plus loaded-suite arbitration, exact baseline restoration, HC lease adoption/renewal/release and Zeus handover. runBuildingComparison.sqf adds physical COMPAT garrison/CQB participation and handover beside explicit native fallback cases. The launcher supplies paired absent/present arms through -CortexFocus compatibility and -IncludeCompatibility; use two HCs for the loaded arm. Earlier core ownership arms passed; the new building integration, ACE HC distribution, disconnect, JIP and broader terrain/mod combinations remain outstanding. Direct flank/advance, infantry and vehicle withdrawal, vehicle standoff, combined-ground movement and artillery scoot now acquire and release the same exact finite COMPAT/external controller ownership boundary; source regressions cover start, renewal, completion, expiry and locality resume. A loaded-suite physical batch across those owners remains pending.
+**Automation and open work:** runCompatibility.sqf checks the configured WAIT danger FSM, physical standalone movement, finite alternative-controller lease restoration and Zeus handover. runBuildingComparison.sqf tests only WAIT-owned garrison and CQB behaviour. Source regressions cover start, renewal, completion, expiry and locality resume. Packaged physical acceptance, HC distribution, disconnect, JIP and broader terrain/controller combinations remain pending.
 
 ### SCHED - Scheduler and distance tiers
 
@@ -162,7 +162,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable.
 
-**Automation and open work:** runContact.sqf: real wall occlusion, no hidden acquisition, enemy walks into view, natural recent sighting and contact phase. Added, not live-verified. Gate, occlusion-after-contact and owner variants remain outstanding; runCombat.sqf retained. Added physical re-occlusion, last-seen ageing and natural reacquisition of the same opponent. Saved after runtime 155242; not live-executed. Leader-event danger FSM is enabled by default. Queued: priority/expiry, sustained gunfire coalescing, no knowledge reveal, ordinary-order response, disable cleanup, Zeus takeover, leader replacement, external ownership and HC migration. It wakes the owner-local group tactics FSM; native engine danger observations remain inputs rather than a competing movement owner. Added scheduler diagnostic uses a fresh ordinary MOVE squad, real production discovery/listeners and its actual group job. It measures waking a sleeping job before its original deadline, priority/expiry, no target reveal, preserved route travel, disabled rejection, listener cleanup and Zeus priority. A HIT observation is submitted through the production API, not generated by a weapon impact; live real-event and combat efficacy variants remain pending.
+**Automation and open work:** runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.
 
 ### POST - Post-contact search
 
