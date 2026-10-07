@@ -217,7 +217,7 @@ class CfgFunctions {
             class ImprovedHelicopterLandingSetting {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingSetting.sqf";};
             class ImprovedHelicopterLandingConfigureServer {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\improvedHelicopterLandingConfigureServer.sqf";};
             class HelicopterDecelerationInit {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\helicopterDecelerationInit.sqf";};
-            class HelicopterDecelerationTrackLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\helicopterDecelerationTrackLocal.sqf";};
+            class HelicopterDecelerationStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\helicopterDecelerationStep.sqf";};
             class HelicopterDecelerationCorrectLocal {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\helicopterDecelerationCorrectLocal.sqf";};
         };
     };

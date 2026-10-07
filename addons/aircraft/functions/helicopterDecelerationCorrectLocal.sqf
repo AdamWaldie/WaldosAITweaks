@@ -26,7 +26,7 @@
  * Example: [_helicopter, speed _helicopter, getPosASL _helicopter # 2, {false}]
  *     spawn WAIT_fnc_HelicopterDecelerationCorrectLocal;
  * Result: Returns true after at least one bounded impulse, or false when no correction is applied.
- * Current caller: WAIT_fnc_HelicopterDecelerationTrackLocal.
+ * Current caller: WAIT_fnc_HelicopterDecelerationStep when its sampled braking envelope is met.
  */
 
 params [

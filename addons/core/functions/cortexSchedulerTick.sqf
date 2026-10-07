@@ -3,8 +3,10 @@
  * Repeat/JIP: Each invocation processes due jobs within the local budget. Joining owners have independent queues; jobs are not replayed across machines.
  * Runs due Smart AI Pass jobs on this machine with a soft time budget between jobs.
  *
- * Called by one CBA handler every frame on each AI-owning machine (server and headless clients
- * only). The cached deadline makes frames with no due work constant-time. At least one due job runs
+ * Called by one CBA handler every frame on a machine with an active owner-local subsystem. Ground
+ * tactics normally run on the server or a headless client; an interface machine only participates
+ * when it genuinely owns an eligible aircraft. The cached deadline makes frames with no due work
+ * constant-time. At least one due job runs
  * on a due frame; the rest run only while
  * WAIT_AIPass_TickBudgetMs remains. Jobs that do not fit wait for the next tick, which keeps
  * new jobs from starting after the budget is spent. A running job cannot be pre-empted and can
@@ -34,7 +36,8 @@
 
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active", false])
     && {!(missionNamespace getVariable ["WAIT_AI_RebalanceActive", false])}
-    && {!(missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false])}) exitWith {};
+    && {!(missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false])}
+    && {!(missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive", false])}) exitWith {};
 private _jobs = missionNamespace getVariable ["WAIT_AIPass_Jobs", []];
 private _pending = missionNamespace getVariable ["WAIT_AIPass_PendingJobs", []];
 private _now = time;
@@ -74,14 +77,15 @@ private _earliest = -1;
         private _enabledFlag = switch (_subsystem) do {
             case "SKILLS": {"WAIT_AI_RebalanceActive"};
             case "CONVOY": {"WAIT_Convoy_SchedulerActive"};
+            case "AIRCRAFT": {"WAIT_Aircraft_SchedulerActive"};
             default {"WAIT_AIPass_Active"};
         };
         private _enabled = missionNamespace getVariable [_enabledFlag, false];
-        // Skill refresh is intentionally live during a tactical pause. Convoys are likewise
-        // safety-critical: a column must retain its current native route/hold rather than being
-        // made stale by an unrelated ENDEX or safe-start delay.
+        // Skill refresh is intentionally live during a tactical pause. Convoys and aircraft are
+        // likewise safety-critical: existing motion assistance must not become stale because an
+        // unrelated infantry ENDEX or safe-start gate is active.
         private _jobPaused = _paused && {!_skillsJob};
-        if (_subsystem == "CONVOY") then {_jobPaused=false};
+        if (_subsystem in ["CONVOY", "AIRCRAFT"]) then {_jobPaused=false};
         private _group = _state getOrDefault ["group", grpNull];
         private _stale = !_enabled || {!isNull _group && {!local _group || {(_state getOrDefault ["ownerEpoch", -1]) != (_group getVariable ["WAIT_AIPass_Epoch", 0])}}};
         private _callbackStarted=diag_tickTime;

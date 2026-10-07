@@ -3601,17 +3601,34 @@ class CortexOperations(unittest.TestCase):
         base=ROOT/'addons/aircraft/functions'
         init=(base/'helicopterDecelerationInit.sqf').read_text(encoding='utf-8')
         self.assertIn('GenerationLocal",0])+1',init)
-        self.assertIn('GenerationLocal",0]] spawn WAIT_fnc_HelicopterDecelerationTrackLocal',init)
-        for name in ['helicopterDecelerationTrackLocal.sqf','helicopterDecelerationCorrectLocal.sqf']:
-            text=(base/name).read_text(encoding='utf-8')
-            self.assertIn('["_generation",-1,[0]]',text)
-            self.assertIn('WAIT_Cortex_AirAttackJob',text)
-            cleanup=text[text.rindex('if (!isNull _aircraft'):]
-            self.assertIn('local _aircraft',cleanup)
-            self.assertIn('== _generation',cleanup)
-        tracker=(base/'helicopterDecelerationTrackLocal.sqf').read_text(encoding='utf-8')
-        after_sleep=tracker.split('uiSleep _sampleInterval;',1)[1]
-        self.assertLess(after_sleep.index('!= _generation'),after_sleep.index('private _speed'))
+        self.assertIn('WAIT_fnc_HelicopterDecelerationStep',init)
+        self.assertIn('["subsystem", "AIRCRAFT"]',init)
+        self.assertIn('WAIT_Aircraft_SchedulerActive',init)
+        step=(base/'helicopterDecelerationStep.sqf').read_text(encoding='utf-8')
+        self.assertIn("getOrDefault ['generation',-1]",step)
+        self.assertIn('WAIT_Cortex_AirAttackJob',step)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',step)
+        self.assertNotIn('while {',step)
+        self.assertNotIn('uiSleep',step)
+        correction=(base/'helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
+        self.assertIn('["_generation",-1,[0]]',correction)
+        self.assertIn('WAIT_Cortex_AirAttackJob',correction)
+        cleanup=correction[correction.rindex('if (!isNull _aircraft'):]
+        self.assertIn('local _aircraft',cleanup)
+        self.assertIn('== _generation',cleanup)
+        self.assertFalse((base/'helicopterDecelerationTrackLocal.sqf').exists())
+
+    def test_aircraft_scheduler_is_independent_from_tactical_master_gate(self):
+        scheduler=source('cortexSchedulerTick')
+        reconcile=source('schedulerReconcile')
+        callback=source('aiTweaksSettingChanged')
+        self.assertIn('WAIT_Aircraft_SchedulerActive',scheduler)
+        self.assertIn('case "AIRCRAFT": {"WAIT_Aircraft_SchedulerActive"}',scheduler)
+        self.assertIn('case "AIRCRAFT": {_aircraft};',reconcile)
+        self.assertIn('if (_subsystem in ["CONVOY", "AIRCRAFT"]) then {_jobPaused=false};',scheduler)
+        self.assertIn('WAIT_HelicopterDeceleration_GenerationLocal", (_x getVariable',callback)
+        self.assertIn('WAIT_Aircraft_SchedulerActive", false',callback)
+        self.assertIn('WAIT_fnc_SchedulerReconcile',callback)
 
     def test_landing_tracker_generation_prevents_stale_owner_cleanup(self):
         base=ROOT/'addons/aircraft/functions'
@@ -3652,7 +3669,7 @@ class CortexOperations(unittest.TestCase):
         helper=source('cortexExternalTakeover')
         for marker in ['remoteControlled _x','bis_fnc_moduleRemoteControl_owner']:
             self.assertIn(marker,helper)
-        deceleration=(ROOT/'addons/aircraft/functions/helicopterDecelerationTrackLocal.sqf').read_text(encoding='utf-8')
+        deceleration=(ROOT/'addons/aircraft/functions/helicopterDecelerationStep.sqf').read_text(encoding='utf-8')
         correction=(ROOT/'addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf').read_text(encoding='utf-8')
         landing=(ROOT/'addons/aircraft/functions/improvedHelicopterLandingExecuteLocal.sqf').read_text(encoding='utf-8')
         self.assertIn('WAIT_fnc_CortexExternalTakeover',deceleration)
@@ -3679,7 +3696,7 @@ class CortexOperations(unittest.TestCase):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runDeceleration.sqf').read_text(encoding='utf-8')
         self.assertLess(text.index('private _startSpeed=abs speed'), text.index('_wp setWaypointPosition'))
         self.assertLess(text.index('_id+": braking"'), text.index('private _startSpeed=abs speed'))
-        for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal']:
+        for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal']:
             code=next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
             self.assertIn('WAIT_HelicopterDeceleration_IncludeVTOL',code)
 
@@ -4443,7 +4460,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('exitWith {}',air_guard)
 
     def test_cortex_air_leases_exclude_other_flight_controllers(self):
-        for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
+        for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')
@@ -4451,7 +4468,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_Cortex_MissileDefenceActive',text,name)
 
     def test_direct_zeus_aircraft_orders_exclude_auxiliary_flight_controllers(self):
-        for name in ['helicopterDecelerationTrackLocal','helicopterDecelerationCorrectLocal',
+        for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',
                      'improvedHelicopterLandingTrackLocal','improvedHelicopterLandingExecuteLocal']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')

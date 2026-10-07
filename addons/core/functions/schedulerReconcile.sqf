@@ -5,12 +5,13 @@
  * Repeat/JIP: Idempotent. Each joining owner creates its own callback after effective settings readiness.
  * Arguments: None.
  * Return Value: BOOL - true while at least one local runtime needs the scheduler.
- * Current callers: CortexInit/Stop and AIRebalanceInit/Stop.
+ * Current callers: CortexInit/Stop, AIRebalanceInit/Stop, convoy lifecycle and owner-local aircraft setup.
  * Example: [] call WAIT_fnc_SchedulerReconcile;
  */
 private _tactics = missionNamespace getVariable ["WAIT_AIPass_Active", false];
 private _skills = missionNamespace getVariable ["WAIT_AI_RebalanceActive", false];
 private _convoy = missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false];
+private _aircraft = missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive", false];
 private _generation = missionNamespace getVariable ["WAIT_AI_LightingGeneration", 0];
 private _earliest = -1;
 {
@@ -19,6 +20,7 @@ private _earliest = -1;
         switch (_state getOrDefault ["subsystem", "TACTICS"]) do {
             case "SKILLS": {_skills && {(_state getOrDefault ["generation", -1]) == _generation}};
             case "CONVOY": {_convoy};
+            case "AIRCRAFT": {_aircraft};
             default {_tactics};
         }
     };
@@ -30,7 +32,7 @@ private _earliest = -1;
 } forEach ["WAIT_AIPass_Jobs", "WAIT_AIPass_PendingJobs"];
 missionNamespace setVariable ["WAIT_AIPass_NextJobDue", _earliest];
 private _handle = missionNamespace getVariable "WAIT_AIPass_SchedulerHandle";
-if (_tactics || {_skills} || {_convoy}) then {
+if (_tactics || {_skills} || {_convoy} || {_aircraft}) then {
     if (isNil "_handle") then {
         missionNamespace setVariable ["WAIT_AIPass_SchedulerHandle",
             [{[] call WAIT_fnc_CortexSchedulerTick}, 0] call CBA_fnc_addPerFrameHandler];
@@ -41,4 +43,4 @@ if (_tactics || {_skills} || {_convoy}) then {
         missionNamespace setVariable ["WAIT_AIPass_SchedulerHandle", nil];
     };
 };
-_tactics || {_skills} || {_convoy}
+_tactics || {_skills} || {_convoy} || {_aircraft}

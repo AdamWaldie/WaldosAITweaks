@@ -310,7 +310,7 @@
       "production_sources": [
         "addons/aircraft/functions/helicopterDecelerationCorrectLocal.sqf",
         "addons/aircraft/functions/helicopterDecelerationInit.sqf",
-        "addons/aircraft/functions/helicopterDecelerationTrackLocal.sqf"
+        "addons/aircraft/functions/helicopterDecelerationStep.sqf"
       ]
     },
     {

@@ -44,7 +44,21 @@ if (_name find "WAIT_AIRebalance_" == 0 || {_name in ["WAIT_AI_InfantryDispersio
 if (_name == "WAIT_ImprovedHelicopterLanding_Enable" && {_value}) then {
     [] call WAIT_fnc_ImprovedHelicopterLandingInit;
 };
-if (_name == "WAIT_HelicopterDeceleration_Enable" && {_value}) then {
-    [] call WAIT_fnc_HelicopterDecelerationInit;
+if (_name == "WAIT_HelicopterDeceleration_Enable") then {
+    if (_value) then {
+        [] call WAIT_fnc_HelicopterDecelerationInit;
+        private _install = missionNamespace getVariable ["WAIT_HelicopterDeceleration_InstallLocal", {}];
+        {if (local _x) then {[_x] call _install}} forEach vehicles;
+    } else {
+        // Retire generations before removing their jobs.  A re-enable therefore creates fresh
+        // owner-local sampling rather than retaining a stale tracked flag or correction lease.
+        {if (local _x && {_x isKindOf "Helicopter" || {_x isKindOf "VTOL_Base_F"}}) then {
+            _x setVariable ["WAIT_HelicopterDeceleration_GenerationLocal", (_x getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0])+1];
+            _x setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", false];
+            _x setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
+        }} forEach vehicles;
+        missionNamespace setVariable ["WAIT_Aircraft_SchedulerActive", false];
+        [] call WAIT_fnc_SchedulerReconcile;
+    };
 };
 true
