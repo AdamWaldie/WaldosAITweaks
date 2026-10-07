@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
- * Checks contact dismount, calm remount and damaged-armour withdrawal using live vehicles, including
- * an active withdrawal migrating from the server to a real headless owner before Zeus replacement.
+ * Checks targetless-danger and contact dismount, calm remount and damaged-armour withdrawal using live
+ * vehicles, including an active withdrawal migrating from the server to a real headless owner before Zeus replacement.
  * Locality/authority: scheduled server creates disposable fixtures; production Cortex code commands
  * each current owner, and the migration case deliberately transfers its crew group and vehicle.
  * Repeat/JIP: fresh fixtures and public observer state; caller restores tuning, actors are deleted.
@@ -22,6 +22,81 @@ params ["_check","_phase","_wait"];
 ]] call WAIT_fnc_CortexTuning;
 private _pin={params ["_group"]; _group setVariable ["WAIT_Headless_ExcludeGroup",true,true]; _group setVariable ["acex_headless_blacklist",true,true]; {_x setVariable ["acex_headless_blacklist",true,true]} forEach units _group};
 private _recordVehicleCheck = _check;
+
+// A separate, enemy-free fixture proves that a native explosion can invoke only passenger safety.
+// It does not inject danger state or target knowledge, and it starts moving before the stimulus.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleDismount_Enable",true],
+    ["WAIT_AIPass_VehicleRemount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",true],
+    ["WAIT_AIPass_VehicleGunnery_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+private _dangerTruck=createVehicle ["O_Truck_03_transport_F",[1600,900,0],[],0,"NONE"];
+createVehicleCrew _dangerTruck;
+_dangerTruck allowDamage false;
+private _dangerCrewGroup=group driver _dangerTruck;
+[_dangerCrewGroup] call _pin;
+_dangerCrewGroup setCombatMode "BLUE";
+private _dangerPassengerGroup=createGroup [east,true];
+[_dangerPassengerGroup] call _pin;
+_dangerPassengerGroup setCombatMode "BLUE";
+private _dangerPassengers=[];
+for "_i" from 0 to 1 do {
+    private _unit=_dangerPassengerGroup createUnit ["O_Soldier_F",[1600+_i*2,894,0],[],0,"NONE"];
+    _unit allowDamage false;
+    _unit setVariable ["WAIT_CortexQA_Label",format ["TARGETLESS DANGER PASSENGER %1",_i+1],true];
+    _unit assignAsCargo _dangerTruck;
+    [_unit] orderGetIn true;
+    _unit moveInCargo _dangerTruck;
+    _dangerPassengers pushBack _unit;
+};
+private _dangerCrew=crew _dangerTruck select {group _x == _dangerCrewGroup};
+private _dangerWaypoint=_dangerCrewGroup addWaypoint [[1850,900,0],0];
+_dangerWaypoint setWaypointType "MOVE";
+_dangerWaypoint setWaypointCompletionRadius 8;
+_dangerCrewGroup setCurrentWaypoint _dangerWaypoint;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_dangerPassengers+_dangerCrew,true];
+["Vehicle targetless danger","The moving truck has no enemy. A real explosion must produce a bounded safe stop and passenger exit while its operating crew stays aboard. It must not invent a target, start gunnery or withdraw the vehicle.",[1600,900,0]] call _phase;
+private _dangerReady=[{
+    missionNamespace getVariable ["WAIT_AIPass_Active",false]
+        && {_dangerCrewGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {_dangerPassengerGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {abs speed _dangerTruck > 5}
+},45] call _wait;
+["DANGER-VEHICLE-fixture-moving",_dangerReady,str [speed _dangerTruck,getPosATL _dangerTruck]] call _check;
+private _dangerStart=getPosATL _dangerTruck;
+private _dangerProjectile=createVehicle ["GrenadeHand",_dangerStart vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _dangerSubmitted=false;
+private _dangerLease=false;
+private _dangerStopped=false;
+private _dangerExited=[{
+    private _stats=_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    _dangerSubmitted=_dangerSubmitted || {(_stats getOrDefault ["acceptedRecords",0]) > 0 && {"EXPLOSION" in (_stats getOrDefault ["lastCauses",[]])}};
+    private _crewState=_dangerCrewGroup getVariable ["WAIT_AIPass_State",createHashMap];
+    _dangerLease=_dangerLease || {count (_crewState getOrDefault ["dangerDismount",[]]) == 2}
+        || {count (_dangerTruck getVariable ["WAIT_Cortex_OnboardDanger",[]]) == 4};
+    _dangerStopped=_dangerStopped || {abs speed _dangerTruck < 1};
+    _dangerPassengers findIf {!alive _x || {vehicle _x == _dangerTruck}} < 0
+},45] call _wait;
+private _dangerPassengerState=_dangerPassengerGroup getVariable ["WAIT_AIPass_State",createHashMap];
+private _dangerOwnedExit=_dangerPassengers findIf {
+    private _passenger=_x;
+    (_dangerPassengerState getOrDefault ["dismounted",[]]) findIf {(_x select 0) == _passenger && {(_x select 1) == _dangerTruck}} < 0
+} < 0;
+private _dangerNoTarget=isNull (assignedTarget (driver _dangerTruck)) && {isNull (attackTarget (driver _dangerTruck))};
+private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []
+    && {(_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) != "RETREAT"};
+["DANGER-VEHICLE-native-explosion",_dangerSubmitted,str (_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-VEHICLE-bounded-safety-lease",_dangerLease,str [_dangerCrewGroup getVariable ["WAIT_AIPass_State",createHashMap],_dangerTruck getVariable ["WAIT_Cortex_OnboardDanger",[]]]] call _check;
+["DANGER-VEHICLE-safe-stop",_dangerStopped,str [speed _dangerTruck,_dangerTruck getVariable ["WAIT_Cortex_DismountStopRequest",[]]]] call _check;
+["DANGER-VEHICLE-passengers-physically-exit",_dangerReady && {_dangerExited} && {_dangerOwnedExit},str (_dangerPassengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x]})] call _check;
+["DANGER-VEHICLE-operating-crew-retained",_dangerCrew findIf {!alive _x || {vehicle _x != _dangerTruck}} < 0,str (_dangerCrew apply {vehicle _x})] call _check;
+["DANGER-VEHICLE-no-invented-combat",_dangerNoTarget && {_dangerNoWithdrawal},str [assignedTarget (driver _dangerTruck),attackTarget (driver _dangerTruck),_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]]] call _check;
+deleteVehicle _dangerProjectile;
+{deleteVehicle _x} forEach (_dangerPassengers+_dangerCrew+[_dangerTruck]);
+deleteGroup _dangerPassengerGroup;
+deleteGroup _dangerCrewGroup;
+
 {
 _x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false]];
 private _layout = ["shared crew/passenger group","separate passenger squad"] select _separate;
@@ -135,7 +210,7 @@ private _safeStopObserved=false;
 private _dismounted=[{
     _peakExitSpeed=_peakExitSpeed max abs speed _truck;
     _safeStopObserved=_safeStopObserved || {abs speed _truck < 1};
-    _passengers findIf {!alive _x || {vehicle _x != _x}} < 0
+    _passengers findIf {!alive _x || {vehicle _x != _truck}} < 0
 },35] call _wait;
 ["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,format ["peakSpeed=%1 stationaryRequested=%2",_peakExitSpeed,_stationary]] call _check;
 if (_stationary) then {["DISMOUNT-fixture-stationary-held",_peakExitSpeed < 1,format ["peakSpeed=%1; movement invalidates the stationary comparison",_peakExitSpeed]] call _check};

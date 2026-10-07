@@ -18,7 +18,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | DECEL - Helicopter braking | 14 | 1 | 3 | `runDeceleration.sqf` | 0 | implemented_partial |
 | REGROUP - Survivor regroup | 9 | 0 | 2 | `runMechanics.sqf` | 0 | implemented_partial |
 | MEDICAL - Finite squad medical assistance | 4 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
-| CONTACT - Contact detection | 3 | 0 | 13 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
+| CONTACT - Contact detection | 3 | 0 | 14 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
 | POST - Post-contact search | 5 | 0 | 0 | `runMechanics.sqf`, `runContact.sqf` | 0 | implemented_partial |
 | FLANK - Flanking bounds | 8 | 0 | 4 | `runCombat.sqf` | 3 | implemented_partial |
 | CROSS - Road crossing | 1 | 0 | 1 | `runCrossing.sqf` | 0 | implemented_partial |
@@ -162,7 +162,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable.
 
-**Automation and open work:** runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.
+**Automation and open work:** runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier and a solid wall on the far side from the blast. It requires native engine-FSM submission, an observed physical crouch/prone reflex, an actual bounded move behind cover, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. The production group step may issue that cover move only to an idle actor with no native command, active WAIT operation, Zeus hold or specialist owner; casualty and scream evidence cannot authorise it, and exact-generation cleanup runs during ordinary and external handover. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.
 
 ### POST - Post-contact search
 
@@ -228,7 +228,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Only safe, capable passengers unload; drivers/gunners remain aboard and moving/airborne/water cases refuse unsafe exits.
 
-**Automation and open work:** runVehicleDrills.sqf: runtime 165401 shared passengers exited with dismount disabled; fresh enabled shared exit had no Cortex dismount records. Separate squads failed natural-contact prerequisites and did not exit. Saved native-AI baselines and GetOut diagnostics distinguish engine exits from Cortex commands; unexecuted. No reliable acceptance yet.
+**Automation and open work:** runVehicleDrills.sqf retains the visible-contact comparisons and adds an enemy-free moving truck with separate crew and passenger groups. A real grenade explosion must enter through the engine danger FSM, create the bounded passenger-safety lease, stop the vehicle, physically dismount only controller-owned cargo, retain operating crew and avoid invented targeting or withdrawal. The prior always-true seat predicate is corrected. Saved, not live-validated; no reliable acceptance yet.
 
 ### REMOUNT - Contact passenger remount
 

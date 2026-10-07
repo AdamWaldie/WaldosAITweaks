@@ -630,7 +630,7 @@
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runVehicleDrills.sqf: runtime 165401 shared passengers exited with dismount disabled; fresh enabled shared exit had no Cortex dismount records. Separate squads failed natural-contact prerequisites and did not exit. Saved native-AI baselines and GetOut diagnostics distinguish engine exits from Cortex commands; unexecuted. No reliable acceptance yet.",
+      "automation": "runVehicleDrills.sqf retains the visible-contact comparisons and adds an enemy-free moving truck with separate crew and passenger groups. A real grenade explosion must enter through the engine danger FSM, create the bounded passenger-safety lease, stop the vehicle, physically dismount only controller-owned cargo, retain operating crew and avoid invented targeting or withdrawal. The prior always-true seat predicate is corrected. Saved, not live-validated; no reliable acceptance yet.",
       "executable_sources": [
         "runVehicleDrills.sqf"
       ],

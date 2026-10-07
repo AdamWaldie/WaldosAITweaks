@@ -123,7 +123,7 @@ Tactical drills use a separate fifteen-second same-key recovery before the exist
 movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
 persistent callback failure still releases owned PATH, behaviour and ROE state through common cleanup.
 
-The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
+The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. WAIT's cause assessment, finite response handoff and one bounded idle-actor cover move are implemented; physical transition, interruption and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 An unidentified hit, explosion or suppression event may wake the finite CONTACT phase and preserve its approximate danger position for immediate safety decisions. It cannot authorise a route, weapon target, artillery request, reinforcement request, coordinated manoeuvre or later search. Those layers require native enemy knowledge. A hazard-only engagement returns directly to calm when its finite contact interval ends. Engine-confirmed contacts use the observer's believed target position, never the observer position, so the handoff cannot manufacture a co-located threat or a zero-length approach.
 
@@ -140,9 +140,22 @@ suppression, casualty and scream observations. One owner-local EnemyDetected obs
 engine-confirmed contact identity already known by a living local group member. It is removed on loss of ownership
 or shutdown and never reveals or assigns a target.
 The engine FSM explicitly branches through forced-command, vehicle, immediate, hide, engage and assess states.
-Immediate and hide states may apply only short, exactly restorable scripted stances; they never issue a destination, target or firing
-command. Forced commands, player/Zeus control, external specialist ownership, disabled movement and CARELESS
-behaviour terminate or bypass WAIT action. This keeps the engine response finite while the group brain owns tactics.
+Its responsibility map is deliberately narrow:
+
+| State | WAIT responsibility |
+|---|---|
+| `ASSESS` | Record bounded geometry and expiry only. It never moves, reveals, targets or fires. |
+| `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move one genuinely idle exposed actor to nearby physical cover; it does not start another worker. |
+| `HIDE` | Treat casualty and scream evidence as mobile awareness. It may use a finite crouch but cannot request cover movement from those causes. |
+| `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. |
+| `VEHICLE` | Record and wake only. The finite vehicle layer owns safe stopping, eligible passenger exit, withdrawal and gunnery under their separate gates. |
+| `FORCED` | Yield to the current native command, flee state or external owner; WAIT records the observation but issues no posture or movement command. |
+| release | Restore only the exact stance or cover lease still owned by this FSM generation. A newer order is never overwritten. |
+
+The engine states themselves never issue a destination, target or firing command. Forced commands, player/Zeus control,
+external specialist ownership, disabled movement and CARELESS behaviour terminate or bypass WAIT action. This keeps
+the engine response finite while the group brain owns tactics. The optional cover move runs inside that already-budgeted
+group tick, refuses an active operation or native command and cannot create a second movement scheduler.
 The queued group assessment repeats the forced-command and mounted checks before changing behaviour or ROE, so
 the delayed handoff cannot undo the immediate FSM's decision to yield.
 An eligible first engine event starts that same generation-owned group brain immediately when the periodic discovery
@@ -163,7 +176,8 @@ outside normal player-distance range. It still reads only native engine knowledg
 scan or route owner. The existing job is also exempt from the low-FPS cadence backoff for that response lease;
 optional work remains backoff-limited. Expensive knowledge, geometry and tactical decisions retain the shared scheduler budget and normal
 participation gates. The configured engine danger FSM replaces the base soldier danger slot while WAIT is loaded;
-physical acceptance is still required before this proves useful reaction or CQB behaviour.
+the queued targetless-explosion audit requires a real engine event, physical cover travel and exact lease release, but
+has not yet supplied live acceptance evidence.
 
 Owner epochs and FSM generations prevent old callbacks from acting after transfer or restart. Zeus
 hold-token changes, replacement waypoints and active external-controller ownership terminate the FSM and

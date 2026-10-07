@@ -396,6 +396,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
+        lifecycle=(ROOT/'docs/ADDON-LIFECYCLE.md').read_text(encoding='utf-8')
+        for state in ['`ASSESS`','`IMMEDIATE`','`HIDE`','`ENGAGE`','`VEHICLE`','`FORCED`','release']:
+            self.assertIn(state,lifecycle)
+        self.assertIn('cannot request cover movement from those causes',lifecycle)
+        self.assertIn('cannot create a second movement scheduler',lifecycle)
         contact_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
         reflex_fixture=contact_audit.split('// Prove the engine-loaded FSM',1)[1].split('deleteGroup _reflexGroup;',1)[0]
         self.assertIn('_reflexUnit setUnitPos "AUTO";',reflex_fixture)
@@ -5146,6 +5151,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('DISMOUNT-fixture-controller-ready'),text.index('private _enemyGroup=createGroup'))
         for item in ['DISMOUNT-fixture-stationary-held','DISMOUNT-fixture-safe-stop-observed','REMOUNT-group-membership-independent','REMOUNT-original-groups-retained']:
             self.assertIn(item,text)
+        for item in ['DANGER-VEHICLE-fixture-moving','DANGER-VEHICLE-native-explosion',
+                     'DANGER-VEHICLE-bounded-safety-lease','DANGER-VEHICLE-safe-stop',
+                     'DANGER-VEHICLE-passengers-physically-exit','DANGER-VEHICLE-operating-crew-retained',
+                     'DANGER-VEHICLE-no-invented-combat']:
+            self.assertIn(item,text)
+        self.assertIn('createVehicle ["GrenadeHand"',text)
+        self.assertIn('abs speed _dangerTruck > 5',text)
+        self.assertNotIn('vehicle _x != _x',text)
 
     def test_stationary_passenger_comparison_is_explicit_and_additive(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()

@@ -197,7 +197,7 @@ if (_operatingCrew && {!_precisionExcluded}) then {
         private _dispersionSetting=["WAIT_AI_VehicleCrewDispersion","WAIT_AI_AirCrewDispersion"] select (_vehicle isKindOf "Air");
         private _dispersionDefault=[3.5,4.25] select (_vehicle isKindOf "Air");
         private _dispersion = ((missionNamespace getVariable [_dispersionSetting, _dispersionDefault]) max 1) min 7;
-        // Better profiles still matter: general skill trmeleeBackend up to 25 percent from the configured
+        // Better profiles still matter: general skill trims up to 25 percent from the configured
         // coefficient while never making a crew more precise than the mission's original baseline.
         private _profileFactor = 1 - (0.25 * (_unit skill "general"));
         _unit setCustomAimCoef ((_dispersion * _profileFactor) max (_unit getVariable ["WAIT_AI_OriginalAimCoef", 1]));

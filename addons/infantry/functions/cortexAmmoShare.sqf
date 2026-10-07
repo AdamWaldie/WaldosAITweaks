@@ -20,7 +20,7 @@
  *
  * Example:
  * [_group, _state] call WAIT_fnc_CortexAmmoShare;
- * Result: the rifleman who has shot hmeleeBackendelf dry gets a magazine from the machine gunner's assistant.
+ * Result: the rifleman who has shot himself dry gets a magazine from the machine gunner's assistant.
  *
  * Current caller: WAIT_fnc_CortexGroupTick.
  */
