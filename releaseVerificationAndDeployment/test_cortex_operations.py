@@ -2176,6 +2176,22 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_members findIf {isPlayer _x} >= 0)\n||', takeover)
         self.assertNotIn('{_members findIf {isPlayer _x} >= 0}\n||', takeover)
 
+    def test_packaged_audit_stops_after_command_boundary_preflight_failure(self):
+        addon = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runAddon.sqf').read_text(encoding='utf-8')
+        server = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_CortexExternalTakeover', addon)
+        self.assertIn('ADDON-command-boundary-boolean', addon)
+        self.assertIn('_takeoverResult isEqualType true', addon)
+        addon_call = '[_check] call compile preprocessFileLineNumbers "cortexQAAddon.sqf";'
+        self.assertIn(addon_call, server)
+        preflight = server.index(addon_call)
+        abort = server.index('if (_failures isNotEqualTo []) exitWith {', preflight)
+        first_fixture = server.index('private _group = grpNull;', preflight)
+        self.assertLess(abort, first_fixture)
+        early = server[abort:first_fixture]
+        self.assertIn('WAIT_CortexQA_ServerDone', early)
+        self.assertIn('WAIT CORTEX QA SERVER COMPLETE', early)
+
     def test_flank_support_lane_selection_is_spatially_bounded(self):
         flank=source('cortexFlankStart')
         self.assertIn('_enemyPos nearEntities ["Man",500]',flank)

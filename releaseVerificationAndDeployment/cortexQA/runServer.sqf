@@ -35,6 +35,14 @@ private _readyUntil = diag_tickTime + 120;
 waitUntil {sleep 0.5; missionNamespace getVariable ["WAIT_CortexQA_GuideReady",false] || {diag_tickTime > _readyUntil}};
 private _check = {params ["_id","_ok",["_detail",""]]; diag_log format ["WAIT CORTEX QA|%1|%2|%3",_id,["FAIL","PASS"] select _ok,_detail]; if (!_ok) then {_failures pushBack _id}; private _results = missionNamespace getVariable ["WAIT_CortexQA_Results",[]]; _results pushBack [_id,["FAIL","PASS"] select _ok]; missionNamespace setVariable ["WAIT_CortexQA_Results",_results,true]};
 [_check] call compile preprocessFileLineNumbers "cortexQAAddon.sqf";
+// Addon and command-boundary prerequisites are authoritative for every later case. Abort this
+// packaged batch immediately when one fails; otherwise a shared runtime error can turn hundreds
+// of physical checks into misleading movement timeouts and waste an entire long-form run.
+if (_failures isNotEqualTo []) exitWith {
+    missionNamespace setVariable ["WAIT_CortexQA_ServerDone",true,true];
+    missionNamespace setVariable ["WAIT_CortexQA_ServerFailures",_failures,true];
+    diag_log format ["WAIT CORTEX QA SERVER COMPLETE: %1 finding(s) %2",count _failures,_failures];
+};
 private _wait = {params ["_condition",["_seconds",15]]; private _until = diag_tickTime + _seconds; waitUntil {sleep 0.2; call _condition || {diag_tickTime >= _until}}; call _condition};
 private _saved = createHashMapFromArray (([] call WAIT_fnc_CortexTuningSpec) apply {[_x select 0,missionNamespace getVariable [_x select 0,_x select 5]]});
 if (_focus == "terrain") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATerrain.sqf"};
