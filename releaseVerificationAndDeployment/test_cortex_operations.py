@@ -2161,6 +2161,16 @@ class CortexOperations(unittest.TestCase):
             self.assertNotIn('vehicle _x == _x', text)
             self.assertNotIn('vehicle _x != _x', text)
 
+    def test_recurring_infantry_filters_use_direct_on_foot_checks(self):
+        names = [
+            'cortexGroupTick', 'cortexStance', 'cortexAntiArmour',
+            'cortexFlankStep', 'rebalanceRoles', 'cortexAmmoShare'
+        ]
+        for text in [source(name) for name in names]:
+            self.assertIn('objectParent', text)
+            self.assertNotIn('vehicle _x == _x', text)
+            self.assertNotIn('vehicle _unit == _unit', text)
+
     def test_flank_support_lane_selection_is_spatially_bounded(self):
         flank=source('cortexFlankStart')
         self.assertIn('_enemyPos nearEntities ["Man",500]',flank)

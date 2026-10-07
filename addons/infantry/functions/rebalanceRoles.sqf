@@ -12,7 +12,7 @@ params [["_group",grpNull,[grpNull]],["_generation",-1,[0]],["_desired",0,[0]],[
 if (isNull _group || {!local _group}) exitWith {[]};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {[]};
-private _capable=(units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {vehicle _x == _x} && {!(_x in _excluded)}};
+private _capable=(units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {isNull objectParent _x} && {!(_x in _excluded)}};
 private _current=(_operation getOrDefault ["participants",[]]) select {_x in _capable};
 {if (count _current < _desired && {!(_x in _current)}) then {_current pushBack _x}} forEach _capable;
 _operation set ["participants",_current];

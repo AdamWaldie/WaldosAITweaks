@@ -73,7 +73,7 @@ if (_armourIndex < 0) exitWith {false};
 private _armour = vehicle _enemyUnit;
 private _gunners = (units _group) select {
     private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-    ([_x] call WAIT_fnc_CortexCombatEffective) && {local _x} && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {vehicle _x == _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
+    ([_x] call WAIT_fnc_CortexCombatEffective) && {local _x} && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {isNull objectParent _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
         && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}
 };
 if (_gunners findIf {assignedTarget _x == _armour && {(_x getVariable ["WAIT_AIPass_TargetHold", -1]) > _now}} >= 0) exitWith {false};

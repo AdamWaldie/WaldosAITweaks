@@ -311,7 +311,7 @@ if (_remount isNotEqualTo []) then {
         if (_visible isNotEqualTo [] || {_dangerActive}) then {_state set ["dismounted",+_pending]};
         {
             private _unit=_x select 0;
-            if ([] call _mayIssueMovement && {local _unit} && {vehicle _unit == _unit}
+            if ([] call _mayIssueMovement && {local _unit} && {isNull objectParent _unit}
                 && {assignedVehicle _unit == (_x select 1)}) then {
                 [_unit] orderGetIn false;
                 unassignVehicle _unit;
@@ -509,7 +509,7 @@ switch (_state get "phase") do {
                     _group setBehaviour "AWARE";
                     _state set ["behaviourChanged", true];
                 };
-                private _onFoot = _alive select {local _x && {vehicle _x == _x}};
+                private _onFoot = _alive select {local _x && {isNull objectParent _x}};
                 private _team = [];
                 // A two-man team only checks out nearby contacts; a farther one takes the whole squad.
                 if (count _onFoot >= 4 && {(_leader distance2D _target) <= 150}) then {
@@ -681,7 +681,7 @@ switch (_state get "phase") do {
         private _searchPos = _state getOrDefault ["enemyPos", []];
         private _team = [];
         if (!_ordered && {count _searchPos >= 2}) then {
-            private _riflemen = _alive select {local _x && {_x != _leader} && {vehicle _x == _x} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
+            private _riflemen = _alive select {local _x && {_x != _leader} && {isNull objectParent _x} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
             private _ranked = [];
             {_ranked pushBack [_x distance2D _searchPos, _forEachIndex]} forEach _riflemen;
             _ranked sort true;
@@ -729,7 +729,7 @@ switch (_state get "phase") do {
         };
         if (["WAIT_AIPass_AmmoShare_Enable", true] call _get) then {[_group, _state] call WAIT_fnc_CortexAmmoShare};
         private _members = _alive select {
-            local _x && {vehicle _x == _x} && {lifeState _x != "INCAPACITATED"}
+            local _x && {isNull objectParent _x} && {lifeState _x != "INCAPACITATED"}
                 && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
         };
         private _reserved = _members select {_x call _hasLiveActorMove};
@@ -780,7 +780,7 @@ switch (_state get "phase") do {
             [_group,_generation,3,15] call WAIT_fnc_OperationStep;
             if (time-(_operation getOrDefault ["startedAt",time]) >= 8) then {
                 private _straggler=(_operation getOrDefault ["participants",[]]) findIf {
-                    alive _x && {local _x} && {vehicle _x == _x} && {_x distance2D _leader > 35} && {speed _x < 1}
+                    alive _x && {local _x} && {isNull objectParent _x} && {_x distance2D _leader > 35} && {speed _x < 1}
                 };
                 if (_straggler >= 0) then {
                     [_group,_generation,(_operation get "participants") select _straggler,getPosATL _leader] call WAIT_fnc_RecoveryStep;

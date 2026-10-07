@@ -186,7 +186,7 @@ if (count _movementLease == 2 && {(_movementLease select 0) == "TACTICAL_DRILL"}
 // that bound from the same route point so spot indexes cannot drift after a casualty.
 private _ownedPathUnits=(_drill getOrDefault ["disabled",[]]) select {(_x select 1) == "PATH"} apply {_x select 0};
 private _fitSquad=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x}
-    && {vehicle _x == _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
+    && {isNull objectParent _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
     && {_x checkAIFeature "PATH" || {_x in _ownedPathUnits}}};
 private _teams=_drill getOrDefault ["teams",[]];
 private _desiredStrength=_drill getOrDefault ["desiredStrength",count (_drill get "units")];
@@ -716,7 +716,7 @@ switch (_drill get "stage") do {
             // Advance already brought both elements through the objective.
             if ((_assaulting || {_drill getOrDefault ["finishFlank",false]}) && {_teams isEqualTo []} && {!(_drill getOrDefault ["consolidating",false])}) exitWith {
                 private _support = (units _group) select {
-                    !(_x in _allUnits) && {local _x} && {vehicle _x == _x}
+                    !(_x in _allUnits) && {local _x} && {isNull objectParent _x}
                     && {[_x] call WAIT_fnc_CortexCombatEffective}
                 };
                 if (_support isEqualTo []) then {
