@@ -41,6 +41,15 @@ private _finish = {
     false
 };
 
+// Ownership can change after the tick-level eligibility check and immediately before an engine
+// command. Recheck at each movement or treatment write so Zeus and specialist controllers never
+// receive a stale WAIT command from this finite operation.
+private _mayIssueMedical = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+        && {!([_group] call WAIT_fnc_CortexZeusHeld)}
+        && {!([_group] call WAIT_fnc_CompatibilityExternalControl)}
+};
+
 private _aid=_group getVariable ["WAIT_Cortex_MedicalAid",[]];
 if (_aid isNotEqualTo []) exitWith {
     _aid params ["_generation","_medic","_casualty","_startedAt","_lastOrderAt","_bestDistance","_lastProgressAt"];
@@ -69,6 +78,7 @@ if (_aid isNotEqualTo []) exitWith {
         if (_operationState == "STALLED") then {_cancelReason="NO_PROGRESS"};
     };
     if (_cancelReason != "") exitWith {["CANCELLED",_cancelReason] call _finish};
+    if !(call _mayIssueMedical) exitWith {["CANCELLED","EXTERNAL"] call _finish};
     if (_distance < _bestDistance-2) then {
         _bestDistance=_distance;
         _lastProgressAt=time;
@@ -76,7 +86,7 @@ if (_aid isNotEqualTo []) exitWith {
     if (_distance > 4 && {time-_lastProgressAt >= 12}) exitWith {
         ["CANCELLED","NO_PROGRESS"] call _finish
     };
-    if (time-_lastOrderAt >= 8) then {
+    if (time-_lastOrderAt >= 8 && {call _mayIssueMedical}) then {
         if (_distance > 4) then {
             _medic doMove getPosATL _casualty;
             _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
@@ -128,6 +138,11 @@ if (_pair isEqualTo []) exitWith {false};
 _pair params ["_medic","_casualty"];
 private _operation=[_group,"MEDICAL_AID",_casualty,[_medic], [getPosATL _casualty],"APPROACH"] call WAIT_fnc_OperationStart;
 if (count _operation == 0) exitWith {false};
+private _generation=_operation get "generation";
+if !(call _mayIssueMedical) exitWith {
+    [_group,_generation,"EXTERNAL"] call WAIT_fnc_OperationCancel;
+    false
+};
 if (_best > 4) then {
     _medic doMove getPosATL _casualty;
     _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
