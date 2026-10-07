@@ -603,7 +603,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _participants=_originalParticipants select {!(_x in _unavailable)}',step)
         self.assertIn('_operation set ["unavailable",_unavailable]',step)
         self.assertIn('_recovery deleteAt (netId _actor)',step)
-        self.assertIn('setDestination [_destination,"LEADER PLANNED",true]',recovery)
+        rebalance=source('rebalanceRoles')
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',rebalance)
+        self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',rebalance)
+        self.assertIn('private _blocked=(_operation getOrDefault ["unavailable",[]])+_excluded',rebalance)
+        flank=source('cortexFlankStep')
+        self.assertIn('[_group,_operationGeneration,count _units,[]] call WAIT_fnc_RebalanceRoles;',flank)
+        self.assertNotIn('[_group,_operationGeneration,count _units,_units] call WAIT_fnc_RebalanceRoles;',flank)
+        self.assertEqual(recovery.count('_actor doMove _destination'),1)
+        self.assertNotIn('setDestination [_destination',recovery)
+        self.assertNotIn('_actor enableAI "PATH"',recovery)
+        self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',recovery)
         self.assertIn('_recovery set [_key,[_attempts+1,time,+_destination]]',recovery)
         self.assertNotIn('setPos',recovery)
     def test_danger_reaction_is_scoped_and_never_issues_movement(self):
@@ -903,6 +913,12 @@ class CortexOperations(unittest.TestCase):
                             'WAIT_fnc_CortexCombatEffective','exitWith {"YIELDED"}']:
             self.assertIn(requirement,recovery)
         self.assertLess(recovery.index('exitWith {"YIELDED"}'),recovery.index('_actor doMove _destination'))
+        self.assertGreaterEqual(recovery.count('WAIT_fnc_CortexExternalTakeover'),2)
+        final_check=recovery.rindex('WAIT_fnc_CortexExternalTakeover')
+        self.assertLess(final_check,recovery.index('_actor doMove _destination'))
+        self.assertIn('private _currentOperation=',recovery[final_check:])
+        self.assertIn('_currentOperation set ["recovery",_recovery]',recovery[final_check:])
+        self.assertNotIn('_group setVariable ["WAIT_Operation",_operation,true]',recovery)
 
     def test_clearance_release_resumes_formation_after_do_stop(self):
         clear=source('cortexClearBuilding')+source('buildingOperationStep')

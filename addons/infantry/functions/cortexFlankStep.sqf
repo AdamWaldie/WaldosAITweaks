@@ -243,7 +243,10 @@ if (_teams isEqualTo []) then {
 };
 _drill set ["units",_units];
 if (_operationGeneration >= 0) then {
-    [_group,_operationGeneration,count _units,_units] call WAIT_fnc_RebalanceRoles;
+    // The drill's live units are the desired operation participants, not an exclusion list. Passing
+    // them as excluded removed the whole active element from physical-progress accounting and could
+    // make the operation appear leader-only or stalled after an otherwise valid casualty rebalance.
+    [_group,_operationGeneration,count _units,[]] call WAIT_fnc_RebalanceRoles;
 };
 if (_reinforcements isNotEqualTo []) then {
     private _history=_group getVariable ["WAIT_Cortex_DrillReinforcements",[]];
