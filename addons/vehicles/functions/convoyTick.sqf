@@ -391,7 +391,11 @@ if (!_routeDone && {_leadLimit > (_leadSpeedState select 0)}) then {
 };
 _leadLimit = [_lead,_leadLimit,_group] call WAIT_fnc_CortexInfantrySpeed;
 _state set ["leadSpeedLimit",[_leadLimit,time]];
-if ([] call _mayIssueDriving) then {_lead forceSpeed (_leadLimit / 3.6)};
+if ([] call _mayIssueDriving) then {
+    private _ownedSpeed=_leadLimit/3.6;
+    _lead forceSpeed _ownedSpeed;
+    _lead setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,_ownedSpeed]];
+};
 // Speed limits cannot restart an engine movement order that stopped short. Retry only
 // after ten seconds without progress, while a real route destination remains active.
 private _leadProgress = _state getOrDefault ["leadProgress", [getPosATL _lead, time, 0]];
@@ -455,7 +459,11 @@ for "_i" from 1 to (count _vehicles - 1) do {
     // A full stop while physically clear but offset would preserve the wedge indefinitely.
     if (_lateralOffset > _tolerance && {_gap > _gapLow} && {_pathOwners getOrDefault [_key,false]}) then {_limit=_limit max 5};
     _limit = [_vehicle,_limit,_group] call WAIT_fnc_CortexInfantrySpeed;
-    if ([] call _mayIssueDriving) then {_vehicle forceSpeed (_limit / 3.6)};
+    if ([] call _mayIssueDriving) then {
+        private _ownedSpeed=_limit/3.6;
+        _vehicle forceSpeed _ownedSpeed;
+        _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,_ownedSpeed]];
+    };
     _speedLimits set [_key,[_limit,time]];
     private _progress = _followers getOrDefault [_key, [getPosATL _vehicle, time, -1, _trailBase]];
     if (_vehicle distance2D (_progress select 0) > 3) then {_progress = [getPosATL _vehicle, time, _progress select 2, _progress select 3]};
@@ -532,7 +540,11 @@ for "_i" from 1 to (count _vehicles - 1) do {
                 private _pathCap=if (_pathTurn > 70) then {18} else {if (_pathTurn > 45) then {25} else {if (_pathTurn > 25) then {35} else {_maximum}}};
                 if (_pathGrade > 0.2) then {_pathCap=_pathCap min 18} else {if (_pathGrade > 0.12) then {_pathCap=_pathCap min 25}};
                 _limit=_limit min _pathCap;
-                if ([] call _mayIssueDriving) then {_vehicle forceSpeed (_limit/3.6)};
+                if ([] call _mayIssueDriving) then {
+                    private _ownedSpeed=_limit/3.6;
+                    _vehicle forceSpeed _ownedSpeed;
+                    _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,_ownedSpeed]];
+                };
                 _speedLimits set [_key,[_limit,time]];
             };
             if (_native && {_path isNotEqualTo []}) then {

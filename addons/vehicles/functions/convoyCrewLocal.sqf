@@ -116,6 +116,7 @@ private _seats = createHashMap;
                 };
             };
             _vehicle forceSpeed 0;
+            _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,0]];
             if (local driver _vehicle && {!isNull driver _vehicle}) then {doStop driver _vehicle};
         };
     };

@@ -1,7 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
  * Restores recorded formation, attack permission, vehicle speed, unload settings and exact external controller
- * per-vehicle baselines; cancels only follower paths.
+ * per-vehicle baselines; cancels only follower paths. A speed baseline is restored only when the
+ * vehicle is leaving WAIT control, WAIT still owns the current cap and no newer controller owns it.
  * Locality/authority: server owns registration; driving commands execute only on current owners.
  * Repeat/JIP: ordered registry snapshots replace old settings; owner-local paths rebuild on migration.
  * Arguments: 0: group <GROUP>, grpNull; 1: forget baseline <BOOL>, true; 2: baseline <ARRAY>, [] reads the locally received baseline; 3: still-controlled vehicles <ARRAY>, []; 4: cancellation reason <STRING, RELEASED>.
@@ -60,8 +61,6 @@ if (_restore isNotEqualTo []) then {
             };
         };
         if (local _vehicle) then {
-            _vehicle forceSpeed _speed;
-            if !(_vehicle in _keepCrew) then {_vehicle setUnloadInCombat _unload;};
             private _driver = driver _vehicle;
             private _externalCrew = (crew _vehicle) findIf {
                 private _crewGroup = group _x;
@@ -70,6 +69,21 @@ if (_restore isNotEqualTo []) then {
                 // group remains outside the common Zeus/player/specialist handover boundary.
                 [_crewGroup] call WAIT_fnc_CortexExternalTakeover
             } >= 0;
+            private _externalVehicle=!isNil {_vehicle getVariable "WAIT_ExternalDrivingOwner"}
+                || {[_group] call WAIT_fnc_CompatibilityExternalControl};
+            private _ownedSpeed=_vehicle getVariable ["WAIT_Convoy_OwnedSpeed",[]];
+            private _ownsCurrentSpeed=count _ownedSpeed == 3
+                && {(_ownedSpeed select 0) isEqualTo _group}
+                && {abs ((getForcedSpeed _vehicle)-(_ownedSpeed select 2)) <= 0.1};
+            if !(_vehicle in _keepCrew) then {
+                if (!_externalTakeover && {!_externalCrew} && {!_externalVehicle} && {_ownsCurrentSpeed}) then {
+                    _vehicle forceSpeed _speed;
+                };
+                if (count _ownedSpeed >= 1 && {(_ownedSpeed select 0) isEqualTo _group}) then {
+                    _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",nil];
+                };
+                _vehicle setUnloadInCombat _unload;
+            };
             if (_mayRestoreGroup && {!isNull _driver} && {!_externalCrew} && {local _driver} && {_driver != leader _group}) then {_driver doFollow leader _group};
         };
     } forEach _vehicles;

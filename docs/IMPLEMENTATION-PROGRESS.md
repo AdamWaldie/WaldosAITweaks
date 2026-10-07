@@ -55,6 +55,7 @@ This is an implementation order, not a timed automation. Unfinished acceptance r
 - Convoy lead-road and follower-trail grade sampling now uses absolute elevation. Terrain-relative heights previously hid hills from the safety cap. Query bounds and cadence are unchanged; sloped-route physical acceptance remains pending.
 
 - General driving assistance is active as a separate next-operation feature. It samples only three forward terrain points every four seconds, converts its documented km/h policy caps to the engine's m/s command units, and restores only the exact cap it owns. A takeover during sampling releases the unissued lease instead of retaining stale state. A stalled ordinary route can receive one refresh, one clear-rear reverse and one final retry outside combat; it never rewrites waypoints, bypasses obstacles or changes collision. Physical stop, recovery and mixed-traffic acceptance remain pending.
+- Convoy speed ownership is now vehicle-scoped. Each applied travel or halt cap records its group, revision and engine-unit value; release restores a pre-convoy speed only when that exact cap remains current, the vehicle is actually leaving convoy control and no group, crew or driving controller has taken over. This prevents configuration refreshes and Zeus/external handovers from producing a restore/reapply pulse or reviving an obsolete speed command. Physical handover and stop/resume acceptance remain pending.
 
 ## Still outstanding
 

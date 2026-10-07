@@ -3436,12 +3436,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_mayRestoreGroup && {!isNull _driver}',release)
         self.assertLess(release.index('private _mayRestoreGroup='),release.index('setFormation _formation'))
 
+    def test_convoy_speed_restore_is_a_vehicle_scoped_lease(self):
+        tick=source('convoyTick')
+        crew=source('convoyCrewLocal')
+        release=source('convoyReleaseLocal')
+        self.assertGreaterEqual(tick.count('setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,_ownedSpeed]]'),3)
+        self.assertIn('setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,0]]',crew)
+        self.assertIn('private _ownsCurrentSpeed=count _ownedSpeed == 3',release)
+        self.assertIn('abs ((getForcedSpeed _vehicle)-(_ownedSpeed select 2)) <= 0.1',release)
+        self.assertIn('if (!_externalTakeover && {!_externalCrew} && {!_externalVehicle} && {_ownsCurrentSpeed}) then {',release)
+        self.assertIn('if !(_vehicle in _keepCrew) then {',release)
+        restore=release.split('if !(_vehicle in _keepCrew) then {',1)[1].split('_vehicle setUnloadInCombat _unload;',1)[0]
+        self.assertIn('_vehicle forceSpeed _speed;',restore)
+        self.assertNotIn('_vehicle forceSpeed _speed;',release.split('if !(_vehicle in _keepCrew) then {',1)[0])
+
     def test_convoy_tick_does_not_issue_late_driver_commands_after_external_takeover(self):
         tick=source('convoyTick')
         self.assertIn('private _mayIssueDriving = {',tick)
         self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',tick)
         self.assertIn('[_group,false,_restore,_registered,"EXTERNAL"] call WAIT_fnc_ConvoyReleaseLocal;',tick)
-        for command in ['_lead forceSpeed (_leadLimit / 3.6)',
+        for command in ['_lead forceSpeed _ownedSpeed',
                         '(driver _lead) doMove _watchedPosition',
                         'driver _vehicle doMove _destination',
                         '_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})']:
