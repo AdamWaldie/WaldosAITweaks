@@ -41,17 +41,18 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
 };
 if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]) exitWith {"IGNORED"};
 if (_yieldToOwner) exitWith {"IGNORED"};
-// A manoeuvre already owns the group movement. It receives the event through GroupTick and must
-// keep its committed route rather than being sent back to a reaction position.
-if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {
-    "ASSESS"
-};
 // The immediate FSM response is deliberately posture-only. Movement, target assignment and route
 // ownership stay with native AI or the already-running WAIT operation. This makes the classifier
 // useful without creating a second combat controller.
-if (_action == "MAINTAIN") exitWith {"ASSESS"};
 if (_action == "RELEASE") exitWith {"IGNORED"};
-if !(_action in ["HIDE","ENGAGE","VEHICLE",""]) then {_action=""};
+if !(_action in ["HIDE","ENGAGE","VEHICLE","MAINTAIN",""]) then {_action=""};
+private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+// MAINTAIN is valid only while a real operation still owns the committed route. A delayed danger
+// callback can outlive operation cleanup, so reclassify that orphaned label instead of treating it
+// as evidence of movement ownership.
+if (_action == "MAINTAIN" && {count _operation == 0}) then {
+    _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED"]);
+};
 private _leaseIntact=count _lease == 5 && {time < (_lease select 4)}
     && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
 private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour _postureActor};
@@ -64,8 +65,13 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
     _group setBehaviour "COMBAT";
     _appliedBehaviour="COMBAT";
 };
-private _desiredCombat=if (_action == "ENGAGE") then {"RED"} else {"YELLOW"};
-if (_priorCombat == "BLUE" || {_action == "ENGAGE" && {_priorCombat != "RED"}}) then {
+// MAINTAIN means keep the committed route, not ignore the threat. A manoeuvring element may adopt
+// the same short combat posture as an idle element without receiving a destination, target or
+// firing command. This closes the gap where an active advance/flank/CQB operation suppressed its
+// own danger response merely because it already owned movement.
+private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}};
+private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
+if (_priorCombat == "BLUE" || {_engaging && {_priorCombat != "RED"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };

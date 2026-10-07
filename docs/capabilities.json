@@ -6,7 +6,7 @@
       "capability": "Infantry danger and contact",
       "purpose": "Immediate observation, threat response and combat handover",
       "decision": "repair",
-      "mechanism": "Native danger behaviour plus bounded leader-event assessment FSM; wakes existing shared decision job; engine danger replacement pending",
+      "mechanism": "Native danger behaviour plus a default bounded owner-local assessment FSM; applies a finite posture and wakes the existing shared decision job without taking movement ownership",
       "implementation_status": "implemented_partial",
       "controls": "shared tuning specification; additional gaps remain",
       "ownership": "current AI owner; server coordinates cross-group requests",

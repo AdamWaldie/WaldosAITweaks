@@ -102,7 +102,12 @@ class CortexOperations(unittest.TestCase):
 
     def test_danger_action_owns_posture_without_owning_movement(self):
         reaction=source('dangerReact')
-        self.assertIn('_action == "MAINTAIN"',reaction)
+        self.assertIn('"MAINTAIN",""]',reaction)
+        self.assertNotIn('if (_action == "MAINTAIN") exitWith',reaction)
+        self.assertIn('WAIT_Operation',reaction)
+        self.assertIn('_action == "MAINTAIN" && {count _operation == 0}',reaction)
+        self.assertIn('_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}',reaction)
+        self.assertIn('MAINTAIN means keep the committed route, not ignore the threat',reaction)
         self.assertIn('_action == "ENGAGE"',reaction)
         self.assertIn('private _desiredCombat',reaction)
         self.assertNotIn('doMove',reaction)

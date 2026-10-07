@@ -99,5 +99,7 @@ performance acceptance.
 Each live response now also carries a finite action classification: `HIDE` after a hit, explosion or suppression,
 `ENGAGE` after an engine-confirmed contact or nearby gunfire, `VEHICLE` for a mounted leader, and
 `MAINTAIN` for a group that already has a committed operation. `RELEASE` marks an ownership handover.
-The classification is diagnostics and scheduling context only; native AI retains target selection and movement,
-so it cannot introduce a second route owner or a forced firing loop.
+The classification drives only a finite behaviour/combat-mode posture and scheduling context; native AI retains
+target selection and movement, so it cannot introduce a second route owner or a forced firing loop. `MAINTAIN`
+now means preserve the committed advance/flank/CQB/withdrawal route while still applying that bounded posture.
+Previously, the presence of any operation caused the reaction function to return without responding at all.
