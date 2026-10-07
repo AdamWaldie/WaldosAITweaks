@@ -25,6 +25,10 @@ if (_generation != (_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",-2])
     || {(_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap]) isNotEqualTo _brain}) exitWith {["REPLACED"] call _cancel};
 private _job=_brain getOrDefault ["job",createHashMap];
 if (count _job == 0) exitWith {["INVALID_JOB"] call _cancel};
+private _leaseToken=_brain getOrDefault ["flightLeaseToken",""];
+if !([_aircraft,"AIR_ATTACK",_leaseToken] call WAIT_fnc_FlightLeaseValid) then {
+    _job set ["flightLeaseLost",true];
+};
 private _delay=[_job] call WAIT_fnc_CortexAirAttack;
 private _phase=toUpperANSI (_job getOrDefault ["stage","PLAN"]);
 if !(_phase in ["PLAN","INGRESS","ATTACK","EGRESS"]) then {_phase="PLAN"};

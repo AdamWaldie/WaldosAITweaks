@@ -613,6 +613,19 @@ private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
             typeOf _aircraft,owner _aircraft,_brainState,_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
 } forEach (_adaptiveAircraft select [0,20]);
 _checks pushBack ["ai","cortex-air-attack-snapshot-limits","LOADED",format ["Adaptive aircraft total=%1 sampled=%2 (limit 20). Active plans and retained outcomes are included; physical travel, Fired events and explicit transitions remain the acceptance evidence.",count _adaptiveAircraft,(count _adaptiveAircraft) min 20]];
+private _flightLeased=vehicles select {_x isKindOf "Air" && {count (_x getVariable ["WAIT_FlightLease",createHashMap]) > 0}};
+{
+    private _lease=_x getVariable ["WAIT_FlightLease",createHashMap];
+    private _leaseOwner=_lease getOrDefault ["owner",-1];
+    private _healthy=alive _x && {_leaseOwner == owner _x};
+    _checks pushBack ["ai",format ["wait-flight-lease-%1",netId _x],["ERROR","ACTIVE"] select _healthy,format [
+        "class=%1 aircraftOwner=%2 controller=%3 token=%4 priority=%5 leaseOwner=%6 revision=%7 age=%8 lastRelease=%9. Exactly one WAIT controller may mutate flight; player, Zeus and specialist ownership invalidate it.",
+        typeOf _x,owner _x,_lease getOrDefault ["controller",""],_lease getOrDefault ["token",""],
+        _lease getOrDefault ["priority",0],_leaseOwner,_lease getOrDefault ["revision",-1],
+        serverTime-(_lease getOrDefault ["startedAt",serverTime]),_x getVariable ["WAIT_FlightLeaseLast",[]]
+    ]];
+} forEach (_flightLeased select [0,20]);
+_checks pushBack ["ai","wait-flight-lease-snapshot-limits","LOADED",format ["Flight leases total=%1 sampled=%2 (limit 20).",count _flightLeased,(count _flightLeased) min 20]];
 private _compat = missionNamespace getVariable ["WAIT_AITweaks_Compatibility", createHashMap];
 private _providers = (keys _compat) select {_compat get _x};
 _providers sort true;

@@ -63,11 +63,14 @@ if ([_group] call _groupHelicopterCount != 1 || {[_group] call WAIT_fnc_CortexEx
 private _minimumDistance = ([_helicopter, "MinimumActivationDistance", 50] call WAIT_fnc_ImprovedHelicopterLandingSetting) max 50;
 if (_helicopter distance2D _targetPosition <= _minimumDistance) exitWith {false};
 
-// Landing is the authoritative helicopter controller. Any optional cruise-deceleration correction
-// sees this state before its next impulse and releases without changing landing vectors or AI state.
-_helicopter setVariable ["WAIT_ImprovedHelicopterLanding_Active", true, true];
 private _controlRevision = (_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", 0]) + 1;
 _helicopter setVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", _controlRevision, true];
+private _flightLeaseToken=str _controlRevision;
+// A landing order has the highest primary-flight priority because an approach close to terrain
+// cannot safely be replaced by attack, braking or a defensive velocity break. Countermeasures may
+// still fire, but only this exact revision may mutate flight until touchdown or release.
+if !([_helicopter,"LANDING",_flightLeaseToken,500] call WAIT_fnc_FlightLeaseAcquire) exitWith {false};
+_helicopter setVariable ["WAIT_ImprovedHelicopterLanding_Active", true, true];
 _helicopter setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
 _helicopter disableAI "PATH";
 _helicopter disableAI "MOVE";
@@ -127,6 +130,7 @@ while {
     && {!_landed}
     && {_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_Active", false]}
     && {(_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", -1]) == _controlRevision}
+    && {[_helicopter,"LANDING",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid}
 } do {
     private _now = diag_tickTime;
     private _delta = (_now - _lastTick) max 0.01;

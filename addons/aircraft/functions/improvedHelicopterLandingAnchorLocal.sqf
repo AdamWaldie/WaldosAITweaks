@@ -45,6 +45,7 @@ if (
     || {!local _helicopter}
     || {_controlRevision < 0}
     || {(_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", -1]) != _controlRevision}
+    || {!([_helicopter,"LANDING",str _controlRevision] call WAIT_fnc_FlightLeaseValid)}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
 ) exitWith {false};
 
@@ -87,6 +88,10 @@ while {!_release} do {
     if ((_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision", -1]) != _controlRevision) exitWith {
         _release = true;
         _releaseReason = "SUPERSEDED_REVISION";
+    };
+    if !([_helicopter,"LANDING",str _controlRevision] call WAIT_fnc_FlightLeaseValid) exitWith {
+        _release = true;
+        _releaseReason = "FLIGHT_OWNER_CHANGED";
     };
     if (_anchorPosition distance2D (getPosASL _helicopter) > 5) exitWith {
         _release = true;

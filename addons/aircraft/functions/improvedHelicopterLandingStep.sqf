@@ -106,8 +106,6 @@ if (
     && {!isTouchingGround _helicopter}
     && {!(_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_Exclude", false])}
     && {isNull (getSlingLoad _helicopter)}
-    && {isNil {_helicopter getVariable "WAIT_Cortex_AirAttackToken"}}
-    && {isNil {_helicopter getVariable "WAIT_Cortex_MissileDefenceActive"}}
     && {!([_group] call WAIT_fnc_CortexZeusHeld)}
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {!(_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_Active", false])}

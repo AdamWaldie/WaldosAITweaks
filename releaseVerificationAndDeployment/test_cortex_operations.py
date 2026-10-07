@@ -95,6 +95,27 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CortexAirAttack',stop)
         self.assertIn('WAIT_AirAttack_BrainGeneration',stop)
 
+    def test_aircraft_controllers_share_one_generation_owned_flight_lease(self):
+        acquire=source('flightLeaseAcquire');valid=source('flightLeaseValid');release=source('flightLeaseRelease')
+        attack_start=source('airAttackOperationStart');attack=source('cortexAirAttack')
+        landing=source('improvedHelicopterLandingExecuteLocal');landing_release=source('improvedHelicopterLandingRestoreLocal')
+        landing_anchor=source('improvedHelicopterLandingAnchorLocal')
+        defence=source('cortexMissileDefenceStep');deceleration=source('helicopterDecelerationCorrectLocal')
+        diagnostics=source('aiGetDiagnostics')
+        self.assertIn('WAIT_FlightLease',acquire+valid+release)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',acquire)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',acquire)
+        self.assertIn('_priority <= (_lease getOrDefault ["priority",0])',acquire)
+        self.assertIn('(_lease getOrDefault ["owner",-1]) != clientOwner',acquire)
+        self.assertIn('"AIR_ATTACK",_leaseToken,300',attack_start)
+        self.assertIn('"AIR_ATTACK",_flightLeaseToken',attack)
+        self.assertIn('"LANDING",_flightLeaseToken,500',landing)
+        self.assertIn('"LANDING",str _releasedRevision',landing_release)
+        self.assertIn('"LANDING",str _controlRevision',landing_anchor)
+        self.assertIn('"MISSILE_DEFENCE",_flightLeaseToken,400',defence)
+        self.assertIn('"DECELERATION",_flightLeaseToken,100',deceleration)
+        self.assertIn('wait-flight-lease-',diagnostics)
+
     def test_scheduler_diagnostics_clear_transient_skip_state_after_resumption(self):
         scheduler=source('cortexSchedulerTick')
         self.assertIn('_state set ["skippedReason","PAUSED"]',scheduler)
@@ -3819,7 +3840,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_AirAttackJob',correction)
         cleanup=correction[correction.rindex('if (!isNull _aircraft'):]
         self.assertIn('local _aircraft',cleanup)
-        self.assertIn('== _generation',cleanup)
+        self.assertIn('WAIT_fnc_FlightLeaseRelease',cleanup)
+        self.assertIn('WAIT_HelicopterDeceleration_GenerationLocal',correction)
+        self.assertIn('== _generation',correction)
         self.assertFalse((base/'helicopterDecelerationTrackLocal.sqf').exists())
 
     def test_aircraft_scheduler_is_independent_from_tactical_master_gate(self):
@@ -4672,12 +4695,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('exitWith {}',air_guard)
 
     def test_cortex_air_leases_exclude_other_flight_controllers(self):
-        for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',
-                     'improvedHelicopterLandingStep']:
+        for name in ['helicopterDecelerationCorrectLocal','improvedHelicopterLandingExecuteLocal']:
             path = next((ROOT/'addons').rglob(name+'.sqf'))
             text=path.read_text(encoding='utf-8')
-            self.assertIn('WAIT_Cortex_AirAttackToken',text,name)
-            self.assertIn('WAIT_Cortex_MissileDefenceActive',text,name)
+            self.assertIn('WAIT_fnc_FlightLeaseAcquire',text,name)
+            self.assertIn('WAIT_fnc_FlightLeaseValid',text,name)
 
     def test_direct_zeus_aircraft_orders_exclude_auxiliary_flight_controllers(self):
         for name in ['helicopterDecelerationStep','helicopterDecelerationCorrectLocal',

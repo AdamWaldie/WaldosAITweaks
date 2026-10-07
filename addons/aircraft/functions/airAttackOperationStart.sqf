@@ -15,11 +15,15 @@ private _current=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
 if (count _current > 0 && {!(_current getOrDefault ["cancelled",false])} && {!(_current getOrDefault ["finished",false])}) exitWith {true};
 if (count _current > 0) then {_current set ["cancelled",true];_current set ["cancelReason","REPLACED"]};
 private _generation=(_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",0])+1;
+private _leaseToken=str _generation;
+if !([_aircraft,"AIR_ATTACK",_leaseToken,300] call WAIT_fnc_FlightLeaseAcquire) exitWith {false};
 _aircraft setVariable ["WAIT_AirAttack_BrainGeneration",_generation];
+_job set ["flightLeaseToken",_leaseToken];
 private _brain=createHashMapFromArray [
     ["aircraft",_aircraft],["job",_job],["generation",_generation],["phase","PLAN"],
     ["pending",false],["completed",false],["finished",false],["cancelled",false],
-    ["cancelReason",""],["nextAt",time+(_delay max 0)],["lastStepAt",-1],["lastDelay",_delay max 0]
+    ["cancelReason",""],["nextAt",time+(_delay max 0)],["lastStepAt",-1],["lastDelay",_delay max 0],
+    ["flightLeaseToken",_leaseToken]
 ];
 _aircraft setVariable ["WAIT_Cortex_AirAttackJob",true];
 _aircraft setVariable ["WAIT_AirAttack_Brain",_brain];

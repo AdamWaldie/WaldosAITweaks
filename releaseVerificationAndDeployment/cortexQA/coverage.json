@@ -1539,7 +1539,10 @@
         "addons/infantry/functions/cortexAirHandoverRestoreLocal.sqf",
         "addons/aircraft/functions/airAttackOperationStart.sqf",
         "addons/aircraft/functions/airAttackOperationQueue.sqf",
-        "addons/aircraft/functions/airAttackOperationStep.sqf"
+        "addons/aircraft/functions/airAttackOperationStep.sqf",
+        "addons/aircraft/functions/flightLeaseAcquire.sqf",
+        "addons/aircraft/functions/flightLeaseValid.sqf",
+        "addons/aircraft/functions/flightLeaseRelease.sqf"
       ]
     }
   ]

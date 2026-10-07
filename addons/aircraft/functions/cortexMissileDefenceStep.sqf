@@ -27,10 +27,14 @@ private _missile=_state getOrDefault ["missile",objNull];
 private _generation=_state getOrDefault ["generation",-1];
 private _side=_state getOrDefault ["side",1];
 private _step=_state getOrDefault ["step",0];
+private _flightLeaseToken=str _generation;
 
 private _finish={
     if (!isNull _aircraft && {(_aircraft getVariable ["WAIT_Cortex_FlareBurstGeneration",-1]) == _generation}) then {
         _aircraft setVariable ["WAIT_Cortex_MissileDefenceActive",nil];
+    };
+    if (!isNull _aircraft && {local _aircraft}) then {
+        [_aircraft,"MISSILE_DEFENCE",_flightLeaseToken,"THREAT_ENDED"] call WAIT_fnc_FlightLeaseRelease;
     };
     -1
 };
@@ -41,13 +45,16 @@ if (isNull _aircraft || {!local _aircraft}
 // addon weapons that do not expose the projectile retain the same bounded twelve-sample maximum.
 if (_step > 0 && {!isNull _missile} && {!alive _missile}) exitWith {call _finish};
 
+private _ownsFlightLease=[_aircraft,"MISSILE_DEFENCE",_flightLeaseToken,400] call WAIT_fnc_FlightLeaseAcquire;
+
 private _pilot=driver _aircraft;
 if (!isNull _pilot && {[group _pilot,"WAIT_AIPass_AircraftFlares_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
     [_aircraft] call WAIT_fnc_CortexFireCountermeasure;
 };
 // Two decisive, terrain-checked impulses produce a useful beam/climb without repeatedly replacing
 // native flight intent. Attack, landing and braking controllers remain the flight owner.
-if (_step in [0,4] && {!isNull _pilot}
+if (_ownsFlightLease && {_step in [0,4]} && {!isNull _pilot}
+    && {[_aircraft,"MISSILE_DEFENCE",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid}
     && {[group _pilot,"WAIT_AIPass_AircraftBreak_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
     private _velocity=velocityModelSpace _aircraft;
     private _isPlane=_aircraft isKindOf "Plane";

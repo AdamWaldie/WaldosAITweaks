@@ -217,6 +217,7 @@ private _finish={
 private _pilot=driver _aircraft;
 private _group=group _pilot;
 private _stage=_job getOrDefault ["stage",""];
+private _flightLeaseToken=_job getOrDefault ["flightLeaseToken",""];
 // Air operations share the same generation contract as ground operations, but retain their own
 // native flight lease. The common record makes replacement, locality and Zeus diagnostics
 // explicit without asking an infantry movement helper to fly an aircraft.
@@ -244,6 +245,11 @@ private _explicitlyExcluded=[_group] call WAIT_fnc_CompatibilityExternalControl
 private _mayControlAircraft = {
     local _aircraft && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
         && {!([_group] call WAIT_fnc_CortexZeusHeld)}
+};
+if (_job getOrDefault ["flightLeaseLost",false]
+    || {!([_aircraft,"AIR_ATTACK",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid)}) exitWith {
+    _job set ["releaseDetail",["flightLease",_aircraft getVariable ["WAIT_FlightLease",createHashMap]]];
+    ["FLIGHT_OWNER_CHANGED"] call _finish
 };
 private _allowed=local _aircraft && {alive _aircraft} && {!isNull _pilot} && {alive _pilot} && {!isPlayer _pilot}
     && {!unitIsUAV _aircraft} && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
