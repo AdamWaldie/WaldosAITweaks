@@ -71,9 +71,15 @@ private _delay=call {
     if (isNull _group || {!local _group} || {!(_group getVariable ["WAIT_AIPass_ClearBuilding", false])}
         || {!alive (_job get "building")} || {!(missionNamespace getVariable ["WAIT_AIPass_Active", false])}) exitWith {[true,"CANCELLED"] call _finish};
     private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
+    private _operationEndReason="";
     if (_operationGeneration >= 0) then {
         private _operationStatus=[_group,_operationGeneration,2,15] call WAIT_fnc_OperationStep;
-        if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) exitWith {[false,_operationStatus] call _finish};
+        if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) then {_operationEndReason=_operationStatus};
+    };
+    // Leave this callback before selecting lanes or issuing another room movement. The building
+    // controller owns ordinary room/pair recovery, but it never owns a replaced or external order.
+    if (_operationEndReason != "") exitWith {
+        [false,_operationEndReason] call _finish
     };
     // Recovery belongs to the common operation lifecycle. A worker that has exhausted its
     // isolated recovery must not retain a clearance lane or keep receiving room orders.

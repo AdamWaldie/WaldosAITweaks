@@ -157,12 +157,16 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
     _state set ["pathOwners",_initialPathOwners];
 };
 private _operationGeneration = _state getOrDefault ["operationGeneration",-1];
+private _operationEndReason = "";
 if (_operationGeneration >= 0 && {time >= (_state getOrDefault ["operationDue",time])}) then {
     private _operationState = [_group,_operationGeneration,3,120,true] call WAIT_fnc_OperationStep;
     _state set ["operationDue",time+5];
-    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
-        [_group,false,_restore,_registered,_operationState] call WAIT_fnc_ConvoyReleaseLocal;
-    };
+    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) then {_operationEndReason = _operationState};
+};
+// Leave the function before formation, contact or movement can be written. An exitWith nested
+// inside the cadence block only left that block and allowed a released convoy to keep driving.
+if (_operationEndReason != "") exitWith {
+    [_group,false,_restore,_registered,_operationEndReason] call WAIT_fnc_ConvoyReleaseLocal;
 };
 // Active waypoints can change formation after initial setup. Enforce the convoy
 // formation only while this owner controls travel; suspension above preserves Zeus control.

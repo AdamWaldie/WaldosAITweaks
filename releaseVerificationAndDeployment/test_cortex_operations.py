@@ -383,9 +383,9 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
         mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]
-        self.assertNotIn('WAIT_AIPass_Active',mode_preflight)
-        self.assertNotIn('WAIT_AIPass_Danger_Enable',mode_preflight)
-        self.assertNotIn('CortexIsPaused',mode_preflight)
+        self.assertIn('WAIT_AIPass_Active',mode_preflight)
+        self.assertIn('WAIT_AIPass_Danger_Enable',mode_preflight)
+        self.assertIn('CortexIsPaused',mode_preflight)
         for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Queued','Finished']:
             self.assertIn('class '+state,engine_fsm)
         self.assertIn('first-contactBootstraps=',diagnostics)
@@ -394,7 +394,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('server-local stance leases=',diagnostics)
         self.assertIn('Immediate stances are weak, finite and exact-owned',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
-        self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
+        self.assertIn('["ERROR","ACTIVE"] select _dangerFsmOwned',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
         self.assertIn('private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply',diagnostics)
         self.assertIn('WAIT must own all west, east and independent soldier danger slots',diagnostics)
@@ -663,6 +663,29 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',recovery)
         self.assertIn('_recovery set [_key,[_attempts+1,time,+_destination,getPosATL _actor]]',recovery)
         self.assertNotIn('setPos',recovery)
+
+    def test_operation_owners_exit_at_function_scope_after_terminal_common_status(self):
+        convoy=source('convoyTick')
+        clear=source('buildingOperationStep')
+        self.assertIn('private _operationEndReason = "";',convoy)
+        self.assertIn('if (_operationEndReason != "") exitWith {',convoy)
+        convoy_exit=convoy.split('if (_operationEndReason != "") exitWith {',1)[1]
+        self.assertIn('WAIT_fnc_ConvoyReleaseLocal',convoy_exit)
+        self.assertLess(convoy.index('if (_operationEndReason != "") exitWith {'),convoy.index('formation _group != "COLUMN"'))
+        self.assertIn('private _operationEndReason="";',clear)
+        self.assertIn('if (_operationEndReason != "") exitWith {',clear)
+        clear_exit=clear.split('if (_operationEndReason != "") exitWith {',1)[1]
+        self.assertIn('[false,_operationEndReason] call _finish',clear_exit)
+        self.assertLess(clear.index('if (_operationEndReason != "") exitWith {'),clear.index('private _operation=_group getVariable'))
+
+    def test_stale_combined_ground_callback_cannot_release_replacement_lease(self):
+        step=source('cortexCombinedGroundStep')
+        self.assertIn('private _operationMatches=count _operation > 0',step)
+        self.assertIn('(_operation getOrDefault ["generation",-2]) == _operationGeneration',step)
+        self.assertIn('(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"',step)
+        self.assertIn('if (_operationMatches && {(_lease param [0,""]) == "COMBINED_GROUND"}) then {',step)
+        self.assertNotIn('if ((_lease param [0,""]) == "COMBINED_GROUND") then {',step)
+
     def test_danger_reaction_is_scoped_and_never_issues_movement(self):
         reaction=source('dangerReact')
         for forbidden in [' doMove ', ' doFollow ', ' setDestination ', 'addWaypoint']:
@@ -685,6 +708,19 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_DangerReact',step)
         self.assertIn('[_actor,"RELEASE"] call WAIT_fnc_DangerReact',step)
         self.assertIn('[_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact',source('cortexReleaseGroup'))
+
+    def test_engine_danger_reflex_obeys_runtime_feature_and_pause_gates(self):
+        mode=source('dangerEngineMode')
+        action=source('dangerEngineAct')
+        for text in [mode,action]:
+            self.assertIn('WAIT_AIPass_Active',text)
+            self.assertIn('WAIT_AIPass_Danger_Enable',text)
+            self.assertIn('WAIT_fnc_CortexFeatureEnabled',text)
+            self.assertIn('WAIT_fnc_CortexIsEligible',text)
+            self.assertIn('WAIT_fnc_CortexIsPaused',text)
+            self.assertIn('WAIT_fnc_CortexExternalTakeover',text)
+        self.assertLess(mode.index('WAIT_AIPass_Danger_Enable'),mode.index('if (fleeing _actor'))
+        self.assertLess(action.index('WAIT_AIPass_Danger_Enable'),action.index('private _delays='))
 
     def test_danger_cleanup_never_restores_wait_posture_after_ownership_takeover(self):
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text(encoding='utf-8')

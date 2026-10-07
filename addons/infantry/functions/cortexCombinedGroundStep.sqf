@@ -25,7 +25,10 @@ private _finish={
     params ["_reason"];
     if (!isNull _group && {local _group}) then {
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
-        if (count _operation > 0 && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}) then {
+        private _operationMatches=count _operation > 0
+            && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}
+            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"};
+        if (_operationMatches) then {
             if (_reason == "POSITION_REACHED") then {
                 [_group,_operationGeneration,"COMPLETE","FIRING_POSITION_REACHED"] call WAIT_fnc_OperationRelease;
             } else {
@@ -35,7 +38,9 @@ private _finish={
         if (_operationGeneration >= 0) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
-        if ((_lease param [0,""]) == "COMBINED_GROUND") then {
+        // The label alone is not ownership. A late callback from an older role can observe the
+        // same label on its replacement, so only the still-matching operation may release it.
+        if (_operationMatches && {(_lease param [0,""]) == "COMBINED_GROUND"}) then {
             [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };

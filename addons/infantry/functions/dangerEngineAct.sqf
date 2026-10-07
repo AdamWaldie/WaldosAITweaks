@@ -15,7 +15,12 @@
 params [["_actor",objNull,[objNull]],["_mode","ASSESS",[""]],["_record",[],[[]]]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {0};
 private _group=group _actor;
-if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
+if (isNull _group || {!local _group}
+    || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
+    || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+    || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}
+    || {[] call WAIT_fnc_CortexIsPaused}
+    || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
 private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIATE",1],["HIDE",1.25],["ENGAGE",1],["ASSESS",0.75]];
 // A small local offset prevents an entire squad from changing stance on the same frame while

@@ -13,6 +13,10 @@ params [["_actor",objNull,[objNull]],["_record",[],[[]]]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor} || {count _record < 3}) exitWith {"RELEASE"};
 private _group=group _actor;
 if (isNull _group || {!local _group}
+    || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
+    || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+    || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}
+    || {[] call WAIT_fnc_CortexIsPaused}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {behaviour _actor == "CARELESS"}
     || {!(_actor checkAIFeature "MOVE")}) exitWith {"RELEASE"};

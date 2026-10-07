@@ -136,7 +136,7 @@ An unidentified hit, explosion or suppression event may wake the finite CONTACT 
 
 When that event affects a mounted group, its approximate position may also create a thirty-second passenger-safety lease. The lease invokes only the existing stationary-vehicle check, exact forced-speed-zero ownership and cargo exit. A local crew owner may publish the same bounded geometry to separately grouped allied passengers aboard its vehicle; the passenger owner validates crew authority and exits only its own eligible local cargo. This handover is not target knowledge and cannot authorise vehicle withdrawal, gunnery, tactical movement or contact reporting. Zeus, player and specialist ownership still reject the commands, while group release and shutdown retract the public lease.
 
-The configured engine slot cannot be swapped at runtime. Disabling `WAIT_AIPass_Danger_Enable`, pausing the tactical pass or disabling the wider pass therefore stops group handoff and planning while retaining the bounded local baseline reaction. Player, Zeus, CARELESS, forced-command, mounted and specialist ownership boundaries still take precedence. This prevents a live settings change from leaving base soldiers without any danger FSM.
+The configured engine slot cannot be swapped at runtime. Disabling `WAIT_AIPass_Danger_Enable`, pausing the tactical pass or disabling the wider pass makes WAIT's FSM finish without issuing a new stance, movement, target or planning command. An exact stance lease already held by WAIT is still released safely. Player, Zeus, CARELESS, forced-command, mounted and specialist ownership boundaries take precedence at every action boundary.
 
 ## Danger assessment
 
