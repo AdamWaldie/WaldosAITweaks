@@ -68,6 +68,7 @@ class CfgFunctions {
             class CortexStop {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexStop.sqf";};
             class DangerSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSelect.sqf";};
             class DangerActionSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerActionSelect.sqf";};
+            class DangerEngineCanContinue {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineCanContinue.sqf";};
             class DangerEngineAct {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineAct.sqf";};
             class DangerEngineRelease {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRelease.sqf";};
             class DangerEngineMode {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineMode.sqf";};

@@ -381,6 +381,7 @@
         "addons/support/functions/cortexContactReport.sqf",
         "addons/infantry/functions/dangerSelect.sqf",
         "addons/infantry/functions/dangerActionSelect.sqf",
+        "addons/infantry/functions/dangerEngineCanContinue.sqf",
         "addons/infantry/functions/dangerEngineAct.sqf",
         "addons/infantry/functions/dangerEngineRelease.sqf",
         "addons/infantry/functions/dangerEngineMode.sqf",

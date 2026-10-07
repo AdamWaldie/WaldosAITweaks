@@ -236,6 +236,7 @@ class CortexOperations(unittest.TestCase):
     def test_danger_observations_preserve_one_tactical_owner(self):
         engine=source('dangerEngineSubmit')
         engine_act=source('dangerEngineAct')
+        engine_continue=source('dangerEngineCanContinue')
         engine_release=source('dangerEngineRelease')
         engine_mode=source('dangerEngineMode')
         engine_select=source('dangerEngineSelect')
@@ -265,7 +266,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('getOrDefault ["wakeAt",_dueAt]',scheduler)
         self.assertIn('getOrDefault ["responsiveUntil",-1]',scheduler)
         import re
-        for body in [engine,engine_act,engine_mode,engine_select,request,step,selection,setup]:
+        for body in [engine,engine_act,engine_continue,engine_mode,engine_select,request,step,selection,setup]:
             body=re.sub(r"/\*.*?\*/|//[^\n]*", "", body, flags=re.DOTALL)
             for forbidden in [' reveal ', ' doMove ', ' doTarget ', 'allUnits', 'allGroups', 'CortexQueueJob']:
                 self.assertNotIn(forbidden,body)
@@ -399,9 +400,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_queue select [0,11]',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
+        self.assertIn('WAIT_fnc_DangerEngineCanContinue',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRelease',engine_fsm)
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
+        self.assertIn('class Interrupted',engine_fsm)
+        self.assertIn('WAIT_AIPass_Danger_Enable',engine_continue)
+        self.assertIn('WAIT_AIPass_DisabledFeatures',engine_continue)
+        self.assertIn('WAIT_fnc_CortexIsPaused',engine_continue)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',engine_continue)
+        self.assertIn('remoteControlled _actor',engine_continue)
+        self.assertIn('WAIT_AIPass_ZeusHold',engine_continue)
+        self.assertIn('WAIT_AIPass_ZeusWaypoints',engine_continue)
+        for expensive in ['units _group','allUnits','allGroups','CortexExternalTakeover','CortexExternalOwner','CortexZeusHeld','nearestObjects','nearEntities']:
+            self.assertNotIn(expensive,engine_continue)
         mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]
         self.assertIn('WAIT_AIPass_Active',mode_preflight)
         self.assertIn('WAIT_AIPass_Danger_Enable',mode_preflight)

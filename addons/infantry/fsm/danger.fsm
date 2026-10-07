@@ -64,7 +64,7 @@ class FSM {
             init = "";
             precondition = "";
             class Links {
-                class LostOwner {priority = 3; to = "Finished"; condition = "isNull _this || {!local _this} || {!alive _this} || {isPlayer _this}"; action = "";};
+                class Interrupted {priority = 4; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
                 class Drain {priority = 2; to = "Queued"; condition = "count _queue > 0"; action = "";};
                 class Done {priority = 0; to = "Finished"; condition = "time >= _deadline"; action = "";};
             };

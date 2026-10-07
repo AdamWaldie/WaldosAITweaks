@@ -17,6 +17,11 @@ class AIModularityContracts(unittest.TestCase):
         self.assertNotIn('DangerBackend',discovery)
         self.assertNotIn('lambs_',lease.lower())
         self.assertIn('WAIT_AIPass_AlternativeBackendLoaded',lease)
+        init=src('cortexInit')
+        self.assertIn('WAIT_AIPass_DangerOwnershipConflict',init)
+        self.assertIn('if (!_dangerFsmOwned) exitWith {',init)
+        self.assertIn('missionNamespace setVariable ["WAIT_AIPass_Active",false]',init)
+        self.assertLess(init.index('if (!_dangerFsmOwned) exitWith {'),init.index('missionNamespace setVariable ["WAIT_AIPass_Active", true]'))
 
     def test_drill_loses_ownership_before_modes_and_does_not_regroup(self):
         step = src('cortexFlankStep')

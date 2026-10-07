@@ -19,7 +19,9 @@
  * optional handlers when their switches have been turned on since the last call. Player clients return immediately and pay nothing. Each
  * behaviour has its own WAIT_AIPass_<Behaviour>_Enable switch in \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf, and
  * WAIT_fnc_CortexIsEligible keeps player groups and other WAIT features' units out.
- * Native danger remains active. Movement ownership is reserved only for finite WAIT operations.
+ * WAIT's configured danger FSM must own all three base-soldier slots. If another addon replaces any
+ * slot, this tactical runtime fails closed instead of running a second infantry brain beside it.
+ * Movement ownership is reserved only for finite WAIT operations.
  * Locality and authority: CBA supplies the effective enable value to every joining owner. A direct
  * server call while disabled requests enable through the CBA server layer; callbacks install local
  * work. Remote calls from anything other than the server are refused. A headless client waits for
@@ -61,6 +63,18 @@ if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWi
 if !(missionNamespace getVariable ["WAIT_AIPass_Enable", false]) exitWith {
     if (!isServer) exitWith {false};
     ([createHashMapFromArray [["WAIT_AIPass_Enable", true]]] call WAIT_fnc_CortexTuning) > 0
+};
+private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
+    [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
+};
+private _dangerFsmOwned=_dangerFsmPaths findIf {
+    (_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0
+} < 0;
+missionNamespace setVariable ["WAIT_AIPass_DangerOwnershipConflict",[[],_dangerFsmPaths] select !_dangerFsmOwned];
+if (!_dangerFsmOwned) exitWith {
+    missionNamespace setVariable ["WAIT_AIPass_Active",false];
+    diag_log format ["[WAIT] Infantry tactical runtime refused: WAIT does not own every base-soldier fsmDanger slot (%1).",_dangerFsmPaths];
+    false
 };
 missionNamespace setVariable ["WAIT_AIPass_Active", true];
 
