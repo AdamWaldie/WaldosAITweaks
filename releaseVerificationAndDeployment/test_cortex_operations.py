@@ -2421,8 +2421,10 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('remains retryable',server)
         requester=source('cortexCoordinatedAssault')
         self.assertIn('if (_status select 3) then {_acknowledged = true}', requester)
-        self.assertIn('if (_acknowledged) exitWith {_state set ["coordinated",true]; _state deleteAt "coordinatedPendingUntil"; true}', requester)
-        self.assertIn('time < _pendingUntil && {_publicResponders isNotEqualTo []}',requester)
+        self.assertIn('if (_acknowledged) exitWith {', requester)
+        self.assertIn('[_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd', requester)
+        self.assertLess(requester.index('call WAIT_fnc_CortexFlankEnd'),requester.index('_state set ["coordinated",true]'))
+        self.assertIn('if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {false}',requester)
         self.assertIn('_pendingUntil > 0 && {_publicResponders isEqualTo []}',requester)
         self.assertIn('[_state,"coordinated",10] call WAIT_fnc_CortexCooldown', requester)
 
@@ -2467,7 +2469,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('terrainIntersectASL [_threatASL,_sampleASL]',selector)
         self.assertIn('lineIntersectsSurfaces [_rayStart,_sampleASL',selector)
 
-    def test_coordinated_assault_owns_requester_movement_before_local_tactics(self):
+    def test_coordinated_assault_waits_for_ack_before_requester_handover(self):
         tick=source('cortexGroupTick')
         coordinated=source('cortexCoordinatedAssault')
         self.assertLess(tick.index('private _coordinatedOwnsMovement = _vehicleOwnsMovement'),tick.index('call WAIT_fnc_CortexTacticalStart'))
@@ -2475,7 +2477,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('["WAIT_AIPass_Flank_Enable", true] call _get',tick)
         self.assertIn('["WAIT_AIPass_Advance_Enable", true] call _get',tick)
         self.assertIn('_state set ["coordinatedPendingUntil",time+15]',coordinated)
-        self.assertIn('if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {true}',coordinated)
+        self.assertIn('if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {false}',coordinated)
+        self.assertIn('false // A request alone owns no movement; acknowledgement performs the handover.',coordinated)
+        self.assertIn('[_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd',coordinated)
         self.assertIn('"coordinatedPendingUntil"',source('cortexRestoreCalm'))
 
     def test_live_context_chooses_action_instead_of_profile_or_idleness(self):

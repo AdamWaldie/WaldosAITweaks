@@ -27,7 +27,9 @@
  * short target occlusion cannot strand rallied responders. Once every acknowledged responder has
  * released its matching assault lease, the requester clears its coordinated ownership and resumes
  * the ordinary post-contact chain. Repeat/JIP: current feature gates and eligibility are rechecked;
- * owner jobs are retired on migration.
+ * owner jobs are retired on migration. A pending network dispatch does not own the requester: its
+ * current native movement or local drill continues until a responder acknowledges a viable assault.
+ * At acknowledgement, the matching local drill is released before the requester becomes base of fire.
  * Dispatch is retried on a short cooldown until a responder acknowledges assault; sending
  * a request alone cannot consume the engagement if no responder was eligible.
  * Arguments:
@@ -35,8 +37,8 @@
  * 1: state <HASHMAP>
  *
  * Return Value:
- * Boolean - true while this group owns an acknowledged or pending coordinated base-of-fire role;
- * false when no coordinated movement was formed and a local tactic may be selected instead.
+ * Boolean - true only while this group owns an acknowledged coordinated base-of-fire role;
+ * false while dispatch is pending or no coordinated movement formed, so existing movement can continue.
  *
  * Example:
  * [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
@@ -63,7 +65,7 @@ if (_state getOrDefault ["coordinated", false]) exitWith {
     }
 };
 private _pendingUntil = _state getOrDefault ["coordinatedPendingUntil", 0];
-if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {true};
+if (time < _pendingUntil && {_publicResponders isNotEqualTo []}) exitWith {false};
 if (_pendingUntil > 0 && {_publicResponders isEqualTo []}) then {
     // The server found no safe shared avenue and retired the reservation. Drop the asynchronous
     // ownership window on the next group tick so a local advance or flank can start immediately.
@@ -89,12 +91,22 @@ private _acknowledged = false;
         _responders pushBack _helper;
     };
 } forEach _publicResponders;
-if (_acknowledged) exitWith {_state set ["coordinated",true]; _state deleteAt "coordinatedPendingUntil"; true};
+if (_acknowledged) exitWith {
+    // The requester keeps fighting and may begin a local drill while the network dispatch is pending.
+    // Only a real responder acknowledgement justifies the base-of-fire handover. Retire that exact
+    // local drill now, before publishing coordinated ownership, so two movement controllers never
+    // overlap and a rejected or delayed request never creates an idle planning window.
+    if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
+        [_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd;
+    };
+    _state set ["coordinated",true];
+    _state deleteAt "coordinatedPendingUntil";
+    true
+};
 if (_responders isEqualTo []) exitWith {false};
 [_group,_enemyPos,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAssaultServer",2];
 [_state,"coordinated",10] call WAIT_fnc_CortexCooldown;
-// Reserve the requester's movement role while the authenticated server dispatch and
-// helper-owner acknowledgements cross the network. Without this finite ownership window,
-// the same contact tick could start a local flank before the coordinated role arrived.
+// Suppress duplicate network dispatches for a bounded interval without claiming movement. The
+// requester keeps native combat or its local drill until a helper owner acknowledges the assault.
 _state set ["coordinatedPendingUntil",time+15];
-true // Owner acknowledgements complete the asynchronous dispatch.
+false // A request alone owns no movement; acknowledgement performs the handover.
