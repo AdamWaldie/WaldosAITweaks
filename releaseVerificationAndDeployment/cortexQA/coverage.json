@@ -385,6 +385,7 @@
       "production_sources": [
         "addons/support/functions/cortexContactReport.sqf",
         "addons/infantry/functions/dangerSelect.sqf",
+        "addons/infantry/functions/dangerActionSelect.sqf",
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",

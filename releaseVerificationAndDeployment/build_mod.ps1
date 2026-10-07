@@ -17,6 +17,8 @@ try {
         if ($LASTEXITCODE) { throw 'config_style_checker.py failed' }
         & $Python releaseVerificationAndDeployment/documentation_contract_checker.py
         if ($LASTEXITCODE) { throw 'documentation_contract_checker.py failed' }
+        & $Python releaseVerificationAndDeployment/wiki_sync.py check
+        if ($LASTEXITCODE) { throw 'wiki_sync.py check failed' }
         & $Python releaseVerificationAndDeployment/zeus_script_parity_checker.py
         if ($LASTEXITCODE) { throw 'zeus_script_parity_checker.py failed' }
         & $Python releaseVerificationAndDeployment/performance_audit.py

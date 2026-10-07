@@ -1,0 +1,40 @@
+name: Publish wiki
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'releaseVerificationAndDeployment/wiki_sync.py'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python releaseVerificationAndDeployment/wiki_sync.py check
+      - run: python releaseVerificationAndDeployment/wiki_sync.py build wiki-out --repo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" --branch "$GITHUB_REF_NAME"
+      # docs/ is the source of truth: the wiki is replaced wholesale so removed guides disappear too.
+      - name: Push generated pages to the wiki
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@${GITHUB_SERVER_URL#https://}/${GITHUB_REPOSITORY}.wiki.git" wiki
+          find wiki -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R wiki-out/. wiki/
+          cd wiki
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then echo 'Wiki already current'; exit 0; fi
+          git commit -m "Sync wiki from ${GITHUB_SHA::7}"
+          git push
