@@ -11,8 +11,9 @@ initialization. The server coordinates cross-group decisions; the current AI own
 fire and local handlers. Interface clients provide Zeus controls and interruption monitoring.
 
 Retained function and setting names are compatibility identifiers. Changing display text must not
-rename them or invalidate mission overrides. Native engine danger remains active; WAIT adds finite operations rather than a second permanent
-movement controller. An original danger replacement must pass acceptance before it is enabled.
+rename them or invalidate mission overrides. WAIT owns the base-soldier engine danger slot and provides
+the complete danger-response path while loaded. Another addon replacing the same engine slot is incompatible;
+specialist actor ownership still yields through explicit finite compatibility markers.
 
 ## Existing improvements remain in scope
 
@@ -105,10 +106,17 @@ median/p95 frame-time acceptance remains required.
 
 Active manoeuvre FSMs check cached Zeus-order markers and addon activation before their scheduled step is due. A newer Zeus marker releases the matching operation immediately and cancels its queued callback. Cleanup checks the group owner, epoch and drill token, so a stale FSM cannot release a newer manoeuvre. Zeus cleanup restores owned overrides without issuing formation-return or replacement movement. Shutdown also releases the matching drill. No geometry or group scan runs in FSM conditions.
 
-The group-tactics FSM also has a three-second scheduler watchdog while a due decision is pending. It
-wakes the same generation-keyed scheduler entry, so it cannot create a second brain or grow the queue.
-Cancellation, disablement, owner-epoch and generation changes end the wait before a stale callback can
-act. Diagnostics expose watchdog activations; any recurring count is a performance or queue-health finding.
+Every scheduler-backed operation FSM has a three-second watchdog while a due callback is pending. This
+covers group tactics, building progression, convoy control, aircraft attacks, artillery and support requests.
+Each watchdog clears only its local pending flag and wakes the same generation-keyed scheduler entry, so it
+cannot create a second brain or grow a parallel queue. Cancellation, disablement, ownership and generation
+changes end the wait before a stale callback can act. The callback repeats those checks before implementation
+logic. Diagnostics expose watchdog activations per controller; any recurring count is a performance or
+queue-health finding rather than proof of successful behaviour.
+
+Tactical drills use a separate fifteen-second same-key recovery before the existing thirty-second
+movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
+persistent callback failure still releases owned PATH, behaviour and ROE state through common cleanup.
 
 The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 

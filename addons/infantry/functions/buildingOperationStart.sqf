@@ -35,7 +35,9 @@ private _brain=createHashMapFromArray [
     ["cancelReason",""],
     ["nextAt",time],
     ["lastStepAt",-1],
-    ["lastDelay",-1]
+    ["lastDelay",-1],
+    ["queuedAt",-1],
+    ["watchdogCount",0]
 ];
 _group setVariable ["WAIT_BuildingBrain",_brain];
 _group setVariable ["WAIT_BuildingBrain_State",["ENTRY",_generation,_epoch,serverTime,"STARTED",0,0,count (_job getOrDefault ["positions",[]])],true];

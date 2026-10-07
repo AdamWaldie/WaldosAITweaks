@@ -64,7 +64,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_BuildingBrain',release)
         self.assertIn('WAIT_BuildingBrain',locality)
         self.assertIn('WAIT_BuildingBrain',stop)
-        self.assertIn('wait-building-fsm-',source('aiGetDiagnostics'))
+        diagnostics=source('aiGetDiagnostics')
+        self.assertIn('wait-building-fsm-',diagnostics)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('watchdogCount',start+fsm+diagnostics)
+        self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {-1}',step)
     def test_convoy_operation_fsm_replaces_persistent_scheduler_job(self):
         sync=source('convoySync');adopt=source('convoyHeadlessAdoptLocal');start=source('convoyOperationStart');queue=source('convoyOperationQueue');step=source('convoyOperationStep');release=source('convoyReleaseLocal')
         fsm=(ROOT/'addons/main/fsm/convoyOperation.fsm').read_text(encoding='utf-8')
@@ -79,6 +84,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
         self.assertIn('WAIT_Convoy_Brain',release)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('watchdogCount',start+fsm+source('aiGetDiagnostics'))
+        self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 
     def test_air_attack_operation_fsm_owns_phase_persistence(self):
         discover=source('cortexDiscover');combined=source('cortexCombinedArmsLocal')
@@ -102,6 +111,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"CORTEX_STOPPED"',stop)
         self.assertIn('call WAIT_fnc_CortexAirAttack',stop)
         self.assertIn('WAIT_AirAttack_BrainGeneration',stop)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('watchdogCount',start+fsm+diagnostics)
+        self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 
     def test_artillery_mission_fsm_owns_fire_sequence_persistence(self):
         fire=source('cortexArtilleryFire');bounded=source('cortexArtilleryMissionStep')
@@ -122,6 +135,10 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('class '+state,fsm)
         self.assertIn('WAIT_Artillery_Brain',stop)
         self.assertIn('wait-artillery-fsm-',diagnostics)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('watchdogCount',start+fsm+diagnostics)
+        self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 
     def test_support_request_fsm_owns_cross_squad_persistence(self):
         server=source('cortexSupportServer');bounded=source('cortexSupportStep')
@@ -141,6 +158,10 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('class '+state,fsm)
         self.assertIn('WAIT_Support_Brain',stop)
         self.assertIn('wait-support-fsm-',diagnostics)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('watchdogCount',start+fsm+diagnostics)
+        self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 
     def test_aircraft_controllers_share_one_generation_owned_flight_lease(self):
         acquire=source('flightLeaseAcquire');valid=source('flightLeaseValid');release=source('flightLeaseRelease')
@@ -3080,6 +3101,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CortexFlankStep',fsm)
         self.assertIn('!local _group',fsm)
         self.assertIn('_thisFSM',fsm)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('""jobKey"",""WAIT_DRILL_""',fsm)
+        self.assertIn('_job get ""jobKey""] call WAIT_fnc_CortexQueueJob',fsm)
+        self.assertIn('])+15)',fsm)
+        self.assertIn('WAIT_Cortex_DrillFSMJob',fsm+source('aiGetDiagnostics'))
         self.assertNotIn('allGroups',fsm)
         self.assertNotIn('allUnits',fsm)
 

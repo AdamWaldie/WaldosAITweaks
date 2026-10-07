@@ -22,6 +22,7 @@ private _cancel={
     _brain set ["cancelReason",_reason];
     -1
 };
+if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {[_brain getOrDefault ["cancelReason","CANCELLED"]] call _cancel};
 if (!isServer || {isNull _battery} || {count _mission == 0}) exitWith {["INVALID_MISSION"] call _cancel};
 if (_generation != (_battery getVariable ["WAIT_Artillery_BrainGeneration",-2])
     || {(_battery getVariable ["WAIT_Artillery_Brain",createHashMap]) isNotEqualTo _brain}) exitWith {["REPLACED"] call _cancel};

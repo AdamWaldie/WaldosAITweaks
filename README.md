@@ -16,8 +16,7 @@ The repository now builds as a conventional `z\waldo_ai_tweaks\addons\main` addo
 - the standalone settings request validates the requesting curator and updates the CBA server layer;
 - HEMTT owns packaging and version metadata.
 
-Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+ and CBA_A3 are required; ZEN is optional. Native engine danger behaviour remains active until an original WAIT replacement
-passes acceptance. No external AI addon is required or bundled.
+Run `hemtt build` from the repository root to create the mod package. Arma 3 2.18+ and CBA_A3 are required; ZEN is optional. WAIT supplies the base-soldier danger FSM and treats another replacement of that engine slot as incompatible. No external AI addon is required or bundled.
 
 The new function and settings API uses `WAIT_*` with no forwarding aliases. See
 [API migration](docs/API-MIGRATION.md), [addon lifecycle](docs/ADDON-LIFECYCLE.md) and the

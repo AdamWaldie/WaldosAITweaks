@@ -27,6 +27,7 @@ if (_brain getOrDefault ["pending",false]) exitWith {true};
 _brain set ["pending",true];
 _brain set ["completed",false];
 _brain set ["expectedPhase",_expectedPhase];
+_brain set ["queuedAt",time];
 private _key=format ["WAIT_BUILDING_%1_%2_%3",str _group,_epoch,_generation];
 [WAIT_fnc_BuildingOperationStep,_brain,0,_key] call WAIT_fnc_CortexQueueJob;
 true

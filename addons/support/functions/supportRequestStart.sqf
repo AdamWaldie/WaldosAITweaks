@@ -25,7 +25,7 @@ private _brain=createHashMapFromArray [
     ["requester",_requester],["job",_job],["serial",_serial],["generation",_generation],
     ["phase","DISCOVER"],["pending",false],["completed",false],["finished",false],
     ["cancelled",false],["cancelReason",""],["nextAt",time+(_delay max 0)],
-    ["lastStepAt",-1],["lastDelay",_delay max 0]
+    ["lastStepAt",-1],["lastDelay",_delay max 0],["queuedAt",-1],["watchdogCount",0]
 ];
 _requester setVariable ["WAIT_Support_BrainGeneration",_generation];
 _requester setVariable ["WAIT_Support_Brain",_brain];

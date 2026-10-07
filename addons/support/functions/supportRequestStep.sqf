@@ -21,6 +21,7 @@ private _cancel={
     _brain set ["cancelReason",_reason];
     -1
 };
+if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {[_brain getOrDefault ["cancelReason","CANCELLED"]] call _cancel};
 if (!isServer || {isNull _requester} || {count _job == 0}) exitWith {["INVALID_REQUEST"] call _cancel};
 if (_generation != (_requester getVariable ["WAIT_Support_BrainGeneration",-2])
     || {(_requester getVariable ["WAIT_Support_Brain",createHashMap]) isNotEqualTo _brain}) exitWith {["REPLACED"] call _cancel};

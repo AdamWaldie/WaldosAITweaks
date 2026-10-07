@@ -220,11 +220,11 @@ private _convoyRecoveries=0;
 private _convoyBrains=(_convoyGroups select {local _x && {count (_x getVariable ["WAIT_Convoy_Brain",createHashMap]) > 0}}) select [0,20];
 private _convoyBrainSnapshot=_convoyBrains apply {
     private _brain=_x getVariable ["WAIT_Convoy_Brain",createHashMap];
-    format ["%1 phase=%2 revision=%3 registry=%4 pending=%5 spacingPairs=%6 recoveryActors=%7 age=%8 cancel=%9",
+    format ["%1 phase=%2 revision=%3 registry=%4 pending=%5 spacingPairs=%6 recoveryActors=%7 age=%8 schedulerWatchdogs=%9 cancel=%10",
         groupId _x,_brain getOrDefault ["phase","UNKNOWN"],(_brain getOrDefault ["configuration",[]]) param [0,-1],
         _brain getOrDefault ["registryRevision",-1],_brain getOrDefault ["pending",false],
         _brain getOrDefault ["spacingPairs",0],_brain getOrDefault ["recoveryActors",0],
-        ((time-(_brain getOrDefault ["lastStepAt",time])) max 0) toFixed 1,_brain getOrDefault ["cancelReason",""]]
+        ((time-(_brain getOrDefault ["lastStepAt",time])) max 0) toFixed 1,_brain getOrDefault ["watchdogCount",0],_brain getOrDefault ["cancelReason",""]]
 };
 // A convoy needs its own local scheduler restart after a compatible transfer. Compare the
 // validated adoption record with the companion restart record, rather than treating owner
@@ -443,7 +443,7 @@ _checks pushBack ["ai","cortex-coordination-health",if (_retiredSupportTeams > 0
     private _brain=if (isNull _requester) then {createHashMap} else {_requester getVariable ["WAIT_Support_Brain",createHashMap]};
     private _brainHealthy=count _brain > 0 && {(_brain getOrDefault ["serial",-1]) == (_request getOrDefault ["serial",-2])}
         && {!(_brain getOrDefault ["cancelled",false])} && {!(_brain getOrDefault ["finished",false])};
-    _checks pushBack ["ai","wait-support-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["requester=%1 phase=%2 generation=%3 pending=%4 secondsSinceStep=%5 dueInSeconds=%6 leases=%7 cursor=%8. The server FSM owns discovery and coordination persistence; responder movement remains owner-local.",if (isNull _requester) then {"NULL"} else {groupId _requester},_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},((_brain getOrDefault ["nextAt",time])-time) max 0,count (_request getOrDefault ["leases",[]]),_request getOrDefault ["cursor",0]]];
+    _checks pushBack ["ai","wait-support-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["requester=%1 phase=%2 generation=%3 pending=%4 secondsSinceStep=%5 dueInSeconds=%6 leases=%7 cursor=%8 schedulerWatchdogs=%9. The server FSM owns discovery and coordination persistence; responder movement remains owner-local.",if (isNull _requester) then {"NULL"} else {groupId _requester},_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},((_brain getOrDefault ["nextAt",time])-time) max 0,count (_request getOrDefault ["leases",[]]),_request getOrDefault ["cursor",0],_brain getOrDefault ["watchdogCount",0]]];
 } forEach ((keys _supportRequests) select [0,20]);
 private _localGroups=_groups select {local _x && {_x getVariable ["WAIT_AIPass_Managed",false]}};
 _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot serverTime=%1; server-local managed groups=%2, sampled=%3 (limit 20); HC-owned groups=%4. HC private action/queue state is unavailable here, not zero. Stationary or PATH-disabled units may be covering; one snapshot cannot prove a stall.",serverTime,count _localGroups,(count _localGroups) min 20,count _hcGroups]];
@@ -482,7 +482,8 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _resumeGrace=((missionNamespace getVariable ["WAIT_AIPass_ResumeGraceUntil",-1])-time) max 0;
         private _movementLease=_state getOrDefault ["movementLease",[]];
         private _healthy=_heartbeatAge <= _watchdog || {_resumeGrace > 0};
-        _checks pushBack ["ai",format ["cortex-drill-health-%1",netId _group],["ERROR","LOADED"] select _healthy,format ["group=%1 type=%2 stage=%3 token=%4 heartbeatAgeSeconds=%5 watchdogSeconds=%6 movementLease=%7 resumeGraceSeconds=%8. An overdue controller is released through common drill cleanup; a stored drill or waypoint is not completion evidence.",groupId _group,_drill getOrDefault ["type","UNKNOWN"],_drill getOrDefault ["stage","UNKNOWN"],_drill getOrDefault ["token",""],_heartbeatAge,_watchdog,_movementLease,_resumeGrace]];
+        private _drillFsmJob=_group getVariable ["WAIT_Cortex_DrillFSMJob",createHashMap];
+        _checks pushBack ["ai",format ["cortex-drill-health-%1",netId _group],["ERROR","LOADED"] select _healthy,format ["group=%1 type=%2 stage=%3 token=%4 heartbeatAgeSeconds=%5 watchdogSeconds=%6 movementLease=%7 resumeGraceSeconds=%8 schedulerWatchdogs=%9. An overdue controller wakes its same keyed scheduler callback; a stored drill or waypoint is not completion evidence.",groupId _group,_drill getOrDefault ["type","UNKNOWN"],_drill getOrDefault ["stage","UNKNOWN"],_drill getOrDefault ["token",""],_heartbeatAge,_watchdog,_movementLease,_resumeGrace,_drillFsmJob getOrDefault ["watchdogCount",0]]];
     };
     private _remount=_group getVariable ["WAIT_Cortex_Remount",[]];
     if (count _remount == 2) then {
@@ -540,7 +541,7 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
     private _buildingBrain=_group getVariable ["WAIT_BuildingBrain",createHashMap];
     if (count _buildingBrain > 0) then {
         private _buildingJob=_buildingBrain getOrDefault ["job",createHashMap];
-        _checks pushBack ["ai",format ["wait-building-fsm-%1",netId _group],"ACTIVE",format ["group=%1 phase=%2 generation=%3 ownerEpoch=%4 pending=%5 nextStepSeconds=%6 progressAgeSeconds=%7 visited=%8 unreachable=%9 rooms=%10 cancellation=%11. Physical visits remain the clearance authority; the FSM state is intent and ownership evidence only.",groupId _group,_buildingBrain getOrDefault ["phase","UNKNOWN"],_buildingBrain getOrDefault ["generation",-1],_buildingBrain getOrDefault ["ownerEpoch",-1],_buildingBrain getOrDefault ["pending",false],((_buildingBrain getOrDefault ["nextAt",time])-time) max 0,(serverTime-(_buildingJob getOrDefault ["lastProgressAt",serverTime])) max 0,count (_buildingJob getOrDefault ["cleared",[]]),count (_buildingJob getOrDefault ["unreachable",[]]),count (_buildingJob getOrDefault ["positions",[]]),_buildingBrain getOrDefault ["cancelReason",""]]];
+        _checks pushBack ["ai",format ["wait-building-fsm-%1",netId _group],"ACTIVE",format ["group=%1 phase=%2 generation=%3 ownerEpoch=%4 pending=%5 nextStepSeconds=%6 progressAgeSeconds=%7 visited=%8 unreachable=%9 rooms=%10 schedulerWatchdogs=%11 cancellation=%12. Physical visits remain the clearance authority; the FSM state is intent and ownership evidence only.",groupId _group,_buildingBrain getOrDefault ["phase","UNKNOWN"],_buildingBrain getOrDefault ["generation",-1],_buildingBrain getOrDefault ["ownerEpoch",-1],_buildingBrain getOrDefault ["pending",false],((_buildingBrain getOrDefault ["nextAt",time])-time) max 0,(serverTime-(_buildingJob getOrDefault ["lastProgressAt",serverTime])) max 0,count (_buildingJob getOrDefault ["cleared",[]]),count (_buildingJob getOrDefault ["unreachable",[]]),count (_buildingJob getOrDefault ["positions",[]]),_buildingBrain getOrDefault ["watchdogCount",0],_buildingBrain getOrDefault ["cancelReason",""]]];
     };
     private _operation=_group getVariable ["WAIT_Operation",createHashMap];
     if (count _operation > 0) then {
@@ -587,7 +588,7 @@ private _missions=missionNamespace getVariable ["WAIT_AIPass_FireMissions",creat
     private _brainState=if (isNull _battery) then {[]} else {_battery getVariable ["WAIT_Artillery_Brain_State",[]]};
     private _brainHealthy=count _brain > 0 && {(_brain getOrDefault ["token",""]) == (_mission getOrDefault ["token",""])}
         && {!(_brain getOrDefault ["cancelled",false])} && {!(_brain getOrDefault ["finished",false])};
-    _checks pushBack ["ai","wait-artillery-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["phase=%1 generation=%2 pending=%3 dueInSeconds=%4 lastStepAge=%5 nativePhase=%6 token=%7 state=%8. The FSM owns persistence; shot, observer and warning work remains bounded.",_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],((_brain getOrDefault ["nextAt",time])-time) max 0,if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},_phase,_mission getOrDefault ["token",""],_brainState]];
+    _checks pushBack ["ai","wait-artillery-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["phase=%1 generation=%2 pending=%3 dueInSeconds=%4 lastStepAge=%5 nativePhase=%6 token=%7 schedulerWatchdogs=%8 state=%9. The FSM owns persistence; shot, observer and warning work remains bounded.",_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],((_brain getOrDefault ["nextAt",time])-time) max 0,if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},_phase,_mission getOrDefault ["token",""],_brain getOrDefault ["watchdogCount",0],_brainState]];
 } forEach ((keys _missions) select [0,20]);
 private _convoys=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
 {
@@ -627,12 +628,13 @@ private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
     private _outcome=_aircraft getVariable ["WAIT_Cortex_AirAttackOutcome",[]];
     private _request=_aircraft getVariable ["WAIT_Cortex_CountermeasureLastRequest",[]];
     private _brainState=_aircraft getVariable ["WAIT_AirAttack_Brain_State",[]];
+    private _airBrain=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
     private _reason=_outcome param [0,""];
     private _healthy=alive _aircraft && {(getPosATL _aircraft select 2) >= 25}
         && {_reason in ["","COMPLETE","CONTROL_RELEASED","TARGET_LOST","AUTHORED_ROUTE_CHANGED","NOT_ATTACKING"]};
     _checks pushBack ["ai",format ["cortex-air-attack-%1",netId _aircraft],["ERROR","LOADED"] select _healthy,
-        format ["class=%1 owner=%2 brain=[phase,generation,time,reason,delay]=%3 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%4 lastOutcome=[reason,time,pattern,actualShots]=%5 lastCountermeasureRequest=%6 standoffBlockedSeconds=%7 crewRetained=%8. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
-            typeOf _aircraft,owner _aircraft,_brainState,_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
+        format ["class=%1 owner=%2 brain=[phase,generation,time,reason,delay]=%3 schedulerWatchdogs=%4 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%5 lastOutcome=[reason,time,pattern,actualShots]=%6 lastCountermeasureRequest=%7 standoffBlockedSeconds=%8 crewRetained=%9. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
+            typeOf _aircraft,owner _aircraft,_brainState,_airBrain getOrDefault ["watchdogCount",0],_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
 } forEach (_adaptiveAircraft select [0,20]);
 _checks pushBack ["ai","cortex-air-attack-snapshot-limits","LOADED",format ["Adaptive aircraft total=%1 sampled=%2 (limit 20). Active plans and retained outcomes are included; physical travel, Fired events and explicit transitions remain the acceptance evidence.",count _adaptiveAircraft,(count _adaptiveAircraft) min 20]];
 private _flightLeased=vehicles select {_x isKindOf "Air" && {count (_x getVariable ["WAIT_FlightLease",createHashMap]) > 0}};

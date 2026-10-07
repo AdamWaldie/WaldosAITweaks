@@ -11,6 +11,7 @@
 params [["_brain",createHashMap,[createHashMap]]];
 private _group=_brain getOrDefault ["group",grpNull];private _configuration=_brain getOrDefault ["configuration",[]];private _registryRevision=_brain getOrDefault ["registryRevision",-1];private _token=_brain getOrDefault ["jobToken",""];
 private _cancel={params ["_reason"];_brain set ["pending",false];_brain set ["completed",true];_brain set ["cancelled",true];_brain set ["cancelReason",_reason];-1};
+if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {[_brain getOrDefault ["cancelReason","CANCELLED"]] call _cancel};
 if (isNull _group || {!local _group}) exitWith {["OWNERSHIP_LOST"] call _cancel};
 if (_registryRevision != (missionNamespace getVariable ["WAIT_Convoy_ReceivedRevision",-2]) || {_token isNotEqualTo (_group getVariable ["WAIT_Convoy_LocalJobToken",""])}) exitWith {["REPLACED"] call _cancel};
 private _entry=(missionNamespace getVariable ["WAIT_Convoy_LocalRegistry",[]]) findIf {(_x select 0) isEqualTo _group && {(_x select 1) isEqualTo _configuration}};

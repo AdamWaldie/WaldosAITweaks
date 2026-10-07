@@ -49,7 +49,7 @@ This is an implementation order, not a timed automation. Unfinished acceptance r
 - Depleted bounding teams no longer wait indefinitely when no recovery participant exists. Three capable survivors can use two movers and one covering actor; membership changes rebuild slots for the same committed bound. Physical casualty and straggler acceptance remains pending.
 
 - CBA now separates eight numbered use-case pages, with explicit sections and enable gates before tuning. Vehicles and registered convoys retain independent controls; keys, values, defaults and activation policies are unchanged. Generated guides use the same section catalogue. Visual CBA acceptance remains queued.
-- WAIT-only infantry ownership discovery now reads the registered WAIT enum instead of an obsolete value. This repairs a path where discovery left the external danger controller active while finite leases assumed it had been disabled. Exact baseline restoration and shared ownership remain; dependency-loaded physical acceptance is pending.
+- Infantry ownership discovery now enforces WAIT as the sole base-soldier danger-FSM owner. Another replacement of that engine slot is unsupported; specialist actors and finite alternative-movement leases still yield through explicit markers with exact baseline restoration. Physical specialist handover acceptance remains pending.
 
 - A finite local danger response now promotes only its existing squad decision job to contact cadence. This lets a distant group use its native engine knowledge without waiting for the normal player-distance interval, while retaining the shared scheduler, route owner and performance bounds. Physical response latency and 50 mixed-group acceptance remain pending.
 - Incoming-missile defence now uses the same finite shared scheduler as the rest of WAIT. A newer warning invalidates the earlier generation, and each response emits bounded countermeasures with at most two terrain-checked flight impulses. This removes the independent sleeping worker; real missile evasion and flight-quality acceptance remain pending packaged testing.
@@ -109,6 +109,18 @@ generation-keyed queue entry rather than appending work, and a cancelled callbac
 group logic. Owner epoch, generation, addon-disable and explicit cancellation can therefore end the wait even
 when the scheduler is under load. Diagnostics expose the watchdog count so queue pressure is visible instead of
 appearing as an unexplained idle squad.
+
+The same bounded wait contract now covers building, convoy, aircraft-attack, artillery and support-request
+FSMs. Each queued step records its submission time; a three-second overdue wait wakes the same coalescing key,
+and a cancelled or finished callback exits before physical implementation logic. Controller diagnostics include
+their recovery counts. This removes an identical indefinite-wait path from six production brains without adding
+a worker, scan or per-unit loop. Static and packaged validation are required; physical queue-pressure acceptance
+remains pending.
+
+The tactical-drill FSM now gives a lost recurring advance/flank callback a fifteen-second same-key retry before
+the existing thirty-second group cleanup releases the manoeuvre. This preserves a chance to continue through
+transient scheduler pressure while persistent callback failure still restores owned AI state. The local diagnostic
+record exposes retry count and is removed with the matching FSM.
 
 Up to twelve owner-local AI group members now feed one finite owner-local assessment FSM, enabled by
 default under the normal CBA contact settings. The evaluator coalesces causes, rejects expired records and

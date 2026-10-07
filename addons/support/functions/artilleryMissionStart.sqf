@@ -25,7 +25,7 @@ private _brain=createHashMapFromArray [
     ["battery",_battery],["mission",_mission],["token",_token],["generation",_generation],
     ["phase","REQUESTED"],["pending",false],["completed",false],["finished",false],
     ["cancelled",false],["cancelReason",""],["nextAt",time+(_delay max 0)],
-    ["lastStepAt",-1],["lastDelay",_delay max 0]
+    ["lastStepAt",-1],["lastDelay",_delay max 0],["queuedAt",-1],["watchdogCount",0]
 ];
 _battery setVariable ["WAIT_Artillery_BrainGeneration",_generation];
 _battery setVariable ["WAIT_Artillery_Brain",_brain];

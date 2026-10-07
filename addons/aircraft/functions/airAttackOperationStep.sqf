@@ -20,6 +20,7 @@ private _cancel={
     _brain set ["cancelReason",_reason];
     -1
 };
+if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {[_brain getOrDefault ["cancelReason","CANCELLED"]] call _cancel};
 if (isNull _aircraft || {!local _aircraft}) exitWith {["OWNERSHIP_LOST"] call _cancel};
 if (_generation != (_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",-2])
     || {(_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap]) isNotEqualTo _brain}) exitWith {["REPLACED"] call _cancel};

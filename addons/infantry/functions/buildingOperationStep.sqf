@@ -12,6 +12,7 @@
  */
 
 params [["_brain",createHashMap,[createHashMap]]];
+if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {-1};
 private _job=_brain getOrDefault ["job",createHashMap];
 private _group=_brain getOrDefault ["group",grpNull];
 private _delay=call {

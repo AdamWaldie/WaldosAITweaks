@@ -23,7 +23,7 @@ private _brain=createHashMapFromArray [
     ["aircraft",_aircraft],["job",_job],["generation",_generation],["phase","PLAN"],
     ["pending",false],["completed",false],["finished",false],["cancelled",false],
     ["cancelReason",""],["nextAt",time+(_delay max 0)],["lastStepAt",-1],["lastDelay",_delay max 0],
-    ["flightLeaseToken",_leaseToken]
+    ["queuedAt",-1],["watchdogCount",0],["flightLeaseToken",_leaseToken]
 ];
 _aircraft setVariable ["WAIT_Cortex_AirAttackJob",true];
 _aircraft setVariable ["WAIT_AirAttack_Brain",_brain];
