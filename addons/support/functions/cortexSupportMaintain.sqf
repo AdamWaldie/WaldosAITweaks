@@ -123,12 +123,12 @@ if (count _abort == 4 && {(_abort select 0) == _token}) exitWith {
 };
 if (_lease isEqualTo [] || {(_lease select 0) != _token} || {serverTime >= (_lease select 2)}
     || {!([_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!_supportEnabled}) then {
-    exitWith {["LEASE_EXPIRED"] call _releaseSupport};
+    || {!_supportEnabled}) exitWith {
+    ["LEASE_EXPIRED"] call _releaseSupport
 };
 
-if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) then {
-    exitWith {["FEATURE_DISABLED"] call _releaseSupport};
+if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {
+    ["FEATURE_DISABLED"] call _releaseSupport
 };
 
 // Keep the common record current without adding a separate worker.  An external owner, a Zeus

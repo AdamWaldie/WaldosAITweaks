@@ -59,7 +59,7 @@ if (_aid isNotEqualTo []) exitWith {
         ["CANCELLED",["COMBAT_RESUMED","TIMEOUT"] select (time-_startedAt >= (missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Timeout",45]))] call _finish
     };
     private _distance=_medic distance2D _casualty;
-    // At treatment range the medic's lack of displacement is expected: native doHeal can work
+    // At treatment range the medic's lack of displacement is expected: the native HealSoldier action can work
     // in place. The shared progress monitor is only meaningful while this finite operation is
     // physically approaching its casualty, otherwise it would incorrectly cancel a working aid.
     private _cancelReason="";
@@ -77,7 +77,12 @@ if (_aid isNotEqualTo []) exitWith {
         ["CANCELLED","NO_PROGRESS"] call _finish
     };
     if (time-_lastOrderAt >= 8) then {
-        _medic doHeal _casualty;
+        if (_distance > 4) then {
+            _medic doMove getPosATL _casualty;
+            _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
+        } else {
+            _medic action ["HealSoldier",_casualty];
+        };
         _aid set [4,time];
         _aid set [5,_bestDistance];
         _aid set [6,_lastProgressAt];
@@ -123,6 +128,11 @@ if (_pair isEqualTo []) exitWith {false};
 _pair params ["_medic","_casualty"];
 private _operation=[_group,"MEDICAL_AID",_casualty,[_medic], [getPosATL _casualty],"APPROACH"] call WAIT_fnc_OperationStart;
 if (count _operation == 0) exitWith {false};
-_medic doHeal _casualty;
+if (_best > 4) then {
+    _medic doMove getPosATL _casualty;
+    _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
+} else {
+    _medic action ["HealSoldier",_casualty];
+};
 _group setVariable ["WAIT_Cortex_MedicalAid",[_operation get "generation",_medic,_casualty,time,time,_best,time],true];
 true
