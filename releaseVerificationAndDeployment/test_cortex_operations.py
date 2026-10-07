@@ -273,6 +273,12 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(begin_contact.count('_visible isNotEqualTo []'),3)
         for dispatch in ['WAIT_fnc_CortexContactReport','WAIT_fnc_CortexCombinedArmsRequest','WAIT_fnc_CortexReinforce']:
             self.assertIn('_visible isNotEqualTo []',begin_contact[max(0,begin_contact.index(dispatch)-500):begin_contact.index(dispatch)])
+        contact=source('cortexGroupTick').split('case "CONTACT": {',1)[1].split('case "SECURITY": {',1)[0]
+        self.assertIn('if (_hasTargetKnowledge) then {',contact)
+        self.assertIn('if (_visible isEqualTo []) then {_state set ["enemyPos",+((_enemies select 0) select 1)]}',contact)
+        self.assertIn('!_dangerActive',contact)
+        self.assertIn('"DANGER_EXPIRED"',contact)
+        self.assertLess(contact.index('!_dangerActive'),contact.index('WAIT_AIPass_PostContact_LostSeconds'))
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('private _schedulerQueue=(missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) select [0,20];',diagnostics)
         self.assertIn('"cortex-scheduler"',diagnostics)
@@ -5002,7 +5008,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexVehicles',contact)
         self.assertIn('_state set ["contactKnowledge",(_state getOrDefault ["contactKnowledge",false]) || {_hasTargetKnowledge}];',tick)
         self.assertIn('_state set ["contactKnowledge",true];',contact)
-        self.assertIn('if !(_state getOrDefault ["contactKnowledge",false]) then {',contact)
+        self.assertIn('if (!_manoeuvreActive && {!_dangerActive}',contact)
+        self.assertIn('&& {!(_state getOrDefault ["contactKnowledge",false])}) exitWith {',contact)
         self.assertIn('"DANGER_EXPIRED"',contact)
         self.assertIn('"contactKnowledge"',source('cortexRestoreCalm'))
 

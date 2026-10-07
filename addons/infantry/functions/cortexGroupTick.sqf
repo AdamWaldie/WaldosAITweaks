@@ -19,6 +19,8 @@
  * CONTACT -> SECURITY after WAIT_AIPass_PostContact_LostSeconds without a sighting and after any
  *   bounded flank, advance or coordinated assault has finished (or straight back to CALM when
  *   post-contact is off). Temporary occlusion therefore cannot revoke an active manoeuvre.
+ * A targetless danger wake returns directly to CALM when its finite danger lease expires. It does
+ *   not spend the full lost-contact interval in COMBAT unless native enemy knowledge appears.
  * SECURITY (hold) -> SEARCH (two riflemen check the last known enemy position) -> REGROUP (wait for
  *   the squad to close up) -> CALM, which restores the recorded behaviour and speed (a squad that
  *   was SAFE before a real firefight returns AWARE).
@@ -587,6 +589,13 @@ switch (_state get "phase") do {
             _state set ["enemyPos", (_visible select 0) select 1];
             _state set ["contactKnowledge",true];
         };
+        // Native knowledge may arrive after a targetless engine danger wake while terrain still
+        // occludes the enemy. Preserve that real contact before the short danger lease expires so
+        // the group can continue finite tactics and the ordinary lost-contact flow.
+        if (_hasTargetKnowledge) then {
+            _state set ["contactKnowledge",true];
+            if (_visible isEqualTo []) then {_state set ["enemyPos",+((_enemies select 0) select 1)]};
+        };
         private _outcome = "";
         if (["WAIT_AIPass_Morale_Enable", true] call _get) then {
             _outcome = [_group, _state, _enemies] call WAIT_fnc_CortexMorale;
@@ -683,16 +692,22 @@ switch (_state get "phase") do {
         private _manoeuvreActive = count (_state getOrDefault ["drill",createHashMap]) > 0
             || {_state getOrDefault ["assaulting",false]}
             || {_state getOrDefault ["responding",false]};
+        // A hit, explosion or suppression event is useful immediate safety information, but it is
+        // not a thirty-second contact. Release the temporary COMBAT posture as soon as the finite
+        // danger context ends unless native knowledge or an already-committed manoeuvre justifies it.
+        if (!_manoeuvreActive && {!_dangerActive}
+            && {!(_state getOrDefault ["contactKnowledge",false])}) exitWith {
+            [_group,_state,true,false,"DANGER_EXPIRED"] call WAIT_fnc_CortexRestoreCalm;
+            _delay=1;
+        };
         if (!_manoeuvreActive
             && {(_state getOrDefault ["phase",""]) == "CONTACT"}
             && {_now - (_state getOrDefault ["lastSeen", _now]) > (["WAIT_AIPass_PostContact_LostSeconds", 30] call _get)}) then {
-            if !(_state getOrDefault ["contactKnowledge",false]) then {
-                [_group,_state,true,false,"DANGER_EXPIRED"] call WAIT_fnc_CortexRestoreCalm;
-            } else {if (["WAIT_AIPass_PostContact_Enable", true] call _get) then {
+            if (["WAIT_AIPass_PostContact_Enable", true] call _get) then {
                 [_group,_state,"SECURITY","CONTACT_LOST",_now] call WAIT_fnc_CortexSetPhase;
             } else {
                 [_group, _state, true, false, "CONTACT_ENDED"] call WAIT_fnc_CortexRestoreCalm;
-            }};
+            };
         };
     };
     case "SECURITY": {
