@@ -535,6 +535,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_RecoveryStep',source('cortexGroupTick'))
         self.assertIn('operationGeneration',end)
         self.assertIn('WAIT_fnc_OperationStep',source('cortexFlankStep'))
+        self.assertIn('["LOST_OWNER","ZEUS","EXTERNAL","REPLACED","STALLED"]',source('cortexFlankStep'))
         self.assertIn('WAIT_fnc_RebalanceRoles',source('cortexFlankStep'))
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('cortex-clearance-active-',diagnostics)
@@ -644,7 +645,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _originalParticipants=',step)
         self.assertIn('private _unavailable=',step)
         self.assertIn('time-_startedAt >= _staleSeconds',step)
-        self.assertIn('private _participants=_originalParticipants select {!(_x in _unavailable)}',step)
+        self.assertIn('private _participants=_originalParticipants select {!(_x in _unavailable) && {!(_x in _recovering)}}',step)
+        self.assertIn('Recovery actors are intentionally absent from aggregate progress',step)
+        self.assertIn('_recovery set [_key,[_attempts,time,+_destination,_currentPosition]]',step)
         self.assertIn('_operation set ["unavailable",_unavailable]',step)
         self.assertIn('_recovery deleteAt (netId _actor)',step)
         rebalance=source('rebalanceRoles')
@@ -658,7 +661,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('setDestination [_destination',recovery)
         self.assertNotIn('_actor enableAI "PATH"',recovery)
         self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',recovery)
-        self.assertIn('_recovery set [_key,[_attempts+1,time,+_destination]]',recovery)
+        self.assertIn('_recovery set [_key,[_attempts+1,time,+_destination,getPosATL _actor]]',recovery)
         self.assertNotIn('setPos',recovery)
     def test_danger_reaction_is_scoped_and_never_issues_movement(self):
         reaction=source('dangerReact')
@@ -2948,6 +2951,11 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('setPos',retreat_case)
         self.assertIn('"retreatStart", "retreatTarget", "retreatProgress"',restore)
         self.assertIn('setVariable ["WAIT_Cortex_Withdrawal",nil,true]',restore)
+        self.assertIn('_operationState=[_group,_generation,3,15] call WAIT_fnc_OperationStep',retreat_case)
+        self.assertIn('_operation=_group getVariable ["WAIT_Operation",createHashMap]',retreat_case)
+        self.assertIn('private _unavailable=_operation getOrDefault ["unavailable",[]]',retreat_case)
+        self.assertIn('private _recoveryRecord=_recovery getOrDefault [netId _x,[]]',retreat_case)
+        self.assertIn('if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {',retreat_case)
 
     def test_trapped_withdrawal_uses_bounded_dry_fallback_and_keeps_fighting(self):
         retreat=source('cortexRetreat')
@@ -3166,6 +3174,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_operationGeneration >= 0',maintain)
         self.assertIn('&& {(_supportOwnsMovement || {!_movementLeaseActive})}',maintain)
         self.assertIn('if (_supportOwnsMovement) then {_state deleteAt "movementLease"}',maintain)
+        self.assertIn('private _operationEndReason=""',maintain)
+        self.assertIn('if (_operationState == "STALLED") then {_operationEndReason="NO_PROGRESS"}',maintain)
+        self.assertIn('if (_operationEndReason != "") exitWith {',maintain)
+        self.assertNotIn('if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {',maintain)
 
     def test_all_group_manoeuvres_use_one_shared_movement_owner(self):
         tick=source('cortexGroupTick')

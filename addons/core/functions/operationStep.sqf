@@ -32,15 +32,37 @@ private _recovery=_operation getOrDefault ["recovery",createHashMap];
 private _unavailable=_operation getOrDefault ["unavailable",[]];
 {
     private _actor=_x;
-    private _record=_recovery getOrDefault [netId _actor,[]];
+    private _key=netId _actor;
+    private _record=_recovery getOrDefault [_key,[]];
     if (_record isEqualType [] && {count _record >= 2}) then {
-        _record params ["_attempts","_startedAt"];
+        _record params ["_attempts","_startedAt",["_destination",[],[[]]],["_startPosition",getPosATL _actor,[[]]]];
         if (_attempts > 0 && {time-_startedAt >= _staleSeconds}) then {
-            _unavailable pushBackUnique _actor;
+            private _currentPosition=getPosATL _actor;
+            if (count _destination >= 2 && {_actor distance2D _destination <= 4}) then {
+                _recovery deleteAt _key;
+            } else {
+                if (_currentPosition distance2D _startPosition >= _minimum) then {
+                    // The isolated actor is still moving. Renew only its observation window; its
+                    // travel cannot mask a stalled manoeuvre element or reset operation progress.
+                    _recovery set [_key,[_attempts,time,+_destination,_currentPosition]];
+                } else {
+                    _unavailable pushBackUnique _actor;
+                };
+            };
         };
     };
 } forEach _originalParticipants;
-private _participants=_originalParticipants select {!(_x in _unavailable)};
+private _recovering=[];
+// Recovery actors are intentionally absent from aggregate progress. Their isolated movement is
+// useful, but it must never keep a stationary assault, withdrawal or clearance operation alive.
+{
+    private _actor=_x;
+    private _record=_recovery getOrDefault [netId _actor,[]];
+    if (_record isEqualType [] && {count _record >= 2} && {(_record select 0) > 0}) then {
+        _recovering pushBack _actor;
+    };
+} forEach _originalParticipants;
+private _participants=_originalParticipants select {!(_x in _unavailable) && {!(_x in _recovering)}};
 private _records=_operation getOrDefault ["participantProgress",[]];
 private _updated=[];
 private _progressed=false;

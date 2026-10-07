@@ -136,11 +136,18 @@ if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_Coordina
 // Keep the common record current without adding a separate worker.  An external owner, a Zeus
 // command or a locality transition wins immediately; the reservation cleanup below then only
 // clears the matching token and never restores an older route.
+private _operationEndReason="";
 if (_operationGeneration >= 0) then {
     private _operationState=[_group,_operationGeneration,3,30,true] call WAIT_fnc_OperationStep;
-    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
-        [_operationState] call _releaseSupport;
+    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) then {
+        _operationEndReason=_operationState;
     };
+    if (_operationState == "STALLED") then {_operationEndReason="NO_PROGRESS"};
+};
+// This exit belongs to the function scope. An exitWith nested inside the preceding condition block
+// returned only from that block and allowed an invalid reservation to continue into rally/hold work.
+if (_operationEndReason != "") exitWith {
+    [_operationEndReason] call _releaseSupport;
 };
 
 // Contact can begin before the rally is reached. Readiness must not depend on CALM.

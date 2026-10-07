@@ -839,17 +839,32 @@ switch (_state get "phase") do {
         // in place or causes a fresh group-wide route churn.
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
         private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
+        private _operationState="ACTIVE";
         if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}
             && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
-            [_group,_generation,3,15] call WAIT_fnc_OperationStep;
+            _operationState=[_group,_generation,3,15] call WAIT_fnc_OperationStep;
+            // OperationStep can quarantine a previous straggler. Re-read the record before choosing
+            // another actor so one exhausted recovery cannot monopolise every withdrawal check.
+            _operation=_group getVariable ["WAIT_Operation",createHashMap];
             if (time-(_operation getOrDefault ["startedAt",time]) >= 8) then {
+                private _unavailable=_operation getOrDefault ["unavailable",[]];
+                private _recovery=_operation getOrDefault ["recovery",createHashMap];
                 private _straggler=(_operation getOrDefault ["participants",[]]) findIf {
-                    alive _x && {local _x} && {isNull objectParent _x} && {_x distance2D _leader > 35} && {speed _x < 1}
+                    private _recoveryRecord=_recovery getOrDefault [netId _x,[]];
+                    alive _x && {local _x} && {isNull objectParent _x}
+                        && {!(_x in _unavailable)}
+                        && {!(_recoveryRecord isEqualType [] && {count _recoveryRecord >= 2} && {(_recoveryRecord select 0) > 0})}
+                        && {_x distance2D _leader > 35} && {speed _x < 1}
                 };
                 if (_straggler >= 0) then {
                     [_group,_generation,(_operation get "participants") select _straggler,getPosATL _leader] call WAIT_fnc_RecoveryStep;
                 };
             };
+        };
+        // A replacement generation owns the route now. This exits only the RETREAT phase scope,
+        // leaving the new finite controller intact and avoiding any old-route cleanup or replan.
+        if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
+            _delay=1;
         };
         private _moving = (waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0;
         private _start = _state getOrDefault ["retreatStart",getPosATL _leader];

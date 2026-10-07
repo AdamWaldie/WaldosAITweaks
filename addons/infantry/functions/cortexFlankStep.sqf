@@ -124,8 +124,9 @@ private _end = {
 private _operationGeneration=_drill getOrDefault ["operationGeneration",-1];
 private _operationEndReason="";
 if (_operationGeneration >= 0) then {
-    private _operationStatus=[_group,_operationGeneration,3,12] call WAIT_fnc_OperationStep;
-    if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) then {_operationEndReason=_operationStatus};
+    private _operationStale=missionNamespace getVariable ["WAIT_AIPass_Flank_BoundTimeout",25];
+    private _operationStatus=[_group,_operationGeneration,3,_operationStale] call WAIT_fnc_OperationStep;
+    if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED","STALLED"]) then {_operationEndReason=_operationStatus};
 };
 if (_operationEndReason != "") exitWith {_operationEndReason call _end};
 // External control and replacement orders win before any mode or movement mutation.

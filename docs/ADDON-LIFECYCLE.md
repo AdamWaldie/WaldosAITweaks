@@ -123,6 +123,13 @@ Tactical drills use a separate fifteen-second same-key recovery before the exist
 movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
 persistent callback failure still releases owned PATH, behaviour and ROE state through common cleanup.
 
+Actor recovery is isolated from operation progress. Once an actor receives its one recovery route, only
+the remaining manoeuvre element can renew the operation-wide progress clock. Physical travel by the
+isolated actor renews its own bounded observation window, arrival rejoins it, and no progress marks only
+that actor unavailable. A stalled main element produces an explicit terminal result; support reservations
+release as NO_PROGRESS, and withdrawal selects another eligible straggler instead of retrying the same
+exhausted actor. These checks do not add a per-unit worker or recurring scan.
+
 The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. WAIT's cause assessment, finite response handoff and one bounded idle-actor cover move are implemented; physical transition, interruption and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 An unidentified hit, explosion or suppression event may wake the finite CONTACT phase and preserve its approximate danger position for immediate safety decisions. It cannot authorise a route, weapon target, artillery request, reinforcement request, coordinated manoeuvre or later search. Those layers require native enemy knowledge. A hazard-only engagement returns directly to calm when its finite contact interval ends. Engine-confirmed contacts use the observer's believed target position, never the observer position, so the handoff cannot manufacture a co-located threat or a zero-length approach.

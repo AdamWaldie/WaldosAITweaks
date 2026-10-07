@@ -26,7 +26,7 @@ private _attempts=if (_previous isEqualType []) then {_previous param [0,0]} els
 if (_attempts >= 1) exitWith {"EXHAUSTED"};
 // Store the one physical retry and its start time. OperationStep can later quarantine only this
 // actor if it still makes no progress; other participants retain their committed route.
-_recovery set [_key,[_attempts+1,time,+_destination]];
+_recovery set [_key,[_attempts+1,time,+_destination,getPosATL _actor]];
 // Recheck the exact generation, epoch and external owner at the final command boundary. One
 // doMove already requests a fresh native route; adding setDestination for the same destination
 // created a second path instruction and could produce hesitation or a turn-back during recovery.
