@@ -49,12 +49,16 @@ private _progressActor=objNull;
     _x params ["_actor","_lastPosition"];
     if (_actor in _participants) then {
         private _currentPosition=getPosATL _actor;
-        if (_currentPosition distance2D _lastPosition >= _minimum) then {
+        private _actorProgressed=_currentPosition distance2D _lastPosition >= _minimum;
+        if (_actorProgressed) then {
             _progressed=true;
             _progressActor=_actor;
             _recovery deleteAt (netId _actor);
         };
-        _updated pushBack [_actor,_currentPosition];
+        // Preserve the last meaningful baseline until this actor crosses the configured
+        // distance. Replacing it on every scheduler callback made slow, continuous travel
+        // look stationary because sub-threshold increments could never accumulate.
+        _updated pushBack [_actor,[_lastPosition,_currentPosition] select _actorProgressed];
     };
 } forEach _records;
 {

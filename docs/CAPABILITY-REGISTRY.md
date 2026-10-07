@@ -8,7 +8,7 @@ implementation direction, not completed acceptance. Each subsystem retains its f
 | Infantry danger and contact | Immediate observation, threat response and combat handover | repair | Native danger behaviour plus bounded member-event assessment FSM; one finite response context wakes the existing shared decision job; no engine danger replacement |
 | Suppression and fire control | Effective fire without synchronised squads or blocked manoeuvres | repair | Local firing events, fire-lane checks and sparse jobs |
 | Cover and concealment | Useful firing posture and covered avenues of approach | repair | Cached bounded geometry |
-| Pairs, bounds, flank and assault | Continuous physical advance with covering elements | repair | Finite intent and shared scheduler |
+| Pairs, bounds, flank and assault | Continuous physical advance with covering elements | repair | Finite intent, shared scheduler and accumulated per-actor physical progress; packaged acceptance pending |
 | Morale, surrender and withdrawal | Physical fallback and appropriate terminal surrender | repair | Changed-group assessment and finite movement |
 | Buildings | Enter, progress through rooms/floors and exit with the squad | repair | Topology cache, mover-owned physical progress, bounded recovery; multi-model physical acceptance pending |
 | Coordination and combined arms | Communicating nearby elements exploit support opportunities | repair | Server opportunity registry, durable support reservations and matching finite local roles |
