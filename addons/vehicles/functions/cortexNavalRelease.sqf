@@ -1,12 +1,14 @@
 /*
  * Author: WaldoTheWarfighter
- * Releases a finite Cortex naval landing and restores the exact boat speed borrowed for dismount.
+ * Releases a finite Cortex naval landing and restores the exact boat speed borrowed for dismount
+ * only while WAIT's zero-speed lease remains current.
  *
  * Locality/authority: call on the current group owner. Only the group whose token matches the
  * public boat plan may clear that plan or restore the boat. Passenger groups release only their
  * own movement lease. Zeus takeover and locality cleanup use this same path.
- * Repeat/JIP: public plan tokens and exact saved forced-speed values make repeated or late cleanup
- * harmless. No unit is boarded, moved or teleported during release.
+ * Repeat/JIP: public plan tokens, exact saved forced-speed values and the owned zero cap make
+ * repeated or late cleanup harmless. A later controller's speed survives release. No unit is
+ * boarded, moved or teleported during release.
  *
  * Arguments:
  * 0: group <GROUP>
@@ -43,7 +45,11 @@ if (!isNull _boat) then {
     if (count _plan == 9 && {_token != ""} && {(_plan select 0) == _token}
         && {(_plan select 1) == _group} && {local _boat}) then {
         private _saved=_boat getVariable ["WAIT_Cortex_NavalForcedSpeed",[]];
-        if (_saved isNotEqualTo [] && {!_externalTakeover}) then {_boat forceSpeed (_saved param [0,-1])};
+        private _ownedStop=_saved param [1,-2];
+        if (_saved isNotEqualTo [] && {!_externalTakeover} && {_ownedStop >= 0}
+            && {abs ((getForcedSpeed _boat)-_ownedStop) <= 0.1}) then {
+            _boat forceSpeed (_saved param [0,-1]);
+        };
         _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",nil];
         _boat setVariable ["WAIT_Cortex_NavalPlan",nil,true];
     };

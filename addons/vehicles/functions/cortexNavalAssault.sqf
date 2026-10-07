@@ -156,7 +156,7 @@ if (count _plan == 9 && {(_plan select 1) == _group} && {serverTime < (_plan sel
     if (_phase == "APPROACH" && {(_boat distance2D _landing) <= 45}) then {
         if (local _boat) then {
             if ((_boat getVariable ["WAIT_Cortex_NavalForcedSpeed",[]]) isEqualTo []) then {
-                _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",[getForcedSpeed _boat]];
+                _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",[getForcedSpeed _boat,0]];
             };
             _boat forceSpeed 0;
         };
@@ -188,7 +188,12 @@ if (count _plan == 9 && {(_plan select 1) == _group} && {serverTime < (_plan sel
     if (_remaining < 0 || {serverTime >= _expires}) then {
         if (local _boat) then {
             private _saved=_boat getVariable ["WAIT_Cortex_NavalForcedSpeed",[]];
-            if (_saved isNotEqualTo []) then {_boat forceSpeed (_saved param [0,-1])};
+            private _ownedStop=_saved param [1,-2];
+            if (_saved isNotEqualTo [] && {_ownedStop >= 0}
+                && {abs ((getForcedSpeed _boat)-_ownedStop) <= 0.1}
+                && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
+                _boat forceSpeed (_saved param [0,-1]);
+            };
             _boat setVariable ["WAIT_Cortex_NavalForcedSpeed",nil];
         };
         [_group,_state,"COMPLETE"] call WAIT_fnc_CortexNavalRelease;

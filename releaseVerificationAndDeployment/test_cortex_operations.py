@@ -780,7 +780,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,_state,"EXTERNAL"] call WAIT_fnc_CortexNavalRelease',naval)
         self.assertLess(naval.rindex('CortexExternalTakeover'),naval.rindex('WAIT_fnc_CortexGroupMove'))
         self.assertIn('private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;',release)
-        self.assertIn('if (_saved isNotEqualTo [] && {!_externalTakeover}) then {_boat forceSpeed',release)
+        self.assertIn('if (_saved isNotEqualTo [] && {!_externalTakeover} && {_ownedStop >= 0}',release)
     def test_clearance_preserves_live_behaviour_and_combat_mode(self):
         clear=source('cortexClearBuilding')
         release=source('cortexClearRelease')
@@ -4761,6 +4761,8 @@ class CortexOperations(unittest.TestCase):
                        'forceSpeed (_saved param [0,-1])','CortexGroupMoveClear',
                        'NAVAL_ASSAULT','NAVAL_LANDING']:
             self.assertIn(marker,release)
+        self.assertIn('abs ((getForcedSpeed _boat)-_ownedStop) <= 0.1',release)
+        self.assertIn('WAIT_Cortex_NavalForcedSpeed",[getForcedSpeed _boat,0]',source('cortexNavalAssault'))
         for forbidden in ['moveIn','orderGetIn true','assignAs','setPos','deleteVehicle']:
             self.assertNotIn(forbidden,release)
 
