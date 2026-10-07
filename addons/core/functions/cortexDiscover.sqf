@@ -186,10 +186,9 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                 };
             };
             if (_airAttackEligible && {!isNull _airAttackTarget} && {!(_vehicle getVariable ["WAIT_Cortex_AirAttackJob",false])}) then {
-                _vehicle setVariable ["WAIT_Cortex_AirAttackJob",true];
-                [WAIT_fnc_CortexAirAttack,createHashMapFromArray [
+                [createHashMapFromArray [
                     ["aircraft",_vehicle],["group",group _pilot],["target",_airAttackTarget]
-                ],0] call WAIT_fnc_CortexQueueJob;
+                ],0] call WAIT_fnc_AirAttackOperationStart;
             };
             if (_wantArtillery && {getNumber (configOf _vehicle >> "artilleryScanner") == 1}) then {
                 private _gunner = gunner _vehicle;

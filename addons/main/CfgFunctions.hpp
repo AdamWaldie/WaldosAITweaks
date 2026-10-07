@@ -149,6 +149,9 @@ class CfgFunctions {
             class CortexAttackRunFlares {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAttackRunFlares.sqf";};
             class CortexAirAttackPlan {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirAttackPlan.sqf";};
             class CortexAirAttack {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAirAttack.sqf";};
+            class AirAttackOperationStart {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\airAttackOperationStart.sqf";};
+            class AirAttackOperationQueue {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\airAttackOperationQueue.sqf";};
+            class AirAttackOperationStep {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\airAttackOperationStep.sqf";};
             class CortexAirHandoverRestoreLocal {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAirHandoverRestoreLocal.sqf";};
             class CortexAircraftEligible {file = "\z\waldo_ai_tweaks\addons\aircraft\functions\cortexAircraftEligible.sqf";};
             class CortexDiscover {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexDiscover.sqf";};

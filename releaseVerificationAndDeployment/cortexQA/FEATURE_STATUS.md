@@ -71,7 +71,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | COMBINED-ARMS - Contact-led combined-arms opportunity | 1 | 0 | 5 | `runCombinedArms.sqf` | 0 | implemented_partial |
 | COMBINED-OPERATION - Dynamic multi-squad combined operation | 0 | 0 | 0 | `runCombinedOperation.sqf` | 0 | implemented_partial |
 | ATTACK-FLARES - Attack-run approach and departure flares | 1 | 0 | 1 | `runAircraft.sqf` | 1 | implemented_partial |
-| AIR-ATTACK - Threat-aware finite aircraft attack patterns | 1 | 0 | 3 | `runAircraft.sqf` | 2 | implemented_partial |
+| AIR-ATTACK - Threat-aware finite aircraft attack patterns | 1 | 0 | 6 | `runAircraft.sqf` | 2 | implemented_partial |
 
 ## Required variants
 

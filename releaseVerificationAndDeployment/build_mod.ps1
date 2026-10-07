@@ -37,6 +37,8 @@ try {
     if ($LASTEXITCODE) { throw 'Building operation FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
     if ($LASTEXITCODE) { throw 'Convoy operation FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/airAttackOperation.fsm
+    if ($LASTEXITCODE) { throw 'Aircraft attack FSM configuration validation failed' }
     & $Python releaseVerificationAndDeployment/mod_pipeline.py seal ".hemttout/$($Mode.ToLowerInvariant())"
     if ($LASTEXITCODE) { throw 'Package sealing failed' }
 } finally { Pop-Location }

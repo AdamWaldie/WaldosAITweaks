@@ -108,6 +108,24 @@ missionNamespace setVariable ["WAIT_AIPass_InitPending", false];
 } forEach (missionNamespace getVariable ["WAIT_AIPass_FlareVehicles", []]);
 missionNamespace setVariable ["WAIT_AIPass_FlareVehicles", []];
 
+// Aircraft attack persistence now lives outside the recurring scheduler queue. Retire each local
+// brain explicitly and let its bounded implementation perform the same owned-waypoint, handler,
+// speed and operation cleanup it uses for every other authority loss.
+{
+    private _aircraft=_x;
+    private _brain=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
+    if (local _aircraft && {count _brain > 0}) then {
+        _brain set ["cancelled",true];
+        _brain set ["cancelReason","CORTEX_STOPPED"];
+        private _attackJob=_brain getOrDefault ["job",createHashMap];
+        if (count _attackJob > 0) then {[_attackJob] call WAIT_fnc_CortexAirAttack};
+        _aircraft setVariable ["WAIT_AirAttack_BrainGeneration",(_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",0])+1];
+        _aircraft setVariable ["WAIT_AirAttack_Brain",nil];
+        _aircraft setVariable ["WAIT_AirAttack_Brain_FSM",nil];
+        _aircraft setVariable ["WAIT_Cortex_AirAttackJob",nil];
+    };
+} forEach (vehicles select {_x isKindOf "Air"});
+
 {
     _x params ["_variable", "_event"];
     private _handler = missionNamespace getVariable _variable;

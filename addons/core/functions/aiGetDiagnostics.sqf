@@ -595,7 +595,8 @@ private _attackAircraft=vehicles select {_x isKindOf "Air" && {(_x getVariable [
     _checks pushBack ["ai",format ["cortex-attack-flares-%1",netId _x],"LOADED",format ["class=%1 owner=%2 phase=%3 cooldownRemaining=%4 speed=%5 alive=%6. Phase describes the last requested leg, not actual release; inspect Fired events and countermeasure ammunition. No flight commands are issued.",typeOf _x,owner _x,_x getVariable ["WAIT_Cortex_AttackFlarePhase",""],((_x getVariable ["WAIT_Cortex_AttackFlareCooldown",0])-serverTime) max 0,speed _x,alive _x]];
 } forEach (_attackAircraft select [0,20]);
 private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
-    (_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []
+    count (_x getVariable ["WAIT_AirAttack_Brain",createHashMap]) > 0
+        || {(_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []}
         || {(_x getVariable ["WAIT_Cortex_AirAttackOutcome",[]]) isNotEqualTo []}
 }};
 {
@@ -603,12 +604,13 @@ private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
     private _plan=_aircraft getVariable ["WAIT_Cortex_AirAttackPlan",[]];
     private _outcome=_aircraft getVariable ["WAIT_Cortex_AirAttackOutcome",[]];
     private _request=_aircraft getVariable ["WAIT_Cortex_CountermeasureLastRequest",[]];
+    private _brainState=_aircraft getVariable ["WAIT_AirAttack_Brain_State",[]];
     private _reason=_outcome param [0,""];
     private _healthy=alive _aircraft && {(getPosATL _aircraft select 2) >= 25}
         && {_reason in ["","COMPLETE","CONTROL_RELEASED","TARGET_LOST","AUTHORED_ROUTE_CHANGED","NOT_ATTACKING"]};
     _checks pushBack ["ai",format ["cortex-air-attack-%1",netId _aircraft],["ERROR","LOADED"] select _healthy,
-        format ["class=%1 owner=%2 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%3 lastOutcome=[reason,time,pattern,actualShots]=%4 lastCountermeasureRequest=%5 standoffBlockedSeconds=%6 crewRetained=%7. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
-            typeOf _aircraft,owner _aircraft,_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
+        format ["class=%1 owner=%2 brain=[phase,generation,time,reason,delay]=%3 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%4 lastOutcome=[reason,time,pattern,actualShots]=%5 lastCountermeasureRequest=%6 standoffBlockedSeconds=%7 crewRetained=%8. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
+            typeOf _aircraft,owner _aircraft,_brainState,_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
 } forEach (_adaptiveAircraft select [0,20]);
 _checks pushBack ["ai","cortex-air-attack-snapshot-limits","LOADED",format ["Adaptive aircraft total=%1 sampled=%2 (limit 20). Active plans and retained outcomes are included; physical travel, Fired events and explicit transitions remain the acceptance evidence.",count _adaptiveAircraft,(count _adaptiveAircraft) min 20]];
 private _compat = missionNamespace getVariable ["WAIT_AITweaks_Compatibility", createHashMap];

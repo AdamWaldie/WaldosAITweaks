@@ -52,13 +52,12 @@
  * it creates no timed guard, replacement route, pilot order or delayed semantic restoration.
  * Locality/authority: aircraft owner only. Public summary/outcome arrays support Zeus diagnostics;
  * movement commands and Fired handlers remain owner-local.
- * Repeat/JIP: one job per aircraft. Cleanup removes the owned handler,
+ * Repeat/JIP: one finite FSM brain per aircraft. Cleanup removes the owned handler,
  * named waypoint, speed limit and public plan; a short owner-local re-attack interval prevents immediate duplicate runs.
  * Arguments: 0: scheduler job <HASHMAP>; aircraft <OBJECT> is required; target <OBJECT> is optional
  * when an authenticated combined-arms opportunity already selected it.
- * Return Value: NUMBER delay, or -1 after cleanup.
- * Current callers: WAIT_fnc_CortexDiscover and WAIT_fnc_CortexCombinedArmsLocal through the
- * budgeted Cortex scheduler.
+ * Return Value: NUMBER delay for the owning FSM, or -1 after cleanup.
+ * Current caller: WAIT_fnc_AirAttackOperationStep through the shared scheduler.
  * Example: [createHashMapFromArray [["aircraft",_plane]]] call WAIT_fnc_CortexAirAttack;
  */
 params [["_job",createHashMap,[createHashMap]]];
