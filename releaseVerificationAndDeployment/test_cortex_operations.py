@@ -3622,6 +3622,7 @@ class CortexOperations(unittest.TestCase):
         scheduler=source('cortexSchedulerTick')
         reconcile=source('schedulerReconcile')
         callback=source('aiTweaksSettingChanged')
+        diagnostics=source('aiGetDiagnostics')
         self.assertIn('WAIT_Aircraft_SchedulerActive',scheduler)
         self.assertIn('case "AIRCRAFT": {"WAIT_Aircraft_SchedulerActive"}',scheduler)
         self.assertIn('case "AIRCRAFT": {_aircraft};',reconcile)
@@ -3632,6 +3633,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_HelicopterDeceleration_GenerationLocal", (_x getVariable',callback)
         self.assertIn('WAIT_Aircraft_DecelerationSchedulerActive", false',callback)
         self.assertIn('WAIT_fnc_SchedulerReconcile',callback)
+        self.assertIn('"aircraft-scheduler-health"',diagnostics)
+        self.assertIn('serverLocalJobs=%1 landingObservers=%2 decelerationObservers=%3',diagnostics)
+        self.assertIn('This owner-local snapshot excludes aircraft currently owned by clients or headless clients',diagnostics)
 
     def test_landing_tracker_generation_prevents_stale_owner_cleanup(self):
         base=ROOT/'addons/aircraft/functions'

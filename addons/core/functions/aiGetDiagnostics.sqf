@@ -354,6 +354,13 @@ private _maxCallbackMs=0;
 private _maxRecordedLatency=0;
 private _skippedJobs=0;
 private _skipReasons=createHashMap;
+private _aircraftJobs=0;
+private _landingObserverJobs=0;
+private _decelerationObserverJobs=0;
+private _aircraftOverdue=0;
+private _aircraftOldest=0;
+private _aircraftMaxCallbackMs=0;
+private _aircraftMaxLatency=0;
 {
     _x params ["_due","","_jobState"];
     if (_earliestQueued < 0 || {_due < _earliestQueued}) then {_earliestQueued=_due};
@@ -368,6 +375,18 @@ private _skipReasons=createHashMap;
     };
     private _jobGroup=_jobState getOrDefault ["group",grpNull];
     if (!isNull _jobGroup && {!local _jobGroup || {(_jobState getOrDefault ["ownerEpoch",-1]) != (_jobGroup getVariable ["WAIT_AIPass_Epoch",0])}}) then {_staleOwners=_staleOwners+1};
+    if ((_jobState getOrDefault ["subsystem",""]) == "AIRCRAFT") then {
+        _aircraftJobs=_aircraftJobs+1;
+        private _aircraftKey=_jobState getOrDefault ["jobKey",""];
+        if (_aircraftKey find "WAIT_LANDING_" == 0) then {_landingObserverJobs=_landingObserverJobs+1};
+        if (_aircraftKey find "WAIT_DECEL_" == 0) then {_decelerationObserverJobs=_decelerationObserverJobs+1};
+        if (_due < time) then {
+            _aircraftOverdue=_aircraftOverdue+1;
+            _aircraftOldest=_aircraftOldest max (time-_due);
+        };
+        _aircraftMaxCallbackMs=_aircraftMaxCallbackMs max (_jobState getOrDefault ["lastCallbackMs",0]);
+        _aircraftMaxLatency=_aircraftMaxLatency max (_jobState getOrDefault ["queueLatency",0]);
+    };
 } forEach _queue;
 private _cachedNextDue=missionNamespace getVariable ["WAIT_AIPass_NextJobDue",-1];
 private _cacheConsistent=(_queue isEqualTo [] && {_cachedNextDue < 0})
@@ -379,6 +398,8 @@ private _queueHint=if (_cacheConsistent) then {
     "The scheduler deadline cache is missing or later than the earliest queued job. Restart Cortex or inspect queue mutation paths before trusting idle scheduling."
 };
 _checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11 maxCallbackMs=%12 maxRecordedQueueLatencySeconds=%13 skippedJobs=%14 skipReasons=%15. %16",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_maxCallbackMs,_maxRecordedLatency,_skippedJobs,_skipReasons,_queueHint]];
+private _aircraftQueueState=if (_aircraftOverdue > 0 && {_aircraftOldest > 5}) then {"ERROR"} else {if (_aircraftJobs > 0) then {"ACTIVE"} else {"LOADED"}};
+_checks pushBack ["ai","aircraft-scheduler-health",_aircraftQueueState,format ["serverLocalJobs=%1 landingObservers=%2 decelerationObservers=%3 dueNow=%4 oldestDueSeconds=%5 maxCallbackMs=%6 maxRecordedQueueLatencySeconds=%7 schedulerActive=%8 landingSchedulerActive=%9 decelerationSchedulerActive=%10. This owner-local snapshot excludes aircraft currently owned by clients or headless clients; repeat it on the affected owner before diagnosing a missing observer.",_aircraftJobs,_landingObserverJobs,_decelerationObserverJobs,_aircraftOverdue,_aircraftOldest,_aircraftMaxCallbackMs,_aircraftMaxLatency,missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive",false]]];
 // Coordinated work is server-owned, so expose the lease/turn state which an HC-only
 // group snapshot cannot explain. This is calculated only for an on-demand report.
 private _supportRequests=missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];

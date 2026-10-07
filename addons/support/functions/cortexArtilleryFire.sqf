@@ -1,8 +1,14 @@
 /*
  * Author: WaldoTheWarfighter
- * Queues a finite mission of bounded bursts on the server. This is dispatch acceptance, not proof a shell fired.
- * Locality/authority: documented guards enforce server coordination and owner-local execution.
- * Repeat/JIP: mission tokens reject stale work; server state survives HC migration, not restart.
+ * Queues a finite mission of bounded bursts on the authoritative server. This is dispatch
+ * acceptance, not proof that a shell fired. The selected battery's owner executes later physical
+ * fire steps through the shared scheduler.
+ * Locality/authority: server-only mission validation and reservation. Requests from headless
+ * clients are accepted only when that machine owns the requesting group, spotter or battery;
+ * player clients must use the authenticated Zeus path.
+ * Repeat/JIP: mission tokens and the battery busy key reject duplicate or stale work. Active
+ * server mission state survives owner migration through normal state adoption, but is not JIP
+ * replayed as a new fire request and does not survive a mission restart.
  * Arguments: 0: battery <OBJECT>, objNull selects a same-side gun for the spotter; 1: reported ATL <ARRAY>; 2: error <NUMBER>, 0; 3: mode <STRING>, HE; 4: rounds <NUMBER>, -1; 5: scoot <BOOL/NUMBER>, -1; 6: purpose <STRING>, SUPPORT; 7: spotter <OBJECT>, objNull; 8: enemy <OBJECT>, objNull; 9: retreat requester <GROUP>, grpNull (SUPPORT SMOKE only).
  * Return Value: Boolean, request queued or accepted.
  * Current callers: ArtilleryRequest, CounterBattery, Retreat and server mission scripts.
@@ -23,7 +29,7 @@ if (!(_purpose in ["SUPPORT", "COUNTER"]) || {!(_mode in ["HE", "SMOKE"])} || {c
 if (_retreatSmoke && {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)
     || {!([_requester] call WAIT_fnc_CortexIsEligible)}
     || {!([_requester,"WAIT_AIPass_Artillery_Enable",false] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {false};
+    || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}}) exitWith {false};
 private _requestSide = if (_retreatSmoke) then {side _requester} else {side group _spotter};
 private _counter = _purpose == "COUNTER";
 private _feature = ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select _counter;
