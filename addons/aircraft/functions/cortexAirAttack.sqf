@@ -238,6 +238,14 @@ private _explicitlyExcluded=[_group] call WAIT_fnc_CompatibilityExternalControl
     || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])}
     || {_group getVariable ["WAIT_AI_Exclude",false]}
     || {_group getVariable ["WAIT_AIPass_Exclude",false]};
+// Planning can inspect weapon and terrain facts for a full scheduler slice.  Keep ownership cheap
+// to recheck at each native-command boundary so that a curator, player controller or specialist
+// that claims the aircraft during planning receives an immediate release rather than one stale
+// flight, targeting or fire request.
+private _mayControlAircraft = {
+    local _aircraft && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+        && {!([_group] call WAIT_fnc_CortexZeusHeld)}
+};
 private _allowed=local _aircraft && {alive _aircraft} && {!isNull _pilot} && {alive _pilot} && {!isPlayer _pilot}
     && {!unitIsUAV _aircraft} && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {!([] call WAIT_fnc_CortexIsPaused)}
@@ -277,6 +285,7 @@ if (_stage == "") then {
     if (isNull _target) then {_startFailure="NO_TARGET"};
     private _plan=if (_startFailure == "") then {[_aircraft,_target] call WAIT_fnc_CortexAirAttackPlan} else {createHashMap};
     if (_startFailure == "" && {count _plan == 0}) then {_startFailure="NO_PLAN"};
+    if (_startFailure == "" && {!([] call _mayControlAircraft)}) then {_startFailure="CONTROL_RELEASED"};
     if (_startFailure == "") then {
     private _waypointIndex=currentWaypoint _group;
     private _resumePosition=[];
@@ -466,6 +475,7 @@ private _unsafeDelivery=_isPlane && {_stage == "ATTACK"} && {
     (_currentAGL < 90 && {_verticalSpeed < -3})
         || {_lookaheadClearances isNotEqualTo [] && {selectMin _lookaheadClearances < 120}}
 };
+if (_unsafeDelivery && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_unsafeDelivery) exitWith {
     private _safeRecoveryHeight=((_job getOrDefault ["stageAltitudes",[450,450,450]]) select 0) max 450;
     _aircraft flyInHeight _safeRecoveryHeight;
@@ -529,6 +539,7 @@ private _stageSpeeds=_job getOrDefault ["stageSpeeds",[_job get "speed",_job get
 // every scheduler tick. Update it only on a real stage transition. The attack-stage target order
 // lets the native air-combat FSM handle subsequent contact movement without Cortex chasing it.
 private _commandedStage=_job getOrDefault ["commandedStage",""];
+if (_commandedStage != _stage && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_commandedStage != _stage) then {
     _aircraft limitSpeed (_stageSpeeds select _stageIndex);
     // MOVE waypoint height is not a reliable flight-profile input for native aircraft. Apply one
@@ -579,6 +590,7 @@ if (_stageDistance <= _stageBest-40) then {
     _job set ["stageProgressAt",serverTime];
 };
 private _routeStalled=serverTime >= (_job getOrDefault ["stageProgressAt",serverTime])+([35,24] select !_isPlane);
+if (_stage == "ATTACK" && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_stage == "ATTACK") then {
     // This flag is live for one scheduler pass only. It selects a faster cadence while a fixed
     // weapon is inside its terminal basket without turning every aircraft job into a high-rate

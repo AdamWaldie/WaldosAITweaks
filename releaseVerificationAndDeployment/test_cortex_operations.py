@@ -4100,6 +4100,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_hasRocket) then {_choices append ["OFFSET",0.18,"HOOK",0.22]}',planner)
         self.assertNotIn('private _hasRunWeapon=_hasGun || {_hasRocket}',planner)
         self.assertNotIn('allUnits',planner)
+
         self.assertNotIn('nearEntities',planner)
         for requirement in ['fullCrew _aircraft','_aircraft weaponsTurret _turret','_personTurret',
                             'WAIT_Cortex_AirAttackPattern','_lateralTurret','_lateralTurretPath',
@@ -4410,6 +4411,19 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('["WAIT_Cortex_AirAttack_Enable",false]',native)
         self.assertIn('["WAIT_AIPass_Exclude",true,true]',native)
         self.assertIn('distance2D _nativeReplacement <= 350',native)
+
+    def test_air_attack_rechecks_authority_at_native_command_boundaries(self):
+        """Planning must not leak one late flight, targeting or fire command after a takeover."""
+        controller=source('cortexAirAttack')
+        self.assertIn('private _mayControlAircraft = {',controller)
+        for boundary in ['_startFailure="CONTROL_RELEASED"',
+                         'if (_unsafeDelivery && {!([] call _mayControlAircraft)}) exitWith',
+                         'if (_commandedStage != _stage && {!([] call _mayControlAircraft)}) exitWith',
+                         'if (_stage == "ATTACK" && {!([] call _mayControlAircraft)}) exitWith']:
+            self.assertIn(boundary,controller)
+        self.assertLess(controller.index('private _mayControlAircraft = {'),controller.index('_aircraft limitSpeed (_stageSpeeds select _stageIndex);'))
+        self.assertLess(controller.index('if (_commandedStage != _stage && {!([] call _mayControlAircraft)}) exitWith'),controller.index('_aircraft limitSpeed (_stageSpeeds select _stageIndex);'))
+        self.assertLess(controller.index('if (_stage == "ATTACK" && {!([] call _mayControlAircraft)}) exitWith'),controller.index('_aircraft fireAtTarget'))
 
     def test_aircraft_crew_never_acquire_generic_group_ownership(self):
         eligibility=source('cortexIsEligible')
