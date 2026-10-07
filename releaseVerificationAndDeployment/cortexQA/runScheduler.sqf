@@ -100,13 +100,13 @@ private _destination=[2140,1900,0];
 _observer setVariable ["WAIT_CortexQA_Target",_destination,true];
 private _waypoint=_dangerGroup addWaypoint [_destination,0];
 _waypoint setWaypointType "MOVE";
-private _ready=[{count (_dangerGroup getVariable ["WAIT_Cortex_GroupJob",createHashMap]) > 0
+private _ready=[{count (_dangerGroup getVariable ["WAIT_GroupBrain",createHashMap]) > 0
     && {
-        private _listeners=_dangerGroup getVariable ["WAIT_Danger_Handlers",[]];
-        count _listeners == 2 && {count (_listeners select 0) == 1} && {count (_listeners select 1) == 3}
+        private _listeners=_dangerGroup getVariable ["WAIT_Danger_GroupHandlers",[]];
+        count _listeners == 1 && {(_listeners select 0) param [0,""] == "EnemyDetected"}
     }},20] call _wait;
-["DANGER-real-owner-job-and-listeners",_ready] call _check;
-private _job=_dangerGroup getVariable ["WAIT_Cortex_GroupJob",createHashMap];
+["DANGER-real-owner-brain-and-listener",_ready] call _check;
+private _job=_dangerGroup getVariable ["WAIT_GroupBrain",createHashMap];
 private _now=time;
 private _selected=[[ ["GUNFIRE",[0,0,0],_now,_now+2], ["HIT",[0,0,0],_now,_now+2], ["HIT",[1,0,0],_now-3,_now-1] ],_now] call WAIT_fnc_DangerSelect;
 ["DANGER-priority-and-expiry",count _selected == 4 && {(_selected select 0) == "HIT"} && {(_selected select 1) isEqualTo [0,0,0]}] call _check;
@@ -119,7 +119,7 @@ private _requestedAt=time;
 private _accepted=[_observer,"HIT",getPosATL _observer] call WAIT_fnc_DangerRequest;
 private _woken=[{(_job getOrDefault ["lastRunAt",-1]) > _before},1.4] call _wait;
 ["DANGER-event-wakes-existing-job",_ready && {_sleeping} && {_accepted} && {_woken},str [_before,_job getOrDefault ["lastRunAt",-1],time-_requestedAt]] call _check;
-["DANGER-no-competing-job-owner",(_dangerGroup getVariable ["WAIT_Cortex_GroupJob",createHashMap]) isEqualTo _job] call _check;
+["DANGER-no-competing-job-owner",(_dangerGroup getVariable ["WAIT_GroupBrain",createHashMap]) isEqualTo _job] call _check;
 ["DANGER-no-target-reveal",isNull assignedTarget _observer && {(_dangerGroup getVariable ["WAIT_AIPass_AreaReport",[]]) isEqualTo []}] call _check;
 private _origin=getPosATL _observer;
 private _travel=[{_observer distance2D _origin >= 10},20] call _wait;
@@ -127,7 +127,8 @@ private _travel=[{_observer distance2D _origin >= 10},20] call _wait;
 [createHashMapFromArray [["WAIT_AIPass_Danger_Enable",false]]] call WAIT_fnc_CortexTuning;
 ["DANGER-disabled-rejects-observation",!([_observer,"HIT",getPosATL _observer] call WAIT_fnc_DangerRequest)] call _check;
 [_dangerGroup,true] call WAIT_fnc_DangerSetup;
-["DANGER-listener-cleanup",isNil {_dangerGroup getVariable "WAIT_Danger_Handlers"}] call _check;
+["DANGER-listener-cleanup",isNil {_dangerGroup getVariable "WAIT_Danger_GroupHandlers"}
+    && {isNil {_dangerGroup getVariable "WAIT_Danger_Handlers"}}] call _check;
 [createHashMapFromArray [["WAIT_AIPass_Danger_Enable",true]]] call WAIT_fnc_CortexTuning;
 [_dangerGroup] call WAIT_fnc_DangerSetup;
 [_dangerGroup] call WAIT_fnc_CortexZeusMark;

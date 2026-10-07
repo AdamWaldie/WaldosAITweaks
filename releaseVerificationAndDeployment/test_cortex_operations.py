@@ -381,6 +381,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_reflexUnit setUnitPos "AUTO";',reflex_fixture)
         self.assertNotIn('_reflexUnit setUnitPos "UP";',reflex_fixture)
         self.assertIn('toUpperANSI (unitPos _reflexUnit) == "AUTO"',reflex_fixture)
+        scheduler_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runScheduler.sqf').read_text(encoding='utf-8')
+        danger_audit=scheduler_audit.split('// This section diagnoses the real FSM-to-existing-job bridge.',1)[1]
+        self.assertIn('WAIT_GroupBrain',danger_audit)
+        self.assertIn('WAIT_Danger_GroupHandlers',danger_audit)
+        self.assertNotIn('getVariable ["WAIT_Cortex_GroupJob"',danger_audit)
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text()
         self.assertIn('_zeusToken isNotEqualTo',fsm)
         self.assertIn('WAIT_AIPass_Epoch',fsm)
