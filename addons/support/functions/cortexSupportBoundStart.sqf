@@ -22,7 +22,7 @@ if (count _lease != 6 || {(_lease select 0) != _leaseToken} || {serverTime >= (_
 private _final=_point distance2D (_lease select 5) < 2;
 private _fit=(units _group) select {
     private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-    local _x && {[_x] call WAIT_fnc_CortexCombatEffective} && {vehicle _x == _x}
+    local _x && {[_x] call WAIT_fnc_CortexCombatEffective} && {isNull objectParent _x}
         && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
         && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
 };

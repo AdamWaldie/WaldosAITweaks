@@ -50,7 +50,7 @@ private _dispatched=[];
     if (_accepted == "ACCEPTED" && {count _lease == 6} && {(_lease select 0) == _token}
         && {count _status == 4} && {(_status select 0) == _token} && {_status select 2}
         && {!isNull ([_helper] call WAIT_fnc_CortexGroupTransmitter)}
-        && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
+        && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}}) >= 3}
         && {[_helper] call WAIT_fnc_CortexIsEligible} && {[_helper,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
         // A coordinated route always begins at the squad's physical live position. The lease's
         // optional rally coordinate is reservation metadata and must never become a synthetic start.

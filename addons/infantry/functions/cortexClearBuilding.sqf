@@ -82,7 +82,7 @@ if (_positions isEqualTo []) then {_positions=+_allPositions};
 if (_positions isEqualTo []) exitWith {false};
 private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
-private _available = (units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {vehicle _x == _x}};
+private _available = (units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {isNull objectParent _x}};
 private _team = +_available;
 if (_team isEqualTo []) exitWith {false};
 // Keep enough distinct lanes for a real squad clear without crowding every reported room node.
@@ -281,7 +281,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         private _assignments=(_job get "egressAssignments") select {
             _x params ["_unit"];
             alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"}
-                && {group _unit == _group} && {vehicle _unit == _unit}
+                && {group _unit == _group} && {isNull objectParent _unit}
         };
         private _arrived=_assignments findIf {(_x select 0) distance2D (_x select 1) > 5} < 0;
         if (_arrived || {_assignments isEqualTo []} || {time >= (_job get "egressDeadline")}) then {
@@ -325,10 +325,10 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     _job set ["rotatedOut",_rotatedOut];
     private _reserves=(units _group) select {
         alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-        && {vehicle _x == _x} && {!(_x in _reserved)} && {!(_x in _rotatedOut)} && {_x != _leader}
+        && {isNull objectParent _x} && {!(_x in _reserved)} && {!(_x in _rotatedOut)} && {_x != _leader}
     };
     if (_reserves isEqualTo [] && {alive _leader} && {local _leader} && {!isPlayer _leader}
-        && {lifeState _leader != "INCAPACITATED"} && {vehicle _leader == _leader} && {!(_leader in _reserved)}) then {
+        && {lifeState _leader != "INCAPACITATED"} && {isNull objectParent _leader} && {!(_leader in _reserved)}) then {
         _reserves pushBack _leader;
     };
     {
@@ -338,7 +338,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         for "_slot" from 0 to ((count _pair)-1) do {
             private _member=_pair select _slot;
             if ((!alive _member || {!local _member} || {isPlayer _member} || {lifeState _member == "INCAPACITATED"}
-                || {group _member != _group} || {vehicle _member != _member} || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
+                || {group _member != _group} || {!isNull objectParent _member} || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
                 private _replacement=_reserves deleteAt 0;
                 _pair set [_slot,_replacement];
                 private _team=_job get "team";
@@ -360,10 +360,10 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     // Release reservations before selection so another soldier can visit a casualty's room.
     // Reassigned units belong to their new commander and must receive no further orders here.
     private _activeWorkers=(_job get "team") select {alive _x && {local _x} && {!isPlayer _x}
-        && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {vehicle _x == _x}};
+        && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
     private _failureThreshold=(count (_job get "pairs")) min 2 max 1;
     {
-        if (!alive _x || {!local _x} || {isPlayer _x} || {lifeState _x == "INCAPACITATED"} || {_x in _unavailable} || {group _x != _group} || {vehicle _x != _x}) then {
+        if (!alive _x || {!local _x} || {isPlayer _x} || {lifeState _x == "INCAPACITATED"} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
             _assigned set [_forEachIndex,[]];
         };
     } forEach (_job get "team");
@@ -388,7 +388,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         private _visitor = _x;
         if (alive _visitor && {local _visitor} && {!isPlayer _visitor}
             && {lifeState _visitor != "INCAPACITATED"} && {group _visitor == _group}
-            && {vehicle _visitor == _visitor}) then {
+            && {isNull objectParent _visitor}) then {
             private _actual = getPosASL _visitor;
             {
                 private _positionIndex=_x;
@@ -408,7 +408,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
     private _pairRoutes=_job get "pairRoutes";
     {
         private _pairIndex=_forEachIndex;
-        private _pair=_x select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {vehicle _x == _x}};
+        private _pair=_x select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
         if (_pair isEqualTo []) then {
             private _state=_pairStates select _pairIndex;
             private _route=_pairRoutes select _pairIndex;
@@ -630,12 +630,12 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
         _group setVariable ["WAIT_AIPass_ClearOrder", [_job get "building", +_cleared, _job get "deadline", _job get "baseBehaviour", +_unreachable, +_retryCounts, +_failedBy, _job get "lastProgressAt"], true];
         _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unreachable,count (_job get "positions"),count (_job get "pairs"),_job get "lastProgressAt"],true];
     };
-    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {(_job get "team") findIf {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {vehicle _x == _x}} < 0}) exitWith {
+    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {(_job get "team") findIf {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}} < 0}) exitWith {
         private _active=[];
         {_active append _x} forEach (_job get "pairs");
         _active=_active arrayIntersect _active;
         _active=_active select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-            && {group _x == _group} && {vehicle _x == _x}};
+            && {group _x == _group} && {isNull objectParent _x}};
         private _entries=_job get "entries";
         private _buildingPos=getPosATL (_job get "building");
         private _egressAssignments=_active apply {

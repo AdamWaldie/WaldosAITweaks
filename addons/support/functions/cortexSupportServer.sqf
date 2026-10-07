@@ -60,7 +60,7 @@ private _candidates = [];
     private _candidateTransmitter = [_candidate] call WAIT_fnc_CortexGroupTransmitter;
     private _distance = if (isNull _candidateTransmitter) then {-1} else {_candidateTransmitter distance2D _requesterPosition};
     if (_candidate != _requester && {side _candidate == side _requester} && {!isNull _candidateTransmitter}
-        && {count ((units _candidate) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
+        && {count ((units _candidate) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}}) >= 3}
         && {_distance <= _radius}) then {
         _candidates pushBack [_distance,_forEachIndex,_candidate];
     };

@@ -44,7 +44,7 @@ private _kept = [];
 {
     _x params ["_helper","_token","_owner","_ackBy","_status"];
     private _lease = _helper getVariable ["WAIT_AIPass_SupportLease",[]];
-    private _footFit = (units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}};
+    private _footFit = (units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}};
     private _helperReinforce = !isNull _helper && {[_helper,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
     private _helperCoordinated = !isNull _helper && {[_helper,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
     private _sharedReinforce = _requesterReinforce && {_helperReinforce};
@@ -86,7 +86,7 @@ for "_i" from 1 to 8 do {
     private _helperSupport = _sharedReinforce || {_sharedCoordinated};
     private _helperTransmitter = [_helper] call WAIT_fnc_CortexGroupTransmitter;
     if (!isNull _helper && {!isNull _helperTransmitter} && {(_helper getVariable ["WAIT_AIPass_SupportLease",[]]) isEqualTo []}
-        && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
+        && {count ((units _helper) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}}) >= 3}
         && {[_helper] call WAIT_fnc_CortexIsEligible} && {[_helper,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
         && {_helperSupport}) then {
         // The request rally is an area anchor, never a common squad destination.

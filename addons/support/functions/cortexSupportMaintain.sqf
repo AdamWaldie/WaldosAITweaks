@@ -198,7 +198,7 @@ if (_coordinating) then {
         if ((_drill getOrDefault ["supportToken",""]) == _token) then {[_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd};
         {
             private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-            if (local _x && {vehicle _x == _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
+            if (local _x && {isNull objectParent _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
                 && {_x checkAIFeature "PATH"} && {count _actorMove != 3 || {time >= (_actorMove select 2)}}) then {
                 doStop _x;
                 _x disableAI "PATH";

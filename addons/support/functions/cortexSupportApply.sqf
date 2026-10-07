@@ -56,7 +56,7 @@ private _movementOwner = _movementLease param [0,""];
 private _movementLeaseActive = count _movementLease == 2 && {time < (_movementLease select 1)};
 private _supportOwnsMovement = _same && {_movementOwner in ["SUPPORT_RALLY","COORDINATED_ASSAULT"]};
 private _fit = (units _group) select {[_x] call WAIT_fnc_CortexCombatEffective};
-private _footFit = _fit select {vehicle _x == _x};
+private _footFit = _fit select {isNull objectParent _x};
 private _phase = _state getOrDefault ["phase","CALM"];
 private _requesterReinforce = !isNull _requester && {[_requester,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterCoordinated = !isNull _requester && {[_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};

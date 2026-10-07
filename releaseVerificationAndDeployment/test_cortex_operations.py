@@ -2141,13 +2141,25 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexSupportStep')
         apply=source('cortexSupportApply')
         assault=source('cortexSupportAssaultServer')
-        dismount_guard='[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}'
+        dismount_guard='[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}'
         self.assertIn(dismount_guard,server)
         self.assertGreaterEqual(step.count(dismount_guard),2)
-        self.assertIn('private _footFit = _fit select {vehicle _x == _x}',apply)
+        self.assertIn('private _footFit = _fit select {isNull objectParent _x}',apply)
         self.assertIn('count _footFit >= 3',apply)
         self.assertIn('_footFit findIf {"AT" in',apply)
         self.assertIn(dismount_guard,assault)
+
+    def test_recurring_cqb_and_support_use_direct_on_foot_checks(self):
+        names = [
+            'cortexClearBuilding', 'cortexSupportApply', 'cortexSupportBoundStart',
+            'cortexSupportMaintain', 'cortexSupportStep', 'cortexSupportCoordinateStep',
+            'cortexSupportServer', 'cortexSupportAssaultServer'
+        ]
+        texts = [source(name) for name in names]
+        for text in texts:
+            self.assertIn('objectParent', text)
+            self.assertNotIn('vehicle _x == _x', text)
+            self.assertNotIn('vehicle _x != _x', text)
 
     def test_flank_support_lane_selection_is_spatially_bounded(self):
         flank=source('cortexFlankStart')
