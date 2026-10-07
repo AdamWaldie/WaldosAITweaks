@@ -17,7 +17,8 @@
  * Public remount intent is cancelled even when owner migration left no local behaviour map.
  * A public actor marker likewise releases only PATH restrictions proven to belong to Cortex.
  * A crew owner restores a forced speed borrowed for an onboard dismount safe stop only while the
- * exact zero-speed lease remains current and no newer controller owns the group.
+ * exact zero-speed lease remains current and no newer controller owns the group. The crew also
+ * retracts its targetless onboard danger report so another passenger owner cannot consume stale work.
  * Naval cleanup restores the exact boat forced speed and removes only the token-matched WAIT plan.
  * Arguments:
  * 0: group <GROUP>
@@ -117,6 +118,7 @@ private _releasedVehicles=[];
         };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
+        _vehicle setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
     };
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_State", nil];

@@ -22,6 +22,7 @@
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
  * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
  * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
+ * Targetless onboard danger reports are also retracted before the scheduler is discarded.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
  * old CBA callback cannot become valid again after a quick restart.
  * Civilian event handlers and their EntityCreated installer are removed; external addon state is
@@ -86,6 +87,7 @@ if (isServer) then {
         };
         _x setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         _x setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
+        _x setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootToken",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootDeadline",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootPurpose",nil,true];

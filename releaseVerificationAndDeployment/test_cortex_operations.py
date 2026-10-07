@@ -4985,6 +4985,30 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_Cortex_DismountForcedSpeed',text)
             self.assertIn('WAIT_Cortex_DismountStopRequest',text)
 
+    def test_danger_only_vehicle_response_uses_safe_dismount_without_target_work(self):
+        tick=source('cortexGroupTick')
+        vehicles=source('cortexVehicles')
+        restore=source('cortexRestoreCalm')
+        self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]',tick)
+        self.assertIn('_state set ["dangerDismount",[+_dangerPosition,time+30]];',tick)
+        self.assertLess(vehicles.index('private _dangerDismount='),vehicles.index('if (_enemies isEqualTo []) exitWith'))
+        danger_segment=vehicles.split('private _dangerDismount=',1)[1].split('if (_enemies isEqualTo []) exitWith',1)[0]
+        self.assertIn('call _dismountAtThreat',danger_segment)
+        helper=vehicles.split('private _dismountAtThreat = {',1)[1].split('// Cross-group safe-stop handshake',1)[0]
+        for marker in ['WAIT_Cortex_DismountStopRequest','WAIT_Cortex_DismountForcedSpeed',
+                       'WAIT_Cortex_OnboardDanger','WAIT_fnc_CortexPassengerReady',
+                       'orderGetIn false','unassignVehicle','doGetOut']:
+            self.assertIn(marker,helper)
+        for forbidden in ['doTarget','doFire','WAIT_fnc_CortexGroupMove','WAIT_fnc_OperationStart']:
+            self.assertNotIn(forbidden,helper)
+            self.assertNotIn(forbidden,danger_segment)
+        self.assertIn('"dangerDismount"',restore)
+        onboard=source('cortexOnboardContact')
+        self.assertIn('WAIT_Cortex_OnboardDanger',onboard)
+        self.assertNotIn(' reveal ',onboard)
+        for cleanup in [source('cortexReleaseGroup'),source('cortexStop')]:
+            self.assertIn('WAIT_Cortex_OnboardDanger',cleanup)
+
     def test_contact_dismount_speed_restore_requires_the_owned_zero_cap(self):
         vehicles=source('cortexVehicles')
         release=source('cortexReleaseGroup')

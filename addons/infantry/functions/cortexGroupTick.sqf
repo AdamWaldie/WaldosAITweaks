@@ -3,7 +3,9 @@
  * Locality / Authority: Executes on the caller; world changes are limited to locally owned objects or groups, or to server-published state, as guarded below.
  * Pending remounts yield to a replacement vehicle assignment; cleanup only cancels the original seat order.
  * Runs one Cortex step for one locally owned group: reads the situation, moves it along the
- * group state ladder and calls each enabled behaviour. Casualty succession selects a living,
+ * group state ladder and calls each enabled behaviour. A targetless hit, explosion or suppression
+ * may grant only a bounded passenger safe-dismount lease; it does not grant target, route or
+ * manoeuvre authority. Casualty succession selects a living,
  * conscious local successor by rank before leader-dependent tactics; combat-effective leaders are preserved.
  *
  * State ladder with post-contact search and hysteresis:
@@ -186,6 +188,13 @@ if (count _dangerResponse == 5) then {
     if (_dangerGeneration == (_group getVariable ["WAIT_Danger_Generation",-1]) && {time < _dangerUntil}) then {
         _state set ["dangerResponse",+_dangerResponse];
         _dangerActive=true;
+        // A mounted group may know that its vehicle has been hit before the engine identifies a
+        // shooter. Preserve that distinction: this lease permits only the existing stop-and-exit
+        // handshake. Target selection, withdrawal and manoeuvre still require native knowledge.
+        if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]
+            && {(units _group) findIf {alive _x && {!isNull objectParent _x}} >= 0}) then {
+            _state set ["dangerDismount",[+_dangerPosition,time+30]];
+        };
     } else {
         _state deleteAt "dangerResponse";
         _group setVariable ["WAIT_Danger_Response",nil,true];
