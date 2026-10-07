@@ -104,6 +104,12 @@ The first standalone combat batch exposed an audit prerequisite defect: camera t
 
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
+Its scheduler wait now has a bounded three-second watchdog. A delayed or lost due callback wakes the same
+generation-keyed queue entry rather than appending work, and a cancelled callback exits before invoking legacy
+group logic. Owner epoch, generation, addon-disable and explicit cancellation can therefore end the wait even
+when the scheduler is under load. Diagnostics expose the watchdog count so queue pressure is visible instead of
+appearing as an unexplained idle squad.
+
 Up to twelve owner-local AI group members now feed one finite owner-local assessment FSM, enabled by
 default under the normal CBA contact settings. The evaluator coalesces causes, rejects expired records and
 selects urgency without sorting. Its one group-level contact event accepts only engine-confirmed hostile knowledge
@@ -121,6 +127,11 @@ coalesces the cause through the existing assessment FSM. Forced commands and mou
 movement command. Immediate and hide reactions remain weak native posture suggestions, while diagnostics retain
 bounded counts for first-contact starts, accepted causes and response modes. Static/package validation is required;
 physical first-contact latency, Zeus replacement and headless migration remain pending.
+
+Forced-command and mounted checks now repeat at the queued group-assessment boundary. This closes a delayed race
+where the immediate FSM yielded correctly but the later cause-only classification still changed group behaviour or
+ROE. On-foot hide/engage responses raise BLUE or GREEN groups to a finite YELLOW response, while native ATTACK,
+boarding, action, healing, rearm, join, fleeing and vehicle owners remain observation-only.
 
 Each live response now also carries a finite action classification: `HIDE` after a hit, explosion or suppression,
 `ENGAGE` after an engine-confirmed contact or nearby gunfire, `VEHICLE` for a mounted leader, and

@@ -45,7 +45,11 @@ if (_yieldToOwner) exitWith {"IGNORED"};
 // ownership stay with native AI or the already-running WAIT operation. This makes the classifier
 // useful without creating a second combat controller.
 if (_action == "RELEASE") exitWith {"IGNORED"};
-if !(_action in ["HIDE","ENGAGE","VEHICLE","MAINTAIN",""]) then {_action=""};
+// Vehicle crews and actors executing a native forced command are observation-only here. Their
+// dedicated vehicle/native owner receives the group-brain wake, but WAIT does not alter behaviour,
+// ROE, posture or movement while that owner is active.
+if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"};
+if !(_action in ["HIDE","ENGAGE","MAINTAIN",""]) then {_action=""};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 // MAINTAIN is valid only while a real operation still owns the committed route. A delayed danger
 // callback can outlive operation cleanup, so reclassify that orphaned label instead of treating it
@@ -71,7 +75,7 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 // own danger response merely because it already owned movement.
 private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}};
 private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
-if (_priorCombat == "BLUE" || {_engaging && {_priorCombat != "RED"}}) then {
+if (_priorCombat in ["BLUE","GREEN"] || {_engaging && {_priorCombat != "RED"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };

@@ -25,6 +25,9 @@ private _cancel={
     -1
 };
 if (isNull _group) exitWith {["GROUP_NULL"] call _cancel};
+if (_brain getOrDefault ["cancelled",false]) exitWith {
+    [_brain getOrDefault ["cancelReason","CANCELLED"]] call _cancel
+};
 if (!local _group) exitWith {["OWNERSHIP_LOST"] call _cancel};
 if (_epoch != (_group getVariable ["WAIT_AIPass_Epoch",0])) exitWith {["OWNER_EPOCH"] call _cancel};
 if (_generation != (_group getVariable ["WAIT_GroupBrain_Generation",0])) exitWith {["SUPERSEDED"] call _cancel};

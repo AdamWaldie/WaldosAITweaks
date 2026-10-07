@@ -105,6 +105,11 @@ median/p95 frame-time acceptance remains required.
 
 Active manoeuvre FSMs check cached Zeus-order markers and addon activation before their scheduled step is due. A newer Zeus marker releases the matching operation immediately and cancels its queued callback. Cleanup checks the group owner, epoch and drill token, so a stale FSM cannot release a newer manoeuvre. Zeus cleanup restores owned overrides without issuing formation-return or replacement movement. Shutdown also releases the matching drill. No geometry or group scan runs in FSM conditions.
 
+The group-tactics FSM also has a three-second scheduler watchdog while a due decision is pending. It
+wakes the same generation-keyed scheduler entry, so it cannot create a second brain or grow the queue.
+Cancellation, disablement, owner-epoch and generation changes end the wait before a stale callback can
+act. Diagnostics expose watchdog activations; any recurring count is a performance or queue-health finding.
+
 The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 ## Danger assessment
@@ -119,6 +124,8 @@ The engine FSM explicitly branches through forced-command, vehicle, immediate, h
 Immediate and hide states may apply only weak stance suggestions; they never issue a destination, target or firing
 command. Forced commands, player/Zeus control, external specialist ownership, disabled movement and CARELESS
 behaviour terminate or bypass WAIT action. This keeps the engine response finite while the group brain owns tactics.
+The queued group assessment repeats the forced-command and mounted checks before changing behaviour or ROE, so
+the delayed handoff cannot undo the immediate FSM's decision to yield.
 An eligible first engine event starts that same generation-owned group brain immediately when the periodic discovery
 sweep has not reached the group yet. It does not create a second worker. Diagnostics count these first-contact
 bootstraps, accepted records and finite response modes without publishing target identity.

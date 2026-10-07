@@ -20,7 +20,7 @@ if (isNull _group || {!local _group}
     || {behaviour _actor == "CARELESS"}
     || {!(_actor checkAIFeature "MOVE")}) exitWith {"RELEASE"};
 if (fleeing _actor || {currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
-if (vehicle _actor != _actor) exitWith {"VEHICLE"};
+if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 private _cause=_record select 0;
 if (_cause in [1,2,4,9]) exitWith {"IMMEDIATE"};
 if (_cause in [5,6,7]) exitWith {"HIDE"};

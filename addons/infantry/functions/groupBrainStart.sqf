@@ -43,6 +43,8 @@ _brain=createHashMapFromArray [
     ["wakeAt",time],
     ["lastStepAt",-1],
     ["lastDelay",-1],
+    ["queuedAt",-1],
+    ["watchdogCount",0],
     ["responsiveUntil",0]
 ];
 _group setVariable ["WAIT_GroupBrain",_brain];

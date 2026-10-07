@@ -28,6 +28,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_GroupBrain_Generation',fsm)
         self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('_brain set ["queuedAt",time]',queue)
+        self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('(_brain getOrDefault [""queuedAt"",time])+3',fsm)
+        self.assertIn('WAIT_AIPass_NextJobDue',fsm)
+        self.assertIn('if (_brain getOrDefault ["cancelled",false]) exitWith',step)
+        diagnostics=source('aiGetDiagnostics')
+        self.assertIn('schedulerWatchdogs=',diagnostics)
+        self.assertIn('only wakes the same keyed shared-scheduler job',diagnostics)
 
     def test_building_operation_fsm_owns_clearance_progression(self):
         clear=source('cortexClearBuilding')
@@ -286,8 +294,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('""RELEASE""',fsm)
         self.assertIn('_job deleteAt ""responsiveUntil""',fsm)
         self.assertIn('WAIT_Danger_Action',fsm)
-        for contract in ['"RELEASE"','"MAINTAIN"','"VEHICLE"','"HIDE"','"ENGAGE"']:
+        for contract in ['"RELEASE"','"FORCED"','"MAINTAIN"','"VEHICLE"','"HIDE"','"ENGAGE"']:
             self.assertIn(contract,action)
+        self.assertIn('currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]',action)
+        self.assertIn('!isNull objectParent _actor',action)
+        self.assertLess(action.index('currentCommand _actor in'),action.index('WAIT_Operation'))
+        self.assertLess(action.index('!isNull objectParent _actor'),action.index('WAIT_Operation'))
         for forbidden in [' doMove ', ' doTarget ', 'reveal', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,action)
 
@@ -301,6 +313,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('MAINTAIN means keep the committed route, not ignore the threat',reaction)
         self.assertIn('_action == "ENGAGE"',reaction)
         self.assertIn('private _desiredCombat',reaction)
+        self.assertIn('if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"}',reaction)
+        self.assertLess(reaction.index('if (_action in ["FORCED","VEHICLE"]'),reaction.index('setBehaviour "COMBAT"'))
+        self.assertIn('_priorCombat in ["BLUE","GREEN"]',reaction)
         self.assertNotIn('doMove',reaction)
         self.assertNotIn('doTarget',reaction)
         self.assertIn('"EXPLOSION",2.5',reaction)
