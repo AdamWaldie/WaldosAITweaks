@@ -3180,6 +3180,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_entries resize ((count _entries) min 4)',text)
         self.assertIn('private _replacementEntries=',text)
         self.assertNotIn('_job set ["deadline",(_job get "deadline") max (time+60)]',text)
+
+    def test_garrison_reuses_and_invalidates_its_local_building_topology(self):
+        """Entry anchors should not re-enumerate every room once per defender."""
+        text=source('cortexGarrisonApplyLocal')
+        self.assertIn('WAIT_Cortex_GarrisonTopology',text)
+        self.assertIn('private _buildingTopologyCache=',text)
+        self.assertIn('private _cached=_buildingTopologyCache getOrDefault',text)
+        self.assertIn('abs ((_cached select 0)-_damage) > 0.05',text)
+        self.assertIn('_cached=[_damage,+(_building buildingPos -1)]',text)
+        self.assertIn('private _positions=+(_cached select 1)',text)
         self.assertNotIn('if (_openedDoor) then {_route set [3,time]',text)
         self.assertNotIn('unitReady _x',text)
 

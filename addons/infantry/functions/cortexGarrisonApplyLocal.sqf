@@ -10,7 +10,9 @@
  * failure and leaves movement enabled rather than renewing forever around an unreachable doorway.
  * Routes stage at a real entrance when approaching from more than 30 m, then commit directly to the
  * interior destination. This avoids the long idle planning pause seen when the engine receives a
- * distant interior destination. Units move upright at assault pace until they reach their post.
+ * distant interior destination. A machine-local, damage-aware building topology cache shares that
+ * entrance-anchor lookup between soldiers while refreshing a materially changed structure. Units move
+ * upright at assault pace until they reach their post.
  * Nearby units try the interior destination directly, matching the engine path that works on viable
  * building models, then try up to four usable entrances nearest-first as bounded recovery.
  * Twelve seconds without two metres of progress retries the current leg twice, including commands
@@ -45,6 +47,7 @@ private _generation = (_group getVariable ["WAIT_AIPass_GarrisonGeneration", 0])
 _group setVariable ["WAIT_AIPass_GarrisonGeneration", _generation];
 _group setVariable ["WAIT_AIPass_GarrisonApplied", true];
 private _routes = createHashMap;
+private _buildingTopologyCache=missionNamespace getVariable ["WAIT_Cortex_GarrisonTopology",createHashMap];
 // Every later movement write is guarded again because an external controller can take
 // ownership after this application passed its initial eligibility check.
 private _mayIssueMovement = {
@@ -67,7 +70,16 @@ private _buildingEntries = {
 private _buildingAnchor = {
     params ["_building","_entry","_destination"];
     if (isNull _building || {_entry isEqualTo []}) exitWith {_destination};
-    private _positions=_building buildingPos -1;
+    private _cacheKey=netId _building;
+    if (_cacheKey == "") then {_cacheKey=str _building};
+    private _damage=damage _building;
+    private _cached=_buildingTopologyCache getOrDefault [_cacheKey,[]];
+    if (_cached isEqualTo [] || {abs ((_cached select 0)-_damage) > 0.05}) then {
+        _cached=[_damage,+(_building buildingPos -1)];
+        _buildingTopologyCache set [_cacheKey,_cached];
+        missionNamespace setVariable ["WAIT_Cortex_GarrisonTopology",_buildingTopologyCache];
+    };
+    private _positions=+(_cached select 1);
     if (_positions isEqualTo []) exitWith {_destination};
     _positions=[_positions,[],{_x distance2D _entry},"ASCEND"] call BIS_fnc_sortBy;
     +(_positions select 0)
