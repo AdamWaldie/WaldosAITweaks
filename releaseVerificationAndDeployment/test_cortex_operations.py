@@ -385,7 +385,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_zeusToken isNotEqualTo',fsm)
         self.assertIn('WAIT_AIPass_Epoch',fsm)
         self.assertIn('""RELEASE""',fsm)
-        self.assertIn('_job deleteAt ""responsiveUntil""',fsm)
+        self.assertIn('_brain=_group getVariable [""WAIT_GroupBrain"",createHashMap]',fsm)
+        self.assertIn('_brain deleteAt ""responsiveUntil""',fsm)
+        self.assertNotIn('WAIT_Cortex_GroupJob',fsm)
         self.assertIn('WAIT_Danger_Action',fsm)
         for contract in ['"RELEASE"','"FORCED"','"MAINTAIN"','"VEHICLE"','"HIDE"','"ENGAGE"']:
             self.assertIn(contract,action)
