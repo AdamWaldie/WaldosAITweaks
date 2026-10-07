@@ -185,7 +185,6 @@ if (!isNil "_civilianCreated") then {
         [_x,true,"CORTEX_STOPPED"] call WAIT_fnc_CortexReleaseGroup;
     };
     if (local _x) then {
-        [_x] call WAIT_fnc_CortexBuildingBackendRelease;
         [_x] call WAIT_fnc_CortexDefendRelease;
         [_x] call WAIT_fnc_CortexGarrisonRelease;
         [_x] call WAIT_fnc_CortexClearRelease;

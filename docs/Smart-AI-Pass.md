@@ -61,9 +61,9 @@ stateDiagram-v2
     Manoeuvre --> [*]: external ownership or newer order
 ```
 
-Native danger remains active. A bounded owner-local danger assessment records
-immediate observations and wakes a shared decision job; it does not add a
-per-unit permanent movement loop.
+A bounded owner-local engine danger FSM records immediate observations and
+wakes a shared decision job. It terminates after draining its short engine queue
+and does not add a per-unit permanent movement loop or movement owner.
 
 ## Infantry actions
 

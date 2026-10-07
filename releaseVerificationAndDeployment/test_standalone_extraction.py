@@ -79,8 +79,9 @@ class StandaloneExtractionContracts(unittest.TestCase):
         self.assertIn("_this] call WAIT_fnc_AITweaksSettingChanged", settings)
         self.assertNotIn("params ['_value']", settings)
         self.assertNotIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
-        for capability in ("dangerBackend", "alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
+        for capability in ("alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
             self.assertIn(f'"{capability}"', compat)
+        self.assertNotIn('"dangerBackend"',compat)
 
     def test_local_lifecycle_anchor_is_not_a_communication_proxy(self):
         functions = (ROOT / "addons/main/CfgFunctions.hpp").read_text(encoding="utf-8")

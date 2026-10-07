@@ -131,18 +131,11 @@ private _regroupEnabled = missionNamespace getVariable ["WAIT_AIPass_Regroup_Ena
 private _medicalEnabled = missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Enable", true];
 private _medicalBackend = (["medicalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _medicalAidGroups = _groups select {(_x getVariable ["WAIT_Cortex_MedicalAid",[]]) isNotEqualTo []};
-private _dangerBackend = (["dangerBackend"] call WAIT_fnc_CompatibilityAvailable);
-private _buildingBackend = (["buildingBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _turretPolicy = (["turretPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _suppressionPolicy = (["suppressionPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _launcherPolicy = (["launcherPolicy"] call WAIT_fnc_CompatibilityAvailable);
-private _dangerMovementLeases = {_x getVariable ["WAIT_Cortex_OwnershipLease", []] isNotEqualTo []} count _groups;
-private _dangerBusyGroups = {
-    private _currentTactic = [_x,"currentTactic",""] call WAIT_fnc_CompatibilityState;
-    ([_x,"executingTactic",false] call WAIT_fnc_CompatibilityState)
-        || {(_currentTactic isEqualType "") && {(toLowerANSI _currentTactic) find "task" == 0}}
-        || {(units _x) findIf {[_x,"forcedMovement",false] call WAIT_fnc_CompatibilityState} >= 0}
-} count _groups;
+private _dangerFsmPath=toLowerANSI getText (configFile >> "CfgVehicles" >> "SoldierWB" >> "fsmDanger");
+private _dangerFsmOwned=_dangerFsmPath find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" >= 0;
 // Danger response contexts are public, bounded and short-lived. This on-demand diagnostic reads
 // the existing group list only; it installs no handlers and adds no scheduler work.
 private _dangerResponses=_groups select {
@@ -155,6 +148,8 @@ private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
     private _actionName=if (count _action == 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
     format ["%1:%2/%3/%4s",groupId _x,_actionName,_response select 0,(((_response select 3)-time) max 0) toFixed 1]
 };
+private _dangerEngineEvents=0;
+{_dangerEngineEvents=_dangerEngineEvents+(_x getVariable ["WAIT_Danger_EngineEvents",0])} forEach _groups;
 // Engine-confirmed contacts are local candidate records, never a public targeting channel. Show
 // only their bounded group/count summary so an operator can diagnose a leader-in-cover contact
 // handoff without exposing target identity or adding background work.
@@ -263,8 +258,8 @@ private _checks = [
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["Up to twelve local AI group members provide Hit/Suppressed/hostile FiredNear observations; the group also records engine-confirmed EnemyDetected contact after verifying native knowledge. Records cap at 16 and expire after two seconds; same-cause callbacks throttle to 0.25 s; wake an existing group job at most twice per second. Published responses=%1 [action/cause/remaining: %2]; local observed contacts=%3 [group/count: %4]. No target reveal, second movement owner or native danger replacement. Physical/latency and mixed-group performance acceptance pending.",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ","]],
-    ["ai", "cortex-danger-ownership", if (_dangerBackend || {_buildingBackend} || {_turretPolicy} || {_suppressionPolicy} || {_launcherPolicy}) then {"ACTIVE"} else {"UNAVAILABLE"}, format ["danger=%1 waypoints=%2 turrets=%3 suppression=%4 rpg=%5 mode=%6 scopedMovementLeases=%7 externalDangerOwnedGroups=%8 busyLeaseRefusals=%9; config companions remain active in every mode", _dangerBackend, _buildingBackend, _turretPolicy, _suppressionPolicy, _launcherPolicy, missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"], _dangerMovementLeases, _dangerBusyGroups, missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals", 0]]],
+    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The engine danger FSM drains at most 12 native records per step and maps them into a 16-record expiring group queue; same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Engine submissions=%1; published responses=%2 [action/cause/remaining: %3]; local observed contacts=%4 [group/count: %5]. No target reveal or second movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ","]],
+    ["ai","cortex-danger-ownership",["ERROR","ACTIVE"] select _dangerFsmOwned,format ["exclusiveEngineFSM=%1 path=%2. WAIT owns immediate danger response and submits expensive group planning to the shared scheduler; another fsmDanger replacement is unsupported.",_dangerFsmOwned,_dangerFsmPath]],
     ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
     ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies terrain-grade safety only while a native waypoint is active; a non-combat vehicle receives at most one route refresh, clear-rear reverse and final route retry. Registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes cap in km/h, grade, owner group, sample age and recovery state. Headless owners retain local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],
     ["ai","convoy-driving",if (_convoyHandoffMissing isNotEqualTo []) then {"ERROR"} else {if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7 missingCompatibilityHandoffRestart=%8 brains=[%9]. One finite owner-local brain exposes cruise, spacing, contact, recovery, ordered hold, obstruction and arrival. Physical control remains one bounded shared-scheduler step; WAIT never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{[_x,"drivingPause",false] call WAIT_fnc_CompatibilityState} count _convoyVehicles,count _convoyHandoffMissing,_convoyBrainSnapshot joinString "; "]],
@@ -640,6 +635,6 @@ private _compat = missionNamespace getVariable ["WAIT_AITweaks_Compatibility", c
 private _providers = (keys _compat) select {_compat get _x};
 _providers sort true;
 _checks pushBack ["ai", "ai-external-providers", "LOADED", format [
-    "Detected=%1. Optional providers reserve actors through active operation markers. Detection does not certify compatibility; native danger remains available without a provider.", _providers
+    "Detected=%1. Optional providers reserve actors through active operation markers. Detection does not certify compatibility; the active engine danger slot still requires an explicit load-order or compatibility contract.", _providers
 ]];
 ["ai", _checks] call WAIT_fnc_AITweaksDiagnosticReport

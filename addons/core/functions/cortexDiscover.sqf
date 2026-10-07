@@ -10,7 +10,7 @@
  *   scheduler, so headless handover cannot leave a second persistent group worker behind;
  * - re-applies garrison orders on the new owner after a locality change, because disableAI and
  *   event handlers are stored per machine;
- * - reconciles blanket Cortex-mode and finite SPLIT-mode COMPAT movement ownership;
+ * - reconciles finite movement ownership for independent alternative controllers;
  * - caches locally owned, eligible artillery for fire support and counter-battery;
  * - re-applies defence-line orders after a locality change;
  * - installs the missile-warning handler on every locally owned, eligible AI aircraft. A warning
@@ -49,8 +49,6 @@ if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
 };
 missionNamespace setVariable ["WAIT_AIPass_PlayerPositions", (allPlayers select {alive _x && {!(_x isKindOf "HeadlessClient_F")}}) apply {getPosATL _x}];
 
-private _dangerWaitMode = (missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded", false])
-    && {toUpperANSI (missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"]) == "WAIT"};
 private _spotters = [];
 {
     private _group = _x;
@@ -97,34 +95,18 @@ private _spotters = [];
         };
         private _clear = _group getVariable ["WAIT_AIPass_ClearOrder", []];
         if (_clear isNotEqualTo [] && {!(_group getVariable ["WAIT_AIPass_ClearApplied", false])}) then {
-            [_group, _clear select 0, createHashMapFromArray [["useBuildingBackend", false], ["resume", true]]] call WAIT_fnc_CortexClearBuilding;
+            [_group, _clear select 0, createHashMapFromArray [["resume", true]]] call WAIT_fnc_CortexClearBuilding;
         };
         // Aircraft occupants have dedicated flight, flare, missile-reaction and airborne controllers.
         // They may remain generally Cortex-eligible for those systems, but must never acquire the
         // generic ground-group loop as a second movement/behaviour owner.
         private _eligible = _groundEligible;
-        if ((!_dangerWaitMode || {!_eligible}) && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false]}) then {
-            [_group,"dangerDisabled",_group getVariable ["WAIT_AIPass_DangerBackendBaseline", false],true,true] call WAIT_fnc_CompatibilityState;
-            _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", nil, true];
-            _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
-        };
-        if (_dangerWaitMode && {_eligible} && {!(_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false])}) then {
-            private _scopedLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
-            private _baseline = if (count _scopedLease == 3) then {_scopedLease select 1} else {
-                [_group,"dangerDisabled",false] call WAIT_fnc_CompatibilityState
-            };
-            _group setVariable ["WAIT_AIPass_DangerBackendBaseline", _baseline, true];
-            [_group,"dangerDisabled",true,true,true] call WAIT_fnc_CompatibilityState;
-            _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", true, true];
-        };
-        private _dangerLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
-        if (_dangerLease isNotEqualTo []) then {
-            if (serverTime >= (_dangerLease select 2)) then {
+        private _alternativeLease = _group getVariable ["WAIT_Cortex_AlternativeLease", []];
+        if (_alternativeLease isNotEqualTo []) then {
+            if (serverTime >= (_alternativeLease select 2)) then {
                 [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
             } else {
-                // A live mode change may have just removed the blanket switch. Renewing the same
-                // scoped owner reasserts exclusive movement without changing its saved baseline.
-                [_group,_dangerLease select 0,true,_dangerLease select 2] call WAIT_fnc_CortexOwnershipLease;
+                [_group,_alternativeLease select 0,true,_alternativeLease select 2] call WAIT_fnc_CortexOwnershipLease;
             };
         };
         if (_eligible) then {

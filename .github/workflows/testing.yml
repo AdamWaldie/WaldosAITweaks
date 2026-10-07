@@ -26,6 +26,7 @@ jobs:
       - run: hemtt build --no-bin
       - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
       - run: hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
+      - run: hemtt utils config inspect addons/infantry/fsm/danger.fsm
       - run: hemtt utils config inspect addons/main/fsm/groupTactics.fsm
       - run: hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/convoyOperation.fsm

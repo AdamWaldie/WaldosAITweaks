@@ -105,25 +105,20 @@
     },
     {
       "id": "COMPAT",
-      "title": "COMPAT coexistence and Cortex fallback",
-      "setup": "Run the same fresh dedicated-server squad audit twice: once without COMPAT and once with -IncludeCompatibility loading Danger, Turrets, Suppression and RPG plus two headless clients. In the loaded arm exercise active-tactic, forced-movement and waypoint-task ownership before a clean Cortex lease, owner migration and Zeus replacement order.",
-      "expected": "Without COMPAT, Cortex physically moves and holds the whole squad with no upstream dependency. With COMPAT loaded, its public Waypoints tasks are the primary garrison/CQB backend in both Danger ownership modes. Cortex never steals queued or active COMPAT movement, finite leases restore both false and true group baselines, a new HC owner renews or reconstructs semantic intent, Zeus interruption releases ownership, and every soldier physically follows the replacement order without old-route resurrection.",
-      "settings": [
-        "WAIT_AIPass_InfantryOwnership"
-      ],
+      "title": "Specialist ownership and alternative-controller handover",
+      "setup": "Run a fresh dedicated-server squad audit with WAIT's exclusive engine danger FSM, then load supported specialist and alternative movement controllers with two headless clients. Exercise active specialist ownership, a finite alternative movement lease, owner migration and Zeus replacement order.",
+      "expected": "WAIT physically moves and holds the complete squad using its own danger and building operations. Specialist actors are excluded while their controller is active. A finite independent movement lease preserves its exact baseline, survives owner migration and releases before Zeus replacement movement. No shared danger or building controller is supported.",
+      "settings": [],
       "status": "implemented_partial",
       "live_evidence": [
-        "runtime-20261001-110329: standalone 3840x2160 arm completed with zero findings and no observed SQF errors; Cortex physically moved and held the complete squad without COMPAT present.",
-        "runtime-20261001-111118: installed COMPAT suite plus two real WAIT HCs completed with zero findings and zero SQF errors. Active tactic, forceMove and COMPAT waypoint ownership were refused; false and true baselines restored; a live lease survived HC adoption and restored on the new owner; Zeus replacement movement completed after clean release."
+        "Historical script-pack evidence is retained separately; the exclusive engine danger FSM and native building ownership require a fresh packaged-mod acceptance batch."
       ],
-      "automation": "runCompatibility.sqf stages physical standalone movement plus loaded-suite arbitration, exact baseline restoration, HC lease adoption/renewal/release and Zeus handover. runBuildingComparison.sqf adds physical COMPAT garrison/CQB participation and handover beside explicit native fallback cases. The launcher supplies paired absent/present arms through -CortexFocus compatibility and -IncludeCompatibility; use two HCs for the loaded arm. Earlier core ownership arms passed; the new building integration, ACE HC distribution, disconnect, JIP and broader terrain/mod combinations remain outstanding. Direct flank/advance, infantry and vehicle withdrawal, vehicle standoff, combined-ground movement and artillery scoot now acquire and release the same exact finite COMPAT/external controller ownership boundary; source regressions cover start, renewal, completion, expiry and locality resume. A loaded-suite physical batch across those owners remains pending.",
+      "automation": "runCompatibility.sqf checks the configured WAIT danger FSM, physical standalone movement, finite alternative-controller lease restoration and Zeus handover. runBuildingComparison.sqf tests only WAIT-owned garrison and CQB behaviour. Source regressions cover start, renewal, completion, expiry and locality resume. Packaged physical acceptance, HC distribution, disconnect, JIP and broader terrain/controller combinations remain pending.",
       "executable_sources": [
         "runCompatibility.sqf",
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
-        "addons/compatibility/functions/cortexBuildingBackendRelease.sqf",
-        "addons/compatibility/functions/cortexBuildingBackendStart.sqf",
         "addons/compatibility/functions/cortexOwnershipLease.sqf",
         "addons/compatibility/functions/cortexExternalTakeover.sqf",
         "addons/compatibility/functions/compatibilityAvailable.sqf",
@@ -376,7 +371,7 @@
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runContact.sqf: real wall occlusion, no hidden acquisition, enemy walks into view, natural recent sighting and contact phase. Added, not live-verified. Gate, occlusion-after-contact and owner variants remain outstanding; runCombat.sqf retained. Added physical re-occlusion, last-seen ageing and natural reacquisition of the same opponent. Saved after runtime 155242; not live-executed. Leader-event danger FSM is enabled by default. Queued: priority/expiry, sustained gunfire coalescing, no knowledge reveal, ordinary-order response, disable cleanup, Zeus takeover, leader replacement, external ownership and HC migration. It wakes the owner-local group tactics FSM; native engine danger observations remain inputs rather than a competing movement owner. Added scheduler diagnostic uses a fresh ordinary MOVE squad, real production discovery/listeners and its actual group job. It measures waking a sleeping job before its original deadline, priority/expiry, no target reveal, preserved route travel, disabled rejection, listener cleanup and Zeus priority. A HIT observation is submitted through the production API, not generated by a weapon impact; live real-event and combat efficacy variants remain pending.",
+      "automation": "runContact.sqf: real wall occlusion, no hidden acquisition, enemy walks into view, natural recent sighting and contact phase. Added, not live-verified. Gate, occlusion-after-contact and owner variants remain outstanding; runCombat.sqf retained. Added physical re-occlusion, last-seen ageing and natural reacquisition of the same opponent. Saved after runtime 155242; not live-executed. The engine danger FSM is enabled by default and feeds one finite group assessment without owning movement. Queued: real engine cause delivery, priority/expiry, sustained queue coalescing, no knowledge reveal, ordinary-order response, disable cleanup, Zeus takeover, leader replacement, external ownership and HC migration. Added scheduler diagnostic uses a fresh ordinary MOVE squad, real production discovery/listeners and its actual group job. It measures waking a sleeping job before its original deadline, priority/expiry, no target reveal, preserved route travel, disabled rejection, listener cleanup and Zeus priority. Existing synthetic HIT submission remains a scheduler-only diagnostic; live real-event and combat efficacy variants remain pending.",
       "executable_sources": [
         "runContact.sqf",
         "runCombat.sqf",
@@ -386,6 +381,10 @@
         "addons/support/functions/cortexContactReport.sqf",
         "addons/infantry/functions/dangerSelect.sqf",
         "addons/infantry/functions/dangerActionSelect.sqf",
+        "addons/infantry/functions/dangerEngineAct.sqf",
+        "addons/infantry/functions/dangerEngineMode.sqf",
+        "addons/infantry/functions/dangerEngineSelect.sqf",
+        "addons/infantry/functions/dangerEngineSubmit.sqf",
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",

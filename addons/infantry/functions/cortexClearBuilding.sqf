@@ -28,10 +28,8 @@
  * cannot overwrite a later contact or Zeus behaviour change. While clearing, the squad does not
  * flank, retreat or search, and
  * is not sent to reinforce others.
- * An optional external building controller is used only when the caller explicitly requests
- * "useBuildingBackend". Native WAIT clearance is the normal path. Cortex retains the spawned task
- * handle and semantic intent so Zeus, stop and locality migration can release or replay a delegated
- * task cleanly.
+ * WAIT owns building clearance. External danger or building controllers are not co-owners of this
+ * operation; specialist ownership and Zeus still invalidate it through the common eligibility gate.
  * Locality and authority: call where the group is local, or on the server, which forwards to the
  * owner. Non-server, non-owner copies do nothing.
  *
@@ -40,7 +38,7 @@
  * Arguments:
  * 0: group <GROUP or OBJECT> - the group, or a unit in it
  * 1: target <OBJECT or ARRAY> - the building, or a position (the nearest building is used)
- * 2: options <HASHMAP> (optional) - useBuildingBackend (default false), radius for an explicitly requested external backend (default 50)
+ * 2: options <HASHMAP> (optional) - resume (default false) and operation-specific controls
  *
  * Return Value:
  * Boolean - true when the order was applied or forwarded
@@ -62,13 +60,6 @@ if (!local _group) exitWith {
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {false};
 private _building = if (_target isEqualType objNull) then {_target} else {nearestBuilding _target};
 if (isNull _building) exitWith {if (_options getOrDefault ["resume", false]) then {[_group] call WAIT_fnc_CortexClearRelease}; false};
-if ((_options getOrDefault ["useBuildingBackend", false]) && {(["buildingBackend"] call WAIT_fnc_CompatibilityAvailable)}) exitWith {
-    [_group,false] call WAIT_fnc_CortexReleaseGroup;
-    [_group] call WAIT_fnc_CortexClearRelease;
-    if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexGarrisonRelease};
-    if ((_group getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexDefendRelease};
-    [_group,"CQB",_building,_options getOrDefault ["radius",50]] call WAIT_fnc_CortexBuildingBackendStart
-};
 if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
     diag_log format ["[WAIT] %1 clear building refused: the Smart AI Pass is not running on this machine.", _group];
     false

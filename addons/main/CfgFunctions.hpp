@@ -68,6 +68,10 @@ class CfgFunctions {
             class CortexStop {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexStop.sqf";};
             class DangerSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSelect.sqf";};
             class DangerActionSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerActionSelect.sqf";};
+            class DangerEngineAct {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineAct.sqf";};
+            class DangerEngineMode {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineMode.sqf";};
+            class DangerEngineSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSelect.sqf";};
+            class DangerEngineSubmit {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSubmit.sqf";};
             class DangerRequest {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerRequest.sqf";};
             class DangerStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerStep.sqf";};
             class DangerSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSetup.sqf";};
@@ -107,8 +111,6 @@ class CfgFunctions {
             class CortexArtilleryRole {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexArtilleryRole.sqf";};
             class CortexSetArtilleryRole {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexSetArtilleryRole.sqf";};
             class CortexOwnershipLease {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexOwnershipLease.sqf";};
-            class CortexBuildingBackendStart {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexBuildingBackendStart.sqf";};
-            class CortexBuildingBackendRelease {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexBuildingBackendRelease.sqf";};
             class CortexAntiArmour {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAntiArmour.sqf";};
             class CortexCheckpoint {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCheckpoint.sqf";};
             class CortexLocality {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexLocality.sqf";};

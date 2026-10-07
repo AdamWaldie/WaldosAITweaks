@@ -74,11 +74,11 @@ _selected params ["_cause","_position","_observedAt"];
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
 // This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
 // respond on its already-owned scheduler cycle while retaining route, operation and external ownership.
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];
 private _responseLifetime=_responseDurations getOrDefault [_cause,1];
 private _response=[_cause,+_position,_observedAt,time+_responseLifetime,_generation];
 private _existing=_group getVariable ["WAIT_Danger_Response",[]];
-private _priority=createHashMapFromArray [["HIT",5],["EXPLOSION",4],["SUPPRESSED",3],["DETECTED",2],["GUNFIRE",1]];
+private _priority=createHashMapFromArray [["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["SCREAM",4],["CASUALTY",3],["DETECTED",2],["GUNFIRE",1]];
 private _replace=_existing isEqualTo [] || {count _existing != 5}
     || {(_existing select 4) != _generation}
     || {time >= (_existing select 3)}

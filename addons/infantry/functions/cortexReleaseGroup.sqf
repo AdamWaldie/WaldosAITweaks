@@ -72,10 +72,9 @@ if (_externalTakeover) then {
     _group setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
     _group setVariable ["WAIT_Cortex_CombinedOpportunity",nil,true];
 };
-// Explicit building controllers are movement owners too. Zeus replacement orders must terminate the
-// delegated COMPAT loop or native building job before general Cortex state is restored.
+// WAIT building operations are movement owners too. Zeus replacement orders terminate them before
+// general group state is restored.
 if (_externalTakeover) then {
-    [_group,false] call WAIT_fnc_CortexBuildingBackendRelease;
     [_group,false] call WAIT_fnc_CortexClearRelease;
     [_group,false] call WAIT_fnc_CortexGarrisonRelease;
 };
@@ -120,11 +119,6 @@ private _releasedVehicles=[];
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
     };
 } forEach units _group;
-if (local _group && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false]}) then {
-    [_group,"dangerDisabled",_group getVariable ["WAIT_AIPass_DangerBackendBaseline", false],true,true] call WAIT_fnc_CompatibilityState;
-    _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", nil, true];
-    _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
-};
 _group setVariable ["WAIT_AIPass_State", nil];
 if (_forget) then {
     _group setVariable ["WAIT_AIPass_Managed",nil];

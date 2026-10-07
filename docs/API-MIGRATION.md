@@ -8,7 +8,7 @@ This is a breaking addon update. There are no forwarding aliases.
 | `Waldo_<SettingOrState>` | `WAIT_<SettingOrState>` |
 | `Waldo_AI_Tweaks_Main` addon identifier | `WAIT_AI_Tweaks_Main` |
 
-Infantry controller ownership uses `WAIT_AIPass_InfantryOwnership` with `SPLIT` or `WAIT`.
+WAIT owns the configured engine danger FSM and its bounded group-tactics lifecycle. Loading another danger-FSM replacement is unsupported.
 There is no saved-setting alias for its former source-oriented key or legacy ownership values.
 
 Update mission calls, remote-execution allowlists, overrides and saved CBA settings before upgrading.

@@ -35,10 +35,6 @@ if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};
 if (!local _group) exitWith {
     if (isServer) then {[_group,_restore] remoteExecCall ["WAIT_fnc_CortexGarrisonRelease", groupOwner _group]; true} else {false};
 };
-private _delegated=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated select 1) == "GARRISON"}) exitWith {
-    [_group,_restore] call WAIT_fnc_CortexBuildingBackendRelease
-};
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
 // A newer Zeus, player or specialist owner may have replaced this order before this release

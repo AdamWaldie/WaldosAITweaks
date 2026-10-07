@@ -13,7 +13,6 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Enable` | Enable Cortex automatic tactics | CHECKBOX | true | [] | LIVE | Master control for Cortex actions and reactions. The purpose switches below choose which tactics Cortex may use; convoy control remains independent. |
-| `WAIT_AIPass_InfantryOwnership` | Infantry controller ownership | COMBO | "SPLIT" | [["SPLIT", "WAIT"], ["Shared ownership (recommended)", "WAIT only"]] | NEXT_OPERATION | Shared ownership keeps the base danger FSM active. A finite WAIT manoeuvre reserves only its responder and restores prior ownership afterwards. WAIT only gives this addon full group control. The building-task backend remains active in either mode; independent weapon configuration is preserved. |
 
 ### 02 Tactical profile
 
@@ -61,7 +60,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Contact_Enable` | Contact handling | CHECKBOX | true | [] | NEXT_OPERATION | Squads switch to combat on contact and return to their previous behaviour and waypoints afterwards. Needed by every combat option below. |
 | `WAIT_AIPass_PostContact_Enable` | Post-contact search | CHECKBOX | true | [] | NEXT_OPERATION | After contact is lost: hold, send two soldiers to check the last known position, regroup. |
 | `WAIT_AIPass_Investigate_Enable` | Investigation | CHECKBOX | true | [] | NEXT_OPERATION | Squads send two riflemen to check enemies they know about but have not seen. |
-| `WAIT_AIPass_Danger_Enable` | Danger assessment | CHECKBOX | true | [] | LIVE | Up to twelve owner-local group members wake one existing squad decision job. Native danger behaviour remains; no additional movement controller. Live acceptance pending. |
+| `WAIT_AIPass_Danger_Enable` | Danger assessment | CHECKBOX | true | [] | LIVE | The bounded engine danger FSM maps native causes into one existing squad decision job. It owns no movement; live disable, handover and physical acceptance remain pending. |
 | `WAIT_AIPass_Hearing_Enable` | Nearby gunfire investigation | CHECKBOX | true | [] | NEXT_OPERATION | Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal. |
 | `WAIT_AIPass_PostContact_LostSeconds` | Contact lost delay (s) | SLIDER | 30 | [3, 120, 0] | NEXT_OPERATION | Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover. |
 | `WAIT_AIPass_PostContact_SecuritySeconds` | Security hold (s) | SLIDER | 10 | [0, 60, 0] | NEXT_OPERATION | Seconds spent securing the last contact before a search team moves. |

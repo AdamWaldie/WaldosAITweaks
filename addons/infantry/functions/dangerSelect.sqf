@@ -13,7 +13,7 @@ params [["_events",[],[[]]],["_now",time,[0]]];
 private _chosen=[];
 private _best=-1;
 private _latest=-1;
-private _priority=createHashMapFromArray [["HIT",5],["EXPLOSION",4],["SUPPRESSED",3],["DETECTED",2],["GUNFIRE",1]];
+private _priority=createHashMapFromArray [["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["SCREAM",4],["CASUALTY",3],["DETECTED",2],["GUNFIRE",1]];
 {
     if (_x isEqualType [] && {count _x == 4}) then {
         _x params ["_cause","_position","_created","_expires"];

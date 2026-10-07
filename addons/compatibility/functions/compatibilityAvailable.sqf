@@ -6,7 +6,7 @@
  * Arguments: 0 capability <STRING>, default empty.
  * Return Value: BOOL - capability availability.
  * Current callers: building, profile, locality and diagnostics services.
- * Example: ["buildingBackend"] call WAIT_fnc_CompatibilityAvailable;
+ * Example: ["medicalBackend"] call WAIT_fnc_CompatibilityAvailable;
  */
 
 params [["_capability","",[""]]];

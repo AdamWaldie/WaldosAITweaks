@@ -7,16 +7,16 @@ BASE = ROOT / 'addons/main/functions/Cortex'
 def src(name):
     return re.sub(r'^/\*.*?\*/\s*', '', next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8-sig'), flags=re.S)
 class AIModularityContracts(unittest.TestCase):
-    def test_full_ownership_mode_uses_the_registered_wait_enum(self):
+    def test_wait_exclusively_owns_engine_danger_fsm(self):
         discovery=src('cortexDiscover')
         lease=src('cortexOwnershipLease')
         spec=src('cortexTuningSpec')
-        self.assertIn('[["SPLIT","WAIT"]', spec)
-        self.assertIn('== "WAIT"',discovery)
-        self.assertIn('_mode == "WAIT"',lease)
-        self.assertNotIn('== "' + 'W' + 'MP"',discovery)
-        self.assertIn('!_dangerWaitMode || {!_eligible}',discovery)
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',discovery)
+        infantry=(ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
+        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership',spec)
+        self.assertNotIn('DangerBackend',discovery)
+        self.assertNotIn('lambs_',lease.lower())
+        self.assertIn('WAIT_AIPass_AlternativeBackendLoaded',lease)
 
     def test_drill_loses_ownership_before_modes_and_does_not_regroup(self):
         step = src('cortexFlankStep')
@@ -168,12 +168,11 @@ class AIModularityContracts(unittest.TestCase):
             self.assertIn('magazinesAllTurrets',src(name))
             self.assertIn('(_x select 2) > 0',src(name))
         self.assertIn('WAIT_fnc_CortexFeatureEnabled',src('cortexArtilleryShot'))
-    def test_danger_handover_is_scoped_and_restores_prior_state(self):
+    def test_alternative_controller_handover_is_scoped_and_restores_prior_state(self):
         lease = src('cortexOwnershipLease')
-        for contract in ['WAIT_Cortex_OwnershipLease','lambs_danger_disableGroupAI','_baseline','serverTime','WAIT_AIPass_DangerBackendDisabledByPass',
-                         'lambs_danger_isExecutingTactic','lambs_danger_forceMove','lambs_main_currentTactic','WAIT_Cortex_OwnershipBusyRefusals']:
+        for contract in ['WAIT_Cortex_AlternativeLease','Vcm_Disable','VCM_MOVE2SUP','VCM_MBUSY',
+                         '_baseline','serverTime','WAIT_Cortex_OwnershipBusyRefusals']:
             self.assertIn(contract,lease)
-        self.assertLess(lease.index('lambs_danger_isExecutingTactic'),lease.index('setVariable ["lambs_danger_disableGroupAI", true'))
         self.assertIn('CortexOwnershipLease',(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8'))
         apply = src('cortexSupportApply')
         maintain = src('cortexSupportMaintain')
@@ -184,25 +183,29 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexRetreat'))
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexGroupTick'))
         self.assertIn('[_group,"",false] call WAIT_fnc_CortexOwnershipLease',src('cortexReleaseGroup'))
-        self.assertIn('serverTime >= (_dangerLease select 2)',src('cortexDiscover'))
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',src('cortexDiscover'))
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',src('cortexReleaseGroup'))
-    def test_danger_config_companions_are_detected_but_never_disabled(self):
+        self.assertIn('serverTime >= (_alternativeLease select 2)',src('cortexDiscover'))
+        self.assertNotIn('DangerBackend',src('cortexDiscover'))
+        self.assertNotIn('DangerBackend',src('cortexReleaseGroup'))
+    def test_no_source_specific_danger_or_weapon_companions_are_loaded(self):
         compat = (ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         diagnostics = (ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         lease = src('cortexOwnershipLease')
-        for patch in ['lambs_turrets','lambs_suppression','lambs_rpg']:
-            self.assertIn(patch,compat)
-            self.assertIn("WAIT_fnc_CompatibilityAvailable",diagnostics)
-            self.assertNotIn(patch+' setVariable',lease)
-        self.assertIn('config companions remain active in every mode',diagnostics)
+        for key in ['dangerBackend','turretPolicy','suppressionPolicy','launcherPolicy']:
+            self.assertNotIn('"'+key+'"',compat)
+        self.assertIn('exclusiveEngineFSM',diagnostics)
+        self.assertNotIn('lambs_',lease.lower())
 class ExtendedSourceOwnershipContracts(unittest.TestCase):
     def test_standalone_foundation_requires_only_infrastructure(self):
         config = (ROOT/'addons/main/config.cpp').read_text(encoding='utf-8')
+        infantry = (ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
         launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', infantry)
+        for base in ['SoldierWB','SoldierEB','SoldierGB']:
+            self.assertIn('class '+base+': CAManBase', infantry)
+        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
 
     def test_active_external_operations_are_read_only_and_bounded(self):
         owner = src('cortexExternalOwner')
@@ -269,7 +272,7 @@ class AddonSettingLifecycleContracts(unittest.TestCase):
 
     def test_setting_presentation_preserves_identifiers_and_uses_product_language(self):
         spec = src('cortexTuningSpec')
-        self.assertIn('"WAIT_AIPass_InfantryOwnership", "Infantry controller ownership"', spec)
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership', spec)
         self.assertNotIn('"COMPAT integration"', spec)
         for phrase in ['external naval controller takes', 'Simple Civilian Behaviour owns']:
             self.assertNotIn(phrase, spec)

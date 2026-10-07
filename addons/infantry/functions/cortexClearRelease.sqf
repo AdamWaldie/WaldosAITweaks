@@ -12,10 +12,6 @@
  */
 params [["_group", grpNull, [grpNull]],["_restore",true,[true]]];
 if (isNull _group || {!local _group} || {remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}}) exitWith {false};
-private _delegated=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated select 1) == "CQB"}) exitWith {
-    [_group,_restore] call WAIT_fnc_CortexBuildingBackendRelease
-};
 private _order = _group getVariable ["WAIT_AIPass_ClearOrder", []];
 if (_order isEqualTo []) exitWith {false};
 // A disabled feature must still release WAIT's own movement lease.  Only an actual player,

@@ -70,7 +70,6 @@ _group setVariable ["WAIT_BuildingBrain_FSM",nil];
         _unit setVariable ["WAIT_AIPass_DuckUntil", nil];
         _unit setVariable ["WAIT_Cortex_ActorMove",nil];
 } forEach units _group;
-if (!_gained) then {[_group,false,true] call WAIT_fnc_CortexBuildingBackendRelease};
 _group setVariable ["WAIT_AIPass_Epoch", (_group getVariable ["WAIT_AIPass_Epoch", 0]) + 1];
 _group setVariable ["WAIT_AIPass_State", nil];
 _group setVariable ["WAIT_AIPass_Managed", nil];
@@ -177,23 +176,6 @@ if ((_group getVariable ["WAIT_Cortex_NavalOperation",[]]) isNotEqualTo []) exit
 if ((units _group) findIf {
     alive _x && {vehicle _x != _x} && {vehicle _x isKindOf "Air"}
 } >= 0) exitWith {};
-// A delegated building task is the active movement owner. Replay it only after old-owner calm
-// restoration has finished, then stop: remount, post-contact and withdrawal intents from an older
-// episode must not compete with the reconstructed building controller.
-private _buildingIntent=_group getVariable ["WAIT_Cortex_BuildingIntent",[]];
-if (count _buildingIntent >= 3 && {(["buildingBackend"] call WAIT_fnc_CompatibilityAvailable)}
-    && {[_group] call WAIT_fnc_CortexIsEligible} && {!([_group] call WAIT_fnc_CortexZeusHeld)}) exitWith {
-    _group setVariable ["WAIT_Cortex_Remount",nil,true];
-    _group setVariable ["WAIT_Cortex_TransitionIntent",nil,true];
-    _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];
-    _buildingIntent params ["_buildingKind","_buildingTarget","_buildingRadius"];
-    if (_buildingKind == "GARRISON") then {
-        [_group,_buildingTarget,_buildingRadius] call WAIT_fnc_CortexGarrison;
-    };
-    if (_buildingKind == "CQB" && {_buildingTarget isEqualType objNull} && {!isNull _buildingTarget}) then {
-        [_group,_buildingTarget,createHashMapFromArray [["radius",_buildingRadius]]] call WAIT_fnc_CortexClearBuilding;
-    };
-};
 // The server-owned lease/status pair is the durable assignment. Reuse the normal support
 // acceptance path so every feature gate, vehicle exclusion, COMPAT handover and movement flag keeps
 // exactly one implementation. The new owner reconstructs semantics; it never replays an old job.

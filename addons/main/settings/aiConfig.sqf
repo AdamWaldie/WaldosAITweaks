@@ -140,7 +140,6 @@
  * - WAIT_AIPass_Regroup_StuckSeconds (ADVANCED): no progress for this long retries once, then aborts without merging at a distance.
  * - WAIT_AIPass_Regroup_TimeoutSeconds (ADVANCED): limit for finding a host and for walking to it.
  * - WAIT_AIPass_Regroup_SettleSeconds (ADVANCED): wait after a kill so simultaneous deaths settle.
- * - WAIT_AIPass_InfantryOwnership (MISSION MAKER): optional infantry controller ownership: SPLIT preserves native/external danger behaviour outside finite WAIT movement; WAIT grants group control. Independent weapon policies remain active.
  * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. external civilian controller takes priority when loaded.
  * - WAIT_AIPass_CivilianReaction_Radius (ADVANCED): FiredNear distance which may trigger flight.
  * - WAIT_AIPass_CivilianReaction_Distance (ADVANCED): approximate one-shot escape distance.
@@ -330,7 +329,6 @@ createHashMapFromArray [
         ["WAIT_AIPass_Aggression", 1.2], // 0-2: scales manoeuvre preference/participation and optional tactical actions; zero excludes them.
         ["WAIT_AIPass_Cohesion", 1], // 0.5-2: above 1 squads take more before morale breaks, below 1 they break sooner.
         ["WAIT_AIPass_ReactionSpeed", 1], // 0.5-2: above 1 squads re-assess more often (more server time), below 1 less often.
-        ["WAIT_AIPass_InfantryOwnership", "SPLIT"], // STRING: SPLIT (shared ownership with finite movement handover) or WAIT (addon group control). Independent weapon policies remain active.
         ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to an external civilian controller.
         ["WAIT_AIPass_CivilianReaction_Radius", 45], // METRES: nearby gunfire trigger range.
         ["WAIT_AIPass_CivilianReaction_Distance", 180], // METRES: approximate finite escape leg.

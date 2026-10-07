@@ -49,10 +49,9 @@
  * logic instead of flanking or retreating. Soldiers left holding ground by a drill rejoin when the
  * leader comes within 30 m. Reinforcement rallies are optional fallback positions; an acknowledged
  * responder with a safe shared-contact approach may enter a coordinated assault immediately.
- * With an external danger controller loaded and WAIT_AIPass_InfantryOwnership "SPLIT", that controller keeps in-contact unit tactics
- * (flanking, assault, advance, fire control, stance, anti-armour, vehicles, contact sharing) for groups
- * it manages; WAIT keeps the ladder, investigation, post-contact, morale, reinforcement, coordinated
- * assault, ammo sharing and artillery.
+ * WAIT's configured engine danger FSM owns immediate unit reactions. This group brain owns bounded
+ * tactics and expensive planning through the shared scheduler; it does not wait on another danger
+ * controller or start a second movement worker.
  * Zeus always wins: a group Zeus is commanding is ineligible (WAIT_fnc_CortexZeusHeld), so it is
  * released, including WAIT garrison, defence and clear orders. Stance cleanup preserves a later
  * different externally assigned posture instead of unconditionally resetting it.
@@ -285,13 +284,10 @@ private _visible = _enemies select {(_x select 2) <= 10};
 private _garrisoned = (_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo [];
 private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo [];
 private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
-private _dangerCombat = (missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded", false])
-    && {toUpperANSI (["WAIT_AIPass_InfantryOwnership", "SPLIT"] call _get) == "SPLIT"}
-    && {!([_group,"dangerDisabled",false] call WAIT_fnc_CompatibilityState)};
 // Passenger squads can hear their own vehicle crew without acquiring exact target knowledge.
 // Run this lightweight own-vehicle check at every distance tier: the far cadence is already
 // bounded, and suppressing it outside FarRange made separate passenger squads unable to react.
-if (!_ordered && {!_dangerCombat} && {_visible isEqualTo []}
+if (!_ordered && {_visible isEqualTo []}
     && {(_state getOrDefault ["phase",""]) in ["CALM","CONTACT"]}) then {
     [_group,_state] call WAIT_fnc_CortexOnboardContact;
 };
@@ -375,7 +371,7 @@ if (_holders isNotEqualTo [] && {!(_state getOrDefault ["assaulting",false])}) t
 
 // A reported coordinated objective permits safe covering fire before personal contact.
 // Use the existing group tick; CONTACT already invokes this pass below.
-if (_tacticalTier && {!_dangerCombat} && {(_state getOrDefault ["phase",""]) != "CONTACT"}
+if (_tacticalTier && {(_state getOrDefault ["phase",""]) != "CONTACT"}
     && {_state getOrDefault ["assaulting",false]}) then {
     [_group,_state,_enemies] call WAIT_fnc_CortexFireControl;
 };
@@ -418,14 +414,14 @@ private _beginContact = {
         _group setBehaviour "COMBAT";
         _state set ["behaviourChanged", true];
     };
-    if (_visible isNotEqualTo [] && {_tacticalTier} && {!_dangerCombat}
+    if (_visible isNotEqualTo [] && {_tacticalTier}
         && {["WAIT_AIPass_ContactReports_Enable", true] call _get}) then {
         [_group, _state, _visible] call WAIT_fnc_CortexContactReport;
     };
     // The first fresh contact may occur outside the player-proximity cadence. Publish one bounded
     // combined-arms opportunity here so distant AI can cooperate naturally; ongoing refreshes remain
     // in the near CONTACT tier below and the request cooldown rejects a duplicate in this tick.
-    if (_visible isNotEqualTo [] && {!_dangerCombat}
+    if (_visible isNotEqualTo []
         && {["WAIT_AIPass_ContactReports_Enable",true] call _get}) then {
         [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
     };
@@ -482,7 +478,7 @@ switch (_state get "phase") do {
         if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};
         private _area = _group getVariable ["WAIT_AIPass_AreaReport",[]];
         if (_area isNotEqualTo [] && {serverTime >= (_area select 2)}) then {_group setVariable ["WAIT_AIPass_AreaReport",nil,true]; _area = []};
-        if (!_ordered && {!_groupMovementOwned} && {!_dangerCombat} && {!(_state getOrDefault ["responding",false])} && {_enemies isEqualTo []} && {_area isNotEqualTo []}
+        if (!_ordered && {!_groupMovementOwned} && {!(_state getOrDefault ["responding",false])} && {_enemies isEqualTo []} && {_area isNotEqualTo []}
             && {["WAIT_AIPass_Investigate_Enable",true] call _get} && {!([_state,"investigate"] call WAIT_fnc_CortexCooldown)}
             && {leader _group distance2D (_area select 0) <= (["WAIT_AIPass_Investigate_Range",300] call _get)}
             && {[_group, ["WAIT_AIPass_ContactReports_Enable","WAIT_AIPass_Hearing_Enable"] select ((_area select 3) == "SOUND"),true] call WAIT_fnc_CortexFeatureEnabled}) then {
@@ -609,22 +605,20 @@ switch (_state get "phase") do {
                     _x selectWeapon (primaryWeapon _x);
                 };
             } forEach _alive;
-            if (!_dangerCombat) then {
-                if (["WAIT_AIPass_FireControl_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexFireControl};
-                if (["WAIT_AIPass_Stance_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexStance};
-                if (["WAIT_AIPass_AntiArmour_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
-                if (["WAIT_AIPass_Vehicles_Enable", true] call _get) then {
-                    _vehicleOwnsMovement = [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
-                };
-                if ((["WAIT_AIPass_ContactReports_Enable", true] call _get) && {_now - (_state getOrDefault ["lastReport", -1e6]) >= 20}) then {
-                    [_group, _state, _visible] call WAIT_fnc_CortexContactReport;
-                };
-                // A fresh observed contact is also a short-lived combined-arms opportunity. This
-                // only shares the target with a bounded number of independently capable assets;
-                // it creates no rally, readiness barrier or replacement infantry movement order.
-                if (["WAIT_AIPass_ContactReports_Enable",true] call _get) then {
-                    [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
-                };
+            if (["WAIT_AIPass_FireControl_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexFireControl};
+            if (["WAIT_AIPass_Stance_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexStance};
+            if (["WAIT_AIPass_AntiArmour_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
+            if (["WAIT_AIPass_Vehicles_Enable", true] call _get) then {
+                _vehicleOwnsMovement = [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
+            };
+            if ((["WAIT_AIPass_ContactReports_Enable", true] call _get) && {_now - (_state getOrDefault ["lastReport", -1e6]) >= 20}) then {
+                [_group, _state, _visible] call WAIT_fnc_CortexContactReport;
+            };
+            // A fresh observed contact is also a short-lived combined-arms opportunity. This
+            // only shares the target with a bounded number of independently capable assets;
+            // it creates no rally, readiness barrier or replacement infantry movement order.
+            if (["WAIT_AIPass_ContactReports_Enable",true] call _get) then {
+                [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
             };
             if (["WAIT_AIPass_Artillery_Enable", false] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexArtilleryRequest};
             if (!_ordered && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
@@ -636,7 +630,7 @@ switch (_state get "phase") do {
             if (!_ordered && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
                 _coordinatedOwnsMovement = [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
             };
-            if (!_ordered && {!_coordinatedOwnsMovement} && {!_dangerCombat}) then {
+            if (!_ordered && {!_coordinatedOwnsMovement}) then {
                 [_group, _state, _enemies,
                     ["WAIT_AIPass_Flank_Enable", true] call _get,
                     ["WAIT_AIPass_Advance_Enable", true] call _get

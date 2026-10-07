@@ -19,7 +19,7 @@ movement controller. An original danger replacement must pass acceptance before 
 | Subsystem | Existing implementation retained | Runtime mechanism |
 | --- | --- | --- |
 | Skills and visibility | Profiles, ambient light, equipment heuristics, operator/cargo distinction and dispersion | Local creation/locality events plus bounded refresh |
-| Infantry | Contact, cover, fire control, advance, flank, assault, withdrawal, morale, surrender and recovery | Shared budgeted scheduler, finite drill FSM and sparse danger events |
+| Infantry | Contact, cover, fire control, advance, flank, assault, withdrawal, morale, surrender and recovery | Engine danger intake, shared budgeted scheduler and finite group-operation FSMs |
 | Buildings | Garrison, clearance, casualty replacement and task handover | Owner-local building tasks with ownership checks; traversal remains subject to live acceptance |
 | Coordination | Contact communication, support by fire, multi-squad and combined-arms responder roles | Server decisions and expiring owner-local operations |
 | Vehicles | Convoy, passengers, gunnery, obstruction and non-teleport recovery | Native commands with bounded progress jobs and seat ownership |
@@ -105,17 +105,21 @@ median/p95 frame-time acceptance remains required.
 
 Active manoeuvre FSMs check cached Zeus-order markers and addon activation before their scheduled step is due. A newer Zeus marker releases the matching operation immediately and cancels its queued callback. Cleanup checks the group owner, epoch and drill token, so a stale FSM cannot release a newer manoeuvre. Zeus cleanup restores owned overrides without issuing formation-return or replacement movement. Shutdown also releases the matching drill. No geometry or group scan runs in FSM conditions.
 
-This is an interruption improvement to the finite manoeuvre FSM, not a replacement danger brain. Native danger behaviour remains active. WAIT's event-driven danger assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
+The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
 ## Danger assessment
 
 `WAIT_AIPass_Danger_Enable` is a server-enforced, live CBA option under Infantry / Contact, default true.
-It installs Hit, Explosion, Suppressed and FiredNear observers on up to twelve eligible local AI group members,
-prioritising the leader, plus one owner-local EnemyDetected observer for engine-confirmed hostile contact. The
-contact observer accepts only information already known to the current group leader, records the observer position
-rather than the target identity or position, and is removed on loss of ownership or shutdown. Membership changes reinstall
-observers without cancelling the group's active finite response.
-Five cause classes are coalesced in a queue capped at sixteen records. Events expire after two seconds;
+Arma loads WAIT's bounded danger FSM for the three soldier base classes. The engine supplies immediate cause,
+position, expiry, source and queued records; WAIT maps those into detected enemy, gunfire, hit, explosion,
+suppression, casualty and scream observations. One owner-local EnemyDetected observer separately retains only
+engine-confirmed contact identity already known by a living local group member. It is removed on loss of ownership
+or shutdown and never reveals or assigns a target.
+The engine FSM explicitly branches through forced-command, vehicle, immediate, hide, engage and assess states.
+Immediate and hide states may apply only weak stance suggestions; they never issue a destination, target or firing
+command. Forced commands, player/Zeus control, external specialist ownership, disabled movement and CARELESS
+behaviour terminate or bypass WAIT action. This keeps the engine response finite while the group brain owns tactics.
+Cause records are consumed twelve at a time by the engine FSM, then coalesced in a group queue capped at sixteen records. Events expire after two seconds;
 Repeated callbacks of the same cause are throttled to 0.25 seconds before any squad eligibility scan;
 assessment selects the highest urgency without sorting and breaks equal-priority ties by observation time.
 Gunfire records the observer position rather than an unseen attacker. The queue never supplies a target
@@ -129,8 +133,8 @@ While the finite response is live, its already-scheduled group decision receives
 outside normal player-distance range. It still reads only native engine knowledge, and does not add a worker,
 scan or route owner. The existing job is also exempt from the low-FPS cadence backoff for that response lease;
 optional work remains backoff-limited. Expensive knowledge, geometry and tactical decisions retain the shared scheduler budget and normal
-participation gates. Native danger behaviour remains installed: this is not an engine danger-FSM replacement
-or proof that reaction and CQB behaviours work.
+participation gates. The configured engine danger FSM replaces the base soldier danger slot while WAIT is loaded;
+physical acceptance is still required before this proves useful reaction or CQB behaviour.
 
 Owner epochs and FSM generations prevent old callbacks from acting after transfer or restart. Zeus
 hold-token changes, replacement waypoints and active external-controller ownership terminate the FSM and

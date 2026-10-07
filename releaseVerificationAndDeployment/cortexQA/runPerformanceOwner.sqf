@@ -136,4 +136,3 @@ WAIT_CortexQA_PerformanceStartGroup = {
     _group setCurrentWaypoint _waypoint;
     _group setVariable ["WAIT_CortexQA_PerformanceStarted",true,true];
 };
-

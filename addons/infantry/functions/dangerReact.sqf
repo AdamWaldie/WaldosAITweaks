@@ -39,7 +39,7 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
         "RESTORED"
     } else {"ASSESS"}
 };
-if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]) exitWith {"IGNORED"};
+if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE","CASUALTY","SCREAM"]) exitWith {"IGNORED"};
 if (_yieldToOwner) exitWith {"IGNORED"};
 // The immediate FSM response is deliberately posture-only. Movement, target assignment and route
 // ownership stay with native AI or the already-running WAIT operation. This makes the classifier
@@ -51,7 +51,7 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 // callback can outlive operation cleanup, so reclassify that orphaned label instead of treating it
 // as evidence of movement ownership.
 if (_action == "MAINTAIN" && {count _operation == 0}) then {
-    _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED"]);
+    _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED","CASUALTY","SCREAM"]);
 };
 private _leaseIntact=count _lease == 5 && {time < (_lease select 4)}
     && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
@@ -75,7 +75,7 @@ if (_priorCombat == "BLUE" || {_engaging && {_priorCombat != "RED"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];
 private _until=(time + (_responseDurations getOrDefault [_cause,1])) max (_lease param [4,-1]);
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until],true];
 "POSTURE"

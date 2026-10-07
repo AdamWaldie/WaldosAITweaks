@@ -26,5 +26,5 @@ if (isNull _actor) then {_actor=leader _group};
 if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
 if (vehicle _actor != _actor) exitWith {"VEHICLE"};
 private _cause=_event select 0;
-if (_cause in ["HIT","EXPLOSION","SUPPRESSED"]) exitWith {"HIDE"};
+if (_cause in ["HIT","EXPLOSION","SUPPRESSED","SCREAM","CASUALTY"]) exitWith {"HIDE"};
 "ENGAGE"

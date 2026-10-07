@@ -72,7 +72,7 @@ if (_baselineTarget isNotEqualTo []) then {doStop _baseline; _baseline doMove _b
 [createHashMapFromArray [["WAIT_AIPass_Enable",false]]] call WAIT_fnc_CortexTuning;
 sleep 2;
 ["ORD-01-disabled-explanation",([_group,"DEFEND"] call WAIT_fnc_CortexOrderReason) find "disabled" >= 0] call _check;
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
 private _order = {params ["_action",["_position",[6000,6010,0]],["_building",objNull]]; [[["order",_action],["group",_group],["position",_position],["building",_building],["radius",40],["facing",90]],2] call WAIT_fnc_CortexOrderDispatch; sleep 2};
 ["DEFEND"] call _order;
@@ -100,17 +100,10 @@ private _atHouse={
         !alive _unit || {_housePositions findIf {_unit distance _x <= 2.5} < 0}
     } < 0}
 };
-private _buildingBackend=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-private _dangerBuilding=["buildingBackend"] call WAIT_fnc_CompatibilityAvailable;
-private _garrisonAccepted=if (_dangerBuilding) then {
-    (_buildingBackend param [0,""]) == "COMPAT" && {(_buildingBackend param [1,""]) == "GARRISON"}
-} else {
-    (_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []
-        && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} >= 0}
-};
-["ORD-04-garrison-accepted",_garrisonAccepted,str _buildingBackend] call _check;
-["Garrison movement",(["COMPAT is absent, so the public Zeus order must use the native Cortex fallback.","Installed COMPAT Waypoints must own the public Zeus order."] select _dangerBuilding)
-    + " Both soldiers must physically enter and hold real building positions; backend selection or an assignment alone does not pass.",getPosATL _house] call _phase;
+private _garrisonAccepted=(_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []
+    && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} >= 0};
+["ORD-04-garrison-accepted",_garrisonAccepted] call _check;
+["Garrison movement","The public Zeus order must use WAIT's garrison operation. Both soldiers must physically enter and hold real building positions; an accepted assignment alone does not pass.",getPosATL _house] call _phase;
 ["ORD-04b-garrison-arrival",[{call _atHouse},95] call _wait,str (units _group apply {[getPosATL _x,currentCommand _x,expectedDestination _x]})] call _check;
 sleep 5;
 ["ORD-04c-garrison-hold",call _atHouse,str (units _group apply {getPosATL _x})] call _check;
@@ -132,8 +125,7 @@ if (local _baseline && {_baselineTarget isNotEqualTo []}) then {doStop _baseline
 ["EXCLUDE"] call _order;
 ["ORD-05-hand-back",_group getVariable ["WAIT_AIPass_Exclude",false]
     && {(_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo []}
-    && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []}
-    && {(_group getVariable ["WAIT_Cortex_BuildingBackend",[]]) isEqualTo []}] call _check;
+    && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []}] call _check;
 ["RETURN"] call _order;
 ["ORD-06-return",!(_group getVariable ["WAIT_AIPass_Exclude",false])] call _check;
 [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQABuildings.sqf";
@@ -381,7 +373,7 @@ private _retainServerGun={
 };
 private _spotter=_spotterGroup createUnit ["O_Soldier_F",[7100,6000,0],[],0,"NONE"];
 _spotter allowDamage false;
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true]]] call WAIT_fnc_CortexTuning;
 _gun = createVehicle ["O_Mortar_01_F",[6500,6000,0],[],0,"NONE"]; createVehicleCrew _gun;
 [_gun] call _retainServerGun;
 _gun setVariable ["WAIT_CortexQA_Shots",0];
@@ -487,7 +479,7 @@ if (_focus in ["all","features","artillerysmoke"]) then {[_check,_phase,_wait] c
 if (_focus in ["all","features","crossing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACrossing.sqf"};
 if (_focus in ["all","features","contact"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
 if (_focus == "buildings") then {
-    [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
+    [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
     [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
     [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQABuildings.sqf";
 };
@@ -560,4 +552,3 @@ private _diagnosticsAgain=[] call WAIT_fnc_AIGetDiagnostics;
 missionNamespace setVariable ["WAIT_CortexQA_ServerDone",true,true];
 missionNamespace setVariable ["WAIT_CortexQA_ServerFailures",_failures,true];
 diag_log format ["WAIT CORTEX QA SERVER COMPLETE: %1 finding(s) %2",count _failures,_failures];
-

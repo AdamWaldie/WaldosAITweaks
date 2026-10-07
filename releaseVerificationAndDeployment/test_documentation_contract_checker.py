@@ -110,6 +110,6 @@ class DocumentationContractTests(unittest.TestCase):
         controls={row[0]:row[-1] for row in parity.settings()}
         self.assertEqual(controls['WAIT_AIPass_TickBudgetMs'],'LIVE')
         self.assertEqual(controls['WAIT_AIPass_Morale_RetreatDistance'],'NEXT_OPERATION')
-        self.assertEqual(controls['WAIT_AIPass_InfantryOwnership'],'NEXT_OPERATION')
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership',controls)
 
 if __name__=='__main__': unittest.main()
