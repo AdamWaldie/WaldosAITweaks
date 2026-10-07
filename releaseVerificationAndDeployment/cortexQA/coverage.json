@@ -371,7 +371,7 @@
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.",
+      "automation": "runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. The production group step may issue one bounded cover move only to an idle actor with no native command, active WAIT operation, Zeus hold or specialist owner; exact-generation cleanup now runs during ordinary and external handover. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Physical idle-cover travel, disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.",
       "executable_sources": [
         "runContact.sqf",
         "runCombat.sqf",
@@ -386,6 +386,7 @@
         "addons/infantry/functions/dangerEngineMode.sqf",
         "addons/infantry/functions/dangerEngineSelect.sqf",
         "addons/infantry/functions/dangerEngineSubmit.sqf",
+        "addons/infantry/functions/dangerCoverStep.sqf",
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",

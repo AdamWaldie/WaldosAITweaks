@@ -18,7 +18,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | DECEL - Helicopter braking | 14 | 1 | 3 | `runDeceleration.sqf` | 0 | implemented_partial |
 | REGROUP - Survivor regroup | 9 | 0 | 2 | `runMechanics.sqf` | 0 | implemented_partial |
 | MEDICAL - Finite squad medical assistance | 4 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
-| CONTACT - Contact detection | 3 | 0 | 13 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
+| CONTACT - Contact detection | 3 | 0 | 14 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf` | 0 | implemented_partial |
 | POST - Post-contact search | 5 | 0 | 0 | `runMechanics.sqf`, `runContact.sqf` | 0 | implemented_partial |
 | FLANK - Flanking bounds | 8 | 0 | 4 | `runCombat.sqf` | 3 | implemented_partial |
 | CROSS - Road crossing | 1 | 0 | 1 | `runCrossing.sqf` | 0 | implemented_partial |
@@ -162,7 +162,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable.
 
-**Automation and open work:** runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.
+**Automation and open work:** runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier. It requires native engine-FSM submission, an observed physical crouch/prone reflex, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. The production group step may issue one bounded cover move only to an idle actor with no native command, active WAIT operation, Zeus hold or specialist owner; exact-generation cleanup now runs during ordinary and external handover. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Physical idle-cover travel, disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.
 
 ### POST - Post-contact search
 

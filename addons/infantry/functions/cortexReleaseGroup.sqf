@@ -16,6 +16,8 @@
  * restored; repeated cleanup is harmless and never boards passengers.
  * Public remount intent is cancelled even when owner migration left no local behaviour map.
  * A public actor marker likewise releases only PATH restrictions proven to belong to Cortex.
+ * A finite danger-cover move is retired by its exact actor and generation before external control
+ * is restored, so an already-issued reflex cannot survive a Zeus or specialist takeover.
  * A crew owner restores a forced speed borrowed for an onboard dismount safe stop only while the
  * exact zero-speed lease remains current and no newer controller owns the group. The crew also
  * retracts its targetless onboard danger report so another passenger owner cannot consume stale work.
@@ -85,6 +87,10 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
+    private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
+    if (count _dangerCoverLease >= 2) then {
+        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;
+    };
     private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;

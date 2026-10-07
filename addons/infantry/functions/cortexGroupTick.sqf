@@ -205,6 +205,23 @@ if (count _dangerResponse == 5) then {
 } else {
     _state deleteAt "dangerResponse";
 };
+// The engine FSM owns the immediate posture. This already-budgeted group step may additionally
+// move one idle exposed actor into nearby physical cover. The helper refuses every active operation,
+// native command and external owner, so contact reaction cannot interrupt a committed route.
+private _dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _dangerCoverActor) then {_dangerCoverActor=_leader};
+private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
+private _dangerActionName=if (count _dangerAction == 5
+    && {(_dangerAction select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerAction select 3)}) then {_dangerAction select 0} else {""};
+if (_dangerActive && {_dangerActionName == "HIDE"}) then {
+    [_group,_dangerCoverActor,_dangerResponse select 1,_dangerResponse select 4] call WAIT_fnc_DangerCoverStep;
+} else {
+    private _coverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
+    if (count _coverLease >= 2) then {
+        [_group,_coverLease select 0,[],_coverLease select 1] call WAIT_fnc_DangerCoverStep;
+    };
+};
 [_group,_state] call WAIT_fnc_CortexSupportMaintain;
 // The drill controller is a separate scheduled job. If it is lost or starved, leaving the
 // drill HashMap in place blocks replacement tactics and can leave Cortex-owned PATH,
