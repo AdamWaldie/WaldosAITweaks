@@ -300,24 +300,32 @@ private _remount = _group getVariable ["WAIT_Cortex_Remount",[]];
 if (_remount isNotEqualTo []) then {
     _remount params ["_deadline","_passengers"];
     private _pending = _passengers select {alive (_x select 0) && {group (_x select 0) == _group} && {alive (_x select 1)} && {vehicle (_x select 0) != (_x select 1)} && {isNull assignedVehicle (_x select 0) || {assignedVehicle (_x select 0) == (_x select 1)}}};
-    private _cancel = _visible isNotEqualTo [] || {_ordered}
+    private _cancel = _visible isNotEqualTo [] || {_dangerActive} || {_ordered}
+        || {!([] call _mayIssueMovement)}
         || {!(["WAIT_AIPass_Vehicles_Enable",true] call _get)}
         || {!(["WAIT_AIPass_VehicleRemount_Enable",true] call _get)};
     if (_cancel || {serverTime >= _deadline} || {_pending isEqualTo []}) then {
-        if (_visible isNotEqualTo []) then {_state set ["dismounted",+_pending]};
+        // A danger response can exist before native knowledge produces a visible enemy. Preserve
+        // the still-dismounted passengers and cancel boarding now so the same tick can enter its
+        // combat response without losing task ownership or issuing another GET IN command.
+        if (_visible isNotEqualTo [] || {_dangerActive}) then {_state set ["dismounted",+_pending]};
         {
             private _unit=_x select 0;
-            if (local _unit && {vehicle _unit == _unit} && {assignedVehicle _unit == (_x select 1)}) then {[_unit] orderGetIn false; unassignVehicle _unit};
+            if ([] call _mayIssueMovement && {local _unit} && {vehicle _unit == _unit}
+                && {assignedVehicle _unit == (_x select 1)}) then {
+                [_unit] orderGetIn false;
+                unassignVehicle _unit;
+            };
         } forEach _pending;
         if (!_cancel && {_pending isNotEqualTo []}) then {diag_log format ["[WAIT] Remount incomplete group=%1 passengers=%2",_group,_pending]};
         _group setVariable ["WAIT_Cortex_Remount",nil,true];
     } else {
         {
             _x params ["_unit","_vehicle"];
-            if ([_unit,_vehicle,true] call WAIT_fnc_CortexPassengerReady) then {
+            if ([] call _mayIssueMovement && {[_unit,_vehicle,true] call WAIT_fnc_CortexPassengerReady}) then {
                 // Preserve an in-progress boarding path; retry only a missing/interrupted order.
                 if (assignedVehicle _unit != _vehicle) then {_unit assignAsCargo _vehicle};
-                if (toUpperANSI (currentCommand _unit) != "GET IN") then {[_unit] orderGetIn true};
+                if ([] call _mayIssueMovement && {toUpperANSI (currentCommand _unit) != "GET IN"}) then {[_unit] orderGetIn true};
             };
         } forEach _pending;
     };

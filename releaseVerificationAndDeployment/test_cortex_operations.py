@@ -913,7 +913,17 @@ class CortexOperations(unittest.TestCase):
     def test_remount_retry_preserves_active_boarding_command(self):
         text=source('cortexGroupTick')
         self.assertIn('if (assignedVehicle _unit != _vehicle) then {_unit assignAsCargo _vehicle}',text)
-        self.assertIn('if (toUpperANSI (currentCommand _unit) != "GET IN") then {[_unit] orderGetIn true}',text)
+        self.assertIn('if ([] call _mayIssueMovement && {toUpperANSI (currentCommand _unit) != "GET IN"}) then {[_unit] orderGetIn true}',text)
+
+    def test_remount_yields_to_live_danger_and_command_ownership(self):
+        text=source('cortexGroupTick')
+        remount=text.split('private _remount = _group getVariable ["WAIT_Cortex_Remount",[]];',1)[1].split('private _contactDelay',1)[0]
+        self.assertIn('_visible isNotEqualTo [] || {_dangerActive} || {_ordered}',remount)
+        self.assertIn('if (_visible isNotEqualTo [] || {_dangerActive}) then {_state set ["dismounted",+_pending]};',remount)
+        self.assertIn('|| {!([] call _mayIssueMovement)}',remount)
+        for command in ['[_unit] orderGetIn false','unassignVehicle _unit','_unit assignAsCargo _vehicle','[_unit] orderGetIn true']:
+            self.assertIn(command,remount)
+            self.assertIn('_mayIssueMovement',remount[max(0,remount.index(command)-500):remount.index(command)])
 
     def test_replacement_boarding_audit_requires_owned_exit_and_physical_arrival(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
@@ -3611,8 +3621,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[serverTime+60,+_boarding]',restore)
         self.assertIn('serverTime >= _deadline',tick)
         self.assertIn('vehicle (_x select 0) != (_x select 1)',tick)
-        self.assertIn('_visible isNotEqualTo [] || {_ordered}',tick)
-        self.assertIn('orderGetIn false; unassignVehicle _unit',tick)
+        self.assertIn('_visible isNotEqualTo [] || {_dangerActive} || {_ordered}',tick)
+        self.assertIn('[_unit] orderGetIn false;',tick)
+        self.assertIn('unassignVehicle _unit;',tick)
         self.assertNotIn('moveInCargo',tick)
 
     def test_recovery_halts_preserve_passengers_and_validate_vehicle(self):
