@@ -425,7 +425,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
             if (_now >= _startAt) then {
                 private _route=_pairRoutes select _pairIndex;
                 while {_cursor < count _route && {(_route select _cursor) in (_cleared+_unreachable)}} do {_cursor=_cursor+1};
-                // Claim the nearest room that this pair has not already failed. ClameleeBackend are removed
+                // Claim the nearest room that this pair has not already failed. Claims are removed
                 // from the shared queue immediately, preventing several pairs from crowding one node.
                 if (_cursor >= count _route) then {
                     private _pending=_job get "pending";
@@ -498,8 +498,8 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                                 _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
                                 _unit setUnitPos "UP";
                                 private _clearSpeed=[4.5,5] select (combatMode _group in ["YELLOW","RED"]);
-                            _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed];
-                            _unit forceSpeed _clearSpeed;
+                                _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed];
+                                _unit forceSpeed _clearSpeed;
                                 _started pushBack _unit;
                             };
                             private _unitTarget=if (_unit == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
@@ -509,11 +509,18 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["CLEAR",count _cleared,count _unr
                         _assigned set [(_job get "team") find _unit,[_positionIndex,_lastProgress,getPosATL _unit,_retries,_approachingEntry]];
                     } forEach _pair;
                     if (_issue) then {_lastTarget=_positionIndex; _lastProgress=_now; _lastPositions=_pair apply {getPosATL _x}};
-                    private _moved=false;
-                    {
-                        private _old=_lastPositions param [_forEachIndex,getPosATL _x];
-                        if (_x distance2D _old >= 1) then {_moved=true};
-                    } forEach _pair;
+                    // Once inside, only the assigned room mover proves progress toward this room.
+                    // The security partner is expected to adjust cover and follow the previous room;
+                    // counting that movement hid doorway stalls and prevented recovery indefinitely.
+                    private _moverSlot=_moverIndex mod count _pair;
+                    private _moverPrevious=_lastPositions param [_moverSlot,getPosATL _point];
+                    private _moved=_point distance2D _moverPrevious >= 1;
+                    if (_approachingEntry && {!_moved}) then {
+                        _moved=_pair findIf {
+                            private _old=_lastPositions param [_forEachIndex,getPosATL _x];
+                            _x distance2D _old >= 1
+                        } >= 0;
+                    };
                     if (_moved) then {
                         _lastPositions=_pair apply {getPosATL _x};
                         _lastProgress=_now;
