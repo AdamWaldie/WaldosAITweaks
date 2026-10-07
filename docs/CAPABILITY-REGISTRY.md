@@ -23,7 +23,7 @@ implementation direction, not completed acceptance. Each subsystem retains its f
 | Air defence and countermeasures | Preserve energy, clearance and physical countermeasures | repair | Incoming-threat events and finite responses |
 | Landing and braking | Terrain-aware natural approach and safe go-around | retain | One flight correction owner |
 | Artillery | Observed-target support, lethal-only initial warning and battery survival | retain | Authoritative requests and finite burst jobs |
-| Medical assistance | Maintain squad effectiveness through local treatment | repair | One local vanilla medic receives a finite physical treatment task only during CALM or SECURITY. WAIT yields to direct ownership and specialist medical controllers; live acceptance remains pending. |
+| Medical assistance | Maintain squad effectiveness through local treatment | repair | One local vanilla medic receives a finite physical treatment task only during CALM or SECURITY. A live danger response cancels treatment before the same group tick enters combat assessment; WAIT also rechecks direct and specialist ownership at every movement or treatment command. Live acceptance remains pending. |
 | Survivor reinforcement | Replenish manoeuvre elements without unconditional merging | repair | Casualty events and role replacement |
 | Civilian reactions | Physical escape from perceived danger | retain | FiredNear/Hit events and finite escape |
 | Airborne and naval delivery | Deploy embarked infantry safely to useful terrain | repair | Separate finite boat-crew and passenger intent, bound by one durable landing token |

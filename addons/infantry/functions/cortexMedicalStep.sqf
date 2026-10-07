@@ -51,7 +51,15 @@ private _mayIssueMedical = {
 };
 
 private _aid=_group getVariable ["WAIT_Cortex_MedicalAid",[]];
+private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
+private _dangerActive=count _dangerResponse == 5
+    && {(_dangerResponse select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerResponse select 3)};
 if (_aid isNotEqualTo []) exitWith {
+    // Medical runs before the normal contact planner in CortexGroupTick. Retire it here when the
+    // danger FSM has produced a live response, then return false so the same group tick can consume
+    // that response instead of waiting for another medical interval.
+    if (_dangerActive) exitWith {["CANCELLED","COMBAT_RESUMED"] call _finish};
     _aid params ["_generation","_medic","_casualty","_startedAt","_lastOrderAt","_bestDistance","_lastProgressAt"];
     if (isNull _medic || {isNull _casualty} || {!alive _medic} || {!alive _casualty}
         || {!local _medic} || {!local _casualty} || {group _medic != _group} || {group _casualty != _group}
@@ -104,6 +112,7 @@ if (_aid isNotEqualTo []) exitWith {
 // Treatment is a security action, not a substitute for a current assault, withdrawal, building task,
 // passenger procedure or direct order. Restrict selection to CALM/SECURITY and only when no finite
 // WAIT operation already owns the group.
+if (_dangerActive) exitWith {false};
 if !(_phase in ["CALM","SECURITY"]) exitWith {false};
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0
     || {_group getVariable ["WAIT_AIPass_ClearBuilding",false]}
