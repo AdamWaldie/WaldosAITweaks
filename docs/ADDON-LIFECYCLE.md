@@ -119,6 +119,9 @@ The engine FSM explicitly branches through forced-command, vehicle, immediate, h
 Immediate and hide states may apply only weak stance suggestions; they never issue a destination, target or firing
 command. Forced commands, player/Zeus control, external specialist ownership, disabled movement and CARELESS
 behaviour terminate or bypass WAIT action. This keeps the engine response finite while the group brain owns tactics.
+An eligible first engine event starts that same generation-owned group brain immediately when the periodic discovery
+sweep has not reached the group yet. It does not create a second worker. Diagnostics count these first-contact
+bootstraps, accepted records and finite response modes without publishing target identity.
 Cause records are consumed twelve at a time by the engine FSM, then coalesced in a group queue capped at sixteen records. Events expire after two seconds;
 Repeated callbacks of the same cause are throttled to 0.25 seconds before any squad eligibility scan;
 assessment selects the highest urgency without sorting and breaks equal-priority ties by observation time.

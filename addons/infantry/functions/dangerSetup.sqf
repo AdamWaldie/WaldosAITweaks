@@ -45,9 +45,11 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_Generation",(_group getVariable ["WAIT_Danger_Generation",0])+1];
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_EventCadence",nil];
+    _group setVariable ["WAIT_Danger_EngineStats",nil];
     _group setVariable ["WAIT_Danger_ObservedContacts",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    {_x setVariable ["WAIT_Danger_EngineResponse",nil]} forEach units _group;
 };
 if (_groupHandlers isNotEqualTo []) exitWith {};
 

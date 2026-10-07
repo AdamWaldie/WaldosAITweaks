@@ -3,8 +3,10 @@
  * Purpose: Convert one bounded engine danger queue into WAIT group danger observations.
  * Locality / Authority: Runs unscheduled on the machine local to the affected AI soldier. It records
  * causes and approximate positions only; it never reveals, targets, moves or changes the actor.
- * Repeat/JIP: Safe to repeat. DangerRequest coalesces each cause and generation on the current group
- * owner. A locality change ends the old engine FSM and fresh engine danger starts on the new owner.
+ * Repeat/JIP: Safe to repeat. A valid first observation may bootstrap the group's single tactical
+ * brain before the periodic discovery sweep reaches it. DangerRequest then coalesces each cause and
+ * generation on the current group owner. A locality change ends the old engine FSM and fresh engine
+ * danger starts on the new owner.
  * Arguments: 0: affected soldier <OBJECT>, objNull; 1: engine records <ARRAY>, each
  * [cause number, ATL/ASL position, expiry number, source object], [].
  * Return Value: Boolean - true when at least one record was accepted by WAIT.
@@ -18,9 +20,18 @@ private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ['WAIT_AIPass_Active',false])}
     || {!([_group,'WAIT_AIPass_Danger_Enable',true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!(_group getVariable ['WAIT_AIPass_Managed',false])}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
+
+// Engine danger may arrive before the deliberately sparse discovery sweep. Do not discard the
+// first contact while waiting up to one discovery interval. Eligibility remains the common safety
+// boundary, and GroupBrainStart creates the same one-generation brain discovery would create.
+private _bootstrapped=false;
+if !(_group getVariable ['WAIT_AIPass_Managed',false]) then {
+    if !([_group,false,true] call WAIT_fnc_CortexIsEligible) exitWith {};
+    _bootstrapped=[_group,true] call WAIT_fnc_GroupBrainStart;
+};
+if !(_group getVariable ['WAIT_AIPass_Managed',false]) exitWith {false};
 
 private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED'];
 private _latest=createHashMap;
@@ -37,12 +48,25 @@ private _latest=createHashMap;
 } forEach (_records select [0,12]);
 
 private _accepted=false;
+private _acceptedCauses=[];
 {
-    if ([_actor,_x,_latest get _x] call WAIT_fnc_DangerRequest) then {_accepted=true};
+    if ([_actor,_x,_latest get _x] call WAIT_fnc_DangerRequest) then {
+        _accepted=true;
+        _acceptedCauses pushBack _x;
+    };
 } forEach (keys _latest);
 if (_accepted) then {
     private _count=_group getVariable ['WAIT_Danger_EngineEvents',0];
     _group setVariable ['WAIT_Danger_EngineEvents',(_count + 1) min 100000];
     _group setVariable ['WAIT_Danger_EngineLastAt',time];
+    private _stats=_group getVariable ['WAIT_Danger_EngineStats',createHashMap];
+    _stats set ['submissions',((_stats getOrDefault ['submissions',0])+1) min 100000];
+    _stats set ['acceptedRecords',((_stats getOrDefault ['acceptedRecords',0])+count _acceptedCauses) min 100000];
+    _stats set ['lastCauses',+_acceptedCauses];
+    _stats set ['lastAt',time];
+    if (_bootstrapped) then {
+        _stats set ['bootstraps',((_stats getOrDefault ['bootstraps',0])+1) min 100000];
+    };
+    _group setVariable ['WAIT_Danger_EngineStats',_stats];
 };
 _accepted

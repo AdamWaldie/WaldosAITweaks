@@ -62,8 +62,10 @@ stateDiagram-v2
 ```
 
 A bounded owner-local engine danger FSM records immediate observations and
-wakes a shared decision job. It terminates after draining its short engine queue
-and does not add a per-unit permanent movement loop or movement owner.
+wakes the group's single shared decision job. A valid first event can start that
+brain immediately instead of waiting for the periodic discovery sweep. The FSM
+terminates after draining its short engine queue and does not add a per-unit
+permanent movement loop or movement owner.
 
 ## Infantry actions
 

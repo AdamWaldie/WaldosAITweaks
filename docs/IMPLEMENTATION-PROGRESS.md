@@ -115,6 +115,13 @@ live cause over weaker later events, expires cleanly, and is cleared before Zeus
 consume it. Static/package validation is separate from the still-pending physical reaction, transition and
 performance acceptance.
 
+The engine intake no longer discards first contact while waiting for the discovery interval. An eligible local
+group that receives a native danger cause starts the same single group brain that discovery would create, then
+coalesces the cause through the existing assessment FSM. Forced commands and mounted crews receive no posture or
+movement command. Immediate and hide reactions remain weak native posture suggestions, while diagnostics retain
+bounded counts for first-contact starts, accepted causes and response modes. Static/package validation is required;
+physical first-contact latency, Zeus replacement and headless migration remain pending.
+
 Each live response now also carries a finite action classification: `HIDE` after a hit, explosion or suppression,
 `ENGAGE` after an engine-confirmed contact or nearby gunfire, `VEHICLE` for a mounted leader, and
 `MAINTAIN` for a group that already has a committed operation. `RELEASE` marks an ownership handover.

@@ -150,6 +150,23 @@ private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
 };
 private _dangerEngineEvents=0;
 {_dangerEngineEvents=_dangerEngineEvents+(_x getVariable ["WAIT_Danger_EngineEvents",0])} forEach _groups;
+private _dangerEngineSubmissions=0;
+private _dangerEngineRecords=0;
+private _dangerEngineBootstraps=0;
+private _dangerEngineModes=createHashMap;
+{
+    private _stats=_x getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    _dangerEngineSubmissions=_dangerEngineSubmissions+(_stats getOrDefault ["submissions",0]);
+    _dangerEngineRecords=_dangerEngineRecords+(_stats getOrDefault ["acceptedRecords",0]);
+    _dangerEngineBootstraps=_dangerEngineBootstraps+(_stats getOrDefault ["bootstraps",0]);
+    private _modes=_stats getOrDefault ["modes",createHashMap];
+    {
+        _dangerEngineModes set [_x,(_dangerEngineModes getOrDefault [_x,0])+(_modes getOrDefault [_x,0])];
+    } forEach (keys _modes);
+} forEach _groups;
+private _dangerEngineModeSummary=(keys _dangerEngineModes) apply {
+    format ["%1=%2",_x,_dangerEngineModes getOrDefault [_x,0]]
+};
 // Engine-confirmed contacts are local candidate records, never a public targeting channel. Show
 // only their bounded group/count summary so an operator can diagnose a leader-in-cover contact
 // handoff without exposing target identity or adding background work.
@@ -258,7 +275,7 @@ private _checks = [
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The engine danger FSM drains at most 12 native records per step and maps them into a 16-record expiring group queue; same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Engine submissions=%1; published responses=%2 [action/cause/remaining: %3]; local observed contacts=%4 [group/count: %5]. No target reveal or second movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ","]],
+    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The engine danger FSM drains at most 12 native records per step and maps them into a 16-record expiring group queue; same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Engine events=%1 submissions=%2 acceptedRecords=%3 first-contactBootstraps=%4 modes=[%5]; published responses=%6 [action/cause/remaining: %7]; local observed contacts=%8 [group/count: %9]. Forced orders and vehicle crews receive no posture or movement command. No target reveal or second movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,_dangerEngineSubmissions,_dangerEngineRecords,_dangerEngineBootstraps,_dangerEngineModeSummary joinString ",",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ","]],
     ["ai","cortex-danger-ownership",["ERROR","ACTIVE"] select _dangerFsmOwned,format ["exclusiveEngineFSM=%1 path=%2. WAIT owns immediate danger response and submits expensive group planning to the shared scheduler; another fsmDanger replacement is unsupported.",_dangerFsmOwned,_dangerFsmPath]],
     ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
     ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies terrain-grade safety only while a native waypoint is active; a non-combat vehicle receives at most one route refresh, clear-rear reverse and final route retry. Registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes cap in km/h, grade, owner group, sample age and recovery state. Headless owners retain local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],

@@ -5,7 +5,7 @@ implementation direction, not completed acceptance. Each subsystem retains its f
 
 | Capability | Purpose | Decision | Mechanism |
 | --- | --- | --- | --- |
-| Infantry danger and contact | Immediate observation, threat response and combat handover | repair | Bounded engine danger intake maps native causes into one finite group response, wakes the existing shared decision job and moves CALM into CONTACT without revealing a shooter, fabricating knowledge or owning movement; packaged physical acceptance pending |
+| Infantry danger and contact | Immediate observation, threat response and combat handover | repair | Bounded engine danger intake maps native causes into one finite group response, starts or wakes the single shared decision job on first contact and moves CALM into CONTACT without revealing a shooter, fabricating knowledge or owning movement. Forced commands and mounted crews are observed without posture or movement takeover; packaged physical acceptance pending. |
 | Suppression and fire control | Effective fire without synchronised squads or blocked manoeuvres | repair | Local firing events, fire-lane checks and sparse jobs |
 | Cover and concealment | Useful firing posture and covered avenues of approach | repair | Cached bounded geometry |
 | Pairs, bounds, flank and assault | Continuous physical advance with covering elements | repair | Finite intent, shared scheduler and accumulated per-actor physical progress; packaged acceptance pending |

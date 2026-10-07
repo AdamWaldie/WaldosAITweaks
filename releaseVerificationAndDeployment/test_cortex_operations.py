@@ -253,6 +253,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("'CASUALTY'",engine)
         self.assertIn("'SCREAM'",engine)
         self.assertIn('WAIT_fnc_DangerRequest',engine)
+        self.assertIn("if !(_group getVariable ['WAIT_AIPass_Managed',false]) then {",engine)
+        self.assertIn('[_group,false,true] call WAIT_fnc_CortexIsEligible',engine)
+        self.assertIn('[_group,true] call WAIT_fnc_GroupBrainStart',engine)
+        preflight=engine.split('private _causeNames=',1)[0]
+        self.assertNotIn("|| {!(_group getVariable ['WAIT_AIPass_Managed',false])}",preflight)
+        self.assertIn('WAIT_Danger_EngineStats',engine)
+        self.assertIn("['bootstraps'",engine)
+        self.assertIn('WAIT_Danger_EngineStats',engine_act)
+        self.assertIn('WAIT_Danger_EngineResponse',engine_act)
+        forced_block=engine_act.split('// Forced orders and vehicle crews',1)[1].split('if (_mode == "IMMEDIATE")',1)[0]
+        self.assertNotIn('setUnitPosWeak',forced_block)
         self.assertIn('_records select [0,12]',engine_select)
         self.assertIn('currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:
@@ -267,6 +278,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
         for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Queued','Finished']:
             self.assertIn('class '+state,engine_fsm)
+        self.assertIn('first-contactBootstraps=',diagnostics)
+        self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text()
         self.assertIn('_zeusToken isNotEqualTo',fsm)
         self.assertIn('WAIT_AIPass_Epoch',fsm)
