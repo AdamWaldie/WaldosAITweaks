@@ -2443,7 +2443,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_candidate] call WAIT_fnc_CortexGroupTransmitter',source('cortexSupportServer'))
         self.assertIn('private _groupTransmitter = [_group] call WAIT_fnc_CortexGroupTransmitter;',source('cortexSupportApply'))
         self.assertIn('private _directCoordinationPending = _attack isEqualTo []',source('cortexSupportApply'))
-        self.assertIn('if (!_directCoordinationPending) then {',source('cortexSupportApply'))
+        self.assertIn('if (_okay && {_directCoordinationPending}) exitWith {',source('cortexSupportApply'))
         self.assertIn('private _dispatched=[]',server)
         self.assertIn('_job set ["leases",_dispatched]',server)
         self.assertIn('_helper setVariable ["WAIT_AIPass_SupportLease",nil,true]',server)
@@ -3237,7 +3237,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('["lastStep",time]',code)
             self.assertIn('_state set ["movementLease",["TACTICAL_DRILL",time+90]]',code)
         self.assertIn('(_movementLease select 0) == "TACTICAL_DRILL"',end)
-        self.assertIn('!_movementLeaseActive || {_supportOwnsMovement}',apply)
+        self.assertIn('!_movementLeaseActive || {_supportOwnsMovement} || {_replaceLocalDrill}',apply)
         self.assertIn('_state set ["movementLease",["SUPPORT_RALLY",time+(_expiry-serverTime)]]',apply)
         self.assertIn('_state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]]',apply)
         self.assertIn('case "SUPPORT_RALLY"',maintain)
@@ -5299,6 +5299,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('getSuppression _anchor',apply)
         self.assertIn('WAIT_fnc_CortexGroupTransmitter',apply)
 
+    def test_pending_coordination_acknowledges_without_idling_the_responder(self):
+        apply=source('cortexSupportApply')
+        pending=apply.split('if (_okay && {_directCoordinationPending}) exitWith {',1)[1].split('};',1)[0]
+        self.assertIn('WAIT_fnc_CortexSupportAck',pending)
+        for forbidden in ['WAIT_fnc_CortexOwnershipLease','WAIT_fnc_OperationStart','movementLease','set ["responding"']:
+            self.assertNotIn(forbidden,pending)
+        self.assertLess(apply.index('if (_okay && {_directCoordinationPending}) exitWith {'),apply.index('call WAIT_fnc_CortexOwnershipLease'))
+        self.assertIn('private _replaceLocalDrill = _attackAllowed && {_movementOwner == "TACTICAL_DRILL"}',apply)
+        self.assertIn('[_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd',apply)
+        self.assertLess(apply.index('call WAIT_fnc_CortexFlankEnd'),apply.index('call WAIT_fnc_CortexOwnershipLease'))
     def test_support_reservations_use_the_common_generation_lifecycle(self):
         apply=source('cortexSupportApply')
         maintain=source('cortexSupportMaintain')

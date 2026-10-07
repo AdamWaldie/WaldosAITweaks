@@ -3,11 +3,13 @@
  * Waits for the matching server reservation before issuing a support order on its current owner.
  * Locality/authority: queued only by authenticated SupportLocal; all execution gates are checked again.
  * Repeat/JIP: at most five seconds waiting for ordered state; stale tokens never issue movement.
- * A support update may replace its own lease, but never an active withdrawal, vehicle route,
- * artillery scoot or local tactical drill.
- * When coordinated assault is enabled, accepting a shared contact does not first issue a rally
- * waypoint: the squad keeps its current posture during the short acknowledgement exchange and the
- * server dispatches an avenue from its live position. Rally movement is retained for reinforcement
+ * A support update may replace its own lease. A server-selected coordinated attack route may
+ * replace the exact local tactical drill; it never replaces withdrawal, vehicle or artillery movement.
+ * When coordinated assault is enabled, the first shared-contact delivery acknowledges eligibility
+ * without acquiring movement, compatibility or operation ownership. The squad keeps its native
+ * combat and any local tactical drill while the server selects a safe avenue. Only a returned viable
+ * attack route may release that exact drill and atomically acquire coordinated-assault ownership.
+ * Rally movement is retained for reinforcement
  * when coordinated assault is explicitly disabled. Assault hands a COORDINATED_ASSAULT lease to
  * server-assigned squad roles and owner-local successive fire-team bounds; it does not issue a
  * competing whole-squad waypoint. A nearby squad already in CONTACT or SECURITY may join the same
@@ -68,6 +70,10 @@ private _contactPeer = _phase in ["CONTACT","SECURITY"] && {_sharedCoordinated};
 private _supportEnabled = _sharedReinforce || {_sharedCoordinated};
 private _groupTransmitter = [_group] call WAIT_fnc_CortexGroupTransmitter;
 private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
+private _attackAllowed = _attack isNotEqualTo [] && {_sharedCoordinated};
+private _directCoordinationPending = _attack isEqualTo [] && {_sharedCoordinated};
+private _replaceLocalDrill = _attackAllowed && {_movementOwner == "TACTICAL_DRILL"}
+    && {count (_state getOrDefault ["drill",createHashMap]) > 0};
 // Communication remains tied to a qualified transmitter, but local tactical readiness must survive
 // the formal leader becoming a casualty before the engine elects a replacement.
 private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
@@ -83,13 +89,20 @@ private _okay = missionNamespace getVariable ["WAIT_AIPass_Active",false] && {!(
     && {(_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo []} && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []}
     && {!(_group getVariable ["WAIT_AIPass_ClearBuilding",false])} && {!(_group getVariable ["WAIT_AIPass_RegroupQueued",false])}
     && {_same || {(_phase == "CALM" || {_contactPeer}) && {!(_state getOrDefault ["responding",false])}}}
-    // A support order may update its own rally/assault, but it cannot erase an
-    // infantry withdrawal, vehicle manoeuvre, artillery scoot or local tactical drill.
-    && {!_movementLeaseActive || {_supportOwnsMovement}}
+    // A support order may update its own movement. Only a server-selected attack route may
+    // replace the exact local tactical drill; all other movement owners remain authoritative.
+    && {!_movementLeaseActive || {_supportOwnsMovement} || {_replaceLocalDrill}}
     && {_fit findIf {private _v = vehicle _x; _v isKindOf "Air" || {_v isKindOf "StaticWeapon"} || {getNumber (configOf _v >> "artilleryScanner") == 1}} < 0}
     && {!_needAT || {_footFit findIf {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0}};
-private _attackAllowed = _attack isNotEqualTo [] && {_sharedCoordinated};
-private _directCoordinationPending = _attack isEqualTo [] && {_sharedCoordinated};
+// Eligibility acknowledgement is not an operation and owns no movement. A route-rejected or
+// delayed coordination request therefore cannot make this responder idle.
+if (_okay && {_directCoordinationPending}) exitWith {
+    [_group,_token,true,_lease,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAck",2];
+    -1
+};
+if (_okay && {_replaceLocalDrill}) then {
+    [_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd;
+};
 if (_okay) then {
     _okay = [_group,"SUPPORT",true,_expiry] call WAIT_fnc_CortexOwnershipLease;
 };
@@ -109,10 +122,8 @@ if (_okay && {_adopting || {!_same} || {_attackAllowed && {!(_state getOrDefault
     if (_attackAllowed) then {
         _state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]];
     } else {
-        if (!_directCoordinationPending) then {
-            [_group,_rally,10,"MOVE"] call WAIT_fnc_CortexGroupMove;
-            _state set ["movementLease",["SUPPORT_RALLY",time+(_expiry-serverTime)]];
-        };
+        [_group,_rally,10,"MOVE"] call WAIT_fnc_CortexGroupMove;
+        _state set ["movementLease",["SUPPORT_RALLY",time+(_expiry-serverTime)]];
     };
     _state set ["assaulting",_attackAllowed];
     _state set ["responding",true]; _state set ["respondingTo",_requester];
