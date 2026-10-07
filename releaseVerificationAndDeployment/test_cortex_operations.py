@@ -219,6 +219,7 @@ class CortexOperations(unittest.TestCase):
     def test_danger_observations_preserve_one_tactical_owner(self):
         engine=source('dangerEngineSubmit')
         engine_act=source('dangerEngineAct')
+        engine_release=source('dangerEngineRelease')
         engine_mode=source('dangerEngineMode')
         engine_select=source('dangerEngineSelect')
         engine_fsm=(ROOT/'addons/infantry/fsm/danger.fsm').read_text()
@@ -327,6 +328,12 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(engine.index('private _causeNames='),engine.index('call WAIT_fnc_GroupBrainStart'))
         self.assertIn('WAIT_Danger_EngineStats',engine_act)
         self.assertIn('WAIT_Danger_EngineResponse',engine_act)
+        self.assertIn('WAIT_Danger_EngineStanceLease',engine_act)
+        self.assertIn('WAIT_Danger_EngineStanceLease',engine_release)
+        self.assertIn('toUpperANSI (unitPos _actor) != _applied',engine_release)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',engine_release)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',engine_release)
+        self.assertIn('_actor setUnitPosWeak _prior',engine_release)
         forced_block=engine_act.split('// Forced orders and vehicle crews',1)[1].split('if (_mode == "IMMEDIATE")',1)[0]
         self.assertNotIn('setUnitPosWeak',forced_block)
         self.assertIn('_records select [0,12]',engine_select)
@@ -343,6 +350,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_queue select [0,11]',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
+        self.assertIn('WAIT_fnc_DangerEngineRelease',engine_fsm)
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
         mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]

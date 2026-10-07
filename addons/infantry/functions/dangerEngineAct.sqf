@@ -2,9 +2,9 @@
  * Author: WaldoTheWarfighter
  * Purpose: Apply one bounded immediate danger posture without taking movement, target or firing ownership.
  * Locality / Authority: Runs only for the local AI soldier after ownership and order classification.
- * Repeat/JIP: Uses weak stance suggestions which native AI may replace. It records one expiring,
- * machine-local response sample for diagnostics; group posture restoration remains owned by the
- * finite group danger response. It never creates a movement, target or firing lease.
+ * Repeat/JIP: Uses one machine-local, expiring weak-stance lease. A repeated danger response retains
+ * the original authored stance and refreshes only WAIT's applied value. Native or external stance
+ * changes invalidate the lease and are not overwritten. It never creates a movement, target or firing lease.
  * Arguments: 0: soldier <OBJECT>, objNull; 1: mode <STRING>, ASSESS; 2: selected record <ARRAY>, [].
  * Return Value: Number - short observation deadline in seconds.
  * Current callers: Engine-loaded infantry danger FSM action states.
@@ -21,6 +21,7 @@ private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIAT
 // retaining a strict upper bound and no recurring work.
 private _delay=(_delays getOrDefault [_mode,0.75]) + random 0.25;
 private _cause=_record param [0,-1,[0]];
+private _desiredStance="";
 
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
@@ -28,13 +29,33 @@ private _cause=_record param [0,-1,[0]];
 // replace it immediately.
 if (_mode == "IMMEDIATE") then {
     private _hardCover=(getSuppression _actor > 0.55) || {_cause in [2,4]} || {currentCommand _actor == "STOP"};
-    _actor setUnitPosWeak (["MIDDLE","DOWN"] select _hardCover);
+    _desiredStance=["MIDDLE","DOWN"] select _hardCover;
 };
 if (_mode == "HIDE") then {
-    _actor setUnitPosWeak (["MIDDLE","DOWN"] select (getSuppression _actor > 0.25 || {_cause in [5,6]}));
+    _desiredStance=["MIDDLE","DOWN"] select (getSuppression _actor > 0.25 || {_cause in [5,6]});
 };
 if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
-    _actor setUnitPosWeak "MIDDLE";
+    _desiredStance="MIDDLE";
+};
+
+if (_desiredStance != "") then {
+    private _currentStance=toUpperANSI (unitPos _actor);
+    private _lease=_actor getVariable ["WAIT_Danger_EngineStanceLease",[]];
+    private _priorStance=_currentStance;
+    private _mayApply=true;
+    if (count _lease >= 3) then {
+        _priorStance=_lease param [0,_currentStance,[""]];
+        private _previousApplied=_lease param [1,"",[""]];
+        // A different owner changed the stance during our response. Drop WAIT's lease and leave it alone.
+        if (_currentStance != _previousApplied) then {
+            _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
+            _mayApply=false;
+        };
+    };
+    if (_mayApply) then {
+        _actor setUnitPosWeak _desiredStance;
+        _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay]];
+    };
 };
 
 private _stats=_group getVariable ["WAIT_Danger_EngineStats",createHashMap];

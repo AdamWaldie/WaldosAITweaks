@@ -14,6 +14,9 @@ Retained function and setting names are compatibility identifiers. Changing disp
 rename them or invalidate mission overrides. WAIT owns the base-soldier engine danger slot and provides
 the complete danger-response path while loaded. Another addon replacing the same engine slot is incompatible;
 specialist actor ownership still yields through explicit finite compatibility markers.
+Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
+stance, applies one weak stance, and restores it only while that exact value remains owned by WAIT.
+Any newer engine, Zeus or specialist stance wins and invalidates the lease without restoration.
 
 ## Existing improvements remain in scope
 

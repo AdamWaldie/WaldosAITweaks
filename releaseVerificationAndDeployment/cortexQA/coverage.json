@@ -382,6 +382,7 @@
         "addons/infantry/functions/dangerSelect.sqf",
         "addons/infantry/functions/dangerActionSelect.sqf",
         "addons/infantry/functions/dangerEngineAct.sqf",
+        "addons/infantry/functions/dangerEngineRelease.sqf",
         "addons/infantry/functions/dangerEngineMode.sqf",
         "addons/infantry/functions/dangerEngineSelect.sqf",
         "addons/infantry/functions/dangerEngineSubmit.sqf",

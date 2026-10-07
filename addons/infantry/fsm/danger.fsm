@@ -82,7 +82,7 @@ class FSM {
         };
         class Finished {
             name = "Finished";
-            init = "";
+            init = "[_this] call WAIT_fnc_DangerEngineRelease;";
             precondition = "";
             class Links {};
         };

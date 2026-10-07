@@ -69,6 +69,7 @@ class CfgFunctions {
             class DangerSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSelect.sqf";};
             class DangerActionSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerActionSelect.sqf";};
             class DangerEngineAct {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineAct.sqf";};
+            class DangerEngineRelease {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRelease.sqf";};
             class DangerEngineMode {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineMode.sqf";};
             class DangerEngineSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSelect.sqf";};
             class DangerEngineSubmit {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSubmit.sqf";};
