@@ -30,6 +30,9 @@
  * 2: generic ground pass <BOOL>, default false. When true, any group with a living member aboard
  *    an aircraft is reserved for the dedicated airborne, flare and attack controllers. This keeps
  *    infantry contact, support, regroup and vehicle-ground logic from competing for its pilot.
+ * 3: allow current WAIT feature ownership <BOOL>, default false. Internal continuation paths use
+ *    this only to inspect their own active feature while every player, Zeus, external-controller,
+ *    faction and unit safety exclusion remains enforced.
  * Repeat/JIP: read-only apart from the documented local hold cache; safe to repeat.
  *
  * Return Value:
@@ -43,11 +46,11 @@
  * building, support and locality controllers.
  */
 
-params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]]];
+params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]], ["_allowFeatureOwner",false,[true]]];
 if (isNull _group) exitWith {false};
-if ([_group] call WAIT_fnc_CompatibilityExternalControl || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
-// Zeus always has priority: a group Zeus is commanding is left alone (WAIT_fnc_CortexZeusHeld).
-if (!_ignoreZeusHold && {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
+if ([_group,_ignoreZeusHold] call WAIT_fnc_CortexExternalTakeover || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
+// The optional preflight exemption skips only the expiring Zeus waypoint-hold cache. It never
+// bypasses direct curator remote control, player, specialist or declared external ownership.
 if (_group getVariable ["WAIT_AI_Exclude", false]
     || {_group getVariable ["WAIT_AIPass_Exclude", false]}
     || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
@@ -82,18 +85,19 @@ private _isFeatureOwned = {
     } >= 0
 };
 
-if ([_group] call _isFeatureOwned) exitWith {false};
+if (!_allowFeatureOwner && {[_group] call _isFeatureOwned}) exitWith {false};
 
 (_alive findIf {
     private _unit = _x;
     private _vehicles = [vehicle _unit, assignedVehicle _unit] select {!isNull _x && {_x != _unit}};
     (_unit getVariable ["WAIT_AI_Exclude", false])
     || {_unit getVariable ["WAIT_AIPass_Exclude", false]}
-    || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}
+    // Retain the unit-level declaration here as an auditable complement to the group gate above:
+    // a newly joined specialist actor must remain excluded even before a locality snapshot updates.
+    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}
     || {_unit getVariable ["zen_ai_garrisoned", false]}
     || {_unit getVariable ["zen_ai_isSuppressing", false]}
-    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[_unit] call _isFeatureOwned}
+    || {!_allowFeatureOwner && {[_unit] call _isFeatureOwned}}
     || {count _includedFactions > 0 && {!(faction _unit in _includedFactions)}}
     || {faction _unit in _excludedFactions}
     || {typeOf _unit in _excludedClasses}
@@ -101,5 +105,5 @@ if ([_group] call _isFeatureOwned) exitWith {false};
     // Only an active landing correction excludes the operating crew. A separate cargo squad remains
     // eligible for an explicit airborne order throughout.
     || {_vehicles findIf {_x getVariable ["WAIT_ImprovedHelicopterLanding_Active",false] && {group driver _x == _group}} >= 0}
-    || {_vehicles findIf {unitIsUAV _x || {[_x] call _isFeatureOwned}} >= 0}
+    || {_vehicles findIf {unitIsUAV _x || {!_allowFeatureOwner && {[_x] call _isFeatureOwned}}} >= 0}
 }) < 0

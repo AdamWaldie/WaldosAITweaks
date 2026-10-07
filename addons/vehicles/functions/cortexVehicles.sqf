@@ -1,13 +1,15 @@
 /*
  * Author: WaldoTheWarfighter
  * Vehicle drills for a squad in contact: dismount infantry under fire, and pull a
- * damaged vehicle back behind smoke.
+ * damaged vehicle back behind smoke. A targetless hit, explosion or suppression may invoke only
+ * the safe-stop and passenger-exit path; target work, movement and reporting remain unavailable.
  *
  * Dismount records ownership before issuing exit commands, then cancels outstanding boarding orders.
  * Exit handlers can therefore identify the initiating controller without racing bookkeeping.
  * Crew owners publish a bounded, expiring approximate contact report for separate onboard groups.
  * A validated passenger-owner request temporarily forces the vehicle to zero speed, preserving and
- * restoring any earlier forced-speed value once that passenger squad is out or the request expires.
+ * restoring any earlier forced-speed value once that passenger squad is out or the request expires,
+ * but only while the zero-speed lease remains current and no newer controller has replaced it.
  * Separate passenger groups handle only their own local cargo. Only the operating
  * crew group may order vehicle withdrawal or gunnery; convoy ownership remains excluded.
  * Dismount: infantry riding as cargo in a ground vehicle get out once an enemy is
@@ -59,6 +61,11 @@ if (_vehicleMove isNotEqualTo []) then {
             (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
         } >= 0) && {time < (_vehicleMove select 1)};
         if (!_activeVehicleMove) then {
+            private _generation=_state getOrDefault ["vehicleOperationGeneration",-1];
+            if (_generation >= 0) then {
+                [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                _state deleteAt "vehicleOperationGeneration";
+            };
             [_group,_vehicleMove param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };
@@ -77,6 +84,71 @@ private _vehicles = [];
     if (_vehicle != _x && {alive _x} && {!(_vehicle in _vehicles)} ) then {_vehicles pushBack _vehicle};
 } forEach units _group;
 if (_vehicles isEqualTo []) exitWith {_movementOwned};
+// Vehicle contact work can select an escape route or rank targets before it reaches the local
+// crew command. A newer curator, player or specialist owner must win at that point rather than
+// being followed by a stale forced speed, dismount, withdrawal or gunner request.
+private _mayIssueVehicle = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
+if !([] call _mayIssueVehicle) exitWith {_movementOwned};
+// Shared dismount path for identified contact and a bounded targetless danger lease. It owns only
+// the stop request and local passenger exit. It never creates target knowledge or vehicle movement.
+private _dismountAtThreat = {
+    params ["_vehicle","_threatPosition",["_publishDanger",false,[true]]];
+    if !(_vehicle isKindOf "LandVehicle" && {!(_vehicle isKindOf "StaticWeapon")}
+        && {_vehicle distance2D _threatPosition < 400}
+        && {[_group,"WAIT_AIPass_VehicleDismount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) exitWith {};
+    private _commandsVehicle=effectiveCommander _vehicle in units _group;
+    if (_publishDanger && {_commandsVehicle} && {local _vehicle}
+        && {(fullCrew [_vehicle,"",false]) findIf {
+            private _unit=_x select 0;
+            private _role=_x select 1;
+            alive _unit && {group _unit != _group} && {side group _unit == side _group}
+                && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
+        } >= 0}) then {
+        // The crew cannot command another group out. Publish only bounded hazard geometry so the
+        // passenger owner can run the same safety checks without receiving target knowledge.
+        _vehicle setVariable ["WAIT_Cortex_OnboardDanger",[_group,groupOwner _group,+_threatPosition,serverTime+30],true];
+    };
+    // A combined crew/passenger group has no cross-group report consumer. The same bounded
+    // handshake safely stops it. A separate passenger group publishes the request for the crew
+    // owner's next tick and handles only its locally owned passengers.
+    private _onboardCargo=(fullCrew [_vehicle,"",false]) select {
+        private _unit=_x select 0;
+        private _role=_x select 1;
+        alive _unit && {group _unit == _group}
+            && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
+    };
+    if (_onboardCargo isNotEqualTo []) then {
+        _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
+        if (_commandsVehicle && {local _vehicle}) then {
+            if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0]];
+            };
+            if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
+        };
+    };
+    private _cargo=(crew _vehicle) select {
+        group _x == _group && {[_x,_vehicle] call WAIT_fnc_CortexPassengerReady}
+    };
+    if (_cargo isNotEqualTo []) then {
+        private _dismounted=_state getOrDefault ["dismounted",[]];
+        {
+            private _unit=_x;
+            // Publish ownership before GetOut handlers can observe the command.
+            if (_dismounted findIf {(_x select 0) == _unit} < 0) then {
+                _dismounted pushBack [_unit,_vehicle];
+            };
+            _state set ["dismounted", _dismounted];
+            if ([] call _mayIssueVehicle) then {
+                [_unit] orderGetIn false;
+                unassignVehicle _unit;
+                doGetOut _unit;
+            };
+        } forEach _cargo;
+        _state set ["dismounted", _dismounted];
+    };
+};
 // Cross-group safe-stop handshake. The passenger owner publishes only an expiring identity request;
 // the vehicle authority validates current occupants and changes speed locally. This avoids remote
 // driver commands, unsafe moving exits and permanent stops after an interrupted/expired handover.
@@ -101,16 +173,29 @@ if (_vehicles isEqualTo []) exitWith {_movementOwned};
     };
     if (_valid) then {
         if (_saved isEqualTo []) then {
-            _saved=[getForcedSpeed _vehicle];
+            _saved=[getForcedSpeed _vehicle,0];
             _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved];
         };
-        _vehicle forceSpeed 0;
+        if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
     } else {
-        if (_saved isNotEqualTo [] && {local _vehicle}) then {_vehicle forceSpeed (_saved param [0,-1])};
+        private _ownedStop=_saved param [1,-2];
+        if (_saved isNotEqualTo [] && {local _vehicle} && {[] call _mayIssueVehicle}
+            && {_ownedStop >= 0} && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
+            _vehicle forceSpeed (_saved param [0,-1]);
+        };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };
 } forEach _vehicles;
+private _dangerDismount=_state getOrDefault ["dangerDismount",[]];
+if (count _dangerDismount == 2) then {
+    _dangerDismount params ["_dangerPosition","_dangerExpiry"];
+    if (time < _dangerExpiry) then {
+        {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _vehicles;
+    } else {
+        _state deleteAt "dangerDismount";
+    };
+};
 if (_enemies isEqualTo []) exitWith {_movementOwned};
 private _enemyPos = (_enemies select 0) select 1;
 private _selectVehicleEscape = {
@@ -142,41 +227,7 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         _vehicle setVariable ["WAIT_Cortex_OnboardReport",[_group,groupOwner _group,_reportedPosition,serverTime+35],true];
         _vehicle setVariable ["WAIT_Cortex_OnboardReportDue",serverTime+5];
     };
-    if (_vehicle isKindOf "LandVehicle" && {!(_vehicle isKindOf "StaticWeapon")} && {_distance < 400} && {[_group, "WAIT_AIPass_VehicleDismount_Enable", true] call WAIT_fnc_CortexFeatureEnabled}) then {
-        // A combined crew/passenger group has no cross-group report consumer. Use the same
-        // bounded handshake locally so moving cargo is brought to a safe stop before PassengerReady
-        // can admit an exit. The next owner tick restores speed after the last cargo seat clears.
-        private _onboardCargo=(fullCrew [_vehicle,"",false]) select {
-            private _unit=_x select 0;
-            private _role=_x select 1;
-            alive _unit && {group _unit == _group}
-                && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
-        };
-        if (_commandsVehicle && {local _vehicle} && {_onboardCargo isNotEqualTo []}) then {
-            _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
-            if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
-                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle]];
-            };
-            _vehicle forceSpeed 0;
-        };
-        private _cargo = (crew _vehicle) select {
-            group _x == _group && {[_x, _vehicle] call WAIT_fnc_CortexPassengerReady}
-        };
-        if (_cargo isNotEqualTo []) then {
-            private _dismounted = _state getOrDefault ["dismounted", []];
-            {
-                private _unit = _x;
-                // Publish local ownership before commands can trigger GetOut handlers.
-                // Still aboard on a later tick: reissue the order but record only once.
-                if (_dismounted findIf {(_x select 0) == _unit} < 0) then {_dismounted pushBack [_unit, _vehicle]};
-                _state set ["dismounted", _dismounted];
-                [_unit] orderGetIn false;
-                unassignVehicle _unit;
-                doGetOut _unit;
-            } forEach _cargo;
-            _state set ["dismounted", _dismounted];
-        };
-    };
+    [_vehicle,_enemyPos,false] call _dismountAtThreat;
     // Horns and countermeasure launchers are CfgWeapons entries too; only a real weapon makes a
     // vehicle "armed", so an unarmed truck is never treated as having lost its guns. Read live (and
     // only once canFire already says no), because Vehicle Weapon Loadout can change a vehicle's guns.
@@ -197,17 +248,23 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         if ((units _group) findIf {alive _x && {vehicle _x == _x}} < 0) then {
             private _threat=(_enemies select 0) select 0;
             private _away=[_vehicle,_enemyPos,_threat,300] call _selectVehicleEscape;
-            if (_away isNotEqualTo [] && {[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease}) then {
-                [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
-                _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
-                private _origin = getPosATL _vehicle;
-                _state set ["retreatStart",_origin];
-                _state set ["retreatTarget",_away];
-                _state set ["retreatProgress",[time,0,0]];
-                _group setVariable ["WAIT_Cortex_Withdrawal",["MOVING",0,0],true];
-                _group setVariable ["WAIT_Cortex_WithdrawalIntent",["VEHICLE",_origin,_away,_enemyPos,serverTime,0,0],true];
-                _movementOwned = true;
-                [_group,_state,"RETREAT","VEHICLE_DISABLED",time] call WAIT_fnc_CortexSetPhase;
+            if (_away isNotEqualTo [] && {[] call _mayIssueVehicle} && {[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease}) then {
+                private _operation=[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
+                if (count _operation == 0) then {
+                    [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
+                } else {
+                    [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
+                    _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
+                    _state set ["vehicleOperationGeneration",_operation get "generation"];
+                    private _origin = getPosATL _vehicle;
+                    _state set ["retreatStart",_origin];
+                    _state set ["retreatTarget",_away];
+                    _state set ["retreatProgress",[time,0,0]];
+                    _group setVariable ["WAIT_Cortex_Withdrawal",["MOVING",0,0],true];
+                    _group setVariable ["WAIT_Cortex_WithdrawalIntent",["VEHICLE",_origin,_away,_enemyPos,serverTime,0,0],true];
+                    _movementOwned = true;
+                    [_group,_state,"RETREAT","VEHICLE_DISABLED",time] call WAIT_fnc_CortexSetPhase;
+                };
             };
         };
     };
@@ -233,14 +290,16 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             && {combatMode _group in ["YELLOW", "RED"]} && {unitCombatMode _gunner in ["YELLOW", "RED"]}
             && {(_gunner getVariable ["WAIT_AIPass_TargetHold", -1]) < time}) then {
             private _target = (_enemies select ((_ranked select 0) select 2)) select 0;
-            if (assignedTarget _gunner != _target) then {
+            if ([] call _mayIssueVehicle && {assignedTarget _gunner != _target}) then {
                 _gunner doTarget _target;
             };
             // Target sharing may have assigned this contact before the vehicle layer runs. Fire refresh
             // therefore follows its own bounded hold instead of depending on a target identity change.
-            _gunner doFire _target;
-            _gunner setVariable ["WAIT_AIPass_TargetHold", time + 8];
-            _gunner setVariable ["WAIT_AIPass_VehicleTarget", _target, true];
+            if ([] call _mayIssueVehicle) then {
+                _gunner doFire _target;
+                _gunner setVariable ["WAIT_AIPass_TargetHold", time + 8];
+                _gunner setVariable ["WAIT_AIPass_VehicleTarget", _target, true];
+            };
         };
         private _standoff = missionNamespace getVariable ["WAIT_AIPass_Vehicles_StandoffDistance", 250];
         private _atIndex = _enemies findIf {
@@ -254,11 +313,17 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
             private _atThreat=(_enemies select _atIndex) select 0;
             private _away=[_vehicle,_atPos,_atThreat,(_standoff - (_vehicle distance2D _atPos)) max 60]
                 call _selectVehicleEscape;
-            if (_away isNotEqualTo [] && {[_group,"VEHICLE_STANDOFF",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease}) then {
-                [_group, _away, 30] call WAIT_fnc_CortexGroupMove;
-                _state set ["movementLease",["VEHICLE_STANDOFF",time+60]];
-                _movementOwned = true;
-                [_state, "standoff", 60] call WAIT_fnc_CortexCooldown;
+            if (_away isNotEqualTo [] && {[] call _mayIssueVehicle} && {[_group,"VEHICLE_STANDOFF",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease}) then {
+                private _operation=[_group,"VEHICLE_STANDOFF",_atThreat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart;
+                if (count _operation == 0) then {
+                    [_group,"VEHICLE_STANDOFF",false] call WAIT_fnc_CortexOwnershipLease;
+                } else {
+                    [_group, _away, 30] call WAIT_fnc_CortexGroupMove;
+                    _state set ["movementLease",["VEHICLE_STANDOFF",time+60]];
+                    _state set ["vehicleOperationGeneration",_operation get "generation"];
+                    _movementOwned = true;
+                    [_state, "standoff", 60] call WAIT_fnc_CortexCooldown;
+                };
             };
         };
     };

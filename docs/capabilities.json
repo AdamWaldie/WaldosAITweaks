@@ -6,7 +6,7 @@
       "capability": "Infantry danger and contact",
       "purpose": "Immediate observation, threat response and combat handover",
       "decision": "repair",
-      "mechanism": "Native danger behaviour plus bounded leader-event assessment FSM; wakes existing shared decision job; engine danger replacement pending",
+      "mechanism": "Native danger behaviour plus a default bounded owner-local assessment FSM; applies a finite posture and wakes the existing shared decision job without taking movement ownership",
       "implementation_status": "implemented_partial",
       "controls": "shared tuning specification; additional gaps remain",
       "ownership": "current AI owner; server coordinates cross-group requests",
@@ -159,10 +159,10 @@
     {
       "capability": "Medical assistance",
       "purpose": "Maintain squad effectiveness through local treatment",
-      "decision": "implement independently",
-      "mechanism": "Owner-local finite aid job; respect existing medical authority",
-      "implementation_status": "not_implemented",
-      "controls": "shared tuning specification; additional gaps remain",
+      "decision": "repair",
+      "mechanism": "One local vanilla medic uses a finite native treatment action during CALM/SECURITY; yields to direct and specialist medical ownership",
+      "implementation_status": "implemented_partial",
+      "controls": "WAIT_AIPass_MedicalAssist_Enable, Range, DamageThreshold and Timeout",
       "ownership": "current AI owner; server coordinates cross-group requests",
       "cost": "shared budget; worst-case measurement pending",
       "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"

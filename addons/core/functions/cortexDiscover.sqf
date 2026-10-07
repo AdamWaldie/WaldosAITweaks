@@ -5,11 +5,12 @@
  *
  * One sweep caches candidates and installs repeat-safe ground-group ownership handlers:
  * - caches player positions for the distance tiers (one allPlayers read per sweep, not per group);
- * - starts a WAIT_fnc_CortexGroupTick job for each newly local, eligible non-aircraft group and records its
- *   peak strength, which is how groups handed over by ACE or another headless controller are picked up;
+ * - starts one generation-scoped owner-local group tactics FSM for each newly local, eligible
+ *   non-aircraft group and records its peak strength. The FSM submits bounded decisions to the shared
+ *   scheduler, so headless handover cannot leave a second persistent group worker behind;
  * - re-applies garrison orders on the new owner after a locality change, because disableAI and
  *   event handlers are stored per machine;
- * - reconciles blanket Cortex-mode and finite SPLIT-mode COMPAT movement ownership;
+ * - reconciles finite movement ownership for independent alternative controllers;
  * - caches locally owned, eligible artillery for fire support and counter-battery;
  * - re-applies defence-line orders after a locality change;
  * - installs the missile-warning handler on every locally owned, eligible AI aircraft. A warning
@@ -38,8 +39,8 @@
  * Result: local AI groups are brought under the pass within one sweep.
  *
  * Current caller: WAIT_fnc_CortexInit.
- * Danger assessment: bounded member events use generation-scoped finite FSMs and only wake the existing
- * group decision job; handlers retire on membership/owner changes and shutdown. No second movement owner.
+ * Danger assessment: bounded member events use generation-scoped finite FSMs and only wake the current
+ * group tactics brain; handlers retire on membership/owner changes and shutdown. No second movement owner.
  */
 
 if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
@@ -48,8 +49,6 @@ if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
 };
 missionNamespace setVariable ["WAIT_AIPass_PlayerPositions", (allPlayers select {alive _x && {!(_x isKindOf "HeadlessClient_F")}}) apply {getPosATL _x}];
 
-private _dangerWaitMode = (missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded", false])
-    && {toUpperANSI (missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"]) == "WAIT"};
 private _spotters = [];
 {
     private _group = _x;
@@ -96,42 +95,23 @@ private _spotters = [];
         };
         private _clear = _group getVariable ["WAIT_AIPass_ClearOrder", []];
         if (_clear isNotEqualTo [] && {!(_group getVariable ["WAIT_AIPass_ClearApplied", false])}) then {
-            [_group, _clear select 0, createHashMapFromArray [["useBuildingBackend", false], ["resume", true]]] call WAIT_fnc_CortexClearBuilding;
+            [_group, _clear select 0, createHashMapFromArray [["resume", true]]] call WAIT_fnc_CortexClearBuilding;
         };
         // Aircraft occupants have dedicated flight, flare, missile-reaction and airborne controllers.
         // They may remain generally Cortex-eligible for those systems, but must never acquire the
         // generic ground-group loop as a second movement/behaviour owner.
         private _eligible = _groundEligible;
-        if ((!_dangerWaitMode || {!_eligible}) && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false]}) then {
-            [_group,"dangerDisabled",_group getVariable ["WAIT_AIPass_DangerBackendBaseline", false],true,true] call WAIT_fnc_CompatibilityState;
-            _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", nil, true];
-            _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
-        };
-        if (_dangerWaitMode && {_eligible} && {!(_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPass", false])}) then {
-            private _scopedLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
-            private _baseline = if (count _scopedLease == 3) then {_scopedLease select 1} else {
-                [_group,"dangerDisabled",false] call WAIT_fnc_CompatibilityState
-            };
-            _group setVariable ["WAIT_AIPass_DangerBackendBaseline", _baseline, true];
-            [_group,"dangerDisabled",true,true,true] call WAIT_fnc_CompatibilityState;
-            _group setVariable ["WAIT_AIPass_DangerBackendDisabledByPass", true, true];
-        };
-        private _dangerLease = _group getVariable ["WAIT_Cortex_OwnershipLease", []];
-        if (_dangerLease isNotEqualTo []) then {
-            if (serverTime >= (_dangerLease select 2)) then {
+        private _alternativeLease = _group getVariable ["WAIT_Cortex_AlternativeLease", []];
+        if (_alternativeLease isNotEqualTo []) then {
+            if (serverTime >= (_alternativeLease select 2)) then {
                 [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
             } else {
-                // A live mode change may have just removed the blanket switch. Renewing the same
-                // scoped owner reasserts exclusive movement without changing its saved baseline.
-                [_group,_dangerLease select 0,true,_dangerLease select 2] call WAIT_fnc_CortexOwnershipLease;
+                [_group,_alternativeLease select 0,true,_alternativeLease select 2] call WAIT_fnc_CortexOwnershipLease;
             };
         };
-        if (!(_group getVariable ["WAIT_AIPass_Managed", false]) && {_eligible}) then {
-            _group setVariable ["WAIT_AIPass_Managed", true];
+        if (_eligible) then {
             _group setVariable ["WAIT_AIPass_PeakSize", (_group getVariable ["WAIT_AIPass_PeakSize", 0]) max ({alive _x} count units _group)];
-            private _groupJob=createHashMapFromArray [["group",_group]];
-            _group setVariable ["WAIT_Cortex_GroupJob",_groupJob];
-            [WAIT_fnc_CortexGroupTick,_groupJob,random 2] call WAIT_fnc_CortexQueueJob;
+            [_group,false] call WAIT_fnc_GroupBrainStart;
         };
     };
 } forEach allGroups;
@@ -188,10 +168,9 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                 };
             };
             if (_airAttackEligible && {!isNull _airAttackTarget} && {!(_vehicle getVariable ["WAIT_Cortex_AirAttackJob",false])}) then {
-                _vehicle setVariable ["WAIT_Cortex_AirAttackJob",true];
-                [WAIT_fnc_CortexAirAttack,createHashMapFromArray [
+                [createHashMapFromArray [
                     ["aircraft",_vehicle],["group",group _pilot],["target",_airAttackTarget]
-                ],0] call WAIT_fnc_CortexQueueJob;
+                ],0] call WAIT_fnc_AirAttackOperationStart;
             };
             if (_wantArtillery && {getNumber (configOf _vehicle >> "artilleryScanner") == 1}) then {
                 private _gunner = gunner _vehicle;
@@ -218,49 +197,15 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                     private _side=if (isNull _threat) then {selectRandom [1,-1]}
                         else {[1,-1] select ((_vehicle getRelDir _threat) < 180)};
                     _vehicle setVariable ["WAIT_Cortex_MissileDefenceActive",_generation];
-                    [_vehicle,_missile,_generation,_side] spawn {
-                        params ["_vehicle","_missile","_generation","_side"];
-                        for "_step" from 0 to 11 do {
-                            if (isNull _vehicle || {!local _vehicle}
-                                || {(_vehicle getVariable ["WAIT_Cortex_FlareBurstGeneration",-1]) != _generation}
-                                || {!([_vehicle] call WAIT_fnc_CortexAircraftEligible)}) exitWith {};
-                            // A known missile becoming null/dead means the engagement has ended. Keep one
-                            // initial iteration for engines/mods that do not expose the projectile object.
-                            if (_step > 0 && {!isNull _missile} && {!alive _missile}) exitWith {};
-                            private _pilot=driver _vehicle;
-                            if (!isNull _pilot && {[group _pilot,"WAIT_AIPass_AircraftFlares_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
-                                [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
-                            };
-                            // Two decisive impulses produce a genuine beam/climb without fighting
-                            // the native flight FSM every half-second. The earlier implementation
-                            // rewrote velocity twelve times and created the same pauses and small
-                            // circles that this defensive reaction is meant to avoid.
-                            if (_step in [0,4] && {!isNull _pilot}
-                                && {[group _pilot,"WAIT_AIPass_AircraftBreak_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
-                                private _velocity=velocityModelSpace _vehicle;
-                                private _isPlane=_vehicle isKindOf "Plane";
-                                private _lateralLimit=[34,58] select _isPlane;
-                                private _minimumForward=[28,90] select _isPlane;
-                                private _vertical=[7,14] select _isPlane;
-                                private _candidate=[
-                                    (((_velocity select 0)+(_side*([18,30] select _isPlane))) max -_lateralLimit) min _lateralLimit,
-                                    (_velocity select 1) max _minimumForward,
-                                    ((_velocity select 2)+([_vertical,_vertical*0.35] select (_step > 0))) min ([16,30] select _isPlane)
-                                ];
-                                private _future=_vehicle modelToWorldWorld (_candidate vectorMultiply 2);
-                                private _clearance=(_future select 2)-(getTerrainHeightASL _future);
-                                if (_clearance >= ([30,70] select _isPlane)
-                                    && {[_vehicle] call WAIT_fnc_CortexAircraftEligible}) then {
-                                    _vehicle setVelocityModelSpace _candidate;
-                                };
-                            };
-                            sleep (0.45+random 0.18);
-                        };
-                        if (!isNull _vehicle
-                            && {(_vehicle getVariable ["WAIT_Cortex_FlareBurstGeneration",-1]) == _generation}) then {
-                            _vehicle setVariable ["WAIT_Cortex_MissileDefenceActive",nil];
-                        };
-                    };
+                    [WAIT_fnc_CortexMissileDefenceStep,createHashMapFromArray [
+                        ["aircraft",_vehicle],
+                        ["missile",_missile],
+                        ["generation",_generation],
+                        ["side",_side],
+                        ["step",0],
+                        ["subsystem","TACTICS"],
+                        ["jobKey",format ["MISSILE_DEFENCE:%1",netId _vehicle]]
+                    ],0] call WAIT_fnc_CortexQueueJob;
                 }];
                 _vehicle setVariable ["WAIT_AIPass_FlaresHandler", _handler];
                 private _tracked = missionNamespace getVariable ["WAIT_AIPass_FlareVehicles", []];

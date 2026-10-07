@@ -37,7 +37,7 @@ private _ownersResponsive=true;
     };
     private _sampleId=format ["CONTACT_%1_%2",_arm,floor serverTime];
     [createHashMapFromArray [["WAIT_AIPass_Enable",_enabled],["WAIT_AIPass_Contact_Enable",true],
-        ["WAIT_AIPass_Regroup_Enable",true],["WAIT_AIPass_InfantryOwnership","SPLIT"]]] call WAIT_fnc_CortexTuning;
+        ["WAIT_AIPass_Regroup_Enable",true]]] call WAIT_fnc_CortexTuning;
     private _ready=[{(missionNamespace getVariable ["WAIT_AIPass_Active",false]) == _enabled},30] call _wait;
     private _groups=[];
     private _actors=[];

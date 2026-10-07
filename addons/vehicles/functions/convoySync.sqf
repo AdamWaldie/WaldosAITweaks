@@ -72,6 +72,8 @@ if !(missionNamespace getVariable ["WAIT_Convoy_CompatibilityHeadlessHandlerInst
     if (isNil {_group getVariable "WAIT_Convoy_LocalHandler"}) then {
         _group setVariable ["WAIT_Convoy_LocalHandler", _group addEventHandler ["Local", {
             params ["_group", "_isLocal"];
+            private _brain=_group getVariable ["WAIT_Convoy_Brain",createHashMap];
+            if (count _brain > 0) then {_brain set ["cancelled",true];_brain set ["cancelReason",["OWNERSHIP_LOST","LOCALITY_GAINED"] select _isLocal]};
             if (_isLocal && {!(_group getVariable ["WAIT_Convoy_Active", false])}) then {[_group] call WAIT_fnc_ConvoyReleaseLocal};
             _group setVariable ["WAIT_Convoy_LocalState", nil];
         }]];
@@ -91,13 +93,7 @@ if (_registry isNotEqualTo []) then {
         if (!isNull _group) then {
             private _jobToken=format ["%1:%2:SYNC",_revision,clientOwner];
             _group setVariable ["WAIT_Convoy_LocalJobToken",_jobToken];
-            [WAIT_fnc_ConvoyJobStep,createHashMapFromArray [
-                ["subsystem","CONVOY"],
-                ["group",_group],
-                ["configuration",_configuration],
-                ["registryRevision",_revision],
-                ["jobToken",_jobToken]
-            ],0] call WAIT_fnc_CortexQueueJob;
+            [_group,_configuration,_revision,_jobToken] call WAIT_fnc_ConvoyOperationStart;
         };
     } forEach _registry;
 };

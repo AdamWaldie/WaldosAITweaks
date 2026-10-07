@@ -12,11 +12,6 @@
 
 private _patch = {isClass (configFile >> "CfgPatches" >> _this)};
 private _compat = createHashMapFromArray [
-    ["dangerBackend", "lambs_danger" call _patch],
-    ["buildingBackend", "lambs_wp" call _patch],
-    ["turretPolicy", "lambs_turrets" call _patch],
-    ["suppressionPolicy", "lambs_suppression" call _patch],
-    ["launcherPolicy", "lambs_rpg" call _patch],
     ["alternativeBackend", ("VCOM_AI" call _patch) || {!isNil "VCM_fnc_SQUADBEH"}],
     ["meleeBackend", !isNil "IMS_Melee_Weapons" || {"WBK_IMS" call _patch} || {"WBK_IMS2" call _patch}],
     ["specialistBackend", !isNil "WBK_LoadAIThroughEden" || {!isNil "WBK_Droid_B1_Load"}],
@@ -42,14 +37,10 @@ private _compat = createHashMapFromArray [
 ];
 missionNamespace setVariable ["WAIT_AITweaks_Compatibility", _compat];
 
-// Legacy public flags remain during the transition so existing scripts do not need a flag-day edit.
-missionNamespace setVariable ["WAIT_AIPass_DangerBackendLoaded", _compat get "dangerBackend"];
+// Public flags remain for optional controllers that own a separate domain.
 missionNamespace setVariable ["WAIT_AIPass_AlternativeBackendLoaded", _compat get "alternativeBackend"];
 missionNamespace setVariable ["WAIT_AIPass_NavalBackendLoaded", _compat get "navalBackend"];
 missionNamespace setVariable ["WAIT_AIPass_MeleeBackendLoaded", _compat get "meleeBackend"];
 missionNamespace setVariable ["WAIT_AIPass_SpecialistBackendLoaded", _compat get "specialistBackend"];
 missionNamespace setVariable ["WAIT_AIPass_CivilianBackendLoaded", _compat get "civilianBackend"];
-missionNamespace setVariable ["WAIT_Cortex_TurretPolicyLoaded", _compat get "turretPolicy"];
-missionNamespace setVariable ["WAIT_Cortex_SuppressionPolicyLoaded", _compat get "suppressionPolicy"];
-missionNamespace setVariable ["WAIT_Cortex_LauncherPolicyLoaded", _compat get "launcherPolicy"];
 _compat

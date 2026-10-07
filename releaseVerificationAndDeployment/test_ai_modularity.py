@@ -7,16 +7,21 @@ BASE = ROOT / 'addons/main/functions/Cortex'
 def src(name):
     return re.sub(r'^/\*.*?\*/\s*', '', next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8-sig'), flags=re.S)
 class AIModularityContracts(unittest.TestCase):
-    def test_full_ownership_mode_uses_the_registered_wait_enum(self):
+    def test_wait_exclusively_owns_engine_danger_fsm(self):
         discovery=src('cortexDiscover')
         lease=src('cortexOwnershipLease')
         spec=src('cortexTuningSpec')
-        self.assertIn('[["SPLIT","WAIT"]', spec)
-        self.assertIn('== "WAIT"',discovery)
-        self.assertIn('_mode == "WAIT"',lease)
-        self.assertNotIn('== "' + 'W' + 'MP"',discovery)
-        self.assertIn('!_dangerWaitMode || {!_eligible}',discovery)
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',discovery)
+        infantry=(ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
+        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership',spec)
+        self.assertNotIn('DangerBackend',discovery)
+        self.assertNotIn('lambs_',lease.lower())
+        self.assertIn('WAIT_AIPass_AlternativeBackendLoaded',lease)
+        init=src('cortexInit')
+        self.assertIn('WAIT_AIPass_DangerOwnershipConflict',init)
+        self.assertIn('if (!_dangerFsmOwned) exitWith {',init)
+        self.assertIn('missionNamespace setVariable ["WAIT_AIPass_Active",false]',init)
+        self.assertLess(init.index('if (!_dangerFsmOwned) exitWith {'),init.index('missionNamespace setVariable ["WAIT_AIPass_Active", true]'))
 
     def test_drill_loses_ownership_before_modes_and_does_not_regroup(self):
         step = src('cortexFlankStep')
@@ -26,18 +31,27 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('if (_mayCommand) then {{_x doFollow _leader}', end)
         self.assertIn('private _hold = _mayCommand', end)
 
-    @unittest.skip('WAIT integration contract; covered in WaldosAITweaks')
-    def test_child_switches_are_configured_validated_and_replayed(self):
+    def test_child_switches_are_registered_by_cba_and_react_on_current_owners(self):
         config = (ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         spec = src('cortexTuningSpec')
+        register = src('aiTweaksRegisterSettings')
+        changed = src('aiTweaksSettingChanged')
         names = ['VehicleDismount','VehicleRemount','VehicleWithdraw','CoverValidation','Hearing']
-        names = ['WAIT_AIPass_'+n+'_Enable' for n in names] + ['WAIT_Convoy_'+n+'_Enable' for n in ['MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']]
+        names = ['WAIT_AIPass_'+name+'_Enable' for name in names] + [
+            'WAIT_Convoy_'+name+'_Enable' for name in ['MountedFire','Cover','AvoidInfantry','ContactHalt','Unload']
+        ]
         for name in names:
             self.assertIn('"'+name+'"',config)
             self.assertEqual(spec.count('"'+name+'"'),1)
-        self.assertIn('WAIT_fnc_CortexTuningSpec',src('aiTweaksRegisterSettings'))
-        for path in ['featureRuntimeRequestState']:
-            self.assertIn('WAIT_fnc_CortexTuningSpec',(ROOT/'MissionScripts/ZenModules/RuntimeControl'/f'{path}.sqf').read_text(encoding='utf-8'))
+        # CBA is the sole settings authority. WAIT registers every declared row and defers
+        # runtime work until postInit, where callbacks change only the current owner's work.
+        for contract in ['WAIT_fnc_CortexTuningSpec', 'CBA_fnc_addSetting',
+                         'WAIT_fnc_AITweaksSettingChanged', 'WAIT_AITweaks_CBASettingsRegistered']:
+            self.assertIn(contract,register)
+        self.assertIn('missionNamespace setVariable [_name, _value]',changed)
+        self.assertIn('WAIT_AITweaks_PostInitComplete',changed)
+        self.assertIn('WAIT_AIPass_Danger_Enable',changed)
+        self.assertIn('if (local _x) then {[_x] call WAIT_fnc_DangerSetup}',changed)
         self.assertIn('"CHECKBOX"',src('cortexTuning'))
     def test_group_opt_out_cannot_enable_a_global_switch(self):
         gate = src('cortexFeatureEnabled')
@@ -59,19 +73,40 @@ class AIModularityContracts(unittest.TestCase):
         text = src('cortexPassengerReady')
         for check in ['local _unit','isPlayer','WAIT_fnc_CortexCombatEffective','abs speed _vehicle','surfaceIsWater','lineIntersectsSurfaces','fullCrew','emptyPositions']:
             self.assertIn(check,text)
+        dismount = src('convoyDismountLocal')
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',dismount)
+        self.assertIn('private _operator =',dismount)
         for name in ['cortexVehicles','cortexRestoreCalm']:
             self.assertIn('WAIT_fnc_CortexPassengerReady',src(name))
         locality=src('cortexLocality')
         self.assertIn('"OWNERSHIP_ADOPTED"',locality)
         self.assertIn('call WAIT_fnc_CortexRestoreCalm',locality)
+        self.assertIn('private _restoreEligible=[_group,false,false,true] call WAIT_fnc_CortexIsEligible',locality)
+        self.assertIn('false, !_restoreEligible, "OWNERSHIP_ADOPTED"',locality)
+        restore = src('cortexRestoreCalm')
+        self.assertIn('!_yieldToExternal && {_ownedHold}',restore)
         release=src('cortexReleaseGroup')
         self.assertIn('[_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm',release)
-        self.assertIn('_externalTakeover=_yieldToExternal || {_reason == "ZEUS_TAKEOVER"}',release)
+        self.assertIn('_externalTakeover=_yieldToZeus || {_yieldToExternal}',release)
+        self.assertIn('"EXTERNAL_TAKEOVER"',release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',release)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',release)
+        for name in ['dangerActionSelect','dangerReact','dangerStep','dangerRequest']:
+            text=src(name)
+            self.assertTrue(
+                '(units _group) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}' in text
+                or 'WAIT_fnc_CortexExternalTakeover' in text
+            )
+        for name in ['convoyTick','convoyCrewLocal']:
+            self.assertIn('private _externalCrew',src(name))
     def test_report_transport_contains_positions_not_enemy_objects(self):
         report = src('cortexContactReport')
         self.assertIn('+(_x select 1)',report)
         self.assertIn('serverTime - (_x select 2)',report)
+        self.assertIn('private _reporters=',report)
+        self.assertIn('if (count _reporters > 8) then {_reporters resize 8}',report)
+        self.assertIn('_confidence=_confidence max (_x knowsAbout _target)',report)
+        self.assertNotIn('leader _group knowsAbout (_x select 0)',report)
         for name in ['cortexReportServer','cortexReportLocal']:
             text = src(name)
             self.assertNotIn(' reveal ',text)
@@ -138,12 +173,11 @@ class AIModularityContracts(unittest.TestCase):
             self.assertIn('magazinesAllTurrets',src(name))
             self.assertIn('(_x select 2) > 0',src(name))
         self.assertIn('WAIT_fnc_CortexFeatureEnabled',src('cortexArtilleryShot'))
-    def test_danger_handover_is_scoped_and_restores_prior_state(self):
+    def test_alternative_controller_handover_is_scoped_and_restores_prior_state(self):
         lease = src('cortexOwnershipLease')
-        for contract in ['WAIT_Cortex_OwnershipLease','lambs_danger_disableGroupAI','_baseline','serverTime','WAIT_AIPass_DangerBackendDisabledByPass',
-                         'lambs_danger_isExecutingTactic','lambs_danger_forceMove','lambs_main_currentTactic','WAIT_Cortex_OwnershipBusyRefusals']:
+        for contract in ['WAIT_Cortex_AlternativeLease','Vcm_Disable','VCM_MOVE2SUP','VCM_MBUSY',
+                         '_baseline','serverTime','WAIT_Cortex_OwnershipBusyRefusals']:
             self.assertIn(contract,lease)
-        self.assertLess(lease.index('lambs_danger_isExecutingTactic'),lease.index('setVariable ["lambs_danger_disableGroupAI", true'))
         self.assertIn('CortexOwnershipLease',(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8'))
         apply = src('cortexSupportApply')
         maintain = src('cortexSupportMaintain')
@@ -154,25 +188,30 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexRetreat'))
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexGroupTick'))
         self.assertIn('[_group,"",false] call WAIT_fnc_CortexOwnershipLease',src('cortexReleaseGroup'))
-        self.assertIn('serverTime >= (_dangerLease select 2)',src('cortexDiscover'))
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',src('cortexDiscover'))
-        self.assertIn('WAIT_AIPass_DangerBackendBaseline',src('cortexReleaseGroup'))
-    def test_danger_config_companions_are_detected_but_never_disabled(self):
+        self.assertIn('serverTime >= (_alternativeLease select 2)',src('cortexDiscover'))
+        self.assertNotIn('DangerBackend',src('cortexDiscover'))
+        self.assertNotIn('DangerBackend',src('cortexReleaseGroup'))
+    def test_no_source_specific_danger_or_weapon_companions_are_loaded(self):
         compat = (ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         diagnostics = (ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
         lease = src('cortexOwnershipLease')
-        for patch in ['lambs_turrets','lambs_suppression','lambs_rpg']:
-            self.assertIn(patch,compat)
-            self.assertIn("WAIT_fnc_CompatibilityAvailable",diagnostics)
-            self.assertNotIn(patch+' setVariable',lease)
-        self.assertIn('config companions remain active in every mode',diagnostics)
+        for key in ['dangerBackend','turretPolicy','suppressionPolicy','launcherPolicy']:
+            self.assertNotIn('"'+key+'"',compat)
+        self.assertIn('exclusiveEngineFSM',diagnostics)
+        self.assertIn('Any other fsmDanger replacement is unsupported',diagnostics)
+        self.assertNotIn('lambs_',lease.lower())
 class ExtendedSourceOwnershipContracts(unittest.TestCase):
     def test_standalone_foundation_requires_only_infrastructure(self):
         config = (ROOT/'addons/main/config.cpp').read_text(encoding='utf-8')
+        infantry = (ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
         launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
         self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', infantry)
+        for base in ['SoldierWB','SoldierEB','SoldierGB']:
+            self.assertIn('class '+base+': CAManBase', infantry)
+        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
 
     def test_active_external_operations_are_read_only_and_bounded(self):
         owner = src('cortexExternalOwner')
@@ -239,9 +278,9 @@ class AddonSettingLifecycleContracts(unittest.TestCase):
 
     def test_setting_presentation_preserves_identifiers_and_uses_product_language(self):
         spec = src('cortexTuningSpec')
-        self.assertIn('"WAIT_AIPass_InfantryOwnership", "Infantry controller ownership"', spec)
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership', spec)
         self.assertNotIn('"COMPAT integration"', spec)
-        for phrase in ['when COMPAT Turrets', 'external naval controller takes', 'Simple Civilian Behaviour owns']:
+        for phrase in ['external naval controller takes', 'Simple Civilian Behaviour owns']:
             self.assertNotIn(phrase, spec)
 
 class SharedSchedulerLifecycleContracts(unittest.TestCase):
@@ -320,7 +359,7 @@ class HeadlessOwnershipContracts(unittest.TestCase):
     def test_convoy_restarts_only_its_destination_local_scheduler_after_hc_handoff(self):
         sync = src('convoySync')
         adopt = src('convoyHeadlessAdoptLocal')
-        step = src('convoyJobStep')
+        step = src('convoyOperationStep')
         functions = (ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         self.assertIn('"ace_headless_groupTransferPost"', sync)
         self.assertIn('"WAIT_Compatibility_HeadlessMigrated"', sync)
@@ -331,7 +370,7 @@ class HeadlessOwnershipContracts(unittest.TestCase):
         self.assertIn('WAIT_fnc_CompatibilityHeadlessRevision', adopt)
         self.assertIn('WAIT_Convoy_LocalState",nil', adopt)
         self.assertIn('WAIT_fnc_ConvoyCrewLocal', adopt)
-        self.assertIn('WAIT_fnc_CortexQueueJob', adopt)
+        self.assertIn('WAIT_fnc_ConvoyOperationStart', adopt)
         self.assertIn('WAIT_Convoy_LocalJobToken', adopt)
         self.assertIn('WAIT_Convoy_LocalJobToken', step)
         self.assertNotIn('setGroupOwner', adopt)

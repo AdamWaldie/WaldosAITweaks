@@ -1,8 +1,10 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Applies a sparse, owner-local safety speed cap to an ordinary AI ground vehicle that
- * is already following a native waypoint. This is the standalone driving layer; registered
- * convoys retain their separate predecessor-spacing controller.
+ * Purpose: Applies a sparse, owner-local safety speed cap and bounded physical recovery to an
+ * ordinary AI ground vehicle that is already following a native waypoint. This is the standalone
+ * driving layer; registered convoys retain their separate predecessor-spacing controller. Terrain
+ * thresholds are expressed in km/h for settings and diagnostics, then converted to the metres per
+ * second required by forceSpeed before the command and ownership lease are recorded.
  * Locality / Authority: Runs only where the vehicle is local. It never creates, replaces or
  * deletes a waypoint and yields to players, Zeus remote control, convoy ownership and specialist
  * driving ownership.
@@ -36,13 +38,25 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
     private _vehicle=_x;
     private _driver=driver _vehicle;
     private _release=false;
+    // Driving must make the same ownership decision as every other delayed controller. A group
+    // member becoming player-controlled or specialist-owned is enough to retire the sparse speed
+    // cap before it can issue a recovery move; the individual driver checks below retain the
+    // vehicle-specific local/remote-control safety boundary.
+    private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
     if (!_enabled || {!local _vehicle} || {isNull _driver} || {isPlayer _driver}
         || {!isNull (_driver getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        || {[_driver] call WAIT_fnc_CortexExternalOwner != ""}
+        || {_yieldToOwner}
         || {_vehicle getVariable ["WAIT_Convoy_Active",false]}
         || {!isNil {_vehicle getVariable "WAIT_ExternalDrivingOwner"}}
         || {behaviour leader _group == "CARELESS"}
         || {currentWaypoint _group >= count waypoints _group}) then {_release=true};
     if (_release) then {[_vehicle] call WAIT_fnc_DrivingAssistRelease} else {
+        // Terrain sampling is deliberately sparse but may still overlap a newer Zeus or specialist
+        // order. Preserve that order at the actual cap/recovery command boundary.
+        private _mayIssueDriving = {
+            !([_group] call WAIT_fnc_CortexExternalTakeover)
+        };
         if (time >= (_vehicle getVariable ["WAIT_DrivingAssist_Next",-1])) then {
             // A new Zeus, mission or specialist cap may not advertise an ownership marker. The
             // last cap we applied is therefore the narrowest reliable lease check: once another
@@ -75,12 +89,82 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
                 _vehicle setVariable ["WAIT_DrivingAssist_Restore",_previous];
             };
             private _saved=_previous param [0,-1];
-            if (_saved > 0) then {_cap=_cap min _saved};
-            _vehicle forceSpeed _cap;
+            // Arma forceSpeed/getForcedSpeed values are metres per second. Keep the policy value
+            // readable in km/h, but keep the actual lease in engine units so another controller's
+            // cap is detected and the pre-WAIT value can be restored exactly.
+            private _capMps=_cap/3.6;
+            if (_saved > 0) then {_capMps=_capMps min _saved};
+            if !(call _mayIssueDriving) then {
+                // Do not retain a restore record or claim a lease that WAIT never applied.
+                [_vehicle] call WAIT_fnc_DrivingAssistRelease;
+            } else {
+            _vehicle forceSpeed _capMps;
             // Retain the owning group for diagnostics only. The lease remains the forced-speed
             // value: this reference never grants route or movement ownership to WAIT.
-            _vehicle setVariable ["WAIT_DrivingAssist_State",[_cap,_maximumGrade,time,_group]];
+            // Native vehicles can abandon an otherwise valid MOVE command after a small collision
+            // or navigation fault.  Recovery remains subordinate to that authored waypoint:
+            // refresh it once, reverse only into a checked-clear rear area, then retry once.
+            // It never adds/replaces a waypoint, changes collision or moves the vehicle directly.
+            private _progressPosition=_state param [4,getPosATL _vehicle];
+            private _progressAt=_state param [5,time];
+            private _recoveryStage=_state param [6,0];
+            private _recoveryUntil=_state param [7,-1];
+            private _recoveryResult=_state param [8,"IDLE"];
+            if (_vehicle distance2D _progressPosition >= 3) then {
+                _progressPosition=getPosATL _vehicle;
+                _progressAt=time;
+                _recoveryStage=0;
+                _recoveryUntil=-1;
+                _recoveryResult="PROGRESS";
+            };
+            private _waypointIndex=currentWaypoint _group;
+            private _hasRoute=_waypointIndex < count waypoints _group;
+            private _inCombat=behaviour leader _group in ["COMBAT","STEALTH"] || {getSuppression _driver > 0.1};
+            if (_hasRoute && {!_inCombat} && {abs speed _vehicle < 1}
+                && {time-_progressAt >= 12} && {time >= _recoveryUntil} && {call _mayIssueDriving}) then {
+                private _waypoint=[_group,_waypointIndex];
+                private _destination=waypointPosition _waypoint;
+                if (waypointType _waypoint == "MOVE" && {_vehicle distance2D _destination > (waypointCompletionRadius _waypoint max 20)}) then {
+                    switch (_recoveryStage) do {
+                        case 0: {
+                            _driver doMove _destination;
+                            _recoveryStage=1;
+                            _recoveryUntil=time+8;
+                            _recoveryResult="ROUTE_REFRESH";
+                        };
+                        case 1: {
+                            private _rear=_vehicle getPos [8,(getDir _vehicle)+180];
+                            private _blockers=(nearestObjects [_rear,["Man","LandVehicle","StaticWeapon"],10]) select {
+                                _x != _vehicle && {!(_x in crew _vehicle)} && {alive _x}
+                            };
+                            if (_blockers isEqualTo []) then {
+                                _driver doMove _rear;
+                                _recoveryResult="CAUTIOUS_REVERSE";
+                            } else {
+                                _recoveryResult="REAR_BLOCKED";
+                            };
+                            _recoveryStage=2;
+                            _recoveryUntil=time+6;
+                        };
+                        case 2: {
+                            _driver doMove _destination;
+                            _recoveryStage=3;
+                            _recoveryUntil=time+60;
+                            _recoveryResult="FINAL_ROUTE_RETRY";
+                        };
+                        default {
+                            _recoveryResult="EXHAUSTED";
+                            _recoveryUntil=time+60;
+                        };
+                    };
+                    _progressPosition=getPosATL _vehicle;
+                    _progressAt=time;
+                };
+            };
+            _vehicle setVariable ["WAIT_DrivingAssist_State",[_capMps,_maximumGrade,time,_group,
+                _progressPosition,_progressAt,_recoveryStage,_recoveryUntil,_recoveryResult]];
             _vehicle setVariable ["WAIT_DrivingAssist_Next",time+4];
+            };
             };
         };
     };

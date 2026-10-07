@@ -23,7 +23,7 @@
  *
  * Dismounted AI and cargo receive a modest configured aim coefficient. Operating ground-vehicle and
  * aircraft crew retain the selected profile but receive a reduced final aiming multiplier and separate,
- * wider aim coefficients. When COMPAT Turrets is present WAIT does not stack its vehicle/aircraft
+ * wider aim coefficients. When an external precision provider is active WAIT does not stack its vehicle/aircraft
  * coefficient over the addon's config changes. Crews assigned to a named WAIT Dynamic AA system retain their authored
  * profile and aim coefficient so the general lethality control cannot weaken air defence. Seat and
  * Dynamic AA membership are part of the application signature, so reassigned or dismounted AI
@@ -176,7 +176,7 @@ if (_variance > 0) then {
 };
 // Skill profiles apply to every CAManBase AI, including crew. Add the vehicle layer after variance
 // so its relative precision remains consistent across profiles. Cargo receives the ordinary infantry
-// profile; drivers, commanders and turret operators use the crew layer. COMPAT Turrets already changes
+// profile; drivers, commanders and turret operators use the crew layer. An external precision provider already changes
 // weapon config dispersion and turret angular error, so only the skill layer is retained with it.
 private _vehicle = vehicle _unit;
 private _seat = assignedVehicleRole _unit;
@@ -197,7 +197,7 @@ if (_operatingCrew && {!_precisionExcluded}) then {
         private _dispersionSetting=["WAIT_AI_VehicleCrewDispersion","WAIT_AI_AirCrewDispersion"] select (_vehicle isKindOf "Air");
         private _dispersionDefault=[3.5,4.25] select (_vehicle isKindOf "Air");
         private _dispersion = ((missionNamespace getVariable [_dispersionSetting, _dispersionDefault]) max 1) min 7;
-        // Better profiles still matter: general skill trmeleeBackend up to 25 percent from the configured
+        // Better profiles still matter: general skill trims up to 25 percent from the configured
         // coefficient while never making a crew more precise than the mission's original baseline.
         private _profileFactor = 1 - (0.25 * (_unit skill "general"));
         _unit setCustomAimCoef ((_dispersion * _profileFactor) max (_unit getVariable ["WAIT_AI_OriginalAimCoef", 1]));

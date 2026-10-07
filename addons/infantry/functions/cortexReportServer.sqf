@@ -21,9 +21,28 @@ private _valid = (_reports select [0,3]) select {
     && {(_x select 2) isEqualType 0} && {serverTime - (_x select 2) <= 10} && {(_x select 2) <= serverTime}
 };
 if (_valid isEqualTo []) exitWith {};
-private _range = if ([leader _sender] call WAIT_fnc_CortexCanTransmit) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
-private _receivers = allGroups select {_x != _sender && {side _x == side _sender} && {alive leader _x}
-    && {leader _x distance2D leader _sender <= _range} && {[_x] call WAIT_fnc_CortexIsEligible}};
+private _transmitter = [_sender] call WAIT_fnc_CortexGroupTransmitter;
+private _range = if (!isNull _transmitter) then {missionNamespace getVariable ["WAIT_AIPass_ContactReports_Radius",500]} else {missionNamespace getVariable ["WAIT_AIPass_ContactReports_VoiceRange",35]};
+private _senderPosition = getPosATL ([_transmitter, leader _sender] select isNull _transmitter);
+// A receiver is eligible only when its transmitter or local command anchor is inside this report's
+// delivery envelope. Derive distinct groups from nearby actors rather than scanning every group.
+private _receiverGroups=[];
+{
+    private _receiverGroup=group _x;
+    if (!isNull _receiverGroup && {!(_receiverGroup in _receiverGroups)}) then {
+        _receiverGroups pushBack _receiverGroup;
+    };
+} forEach (_senderPosition nearEntities ["Man",_range]);
+private _receivers = [];
+{
+    private _receiver = _x;
+    private _receiverTransmitter = [_receiver] call WAIT_fnc_CortexGroupTransmitter;
+    private _receiverAnchor = if (isNull _receiverTransmitter) then {leader _receiver} else {_receiverTransmitter};
+    if (_receiver != _sender && {side _receiver == side _sender} && {!isNull _receiverAnchor} && {alive _receiverAnchor}
+        && {_receiverAnchor distance2D _senderPosition <= _range} && {[_receiver] call WAIT_fnc_CortexIsEligible}) then {
+        _receivers pushBack _receiver;
+    };
+} forEach _receiverGroups;
 // One bounded delivery job; do not fan out an unbounded remote-call burst.
 [{
     params ["_job"];

@@ -35,13 +35,15 @@ if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};
 if (!local _group) exitWith {
     if (isServer) then {[_group,_restore] remoteExecCall ["WAIT_fnc_CortexGarrisonRelease", groupOwner _group]; true} else {false};
 };
-private _delegated=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-if (count _delegated >= 2 && {(_delegated select 0) == "COMPAT"} && {(_delegated select 1) == "GARRISON"}) exitWith {
-    [_group,_restore] call WAIT_fnc_CortexBuildingBackendRelease
-};
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
-private _leader = leader _group;
+// A newer Zeus, player or specialist owner may have replaced this order before this release
+// reaches the group owner. WAIT must still remove only its own state, but a feature gate change
+// is not an external order: it must release the held element back to its formation.
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
+private _canRestore = _restore && {!_externalTakeover};
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 {
     if (local _x) then {
         private _unit = _x;
@@ -54,16 +56,19 @@ private _leader = leader _group;
 
         if (_x getVariable ["WAIT_AIPass_GarrisonDisabledPath", false]) then {_x enableAI "PATH"};
         if (alive _x && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}) then {
-            // Do not overwrite a subsequent Zeus or mission-script stance change.
+            // A replacement owner receives untouched posture, watch and speed. Normal release
+            // still restores WAIT's temporary hold exactly when its own lease remains intact.
             if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
-                _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
+                if (!_externalTakeover) then {
+                    _x setUnitPos (_x getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
+                };
             };
-            _x doWatch objNull;
-            if (getForcedSpeed _x == 4 && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
+            if (!_externalTakeover) then {_x doWatch objNull;};
+            if (!_externalTakeover && {getForcedSpeed _x == (_x getVariable ["WAIT_Cortex_GarrisonAppliedSpeed",-2])} && {!isNil {_x getVariable "WAIT_Cortex_GarrisonForcedSpeed"}}) then {
                 _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
             };
             private _command = toUpperANSI currentCommand _x;
-            if (_restore || {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}) then {
+            if (_canRestore || {!_externalTakeover && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
                 _x doFollow _leader
             };
         };
@@ -74,6 +79,7 @@ private _leader = leader _group;
     _x setVariable ["WAIT_AIPass_GarrisonFailed",nil,true];
     _x setVariable ["WAIT_AIPass_GarrisonStance", nil, true];
     _x setVariable ["WAIT_Cortex_GarrisonForcedSpeed",nil];
+    _x setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",nil];
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_Garrison", nil, true];
 _group setVariable ["WAIT_Cortex_GarrisonCandidates",nil,true];

@@ -1,7 +1,7 @@
 # Mod build, testing and architecture
 
-WAIT requires Arma 3 2.18+ and CBA; ZEN is optional. Other controllers are optional. Native danger remains
-active while the original standalone danger implementation awaits acceptance.
+WAIT requires Arma 3 2.18+ and CBA; ZEN is optional. Other controllers are optional. WAIT configures a
+bounded engine danger FSM for base soldier classes; packaged physical and compatibility acceptance remains pending.
 
 ## Change validation and local deployment
 
@@ -69,7 +69,7 @@ directly from a per-frame condition. This change needs a live A/B measurement.
 
 | Domain | Preferred method | Conversion and acceptance decision |
 | --- | --- | --- |
-| Immediate danger and contact | Engine danger events/FSM with small owner-local decisions | Use original danger-cause assessment; introduce the FSM only after native movement and Zeus handover tests |
+| Immediate danger and contact | Engine danger FSM with small owner-local decisions | Bounded intake is configured for base soldiers; promote behaviour only after movement, disable, locality, external-owner and Zeus handover tests |
 | Squad tactics and combined arms | Event-fed shared opportunity registry, budgeted decisions, finite leases | Keep communication opportunistic; no compulsory rally or assembly barrier; casualty replacements update roles without restarting the whole attack |
 | CQB and garrison | Cached building topology and engine navigation; finite team movement | Native WAIT task implementation remains the standalone path. Validate rooms, floors, doorway traversal and exit across different buildings before replacing the fallback |
 | Turret and launcher policy | Config where supported, owner-local skills for runtime settings | Config cannot be reversed by a CBA toggle. Any new config component must document that distinction and avoid stacking installed external AI controller companion changes |

@@ -76,7 +76,7 @@ Remaining live operator checks must use actual Zeus orders during approach, gren
 
 ## Observable manoeuvre acceptance
 
-These are intended outcomes, not clameleeBackend that current live tests pass.
+These are intended outcomes, not claims that current live tests pass.
 
 | Action | Observable work | Successful end |
 |---|---|---|

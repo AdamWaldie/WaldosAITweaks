@@ -5,9 +5,11 @@
  *
  * The map lives on the group as a machine-local variable, so it is never broadcast. A new owner
  * after a locality change starts a fresh map and re-reads the situation from engine knowledge.
- * Keys: phase (CALM, CONTACT, SECURITY, SEARCH, REGROUP, RETREAT), morale (0-1), moraleState
- * (STEADY, SHAKEN, BROKEN), cooldowns (map of name to time), plus per-phase fields set by
- * WAIT_fnc_CortexGroupTick and the behaviour functions.
+ * Keys: legacy implementation phase (CALM, INVESTIGATE, CONTACT, SECURITY, SEARCH, REGROUP,
+ * RETREAT), morale (0-1), moraleState. The owner-local groupTactics FSM publishes the semantic
+ * phase (including SUPPORT, MANOEUVRE, ASSAULT, CLEAR and WITHDRAW) separately, so extraction of
+ * phase handlers does not create a second movement owner. Cooldowns and per-phase fields remain here
+ * while those handlers are migrated out of WAIT_fnc_CortexGroupTick.
  * Locality and authority: machine-local.
  *
  * Arguments:
@@ -20,7 +22,8 @@
  * private _state = [_group] call WAIT_fnc_CortexGroupState;
  * Result: the group's live pass state.
  *
- * Current callers: WAIT_fnc_CortexGroupTick, WAIT_fnc_CortexReinforce and order functions.
+ * Current callers: WAIT_fnc_GroupBrainStep, WAIT_fnc_CortexGroupTick,
+ * WAIT_fnc_CortexReinforce and order functions.
  */
 
 params [["_group", grpNull, [grpNull]]];

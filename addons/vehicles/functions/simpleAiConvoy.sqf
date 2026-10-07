@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Registers mixed land convoys; speed <= 0 holds vehicles and unloads passengers except a STALLED recovery halt. Release removes the controller.
+ * Registers mixed land convoys; speed <= 0 holds vehicles and unloads passengers except a STALLED or OBSTRUCTION recovery halt. Release removes the controller.
  * Locality/authority: server validates requests and owns registry/baselines; each owner applies local effects.
  * Repeat/JIP: versioned snapshots include halt cargo and restoration data; reconfigure explicitly resumes travel.
  * If external controller Advanced Driving AI is present, WAIT temporarily pauses its steering/unstuck worker and
@@ -30,7 +30,7 @@ private _reason = _context getOrDefault ["reason", "MANUAL"];
 private _threat = _context getOrDefault ["threat", []];
 private _blockedVehicle = _context getOrDefault ["blockedVehicle",objNull];
 if !(_blockedVehicle isEqualType objNull) exitWith {false};
-if (!(_reason in ["MANUAL", "ARRIVED", "AMBUSH", "IMMOBILE", "STALLED"]) || {!(_threat isEqualType [])}
+if (!(_reason in ["MANUAL", "ARRIVED", "AMBUSH", "IMMOBILE", "STALLED", "OBSTRUCTION"]) || {!(_threat isEqualType [])}
     || {!(count _threat in [0, 3])} || {_threat findIf {!(_x isEqualType 0)} >= 0}) exitWith {false};
 private _registry = +(missionNamespace getVariable ["WAIT_Convoy_Registry", []]);
 private _oldIndex = _registry findIf {(_x select 0) == _group};
@@ -55,7 +55,9 @@ if (!_release) then {
             private _vehicle = _x;
             {
                 _x params ["_unit", "_role", "", "", "_personTurret"];
-                if (_reason != "STALLED" && {alive _unit} && {!isPlayer _unit} && {_role == "cargo" || {_role == "turret" && {_personTurret}}}) then {_cargo pushBack [_unit, _vehicle]};
+                if !(_reason in ["STALLED", "OBSTRUCTION"]) then {
+                    if (alive _unit && {!isPlayer _unit} && {_role == "cargo" || {_role == "turret" && {_personTurret}}}) then {_cargo pushBack [_unit, _vehicle]};
+                };
             } forEach fullCrew [_vehicle, "", false];
         } forEach _vehicles;
         _configuration = [_revision, _old select 1, _old select 2, _old select 3, _vehicles, "HALT", _cargo, _old select 7, _reason, +_threat, serverTime + 45];
@@ -105,10 +107,11 @@ if (!_release && {_speed <= 0}) then {
         case "AMBUSH": {"Halted by contact"};
         case "IMMOBILE": {"No mobile controlled vehicle remains"};
         case "STALLED": {"Movement recovery exhausted; inspect obstruction and issue a resume or new route"};
+        case "OBSTRUCTION": {"Physical road obstruction detected; inspect it and issue a resume or new route"};
         default {"Halted by order"};
     };
-    private _lead = if (_reason == "STALLED" && {_blockedVehicle in (_old select 4)}) then {_blockedVehicle} else {(_old select 4) param [0,objNull]};
-    if (_reason == "STALLED" && {!isNull _lead}) then {_description = _description + format [" (%1)",getText (configOf _lead >> "displayName")]};
+    private _lead = if (_reason in ["STALLED", "OBSTRUCTION"] && {_blockedVehicle in (_old select 4)}) then {_blockedVehicle} else {(_old select 4) param [0,objNull]};
+    if (_reason in ["STALLED", "OBSTRUCTION"] && {!isNull _lead}) then {_description = _description + format [" (%1)",getText (configOf _lead >> "displayName")]};
     private _location = if (isNull _lead) then {"unknown"} else {mapGridPosition _lead};
     private _recipients = [];
     {
@@ -116,7 +119,7 @@ if (!_release && {_speed <= 0}) then {
         if (!isNull _curator && {isPlayer _curator}) then {_recipients pushBackUnique owner _curator};
     } forEach allCurators;
     {
-        ["CORTEX CONVOY STOPPED",format ["%1 — %2. Grid %3. %4",groupId _group,_description,_location,["Cargo dismount ordered; operating crew stays aboard.","Passengers and operating crew remain aboard."] select (_reason == "STALLED")],
+        ["CORTEX CONVOY STOPPED",format ["%1 — %2. Grid %3. %4",groupId _group,_description,_location,["Cargo dismount ordered; operating crew stays aboard.","Passengers and operating crew remain aboard."] select (_reason in ["STALLED", "OBSTRUCTION"])],
             "WARNING"] remoteExecCall ["WAIT_fnc_AITweaksNotifyLocal",_x];
     } forEach _recipients;
 };

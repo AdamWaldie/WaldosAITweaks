@@ -79,8 +79,19 @@ class StandaloneExtractionContracts(unittest.TestCase):
         self.assertIn("_this] call WAIT_fnc_AITweaksSettingChanged", settings)
         self.assertNotIn("params ['_value']", settings)
         self.assertNotIn('"zen_main"', (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8"))
-        for capability in ("dangerBackend", "alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
+        for capability in ("alternativeBackend", "meleeBackend", "specialistBackend", "drivingBackend", "navalBackend"):
             self.assertIn(f'"{capability}"', compat)
+        self.assertNotIn('"dangerBackend"',compat)
+
+    def test_local_lifecycle_anchor_is_not_a_communication_proxy(self):
+        functions = (ROOT / "addons/main/CfgFunctions.hpp").read_text(encoding="utf-8")
+        anchor = (ROOT / "addons/infantry/functions/cortexGroupAnchor.sqf").read_text(encoding="utf-8")
+        transmitter = (ROOT / "addons/infantry/functions/cortexGroupTransmitter.sqf").read_text(encoding="utf-8")
+        self.assertIn('class CortexGroupAnchor', functions)
+        self.assertIn('CortexCombatEffective', anchor)
+        self.assertIn('local _x', anchor)
+        self.assertNotIn('CortexCanTransmit', anchor)
+        self.assertIn('CortexCanTransmit', transmitter)
 
     def test_native_curator_commands_do_not_require_optional_dialogs(self):
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")

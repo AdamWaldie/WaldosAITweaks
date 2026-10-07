@@ -42,11 +42,12 @@
  * finish the bound. This short, progress-driven grace avoids turning an active mover into a recovery
  * chase while never holding the element for an actor who has actually stopped.
  * Remaining actors become bounded recovery stragglers and keep moving toward their element; they are
- * never counted as arrived or teleported. Each arrival holds PATH until the next bound, preventing formation return. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Halts last
- * WAIT_AIPass_Flank_BoundPause seconds (also after clearing and consolidation),
- * 3 s at a street edge, and twice the configured pause at a standalone flank final position.
- * Coordinated bounds already have a covering squad: fire-team and final handoffs add no
- * fixed pause. Arrival, normal scheduler cadence and the server role handoff still apply.
+ * never counted as arrived or teleported. Each arrival holds PATH until the next bound, preventing formation return. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Handoffs occur as soon as physical arrival is established. WAIT_AIPass_Flank_BoundPause is an
+ * optional deliberate overwatch interval (default zero), never an internal scheduling requirement.
+ * Road smoke is dispatched opportunistically without holding the crossing for an animation or bloom.
+ * Final, clearing and consolidation transitions use the same optional interval; coordinated bounds
+ * already have a covering squad and therefore never add it. A zero-duration handoff is requeued at the
+ * next shared-scheduler opportunity instead of inheriting the ordinary 1.5 second observation cadence.
  * Final assault (WAIT_AIPass_Assault_Enable): after a flank or advance hold,
  * if the enemy is believed within WAIT_AIPass_Assault_Range of the element and morale is STEADY,
  * the whole viable element reaches its assault position and clears through. The behaviour profile's
@@ -124,12 +125,18 @@ private _end = {
 private _operationGeneration=_drill getOrDefault ["operationGeneration",-1];
 private _operationEndReason="";
 if (_operationGeneration >= 0) then {
-    private _operationStatus=[_group,_operationGeneration,3,12] call WAIT_fnc_OperationStep;
-    if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED"]) then {_operationEndReason=_operationStatus};
+    private _operationStale=missionNamespace getVariable ["WAIT_AIPass_Flank_BoundTimeout",25];
+    private _operationStatus=[_group,_operationGeneration,3,_operationStale] call WAIT_fnc_OperationStep;
+    if (_operationStatus in ["LOST_OWNER","ZEUS","EXTERNAL","REPLACED","STALLED"]) then {_operationEndReason=_operationStatus};
 };
 if (_operationEndReason != "") exitWith {_operationEndReason call _end};
 // External control and replacement orders win before any mode or movement mutation.
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _end};
+// A queued drill can run after a new direct owner appears. Recheck only at actual command
+// writes; route scoring and progress accounting remain bounded and do not issue movement.
+private _mayIssueMovement = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 // RED explicitly permits independent pursuit. That engine-owned ATTACK state replaces
 // individual doMove destinations and was the common cause of stalled bounds in live QA.
 // YELLOW preserves fire-at-will while keeping the group in formation. Give the engine one
@@ -181,16 +188,18 @@ if (count _movementLease == 2 && {(_movementLease select 0) == "TACTICAL_DRILL"}
 // that bound from the same route point so spot indexes cannot drift after a casualty.
 private _ownedPathUnits=(_drill getOrDefault ["disabled",[]]) select {(_x select 1) == "PATH"} apply {_x select 0};
 private _fitSquad=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x}
-    && {vehicle _x == _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
+    && {isNull objectParent _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
     && {_x checkAIFeature "PATH" || {_x in _ownedPathUnits}}};
 private _teams=_drill getOrDefault ["teams",[]];
 private _desiredStrength=_drill getOrDefault ["desiredStrength",count (_drill get "units")];
 private _reinforcements=[];
 private _rankCandidates={
     params ["_candidates"];
+    private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _anchor) then {_anchor=leader _group};
     private _rifles=_candidates select {!(([_x] call WAIT_fnc_CortexUnitRole) in ["MG","AT","LEADER"])};
-    private _support=_candidates select {!(_x in _rifles) && {_x != leader _group}};
-    _rifles+_support+(_candidates select {_x == leader _group})
+    private _support=_candidates select {!(_x in _rifles) && {_x != _anchor}};
+    _rifles+_support+(_candidates select {_x == _anchor})
 };
 private _units=[];
 if (_teams isEqualTo []) then {
@@ -236,7 +245,10 @@ if (_teams isEqualTo []) then {
 };
 _drill set ["units",_units];
 if (_operationGeneration >= 0) then {
-    [_group,_operationGeneration,count _units,_units] call WAIT_fnc_RebalanceRoles;
+    // The drill's live units are the desired operation participants, not an exclusion list. Passing
+    // them as excluded removed the whole active element from physical-progress accounting and could
+    // make the operation appear leader-only or stalled after an otherwise valid casualty rebalance.
+    [_group,_operationGeneration,count _units,[]] call WAIT_fnc_RebalanceRoles;
 };
 if (_reinforcements isNotEqualTo []) then {
     private _history=_group getVariable ["WAIT_Cortex_DrillReinforcements",[]];
@@ -261,7 +273,7 @@ if (_main isNotEqualTo []) then {
         private _peers = _main;
         private _teamIndex = _teams findIf {_actor in _x};
         if (_teamIndex >= 0) then {_peers = (_teams select _teamIndex) select {_x in _main}};
-        private _rally = getPosATL leader _group;
+        private _rally = getPosATL ([_group] call WAIT_fnc_CortexGroupAnchor);
         if (_peers isNotEqualTo []) then {
             _rally = [0,0,0];
             {_rally = _rally vectorAdd getPosATL _x} forEach _peers;
@@ -277,7 +289,9 @@ if (_main isNotEqualTo []) then {
                 if (_operationGeneration >= 0) then {
                     [_group,_operationGeneration,_actor,_rally] call WAIT_fnc_RecoveryStep;
                 } else {
-                    _actor doMove _rally;
+                    if (call _mayIssueMovement) then {
+                        _actor doMove _rally;
+                    };
                 };
                 _x set [1,_attempts+1];
                 _x set [2,time+8];
@@ -453,10 +467,12 @@ private _issue = {
         // survive the immediate doMove, pulling this element back toward its leader.
         // Preserve the actor's target. Clearing it every bound created a visible pause
         // and made the movement element repeatedly reacquire the same contact.
-        doStop _unit;
-        _unit doWatch _enemyPos;
-        _unit doMove _spot;
-        _unit setDestination [_spot,"LEADER PLANNED",true];
+        if (call _mayIssueMovement) then {
+            doStop _unit;
+            _unit doWatch _enemyPos;
+            _unit doMove _spot;
+            _unit setDestination [_spot,"LEADER PLANNED",true];
+        };
     } forEach _units;
     private _waypointIndex = currentWaypoint _group;
     private _waypointSnapshot = [];
@@ -518,7 +534,8 @@ switch (_drill get "stage") do {
                     // to keep engaging while preventing an endless native ATTACK loop.
                     if (currentCommand _unit == "ATTACK"
                         && {_remaining > 3}
-                        && {_pursuitResetCount < 2}) then {
+                        && {_pursuitResetCount < 2}
+                        && {call _mayIssueMovement}) then {
                         if (_expected distance2D _spot > 15 || {_pursuitResetCount > 0}) then {_unit doTarget objNull};
                         _unit doWatch _enemyPos;
                         _unit doMove _spot;
@@ -544,7 +561,7 @@ switch (_drill get "stage") do {
                         && {((expectedDestination _unit) select 0) distance2D (_waypoint select 1) < 1};
                     if ((_now-(_last select 3) >= 8 || {_returnedToWaypoint}) && {_now-(_retry select 1) >= 8}
                         && {(_retry select 0) < 2} && {_unit checkAIFeature "PATH"}
-                        && {_unit checkAIFeature "MOVE"}) then {
+                        && {_unit checkAIFeature "MOVE"} && {call _mayIssueMovement}) then {
                         // Replan the same destination; do not move the actor or waive arrival.
                         // Reissue only the movement destination. Target ownership is
                         // independent and must survive a path recovery attempt.
@@ -624,13 +641,14 @@ switch (_drill get "stage") do {
                 [_group,_drill,"PAUSE","FIRE_TEAM_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
                 // A separate squad already covers a coordinated bound. Avoid stacking
                 // a fixed team pause on top of the inter-squad handoff.
-                private _teamPause=if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2]};
+                private _teamPause=if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0]};
                 _drill set ["pauseUntil",_now + _teamPause];
             } else {
             switch ((_points select (_drill get "index")) select 1) do {
                 case "CROSS_NEAR": {
                     [_group,_drill,"PAUSE","ROAD_EDGE_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil", _now + 3];
+                    _drill set ["pauseUntil", _now];
+                    // Smoke is opportunistic support, never a mandatory movement gate.
                     // One empty inventory must not suppress another member's carried smoke.
                     // Stop after the first accepted throw; the helper owns safety and cooldowns.
                     {
@@ -639,7 +657,7 @@ switch (_drill get "stage") do {
                 };
                 case "FINAL": {
                     [_group,_drill,"HOLD","FINAL_BOUND_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    private _pause = if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2]};
+                    private _pause = if (_support) then {0} else {missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0]};
                     private _multiplier = [1,2] select (!_support && {(_drill getOrDefault ["type","FLANK"]) == "FLANK"});
                     _drill set ["pauseUntil",_now + _pause * _multiplier];
                 };
@@ -672,15 +690,15 @@ switch (_drill get "stage") do {
                 };
                 case "CONSOLIDATE": {
                     [_group,_drill,"HOLD","CONSOLIDATION_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2])];
+                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0])];
                 };
                 case "CLEAR": {
                     [_group,_drill,"HOLD","CLEAR_THROUGH_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",2])];
+                    _drill set ["pauseUntil",_now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause",0])];
                 };
                 default {
                     [_group,_drill,"PAUSE","BOUND_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
-                    _drill set ["pauseUntil", _now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause", 2])];
+                    _drill set ["pauseUntil", _now + (missionNamespace getVariable ["WAIT_AIPass_Flank_BoundPause", 0])];
                 };
             };
             };
@@ -704,7 +722,7 @@ switch (_drill get "stage") do {
             // Advance already brought both elements through the objective.
             if ((_assaulting || {_drill getOrDefault ["finishFlank",false]}) && {_teams isEqualTo []} && {!(_drill getOrDefault ["consolidating",false])}) exitWith {
                 private _support = (units _group) select {
-                    !(_x in _allUnits) && {local _x} && {vehicle _x == _x}
+                    !(_x in _allUnits) && {local _x} && {isNull objectParent _x}
                     && {[_x] call WAIT_fnc_CortexCombatEffective}
                 };
                 if (_support isEqualTo []) then {
@@ -776,6 +794,14 @@ switch (_drill get "stage") do {
             };
         };
     };
+};
+// PAUSE and HOLD remain explicit observable FSM phases, but a ready zero-duration handoff must not
+// inherit the ordinary movement observation cadence. Queue it for the next bounded scheduler
+// opportunity; the scheduler still enforces its global work budget and never spins this callback.
+if (_result >= 0
+    && {(_drill getOrDefault ["stage",""]) in ["PAUSE","HOLD"]}
+    && {_now >= (_drill getOrDefault ["pauseUntil",_now])}) then {
+    _result=0;
 };
 _result
 

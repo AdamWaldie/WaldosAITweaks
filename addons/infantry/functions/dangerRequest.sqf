@@ -5,22 +5,19 @@
  * Repeat/JIP: generation-checked, machine-local state; new owners rebuild from new observations.
  * Arguments: 0: observer <OBJECT>, objNull; 1: cause <STRING>, GUNFIRE; 2: approximate ATL position <ARRAY>, [].
  * Return Value: Boolean - whether the observation was accepted.
- * Current callers: Owner-local member events installed by WAIT_fnc_DangerSetup.
+ * Current callers: WAIT engine danger intake and the group EnemyDetected observer.
  * Example: [leader _group,"HIT",getPosATL leader _group] call WAIT_fnc_DangerRequest;
  */
 
 params [["_actor",objNull,[objNull]],["_cause","GUNFIRE",[""]],["_position",[],[[]]]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}
-    || {!(_cause in ["HIT","SUPPRESSED","DETECTED","GUNFIRE"])} || {count _position != 3}) exitWith {false};
+    || {!(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE","CASUALTY","SCREAM"])} || {count _position != 3}) exitWith {false};
 private _group=group _actor;
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {!local _group}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!(_group getVariable ["WAIT_AIPass_Managed",false])}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {[_actor] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[leader _group] call WAIT_fnc_CortexExternalOwner != ""}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
+    || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 // Eligibility was checked at observer installation and is rechecked before dispatch. Keep bullet
 // callbacks cheap; repeated events of one cause cannot scan the squad or start extra FSMs.

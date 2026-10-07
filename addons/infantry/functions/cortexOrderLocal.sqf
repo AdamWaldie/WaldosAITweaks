@@ -33,15 +33,13 @@ if (_order in ["GARRISON", "DEFEND", "CLEAR", "AIRBORNE"]) then {
         case "GARRISON": {[_group, _position, (_radius max 15) min 150] call WAIT_fnc_CortexGarrison};
         case "DEFEND": {[_group, _position, _facing, (_radius max 15) min 150] call WAIT_fnc_CortexDefend};
         case "RELEASE": {
-            private _released = [_group] call WAIT_fnc_CortexBuildingBackendRelease;
-            if ([_group] call WAIT_fnc_CortexClearRelease) then {_released=true};
+            private _released = [_group] call WAIT_fnc_CortexClearRelease;
             if ((_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo []) then {_released = [_group] call WAIT_fnc_CortexGarrisonRelease};
             if ((_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo []) then {_released = [_group] call WAIT_fnc_CortexDefendRelease};
             _released
         };
         case "EXCLUDE": {
             if (isNull _group) exitWith {false};
-            [_group] call WAIT_fnc_CortexBuildingBackendRelease;
             [_group] call WAIT_fnc_CortexClearRelease;
             [_group] call WAIT_fnc_CortexGarrisonRelease;
             [_group] call WAIT_fnc_CortexDefendRelease;

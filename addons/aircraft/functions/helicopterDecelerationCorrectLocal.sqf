@@ -8,7 +8,7 @@
  * controller, pending/active Cortex attack, or missile-defence lease cancels this correction before
  * another impulse is applied. Terrain clearance, pilot, damage, sling-load, locality and timeout
  * checks also fail safe by releasing immediately.
- * Pilot/group replacement, waypoint edits, a direct Zeus hold and external-control handover cancel
+ * Pilot/group replacement, waypoint edits and any player, curator or specialist takeover cancel
  * the current correction.
  * Locality and authority: Scheduled only on the current aircraft owner. It changes velocity
  * only while that owner still controls an eligible AI helicopter.
@@ -26,7 +26,7 @@
  * Example: [_helicopter, speed _helicopter, getPosASL _helicopter # 2, {false}]
  *     spawn WAIT_fnc_HelicopterDecelerationCorrectLocal;
  * Result: Returns true after at least one bounded impulse, or false when no correction is applied.
- * Current caller: WAIT_fnc_HelicopterDecelerationTrackLocal.
+ * Current caller: WAIT_fnc_HelicopterDecelerationStep when its sampled braking envelope is met.
  */
 
 params [
@@ -57,11 +57,11 @@ private _ownsOrder={
     local _aircraft && {(_aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]) == _generation}
         && {currentPilot _aircraft == _entryPilot} && {group _entryPilot == _entryGroup}
         && {(call _orderSignature) isEqualTo _entryOrder}
-        && {!([_entryGroup] call WAIT_fnc_CortexZeusHeld)}
-        && {!([_entryGroup] call WAIT_fnc_CompatibilityExternalControl)}
-        && {isNull (_entryPilot getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        && {!([_entryGroup] call WAIT_fnc_CortexExternalTakeover)}
 };
 if !(call _ownsOrder) exitWith {false};
+private _flightLeaseToken=str _generation;
+if !([_aircraft,"DECELERATION",_flightLeaseToken,100] call WAIT_fnc_FlightLeaseAcquire) exitWith {false};
 _aircraft setVariable ["WAIT_HelicopterDeceleration_Active", true, true];
 private _start = diag_tickTime;
 private _deadline = _start + ((missionNamespace getVariable ["WAIT_HelicopterDeceleration_MaximumCorrectionSeconds", 4]) max 0.1);
@@ -102,6 +102,7 @@ while {_correcting && {diag_tickTime < _deadline}} do {
         || {!isNil {_aircraft getVariable "WAIT_Cortex_AirAttackToken"}}
         || {!isNil {_aircraft getVariable "WAIT_Cortex_MissileDefenceActive"}}
         || {_aircraft getVariable ["WAIT_ImprovedHelicopterLanding_Active", false]}
+        || {!([_aircraft,"DECELERATION",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid)}
         || {[_aircraft] call _isLandingOrder}
         || {isNull _pilot} || {!alive _pilot} || {!_pilotAwake} || {isPlayer _pilot}
         || {!isNull (remoteControlled _pilot)} || {!isEngineOn _aircraft} || {!canMove _aircraft}
@@ -146,6 +147,7 @@ while {_correcting && {diag_tickTime < _deadline}} do {
                 && {isNil {_aircraft getVariable "WAIT_Cortex_MissileDefenceActive"}}
                 && {!(_aircraft getVariable ["WAIT_ImprovedHelicopterLanding_Active", false])}
                 && {!([_aircraft] call _isLandingOrder)}
+                && {[_aircraft,"DECELERATION",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid}
             ) then {
                 // Scheduled sleeps are a minimum delay, not the elapsed simulation time.
                 // Integrate elapsed time so scheduler load does not weaken the correction.
@@ -193,6 +195,9 @@ while {_correcting && {diag_tickTime < _deadline}} do {
 if (!isNull _aircraft && {local _aircraft} && {(_aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]) == _generation}) then {
     _aircraft setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
     _aircraft setVariable ["WAIT_HelicopterDeceleration_LastResult", [_reason, clientOwner, diag_tickTime, abs speed _aircraft, (getPosASL _aircraft) select 2], true];
+};
+if (!isNull _aircraft && {local _aircraft}) then {
+    [_aircraft,"DECELERATION",_flightLeaseToken,_reason] call WAIT_fnc_FlightLeaseRelease;
 };
 if (_debug) then {diag_log format ["[WAIT AI DECEL] Released owner=%1 aircraft=%2 reason=%3 applied=%4 correctionDeltaV=%5 brakingDeltaV=%6", clientOwner, if (isNull _aircraft) then {"NULL"} else {netId _aircraft}, _reason, _applied, _correctionDeltaV, _brakingDeltaV]};
 _applied

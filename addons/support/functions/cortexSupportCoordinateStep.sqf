@@ -80,7 +80,7 @@ private _sequence=_job getOrDefault ["boundSequence",0];
 // Retire it here so it cannot be reconsidered every two seconds until the lease ends.
 {
     _x params ["_group","_token"];
-    private _fit=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}};
+    private _fit=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}};
     if (count _fit < 4 && {!(_token in _completed)} && {!(_token in _retired)}) then {
         _retired pushBackUnique _token;
         _group setVariable ["WAIT_Cortex_SupportAbort",
@@ -98,7 +98,7 @@ for "_slot" from count _active to (_maxConcurrent-1) do {
     for "_offset" from 0 to ((count _teams)-1) do {
         private _index=(_cursor+_offset) mod count _teams;
         (_teams select _index) params ["_group","_token","_goal"];
-        private _fit=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}};
+        private _fit=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}};
         if (count _fit >= 4 && {serverTime >= (_group getVariable ["WAIT_Cortex_SupportRetryAfter",0])}
             && {!(_token in _completed)} && {!(_token in _retired)}
             && {_active findIf {(_x select 4) == _token} < 0}
@@ -121,7 +121,8 @@ for "_slot" from count _active to (_maxConcurrent-1) do {
                 _candidateRoutes pushBack [_centre getPos [_distance,_bearing+_x]];
             } forEach [0,-18,18];
             private _requester=_job getOrDefault ["requester",grpNull];
-            private _supportOrigins=if (isNull _requester) then {[]} else {[getPosATL leader _requester]};
+            private _requesterTransmitter=[_requester] call WAIT_fnc_CortexGroupTransmitter;
+            private _supportOrigins=if (isNull _requesterTransmitter) then {[]} else {[getPosATL _requesterTransmitter]};
             private _selected=[_centre,_candidateRoutes,_job get "assaultEnemy",_supportOrigins]
                 call WAIT_fnc_CortexSelectAvenue;
             if (_selected isNotEqualTo []) then {

@@ -34,14 +34,19 @@ if (!local _group) exitWith {
 };
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
-private _leader = leader _group;
+// Clear only WAIT's published order after an external takeover. A normal feature gate change
+// still returns the released defence element to formation; it is not an external movement order.
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
+private _canRestore = _restore && {!_externalTakeover};
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 {
     private _ownedHold = (_x getVariable ["WAIT_AIPass_DefendHolding",false])
         || {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []};
     if (alive _x && {local _x}) then {
-        _x doWatch objNull;
+        if (!_externalTakeover) then {_x doWatch objNull;};
         private _command = toUpperANSI currentCommand _x;
-        if (_restore || {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}) then {
+        if (_canRestore || {!_externalTakeover && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
             _x doFollow _leader
         };
     };

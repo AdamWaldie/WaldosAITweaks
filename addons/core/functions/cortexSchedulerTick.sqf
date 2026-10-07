@@ -3,8 +3,10 @@
  * Repeat/JIP: Each invocation processes due jobs within the local budget. Joining owners have independent queues; jobs are not replayed across machines.
  * Runs due Smart AI Pass jobs on this machine with a soft time budget between jobs.
  *
- * Called by one CBA handler every frame on each AI-owning machine (server and headless clients
- * only). The cached deadline makes frames with no due work constant-time. At least one due job runs
+ * Called by one CBA handler every frame on a machine with an active owner-local subsystem. Ground
+ * tactics normally run on the server or a headless client; an interface machine only participates
+ * when it genuinely owns an eligible aircraft. The cached deadline makes frames with no due work
+ * constant-time. At least one due job runs
  * on a due frame; the rest run only while
  * WAIT_AIPass_TickBudgetMs remains. Jobs that do not fit wait for the next tick, which keeps
  * new jobs from starting after the budget is spent. A running job cannot be pre-empted and can
@@ -34,7 +36,8 @@
 
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active", false])
     && {!(missionNamespace getVariable ["WAIT_AI_RebalanceActive", false])}
-    && {!(missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false])}) exitWith {};
+    && {!(missionNamespace getVariable ["WAIT_Convoy_SchedulerActive", false])}
+    && {!(missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive", false])}) exitWith {};
 private _jobs = missionNamespace getVariable ["WAIT_AIPass_Jobs", []];
 private _pending = missionNamespace getVariable ["WAIT_AIPass_PendingJobs", []];
 private _now = time;
@@ -74,14 +77,15 @@ private _earliest = -1;
         private _enabledFlag = switch (_subsystem) do {
             case "SKILLS": {"WAIT_AI_RebalanceActive"};
             case "CONVOY": {"WAIT_Convoy_SchedulerActive"};
+            case "AIRCRAFT": {"WAIT_Aircraft_SchedulerActive"};
             default {"WAIT_AIPass_Active"};
         };
         private _enabled = missionNamespace getVariable [_enabledFlag, false];
-        // Skill refresh is intentionally live during a tactical pause. Convoys are likewise
-        // safety-critical: a column must retain its current native route/hold rather than being
-        // made stale by an unrelated ENDEX or safe-start delay.
+        // Skill refresh is intentionally live during a tactical pause. Convoys and aircraft are
+        // likewise safety-critical: existing motion assistance must not become stale because an
+        // unrelated infantry ENDEX or safe-start gate is active.
         private _jobPaused = _paused && {!_skillsJob};
-        if (_subsystem == "CONVOY") then {_jobPaused=false};
+        if (_subsystem in ["CONVOY", "AIRCRAFT"]) then {_jobPaused=false};
         private _group = _state getOrDefault ["group", grpNull];
         private _stale = !_enabled || {!isNull _group && {!local _group || {(_state getOrDefault ["ownerEpoch", -1]) != (_group getVariable ["WAIT_AIPass_Epoch", 0])}}};
         private _callbackStarted=diag_tickTime;
@@ -89,14 +93,21 @@ private _earliest = -1;
         _state set ["lastCallbackMs",(diag_tickTime-_callbackStarted)*1000];
         _state set ["queueLatency",(_now-_dueAt) max 0];
         _state set ["lastRunAt",_now];
-        if (_stale) then {_state set ["skippedReason",if (!_enabled) then {"DISABLED"} else {"LOCALITY"}]};
+        // Diagnostics describe the current queued state, not an old transient skip. A paused job
+        // remains intentionally queued, while a later successful callback clears its previous
+        // pause marker before it is reported as healthy again.
+        if (_stale) then {
+            _state set ["skippedReason",if (!_enabled) then {"DISABLED"} else {"LOCALITY"}]
+        } else {
+            if (_jobPaused) then {_state set ["skippedReason","PAUSED"]} else {_state deleteAt "skippedReason"};
+        };
         if (!_stale && {!_paused} && {!isNull _group}) then {[_group] call WAIT_fnc_CortexCheckpoint};
         if (!isNil "_delay" && {_delay isEqualType 0} && {_delay >= 0}) then {
             // A finite danger response has already been observed locally. Preserve its prompt
             // reassessment under low FPS; only optional planning keeps the normal backoff. The
             // marker lives on this existing job and expires without another scheduler/loop.
             private _responsive = _now < (_state getOrDefault ["responsiveUntil",-1]);
-            if (_slow && {!_jobPaused} && {!_skillsJob} && {_subsystem != "CONVOY"} && {!_responsive}) then {_delay = _delay * 2};
+            if (_slow && {!_jobPaused} && {!_skillsJob} && {!(_subsystem in ["CONVOY", "AIRCRAFT"])} && {!_responsive}) then {_delay = _delay * 2};
             _rescheduled pushBack [_now + _delay, _job, _state];
             private _rescheduledAt = _now + _delay;
             if (_earliest < 0 || {_rescheduledAt < _earliest}) then {_earliest = _rescheduledAt};
@@ -107,3 +118,19 @@ private _earliest = -1;
 _next append _rescheduled;
 missionNamespace setVariable ["WAIT_AIPass_Jobs", _next];
 missionNamespace setVariable ["WAIT_AIPass_NextJobDue", _earliest];
+// Aircraft observers activate the scheduler only on machines which currently own eligible
+// aircraft. When the final generation-scoped job retires, release that runtime; class/locality
+// handlers will reacquire it if another eligible aircraft becomes local later.
+if (
+    missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false]
+    || {missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive", false]}
+) then {
+    private _aircraftStates = (_next apply {_x select 2}) select {(_x getOrDefault ["subsystem", ""]) == "AIRCRAFT"};
+    private _decelerationActive = (_aircraftStates findIf {(_x getOrDefault ["jobKey", ""]) find "WAIT_DECEL_" == 0}) >= 0;
+    private _landingActive = (_aircraftStates findIf {(_x getOrDefault ["jobKey", ""]) find "WAIT_LANDING_" == 0}) >= 0;
+    private _changed = _decelerationActive != (missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive", false])
+        || {_landingActive != (missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive", false])};
+    missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", _decelerationActive];
+    missionNamespace setVariable ["WAIT_Aircraft_LandingSchedulerActive", _landingActive];
+    if (_changed) then {[] call WAIT_fnc_SchedulerReconcile};
+};

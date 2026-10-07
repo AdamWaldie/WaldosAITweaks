@@ -25,6 +25,14 @@ jobs:
       - run: python releaseVerificationAndDeployment/check_cortex_coverage.py
       - run: hemtt build --no-bin
       - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
+      - run: hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
+      - run: hemtt utils config inspect addons/infantry/fsm/danger.fsm
+      - run: hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+      - run: hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
+      - run: hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
+      - run: hemtt utils config inspect addons/main/fsm/airAttackOperation.fsm
+      - run: hemtt utils config inspect addons/main/fsm/artilleryMission.fsm
+      - run: hemtt utils config inspect addons/main/fsm/supportRequest.fsm
       - run: python releaseVerificationAndDeployment/mod_pipeline.py seal .hemttout/build
       - uses: actions/upload-artifact@v4
         with:

@@ -18,7 +18,7 @@
  * short per-group random delay, so separate squads do not produce an uncanny global volley. This models
  * alternating or "talking" fire inside an element while leaving unrelated elements asynchronous.
  * A suppressor needs at least two magazines and 60 rounds
- * for his weapon, must not hmeleeBackendelf be heavily suppressed, and must have a clear line of fire
+ * for his weapon, must not himself be heavily suppressed, and must have a clear line of fire
  * (WAIT_fnc_CortexLineOfFireClear keeps friendlies, including the flanking element, and civilians out
  * of the cone). Each suppressor rests 8 s between bursts. Flank element members are left alone.
  * The pass adds no detection. A live coordinated role may suppress its reported position

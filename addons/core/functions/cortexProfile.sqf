@@ -19,7 +19,8 @@
  * uses LINE.
  * Legacy keys flankChance, advanceChance and coordinatedChance remain readable for mission/config
  * compatibility but no longer assign a squad a movement pattern or block shared-contact action;
- * investigateChance remains a 0-1 post-contact search roll;
+ * investigateChance remains a 0-1 post-contact search preference; zero excludes proactive search,
+ * while every positive value permits an otherwise viable investigation without a random idle gate;
  * assaultChance is the 0-1 chance of preparing an eligible assault with a safe carried grenade,
  * while the enabled assault transition itself remains deterministic after a successful manoeuvre.
  * moraleShaken and moraleBroken (morale thresholds), retreatScale (multiplies

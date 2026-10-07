@@ -6,7 +6,9 @@
  * which WAIT_fnc_CortexFireControl uses to suppress. Up to half the squad (2-5 riflemen) becomes
  * the manoeuvre element. Candidate two-leg routes are sampled against the firing corridors from the
  * squad's own base of fire and at most four nearby friendly squads which are actually in CONTACT
- * or assigned a coordinated COVER role. Merely knowing about the target does not create a firing
+ * or assigned a coordinated COVER role. A bounded sample of each supporting squad's members must
+ * already know the target; the leader being in cover cannot erase an active wingman's fire lane.
+ * Merely knowing about the target does not create a firing
  * corridor. Cortex chooses a side and
  * width that stays outside a 30 m firing corridor and, when it begins clearly on one side of another
  * supporting squad's fire axis, remains on that side. All six bounded candidates are scored once at start;
@@ -63,7 +65,9 @@ if (count _movementLease == 2 && {time < (_movementLease select 1)}) exitWith {[
 if (count (_state getOrDefault ["drill", createHashMap]) > 0) exitWith {["DRILL_ACTIVE"] call _refuse};
 if ([_state, "flank"] call WAIT_fnc_CortexCooldown) exitWith {["COOLDOWN"] call _refuse};
 if ((_state getOrDefault ["moraleState", "STEADY"]) != "STEADY") exitWith {["MORALE",[_state getOrDefault ["moraleState","UNKNOWN"]]] call _refuse};
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 if (vehicle _leader != _leader) exitWith {["LEADER_MOUNTED"] call _refuse};
 private _onFoot = (units _group) select {
     private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
@@ -100,6 +104,15 @@ if (_base isNotEqualTo []) then {
     {_origin = _origin vectorAdd getPosATL _x} forEach _base;
     _supportOrigins pushBack (_origin vectorMultiply (1/count _base));
 };
+// Supporting fire lanes can only originate from groups near the observed enemy. Build the
+// distinct candidate set from that envelope, rather than scanning every group on the machine.
+private _supportGroups=[];
+{
+    private _supportGroup=group _x;
+    if (!isNull _supportGroup && {!(_supportGroup in _supportGroups)}) then {
+        _supportGroups pushBack _supportGroup;
+    };
+} forEach (_enemyPos nearEntities ["Man",500]);
 {
     private _friendlyGroup = _x;
     private _friendlyLeader = leader _friendlyGroup;
@@ -109,10 +122,14 @@ if (_base isNotEqualTo []) then {
     if (_friendlyGroup != _group && {!isNull _friendlyLeader} && {alive _friendlyLeader}
         && {_activeSupport}
         && {(side _group) getFriend (side _friendlyGroup) >= 0.6}
-        && {_friendlyLeader distance2D _enemyPos < 500}
-        && {_friendlyLeader knowsAbout _target > 0.5}) then {
+        && {_friendlyLeader distance2D _enemyPos < 500}) then {
         private _friendlyFoot = (units _friendlyGroup) select {alive _x && {vehicle _x == _x}};
-        if (_friendlyFoot isNotEqualTo []) then {
+        // A leader can be behind cover while a wingman is actively engaging. Use a small native
+        // knowledge sample rather than leader-only knowledge, but keep the support-lane planning
+        // cost bounded even around large groups.
+        private _supportSpotters=_friendlyFoot select [0,(count _friendlyFoot) min 8];
+        private _supportKnows=_supportSpotters findIf {_x knowsAbout _target > 0.5} >= 0;
+        if (_friendlyFoot isNotEqualTo [] && {_supportKnows}) then {
             private _origin = [0,0,0];
             {_origin = _origin vectorAdd getPosATL _x} forEach _friendlyFoot;
             _supportCandidates pushBack [
@@ -122,7 +139,7 @@ if (_base isNotEqualTo []) then {
             ];
         };
     };
-} forEach allGroups;
+} forEach _supportGroups;
 _supportCandidates sort true;
 {
     _supportOrigins pushBack (_x select 2);

@@ -25,11 +25,12 @@ params [["_requester",grpNull,[grpNull]],["_enemy",[],[[]]],["_at",false,[true]]
 private _requesterReinforce = !isNull _requester && {[_requester,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterCoordinated = !isNull _requester && {[_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _supportEnabled = _requesterReinforce || {_requesterCoordinated};
+private _requesterTransmitter = [_requester] call WAIT_fnc_CortexGroupTransmitter;
 if (!isServer || {isNull _requester} || {remoteExecutedOwner > 0 && {remoteExecutedOwner != groupOwner _requester}}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Enable",false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {!([_requester,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!_supportEnabled}
-    || {!([_requester] call WAIT_fnc_CortexIsEligible)} || {!([leader _requester] call WAIT_fnc_CortexCanTransmit)}
+    || {!([_requester] call WAIT_fnc_CortexIsEligible)} || {isNull _requesterTransmitter}
     || {count _enemy != 3} || {_enemy findIf {!(_x isEqualType 0)} >= 0}) exitWith {};
 private _requests = missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
 private _key = netId _requester;
@@ -37,21 +38,37 @@ private _existing = _requests getOrDefault [_key,createHashMap];
 if (count _existing > 0) exitWith {
     _requester setVariable ["WAIT_Cortex_SupportRequestState",[_existing get "serial","ACTIVE",_existing get "expiry"],true];
     if (_at && {!(_existing getOrDefault ["at",false])}) then {_existing set ["at",true]; _existing set ["maximum",((_existing get "maximum")+1) min 6]};
+    // A locality restart or interrupted scheduler callback can leave the bounded request registered
+    // after its finite brain has gone away. Re-adopt the same serial rather than duplicating leases.
+    [_existing,0] call WAIT_fnc_SupportRequestStart;
 };
 if (count _requests >= 32) exitWith {};
 private _configuredMaximum = missionNamespace getVariable ["WAIT_AIPass_Reinforce_MaxResponders",2];
 private _maximum = ([_configuredMaximum,_configuredMaximum max 2] select _requesterCoordinated) + ([0,1] select _at);
 if (_maximum <= 0) exitWith {};
 private _radius = missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600];
+private _requesterPosition=getPosATL _requesterTransmitter;
+// A reinforcement candidate must have a transmitter inside the configured response radius.
+// Build a unique group set from that local envelope instead of walking every mission group.
+private _candidateGroups=[];
+{
+    private _candidateGroup=group _x;
+    if (!isNull _candidateGroup && {!(_candidateGroup in _candidateGroups)}) then {
+        _candidateGroups pushBack _candidateGroup;
+    };
+} forEach (_requesterPosition nearEntities ["Man",_radius]);
 private _candidates = [];
-{if (_x != _requester && {side _x == side _requester} && {alive leader _x}
-    && {[leader _x] call WAIT_fnc_CortexCanTransmit}
-    && {count ((units _x) select {[_x] call WAIT_fnc_CortexCombatEffective && {vehicle _x == _x}}) >= 3}
-    && {leader _x distance2D leader _requester <= _radius}) then {
-    _candidates pushBack [leader _x distance2D leader _requester,_forEachIndex,_x];
-}} forEach allGroups;
+{
+    private _candidate = _x;
+    private _candidateTransmitter = [_candidate] call WAIT_fnc_CortexGroupTransmitter;
+    private _distance = if (isNull _candidateTransmitter) then {-1} else {_candidateTransmitter distance2D _requesterPosition};
+    if (_candidate != _requester && {side _candidate == side _requester} && {!isNull _candidateTransmitter}
+        && {count ((units _candidate) select {[_x] call WAIT_fnc_CortexCombatEffective && {isNull objectParent _x}}) >= 3}
+        && {_distance <= _radius}) then {
+        _candidates pushBack [_distance,_forEachIndex,_candidate];
+    };
+} forEach _candidateGroups;
 _candidates sort true;
-private _requesterPosition=getPosATL leader _requester;
 private _rallyDirection=_requesterPosition getDir _enemy;
 private _rallyCandidates=[];
 {
@@ -74,4 +91,4 @@ _requester setVariable ["WAIT_Cortex_SupportResponders",[],true];
 _requester setVariable ["WAIT_Cortex_SupportRequestState",[_serial,"ACTIVE",_job get "expiry"],true];
 _requests set [_key,_job];
 missionNamespace setVariable ["WAIT_AIPass_SupportRequests",_requests];
-[WAIT_fnc_CortexSupportStep,_job,1] call WAIT_fnc_CortexQueueJob;
+[_job,1] call WAIT_fnc_SupportRequestStart;

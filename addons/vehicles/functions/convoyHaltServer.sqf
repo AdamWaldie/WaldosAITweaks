@@ -9,7 +9,7 @@
  * Example: [convoyGroup, 3, "AMBUSH"] remoteExecCall ["WAIT_fnc_ConvoyHaltServer", 2];
  */
 params [["_group", grpNull, [grpNull]], ["_expected", -1, [0]], ["_reason", "ARRIVED", [""]], ["_threat", [], [[]]], ["_blockedVehicle",objNull,[objNull]]];
-if (!isServer || {isNull _group} || {!(_reason in ["ARRIVED", "AMBUSH", "IMMOBILE", "STALLED"])}) exitWith {false};
+if (!isServer || {isNull _group} || {!(_reason in ["ARRIVED", "AMBUSH", "IMMOBILE", "STALLED", "OBSTRUCTION"])}) exitWith {false};
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2} && {remoteExecutedOwner != groupOwner _group}) exitWith {false};
 if (_reason == "AMBUSH" && {!([_group,"WAIT_Convoy_ContactHalt_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {false};
 private _registry = missionNamespace getVariable ["WAIT_Convoy_Registry", []];
@@ -17,7 +17,7 @@ private _index = _registry findIf {(_x select 0) == _group};
 if (_index < 0) exitWith {false};
 private _configuration = (_registry select _index) select 1;
 if ((_configuration select 0) != _expected || {(_configuration select 5) != "TRAVEL"}) exitWith {false};
-if (_reason == "STALLED" && {!(_blockedVehicle in (_configuration select 4))}) exitWith {false};
+if (_reason in ["STALLED", "OBSTRUCTION"] && {!(_blockedVehicle in (_configuration select 4))}) exitWith {false};
 if ([] call WAIT_fnc_CortexIsPaused || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
 private _accepted = [_group, 0, 15, true, false, [["reason", _reason], ["threat", _threat], ["blockedVehicle",_blockedVehicle]]] call WAIT_fnc_SimpleAiConvoy;
 if (_accepted) then {diag_log format ["[WAIT CONVOY] Halt: group=%1 reason=%2 revision=%3", _group, _reason, _expected]};

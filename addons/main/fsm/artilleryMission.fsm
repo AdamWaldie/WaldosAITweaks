@@ -1,0 +1,24 @@
+class FSM {
+ fsmName="WAIT server artillery mission";
+ class States {
+  class Start {name="Start";init="_mission=_this param [0,createHashMap]; _generation=_this param [1,-1]; _brain=_this param [2,createHashMap]; _battery=_brain getOrDefault [""battery"",objNull]; _phase=toUpperANSI (_brain getOrDefault [""phase"",""REQUESTED""]); _reason="""";";precondition="";class Links {class Invalid {priority=5;to="Finished";condition="!isServer || {isNull _battery} || {count _mission == 0} || {count _brain == 0}";action="_reason=""INVALID_START"";";};class Route {priority=0;to="Router";condition="true";action="";};};};
+  class Router {name="Router";init="_phase=toUpperANSI (_brain getOrDefault [""phase"",""REQUESTED""]);";precondition="";class Links {
+   class FinishedJob {priority=12;to="Finished";condition="_brain getOrDefault [""finished"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""COMPLETE""];";};
+   class Cancelled {priority=11;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};
+   class Replaced {priority=10;to="Finished";condition="isNull _battery || {_generation != (_battery getVariable [""WAIT_Artillery_BrainGeneration"",-2])} || {(_battery getVariable [""WAIT_Artillery_Brain"",createHashMap]) isNotEqualTo _brain}";action="_reason=""REPLACED"";";};
+   class Delay {priority=9;to="Delay";condition="time < (_brain getOrDefault [""nextAt"",time])";action="";};
+   class Warning {priority=5;to="Warning";condition="_phase == ""WARNING""";action="";};
+   class Firing {priority=5;to="Firing";condition="_phase == ""FIRING""";action="";};
+   class Relocating {priority=5;to="Relocating";condition="_phase == ""RELOCATING""";action="";};
+   class Requested {priority=0;to="Requested";condition="true";action="";};
+  };};
+  class Delay {name="Delay";init="";precondition="";class Links {class Invalidated {priority=5;to="Router";condition="_brain getOrDefault [""cancelled"",false] || {_brain getOrDefault [""finished"",false]} || {isNull _battery} || {_generation != (_battery getVariable [""WAIT_Artillery_BrainGeneration"",-2])}";action="";};class Due {priority=0;to="Router";condition="time >= (_brain getOrDefault [""nextAt"",time])";action="";};};};
+  class Requested {name="Requested";init="[_battery,_generation,_brain,""REQUESTED""] call WAIT_fnc_ArtilleryMissionQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Warning {name="Warning";init="[_battery,_generation,_brain,""WARNING""] call WAIT_fnc_ArtilleryMissionQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Firing {name="Firing";init="[_battery,_generation,_brain,""FIRING""] call WAIT_fnc_ArtilleryMissionQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Relocating {name="Relocating";init="[_battery,_generation,_brain,""RELOCATING""] call WAIT_fnc_ArtilleryMissionQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Waiting {name="Waiting";init="";precondition="";class Links {class Invalidated {priority=6;to="Finished";condition="_brain getOrDefault [""cancelled"",false] || {isNull _battery} || {_generation != (_battery getVariable [""WAIT_Artillery_BrainGeneration"",-2])} || {(_battery getVariable [""WAIT_Artillery_Brain"",createHashMap]) isNotEqualTo _brain}";action="_reason=_brain getOrDefault [""cancelReason"",""INVALIDATED""];";};class SchedulerWatchdog {priority=5;to="Router";condition="(_brain getOrDefault [""pending"",false]) && {!(_brain getOrDefault [""completed"",false])} && {time >= ((_brain getOrDefault [""queuedAt"",time])+15)} && {time >= (missionNamespace getVariable [""WAIT_AIPass_ResumeGraceUntil"",-1])} && {!([] call WAIT_fnc_CortexIsPaused)}";action="_brain set [""pending"",false]; _brain set [""watchdogCount"",(_brain getOrDefault [""watchdogCount"",0])+1]; _brain set [""nextAt"",time]; missionNamespace setVariable [""WAIT_AIPass_NextJobDue"",time];";};class Completed {priority=0;to="Router";condition="_brain getOrDefault [""completed"",false]";action="";};};};
+  class Finished {name="Finished";init="_brain set [""finished"",true]; if (_reason != """") then {_brain set [""cancelReason"",_reason]}; if (!isNull _battery && {(_battery getVariable [""WAIT_Artillery_Brain"",createHashMap]) isEqualTo _brain}) then {_battery setVariable [""WAIT_Artillery_Brain_State"",[_phase,_generation,serverTime,_brain getOrDefault [""cancelReason"",""COMPLETE""]],true]; _battery setVariable [""WAIT_Artillery_Brain"",nil]; _battery setVariable [""WAIT_Artillery_Brain_FSM"",nil];};";precondition="";class Links {};};
+ };
+ initState="Start";finalStates[]={"Finished"};
+};

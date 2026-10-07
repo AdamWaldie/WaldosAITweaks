@@ -1,6 +1,6 @@
 # Cortex and AI configuration defaults
 
-Verified against MissionConfig/aiConfig.sqf and the Cortex Control specification on 30 September 2026. These are shipped configuration defaults, before mission or Zeus overrides. Audit scenarios temporarily change values and restore them afterwards.
+Verified against addons/main/settings/aiConfig.sqf and the shared CBA control specification on 7 October 2026. These are shipped configuration defaults, before mission or Zeus overrides. Audit scenarios temporarily change values and restore them afterwards.
 
 Cortex automatic tactics are enabled by default. AI skill profiles and improved helicopter landings are independently enabled. Convoy options apply when a convoy is explicitly started. Enabled subfeatures still require their parent feature and applicable setup.
 
@@ -25,7 +25,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AI_SkillVariance` | `0` | ADVANCED: one stable per-AI offset; 0 disables variation. |
 | `WAIT_AI_InfantryDispersion` | `1.35` | Owner-local aim coefficient for dismounted AI and vehicle cargo. |
 | `WAIT_AI_VehicleCrewAimMultiplier` | `0.6` | Final aiming-skill multiplier for ordinary operating vehicle and aircraft crew. Named Dynamic AA crews are exempt. |
-| `WAIT_AI_VehicleCrewDispersion` | `3.5` | Owner-local aim coefficient for ground-vehicle operators when COMPAT Turrets is absent. |
+| `WAIT_AI_VehicleCrewDispersion` | `3.5` | Owner-local aim coefficient for ground-vehicle operators when no external precision provider is active. |
 | `WAIT_AI_AirCrewDispersion` | `4.25` | Wider owner-local aim coefficient for aircraft operators. Named Dynamic AA crews remain exempt. |
 | `WAIT_AI_IncludedSides` | `[]` | ARRAY of WEST/EAST/GUER/CIV strings; [] permits every side. |
 | `WAIT_AI_IncludedFactions` | `[]` | ARRAY of CfgFactionClasses names; [] permits every faction. |
@@ -71,6 +71,10 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_TickBudgetMs` | `1` | MILLISECONDS: work allowed per 0.25 s scheduler tick; at least one job always runs. |
 | `WAIT_AIPass_LowFpsThreshold` | `25` | FPS: below this, behaviour steps are rescheduled half as often. |
 | `WAIT_AIPass_Regroup_Enable` | `true` | BOOL: survivors of a destroyed squad regroup with a nearby friendly squad. |
+| `WAIT_AIPass_MedicalAssist_Enable` | `true` | BOOL: one local medic uses native treatment during CALM or SECURITY; yields to active medical ownership, Zeus and combat. |
+| `WAIT_AIPass_MedicalAssist_Range` | `80` | METRES: maximum local medic-to-casualty selection distance. |
+| `WAIT_AIPass_MedicalAssist_DamageThreshold` | `0.35` | DAMAGE: minimum engine damage considered for one finite treatment attempt. |
+| `WAIT_AIPass_MedicalAssist_Timeout` | `45` | SECONDS: finite native treatment limit; WAIT releases without changing health. |
 | `WAIT_AIPass_Regroup_MaxRemnantSize` | `2` | COUNT: living members at or below this make a remnant. |
 | `WAIT_AIPass_Regroup_MinimumPeakSize` | `3` | COUNT: smaller deliberate teams are never merged. |
 | `WAIT_AIPass_Regroup_SearchRadius` | `400` | METRES: host squad search radius. |
@@ -108,8 +112,8 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Flank_MinRange` | `60` | METRES: nearer enemies are fought, not flanked. |
 | `WAIT_AIPass_Flank_MaxRange` | `400` | METRES: farther enemies are not flanked. |
 | `WAIT_AIPass_Flank_BoundDistance` | `55` | METRES: length of one bound (minimum 15). |
-| `WAIT_AIPass_Flank_BoundPause` | `2` | SECONDS: overwatch halt between bounds. |
-| `WAIT_AIPass_Flank_BoundTimeout` | `25` | SECONDS: a bound ends after this even if not everyone arrived. |
+| `WAIT_AIPass_Flank_BoundPause` | `0` | SECONDS: optional deliberate overwatch after physical arrival; zero keeps movement continuous. |
+| `WAIT_AIPass_Flank_BoundTimeout` | `25` | SECONDS without physical progress before a bound fails; the absolute limit is four times this value. |
 | `WAIT_AIPass_Flank_Cooldown` | `90` | SECONDS: before the same squad flanks again. |
 | `WAIT_AIPass_StreetCrossing_Enable` | `true` | BOOL: flanks stop at roads, smoke, and cross in one bound. |
 | `WAIT_AIPass_FireControl_Enable` | `true` | BOOL: close threats, fire distribution, disciplined suppression. |
@@ -186,7 +190,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Assault_Enable` | `true` | BOOL: a flank can finish with a grenade and a rush on the enemy position. |
 | `WAIT_AIPass_Assault_Range` | `80` | METRES: the enemy must be this close to the flanking element to assault. |
 | `WAIT_AIPass_Advance_Enable` | `true` | BOOL: pinned squads with somewhere to go push a team forward in bounds. |
-| `WAIT_AIPass_Advance_MinContactSeconds` | `5` | SECONDS: confirmed contact before an advance is considered. |
+| `WAIT_AIPass_Advance_MinContactSeconds` | `0` | SECONDS: optional confirmed-contact delay before an advance is considered. |
 | `WAIT_AIPass_Advance_Cooldown` | `20` | SECONDS: after an advance ends before the squad may start another. |
 | `WAIT_AIPass_CoordinatedAssault_Enable` | `true` | BOOL: reinforcing squads assault together while the first squad fires. |
 | `WAIT_AIPass_Stance_Enable` | `true` | BOOL: stance chosen from the height of the cover in front. |
@@ -200,14 +204,14 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 
 ## Behaviour profile map
 
-WAIT_AIPass_ProfileBehaviour has these defaults. Chance values are weighted by aggression and eligibility; they are not a promise to act on every tick.
+WAIT_AIPass_ProfileBehaviour has these defaults. Preference values are weighted by aggression and eligibility. A zero value opts out. A positive investigation preference scales accepted search range without randomly withholding an otherwise viable search; assault preference controls optional grenade preparation.
 
 ```sqf
-            ["MILITIA", createHashMapFromArray [["flankChance", 0.3], ["assaultChance", 0.2], ["advanceChance", 0.3], ["investigateChance", 0.4], ["coordinatedChance", 0.2], ["moraleShaken", 0.65], ["moraleBroken", 0.4], ["retreatScale", 1.5], ["surrenderSurvivors", 3]]],
-            ["LINE", createHashMapFromArray [["flankChance", 0.5], ["assaultChance", 0.4], ["advanceChance", 0.5], ["investigateChance", 0.6], ["coordinatedChance", 0.4], ["moraleShaken", 0.55], ["moraleBroken", 0.3], ["retreatScale", 1], ["surrenderSurvivors", 2]]],
-            ["LEGACY", createHashMapFromArray [["flankChance", 0.5], ["assaultChance", 0.4], ["advanceChance", 0.5], ["investigateChance", 0.6], ["coordinatedChance", 0.4], ["moraleShaken", 0.55], ["moraleBroken", 0.3], ["retreatScale", 1], ["surrenderSurvivors", 2]]],
-            ["VETERAN", createHashMapFromArray [["flankChance", 0.6], ["assaultChance", 0.55], ["advanceChance", 0.6], ["investigateChance", 0.75], ["coordinatedChance", 0.5], ["moraleShaken", 0.45], ["moraleBroken", 0.22], ["retreatScale", 0.8], ["surrenderSurvivors", 1]]],
-            ["ELITE", createHashMapFromArray [["flankChance", 0.7], ["assaultChance", 0.7], ["advanceChance", 0.7], ["investigateChance", 0.85], ["coordinatedChance", 0.6], ["moraleShaken", 0.4], ["moraleBroken", 0.18], ["retreatScale", 0.7], ["surrenderSurvivors", 1]]]
+            ["MILITIA", createHashMapFromArray [["flankChance", 0.3], ["assaultChance", 0.2], ["advanceChance", 0.7], ["investigateChance", 0.4], ["coordinatedChance", 0.2], ["moraleShaken", 0.65], ["moraleBroken", 0.4], ["retreatScale", 1.5], ["surrenderSurvivors", 3]]],
+            ["LINE", createHashMapFromArray [["flankChance", 0.5], ["assaultChance", 0.4], ["advanceChance", 0.6], ["investigateChance", 0.6], ["coordinatedChance", 0.4], ["moraleShaken", 0.55], ["moraleBroken", 0.3], ["retreatScale", 1], ["surrenderSurvivors", 2]]],
+            ["LEGACY", createHashMapFromArray [["flankChance", 0.5], ["assaultChance", 0.4], ["advanceChance", 0.6], ["investigateChance", 0.6], ["coordinatedChance", 0.4], ["moraleShaken", 0.55], ["moraleBroken", 0.3], ["retreatScale", 1], ["surrenderSurvivors", 2]]],
+            ["VETERAN", createHashMapFromArray [["flankChance", 0.7], ["assaultChance", 0.55], ["advanceChance", 0.5], ["investigateChance", 0.75], ["coordinatedChance", 0.5], ["moraleShaken", 0.45], ["moraleBroken", 0.22], ["retreatScale", 0.8], ["surrenderSurvivors", 1]]],
+            ["ELITE", createHashMapFromArray [["flankChance", 0.9], ["assaultChance", 0.7], ["advanceChance", 0.4], ["investigateChance", 0.85], ["coordinatedChance", 0.6], ["moraleShaken", 0.4], ["moraleBroken", 0.18], ["retreatScale", 0.7], ["surrenderSurvivors", 1]]]
 ```
 
 WAIT_AI_ProfileDisplayNames: LEGACY = Existing Mission Balance; MILITIA = WAIT Militia; LINE = WAIT Line; VETERAN = WAIT Veteran; ELITE = WAIT Elite.

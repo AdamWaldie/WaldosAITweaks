@@ -8,8 +8,9 @@
  * Example: private _sections = [] call WAIT_fnc_AITweaksSettingsSections;
  */
 [
-    ["GENERAL", "01 General", "01 Participation"],
-    ["PERFORMANCE", "01 General", "02 Performance"],
+    ["GENERAL", "01 General", "01 Participation and ownership"],
+    ["PROFILE", "01 General", "02 Tactical profile"],
+    ["PERFORMANCE", "01 General", "03 Performance"],
     ["SKILLS", "02 Skills", "01 Profiles and visibility"],
     ["PRECISION", "02 Skills", "02 Weapon precision"],
     ["CONTACT", "03 Infantry", "01 Awareness and contact"],
@@ -21,8 +22,9 @@
     ["COMMS", "04 Coordination", "01 Communication"],
     ["COORD", "04 Coordination", "02 Support and assault"],
     ["RESUPPLY", "04 Coordination", "03 Resupply"],
-    ["VEHICLES", "05 Vehicles", "01 Combat"],
-    ["PASSENGERS", "05 Vehicles", "02 Passengers"],
+    ["DRIVING", "05 Vehicles", "01 General driving and route safety"],
+    ["VEHICLES", "05 Vehicles", "02 Combat and withdrawal"],
+    ["PASSENGERS", "05 Vehicles", "03 Passengers"],
     ["CONVOY_TRAVEL", "06 Convoys", "01 Travel and spacing"],
     ["CONVOY_DRIVING", "06 Convoys", "02 Driving and route safety"],
     ["CONVOY_CONTACT", "06 Convoys", "03 Contact and passengers"],

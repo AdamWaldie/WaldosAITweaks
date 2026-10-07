@@ -18,3 +18,10 @@ private _spec=[] call WAIT_fnc_CortexTuningSpec;
 ["ADDON-setting-values-installed",_spec findIf {isNil {missionNamespace getVariable (_x select 0)}} < 0] call _check;
 private _keys=_spec apply {_x select 0};
 ["ADDON-setting-keys-unique",count _keys == count (_keys arrayIntersect _keys)] call _check;
+// Exercise the shared command-boundary predicate before any behavioural fixture is created.
+// Config compilation cannot detect a valid SQF expression that returns CODE instead of BOOL;
+// letting the suite continue after that failure only produces unrelated downstream timeouts.
+private _probeGroup=createGroup [civilian,true];
+private _takeoverResult=[_probeGroup] call WAIT_fnc_CortexExternalTakeover;
+deleteGroup _probeGroup;
+["ADDON-command-boundary-boolean",_takeoverResult isEqualType true,typeName _takeoverResult] call _check;

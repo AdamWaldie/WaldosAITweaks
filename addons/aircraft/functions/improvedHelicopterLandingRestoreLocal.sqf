@@ -34,6 +34,8 @@ params [
 ];
 if (isNull _helicopter) exitWith {false};
 if (!local _helicopter) exitWith {false};
+private _releasedRevision=_helicopter getVariable ["WAIT_ImprovedHelicopterLanding_ControlRevision",0];
+[_helicopter,"LANDING",str _releasedRevision,["ABORTED","LANDED"] select _landed] call WAIT_fnc_FlightLeaseRelease;
 // Invalidate the exact scheduled approach/anchor that previously owned the aircraft. A Boolean
 // alone is insufficient because a rapid retask can set it true for a new controller before the old
 // scheduled loop notices the intervening false state.

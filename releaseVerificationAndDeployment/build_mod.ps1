@@ -33,6 +33,20 @@ try {
     if ($LASTEXITCODE) { throw 'FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
     if ($LASTEXITCODE) { throw 'Danger FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/infantry/fsm/danger.fsm
+    if ($LASTEXITCODE) { throw 'Engine danger FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+    if ($LASTEXITCODE) { throw 'Group tactics FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
+    if ($LASTEXITCODE) { throw 'Building operation FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
+    if ($LASTEXITCODE) { throw 'Convoy operation FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/airAttackOperation.fsm
+    if ($LASTEXITCODE) { throw 'Aircraft attack FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/artilleryMission.fsm
+    if ($LASTEXITCODE) { throw 'Artillery mission FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/supportRequest.fsm
+    if ($LASTEXITCODE) { throw 'Support request FSM configuration validation failed' }
     & $Python releaseVerificationAndDeployment/mod_pipeline.py seal ".hemttout/$($Mode.ToLowerInvariant())"
     if ($LASTEXITCODE) { throw 'Package sealing failed' }
 } finally { Pop-Location }

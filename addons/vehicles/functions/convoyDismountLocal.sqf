@@ -23,8 +23,11 @@ private _reserved = [];
         private _job = _unit getVariable ["WAIT_Convoy_Dismount", []];
         private _ours = count _job == 4 && {(_job select 0) == _group} && {(_job select 1) == _revision};
         private _capable = alive _unit && {!(_unit getVariable ["ACE_isUnconscious", false])} && {lifeState _unit != "INCAPACITATED"};
-        private _operator = [group _unit] call WAIT_fnc_CompatibilityExternalControl || {"ALL" in ((group _unit) getVariable ["WAIT_AIPass_DisabledFeatures",[]])} || isPlayer leader group _unit || {[group _unit] call WAIT_fnc_CortexZeusHeld}
-            || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])};
+        // Passenger cover is a temporary convoy-owned order. The common handover helper protects a
+        // Zeus/player/specialist order on any member of this passenger group from a later convoy
+        // release or remount cleanup, while this local flag still honours an explicit WAIT disable.
+        private _operator = [group _unit] call WAIT_fnc_CortexExternalTakeover
+            || {"ALL" in ((group _unit) getVariable ["WAIT_AIPass_DisabledFeatures",[]])};
         private _end = _cleanup || {!([group _unit,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!([_group,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {_phase != "HALT"} || {serverTime >= _deadline}
             || {_operator} || {!_capable} || {vehicle _unit != _unit && {vehicle _unit != _vehicle || {_ours && {(_job select 3) isNotEqualTo []}}}};
         if (_end) then {
@@ -65,7 +68,8 @@ private _reserved = [];
                     };
                 };
                 if (_destination isNotEqualTo [] && {_unit distance2D _destination > 3}
-                    && {(_unit getVariable ["WAIT_Convoy_DismountApplied", []]) isNotEqualTo [_group, _revision, _destination]}) then {
+                    && {(_unit getVariable ["WAIT_Convoy_DismountApplied", []]) isNotEqualTo [_group, _revision, _destination]}
+                    && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                     _unit doMove _destination;
                     _unit setVariable ["WAIT_Convoy_DismountApplied", [_group, _revision, _destination]];
                 };

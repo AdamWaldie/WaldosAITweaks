@@ -36,6 +36,8 @@
  * MOVE or other command. Commands which cannot be a combat-side effect of a hold survive.
  * Pending remount intent is public for owner migration; GroupTick retries for up to 60 seconds.
  * Any finite COMPAT movement handover is released before its local support token is erased.
+ * The per-engagement native-contact marker and targetless vehicle dismount lease are also cleared,
+ * so a later danger-only wake cannot inherit permission to search or exit from an earlier event.
  * Return Value:
  * Nothing
  *
@@ -48,6 +50,10 @@
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_allowRemount",true,[true]], ["_yieldToExternal",false,[true]], ["_reason","RESTORED",[""]], ["_forcePhase",false,[true]]];
 if (isNull _group || {!local _group}) exitWith {};
+// A cleanup can run before the engine elects a replacement leader. All WAIT-owned followers use
+// this viable local anchor; external handovers still suppress the follow command below.
+private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 // A pending drill step may not run until after a checkpoint or ownership change.
 // Restore its movement restrictions now, before clearing the checkpoint below.
 if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
@@ -62,8 +68,11 @@ private _releaseOwnedHold={
         };
         private _command=toUpperANSI currentCommand _unit;
         private _ownedHold=_command in ["","STOP","ATTACK","FIRE","SUPPRESS"];
-        if (_ownedHold || {_returnSearchTeam && {!_yieldToExternal}}) then {
-            _unit doFollow leader _group;
+        // A replacement controller may intentionally leave a unit stationary, firing or holding
+        // position. Remove only WAIT's PATH lease during that handover; do not turn a neutral
+        // engine command into a new follow order.
+        if ((!_yieldToExternal && {_ownedHold}) || {_returnSearchTeam && {!_yieldToExternal}}) then {
+            _unit doFollow _leader;
         };
     };
 };
@@ -83,7 +92,6 @@ if (count _supportLease == 6 && {(_state getOrDefault ["supportToken",""]) == (_
 private _movementOwner=(_state getOrDefault ["movementLease",[]]) param [0,""];
 if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
 {_state deleteAt _x} forEach ["supportHeld","supportBoundSequence","supportToken","responding","assaulting","respondingTo","respondUntil"];
-private _leader = leader _group;
 // Zeus may deliberately replace Cortex's disabled autonomous-attack state while taking over.
 // The external handover owns that setting, just as it owns replacement movement and ROE.
 if (!_yieldToExternal && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
@@ -141,8 +149,8 @@ if (!_allowRemount) then {
 };
 {_state deleteAt _x} forEach [
     "consolidateIssued", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
-    "withdrawn", "contactLeader", "lastSeen", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];

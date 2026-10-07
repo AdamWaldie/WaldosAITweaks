@@ -20,7 +20,9 @@
  * presentation state are invalidated. An active aircraft lease restores its recorded native group
  * attack policy, deletes its finite native guidance target and named movement waypoint, and removes
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
- * Vehicle safe-stop handshakes restore their prior forced speed before their tokens are cleared.
+ * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
+ * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
+ * Targetless onboard danger reports are also retracted before the scheduler is discarded.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
  * old CBA callback cannot become valid again after a quick restart.
  * Civilian event handlers and their EntityCreated installer are removed; external addon state is
@@ -49,6 +51,11 @@ if (isServer) then {
         private _job = _y;
         private _requester=_job getOrDefault ["requester",grpNull];
         if (!isNull _requester) then {
+            private _brain=_requester getVariable ["WAIT_Support_Brain",createHashMap];
+            if (count _brain > 0) then {
+                _brain set ["cancelled",true];
+                _brain set ["cancelReason","CORTEX_STOPPED"];
+            };
             _requester setVariable ["WAIT_Cortex_SupportResponders",nil,true];
             _requester setVariable ["WAIT_Cortex_SupportRequestState",nil,true];
         };
@@ -58,6 +65,11 @@ if (isServer) then {
     missionNamespace setVariable ["WAIT_AIPass_CounterGeneration", (missionNamespace getVariable ["WAIT_AIPass_CounterGeneration", 0]) + 1];
     {
         private _battery = _y get "battery";
+        private _brain=_battery getVariable ["WAIT_Artillery_Brain",createHashMap];
+        if (count _brain > 0) then {
+            _brain set ["cancelled",true];
+            _brain set ["cancelReason","CORTEX_STOPPED"];
+        };
         _battery setVariable ["WAIT_AIPass_FireToken", nil, true];
         _battery setVariable ["WAIT_AIPass_BusyUntil", nil, true];
     } forEach (missionNamespace getVariable ["WAIT_AIPass_FireMissions", createHashMap]);
@@ -68,9 +80,14 @@ if (isServer) then {
     {
         [_x] call WAIT_fnc_DrivingAssistRelease;
         private _savedStopSpeed=_x getVariable ["WAIT_Cortex_DismountForcedSpeed",[]];
-        if (_savedStopSpeed isNotEqualTo [] && {local _x}) then {_x forceSpeed (_savedStopSpeed param [0,-1])};
+        private _ownedStop=_savedStopSpeed param [1,-2];
+        if (_savedStopSpeed isNotEqualTo [] && {local _x} && {_ownedStop >= 0}
+            && {abs ((getForcedSpeed _x)-_ownedStop) <= 0.1}) then {
+            _x forceSpeed (_savedStopSpeed param [0,-1]);
+        };
         _x setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
         _x setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
+        _x setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootToken",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootDeadline",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootPurpose",nil,true];
@@ -103,6 +120,24 @@ missionNamespace setVariable ["WAIT_AIPass_InitPending", false];
 } forEach (missionNamespace getVariable ["WAIT_AIPass_FlareVehicles", []]);
 missionNamespace setVariable ["WAIT_AIPass_FlareVehicles", []];
 
+// Aircraft attack persistence now lives outside the recurring scheduler queue. Retire each local
+// brain explicitly and let its bounded implementation perform the same owned-waypoint, handler,
+// speed and operation cleanup it uses for every other authority loss.
+{
+    private _aircraft=_x;
+    private _brain=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
+    if (local _aircraft && {count _brain > 0}) then {
+        _brain set ["cancelled",true];
+        _brain set ["cancelReason","CORTEX_STOPPED"];
+        private _attackJob=_brain getOrDefault ["job",createHashMap];
+        if (count _attackJob > 0) then {[_attackJob] call WAIT_fnc_CortexAirAttack};
+        _aircraft setVariable ["WAIT_AirAttack_BrainGeneration",(_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",0])+1];
+        _aircraft setVariable ["WAIT_AirAttack_Brain",nil];
+        _aircraft setVariable ["WAIT_AirAttack_Brain_FSM",nil];
+        _aircraft setVariable ["WAIT_Cortex_AirAttackJob",nil];
+    };
+} forEach (vehicles select {_x isKindOf "Air"});
+
 {
     _x params ["_variable", "_event"];
     private _handler = missionNamespace getVariable _variable;
@@ -129,13 +164,29 @@ if (!isNil "_civilianCreated") then {
 {
     [_x,true] call WAIT_fnc_CortexHearingLocal;
     [_x,true] call WAIT_fnc_DangerSetup;
+    private _brain=_x getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _brain > 0) then {
+        _brain set ["cancelled",true];
+        _brain set ["cancelReason","CORTEX_STOPPED"];
+        _brain set ["wakeAt",time];
+    };
+    _x setVariable ["WAIT_GroupBrain_Generation",(_x getVariable ["WAIT_GroupBrain_Generation",0])+1];
+    _x setVariable ["WAIT_GroupBrain",nil];
+    _x setVariable ["WAIT_GroupBrain_FSM",nil];
     _x setVariable ["WAIT_Cortex_GroupJob",nil];
+    private _buildingBrain=_x getVariable ["WAIT_BuildingBrain",createHashMap];
+    if (count _buildingBrain > 0) then {
+        _buildingBrain set ["cancelled",true];
+        _buildingBrain set ["cancelReason","CORTEX_STOPPED"];
+        _buildingBrain set ["completed",true];
+    };
+    _x setVariable ["WAIT_BuildingBrain",nil];
+    _x setVariable ["WAIT_BuildingBrain_FSM",nil];
     if (local _x) then {_x setVariable ["WAIT_AIPass_AreaReport",nil,true]};
     if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}}) then {
         [_x,true,"CORTEX_STOPPED"] call WAIT_fnc_CortexReleaseGroup;
     };
     if (local _x) then {
-        [_x] call WAIT_fnc_CortexBuildingBackendRelease;
         [_x] call WAIT_fnc_CortexDefendRelease;
         [_x] call WAIT_fnc_CortexGarrisonRelease;
         [_x] call WAIT_fnc_CortexClearRelease;
@@ -187,13 +238,17 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
     };
     private _group = (_x select 2) getOrDefault ["group", grpNull];
     if (!isNull _group) then {
-        if (local _group && {!isNull (_group getVariable ["WAIT_AIPass_RegroupHost", grpNull])}) then {
+        // Shutdown clears only WAIT work. A curator, player or external controller can claim a
+        // group between the broad release above and this delayed-job cleanup, so never use a
+        // stale regroup/clear record to issue formation or behaviour commands over that owner.
+        private _canRestoreGroup=local _group && {[_group,false,false,true] call WAIT_fnc_CortexIsEligible};
+        if (_canRestoreGroup && {!isNull (_group getVariable ["WAIT_AIPass_RegroupHost", grpNull])}) then {
             {
                 if (alive _x && {local _x}) then {_x doFollow leader _group};
             } forEach units _group;
         };
         _group setVariable ["WAIT_AIPass_Dropping", nil];
-        if (local _group && {"team" in (_x select 2)} && {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}) then {
+        if (_canRestoreGroup && {"team" in (_x select 2)} && {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}) then {
             private _clearJob = _x select 2;
             {if (alive _x && {local _x}) then {_x doFollow leader _group}} forEach (_clearJob getOrDefault ["team", []]);
             if ("baseBehaviour" in _clearJob && {behaviour leader _group == "COMBAT"}) then {

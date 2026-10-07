@@ -49,7 +49,9 @@ if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
     false
 };
 if (_centre isEqualType objNull) then {_centre = getPosATL _centre};
-if (count _centre < 2) then {_centre = getPosATL leader _group};
+private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _anchor) then {_anchor=leader _group};
+if (count _centre < 2) then {_centre = getPosATL _anchor};
 if !(_facing isEqualType 0) then {
     private _towards = if (_facing isEqualType objNull) then {getPosATL _facing} else {_facing};
     _facing = _centre getDir _towards;

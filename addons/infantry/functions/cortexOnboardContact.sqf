@@ -1,10 +1,10 @@
 /*
  * Author: WaldoTheWarfighter
- * Receives approximate onboard crew reports, requests an owner-local safe stop and dismounts
- * this squad's cargo only after the vehicle is physically stationary.
+ * Receives approximate onboard crew contact or targetless danger reports, requests an owner-local
+ * safe stop and dismounts this squad's cargo only after the vehicle is physically stationary.
  * Locality/authority: passenger group owner; validates current reporting crew ownership.
- * Repeat/JIP: 35-second reports bridge the 20-second far scheduler tier without becoming durable;
- * stop requests expire with the report and records each passenger once. No target disclosure or teleport.
+ * Repeat/JIP: reports bridge the 20-second far scheduler tier without becoming durable; stop requests
+ * expire with the report and record each passenger once. Danger reports do not disclose a target.
  * Arguments: 0: group <GROUP>, grpNull; 1: state <HASHMAP>, empty.
  * Return: Nothing. Current caller: WAIT_fnc_CortexGroupTick after eligibility and order checks.
  * Example: [_group,_state] call WAIT_fnc_CortexOnboardContact;
@@ -18,6 +18,12 @@ private _vehicles=[];
 {
     private _vehicle=_x;
     private _report=_vehicle getVariable ["WAIT_Cortex_OnboardReport",[]];
+    private _dangerReport=_vehicle getVariable ["WAIT_Cortex_OnboardDanger",[]];
+    // Prefer whichever bounded crew report remains useful for longer. Both payloads carry only
+    // approximate geometry; neither grants the passenger group target identity or knowledge.
+    if (count _dangerReport == 4 && {count _report != 4 || {(_dangerReport select 3) > (_report select 3)}}) then {
+        _report=_dangerReport;
+    };
     if (count _report == 4 && {_vehicle isKindOf "LandVehicle"} && {!(_vehicle isKindOf "StaticWeapon")}) then {
         _report params ["_reporter","_owner","_position","_expiry"];
         if (_reporter isEqualType grpNull && {_owner isEqualType 0} && {_position isEqualType []} && {_expiry isEqualType 0}
@@ -55,7 +61,7 @@ private _vehicles=[];
         };
     };
 } forEach _vehicles;
-// Reports do not manufacture visual contact. If no native contact followed the exit,
+// Contact and danger reports do not manufacture visual contact. If no native contact followed the exit,
 // restore only this calm passenger episode through the normal guarded remount path.
 if ("onboardContactUntil" in _state && {serverTime >= (_state get "onboardContactUntil")}
     && {(_state getOrDefault ["phase",""]) == "CALM"}) then {

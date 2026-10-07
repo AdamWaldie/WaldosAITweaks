@@ -20,7 +20,7 @@
  *
  * Example:
  * [_group, _state] call WAIT_fnc_CortexAmmoShare;
- * Result: the rifleman who has shot hmeleeBackendelf dry gets a magazine from the machine gunner's assistant.
+ * Result: the rifleman who has shot himself dry gets a magazine from the machine gunner's assistant.
  *
  * Current caller: WAIT_fnc_CortexGroupTick.
  */
@@ -29,7 +29,7 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 if ([_state, "ammo"] call WAIT_fnc_CortexCooldown) exitWith {0};
 [_state, "ammo", 20] call WAIT_fnc_CortexCooldown;
 private _range = missionNamespace getVariable ["WAIT_AIPass_AmmoShare_Distance", 10];
-private _members = (units _group) select {alive _x && {local _x} && {vehicle _x == _x} && {primaryWeapon _x != ""}};
+private _members = (units _group) select {alive _x && {local _x} && {isNull objectParent _x} && {primaryWeapon _x != ""}};
 private _transfers = 0;
 {
     if (_transfers >= 2) exitWith {};

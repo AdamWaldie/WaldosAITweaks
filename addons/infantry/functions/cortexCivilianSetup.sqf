@@ -30,7 +30,7 @@ if (_remove) exitWith {true};
 if (!local _unit || {isPlayer _unit} || {side group _unit != civilian}
     || {primaryWeapon _unit != "" || {secondaryWeapon _unit != ""} || {handgunWeapon _unit != ""}}
     || {!(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true])}
-    || {[_unit] call WAIT_fnc_CortexExternalOwner != ""}) exitWith {false};
+    || {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _fired=_unit addEventHandler ["FiredNear",{
     params ["_unit","_firer","_distance"];
     if (_distance <= (missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45])) then {

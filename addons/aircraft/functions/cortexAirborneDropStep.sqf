@@ -5,8 +5,8 @@
  *
  * DROP: every WAIT_AIPass_Airborne_JumpInterval seconds the next soldier still aboard jumps
  * (WAIT_fnc_CortexParachuteJump). The drop pauses while the aircraft is below
- * WAIT_AIPass_Airborne_MinAltitude or over water, and stops if the aircraft is lost or Zeus takes
- * the squad; anyone still aboard then stays with the aircraft.
+ * WAIT_AIPass_Airborne_MinAltitude or over water, and stops if the aircraft is lost or another
+ * controller takes the squad; anyone still aboard then stays with the aircraft.
  * LAND: once every living member of the squad is on the ground (or 180 s after the start), the squad
  * returns to normal pass management. If it has no waypoints of its own left, it gets a SAD waypoint
  * on the enemy position that triggered the drop, so it goes and fights rather than standing where it
@@ -47,8 +47,10 @@ if ((_job get "phase") == "DROP") exitWith {
         _job set ["phase", "LAND"];
         3
     };
-    // Zeus has priority: stop the drop; anyone still aboard stays with the aircraft.
-    if (time > (_job get "deadline") || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {call _finish};
+    // The jump itself is an owned action. Stop it before the next passenger leaves if Zeus, a
+    // player or a specialist controller takes the group; anyone still aboard remains where that
+    // new controller expects rather than completing WAIT's earlier drop plan.
+    if (time > (_job get "deadline") || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {call _finish};
     if (((getPos _aircraft) select 2) < (missionNamespace getVariable ["WAIT_AIPass_Airborne_MinAltitude", 120])
         || {surfaceIsWater getPos _aircraft}) exitWith {1};
     [_jumpers select 0, _aircraft] call WAIT_fnc_CortexParachuteJump;
@@ -60,6 +62,10 @@ if ((_job get "phase") == "DROP") exitWith {
 private _alive = (units _group) select {alive _x};
 private _landed = _alive findIf {vehicle _x != _x || {!isTouchingGround _x && {((getPosATL _x) select 2) > 2}}} < 0;
 if (!_landed && {time < (_job get "deadline")}) exitWith {3};
+// A landing can take long enough for a curator or another controller to issue an order after the
+// last jumper left. Do not create a SAD waypoint over that replacement order merely because the
+// original automatic drop had no route when it started.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {call _finish};
 if (_landed && {_alive isNotEqualTo []} && {currentWaypoint _group >= count waypoints _group}) then {
     private _waypoint = _group addWaypoint [_job get "target", 30];
     _waypoint setWaypointType "SAD";

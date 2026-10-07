@@ -26,7 +26,7 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_enemies", [], [[]]]];
-if (_state getOrDefault ["reserveCommitted", false]) exitWith {false};
+if (_state getOrDefault ["reserveCommitted", false] || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _lineUnits = (units _group) select {((_x getVariable ["WAIT_AIPass_DefendPos", []]) param [2, ""]) == "LINE"};
 private _reserve = (units _group) select {alive _x && {local _x} && {((_x getVariable ["WAIT_AIPass_DefendPos", []]) param [2, ""]) == "RESERVE"}};
 if (_reserve isEqualTo [] || {_lineUnits isEqualTo []}) exitWith {false};
@@ -54,9 +54,11 @@ _target params ["_spot", "_sector"];
             if (!surfaceIsWater _alternative && {((surfaceNormal _alternative) select 2) >= 0.55}) exitWith {_position=_alternative};
         } forEach [0.65,0.35,0];
     };
-    _x setVariable ["WAIT_AIPass_DefendPos", [_position, _sector, "LINE"], true];
-    _x setVariable ["WAIT_AIPass_DefendHolding", false];
-    _x doMove _position;
+    if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+        _x setVariable ["WAIT_AIPass_DefendPos", [_position, _sector, "LINE"], true];
+        _x setVariable ["WAIT_AIPass_DefendHolding", false];
+        _x doMove _position;
+    };
 } forEach _reserve;
 _state set ["reserveCommitted", true];
 _group setVariable ["WAIT_AIPass_DefendApplied", false];

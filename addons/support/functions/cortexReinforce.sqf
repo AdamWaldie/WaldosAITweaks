@@ -46,9 +46,8 @@ private _retryable = _requests == 1 && {!_requestActive} && {time >= _lastDispat
 private _armour = _state getOrDefault ["armourSeen", false];
 private _armourCall = _armour && {!(_state getOrDefault ["armourRequested", false])};
 if (!_armourCall && {_requests >= 2 || {_requests == 1 && {!_retryable} && {_alive / _peak >= 0.6}}}) exitWith {0};
-private _leader = leader _group;
 private _enemyPos = _state getOrDefault ["enemyPos", []];
-if (count _enemyPos < 2 || {!([_leader] call WAIT_fnc_CortexCanTransmit)}) exitWith {0};
+if (count _enemyPos < 2 || {isNull ([_group] call WAIT_fnc_CortexGroupTransmitter)}) exitWith {0};
 _state set ["reinforceRequested", _requests + 1];
 _state set ["reinforceDispatchedAt",time];
 if (_armourCall) then {_state set ["armourRequested", true]};

@@ -8,6 +8,7 @@
  * bounded route replan; a second stall ends the role so gameplay roadblocks remain meaningful.
  * Locality/authority: runs only where the vehicle group is local after a server-authenticated role.
  * Repeat/JIP: the public role token rejects stale jobs; locality replay queues one replacement job.
+ * Cleanup requires the matching operation generation, so a late role cannot delete a newer route.
  * Arguments: 0: job state <HASHMAP> containing group, asset, target, token, expiry and destination.
  * Return Value: Number of seconds before the next scheduler step, or -1 when complete.
  * Current callers: WAIT_fnc_CortexCombinedArmsLocal through WAIT_fnc_CortexQueueJob.
@@ -19,13 +20,27 @@ private _asset=_job getOrDefault ["asset",objNull];
 private _target=_job getOrDefault ["target",objNull];
 private _token=_job getOrDefault ["token",""];
 private _destination=_job getOrDefault ["destination",[]];
+private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
 private _finish={
     params ["_reason"];
     if (!isNull _group && {local _group}) then {
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
+        private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+        private _operationMatches=count _operation > 0
+            && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}
+            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"};
+        if (_operationMatches) then {
+            if (_reason == "POSITION_REACHED") then {
+                [_group,_operationGeneration,"COMPLETE","FIRING_POSITION_REACHED"] call WAIT_fnc_OperationRelease;
+            } else {
+                [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
+            };
+        };
+        if (_operationGeneration >= 0) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
-        if ((_lease param [0,""]) == "COMBINED_GROUND") then {
+        // The label alone is not ownership. A late callback from an older role can observe the
+        // same label on its replacement, so only the still-matching operation may release it.
+        if (_operationMatches && {(_lease param [0,""]) == "COMBINED_GROUND"}) then {
             [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };
@@ -48,7 +63,7 @@ if (serverTime >= (_job getOrDefault ["expiry",serverTime])) exitWith {["EXPIRED
 if (_asset distance2D _destination <= 70) exitWith {
     _group reveal [_target,3];
     private _gunner=gunner _asset;
-    if (!isNull _gunner && {alive _gunner} && {local _gunner}) then {_gunner doTarget _target; _gunner doFire _target};
+    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doTarget _target; _gunner doFire _target};
     ["POSITION_REACHED"] call _finish
 };
 if (time >= (_job getOrDefault ["progressAt",time])+10) then {
@@ -58,8 +73,10 @@ if (time >= (_job getOrDefault ["progressAt",time])+10) then {
         if (_stalls >= 1) exitWith {_job set ["terminal","BLOCKED"]};
         // Ask the engine to rebuild the same tactical route once. The destination is unchanged,
         // so this cannot walk a scripted obstacle-avoidance spiral around a deliberate roadblock.
-        [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
-        _job set ["stalls",_stalls+1];
+        if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+            [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+            _job set ["stalls",_stalls+1];
+        };
     };
     _job set ["lastPosition",getPosATL _asset];
     _job set ["progressAt",time];

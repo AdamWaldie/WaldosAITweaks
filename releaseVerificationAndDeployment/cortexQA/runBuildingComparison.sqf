@@ -66,114 +66,6 @@ sleep 15;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {_x params ["_group","_unit","_house"]; deleteVehicle _unit; deleteGroup _group; deleteVehicle _house} forEach _cases;
 
-// Native WAIT garrison and clearance are the normal production paths. The explicitly requested
-// compatibility cases below verify delegation and clean release without replacing native coverage.
-private _buildingBackendLoaded=isClass (configFile >> "CfgPatches" >> "lambs_wp");
-["COMPAT-building-backend-available-or-optional",true,
-    ["Optional COMPAT Waypoints is absent; its primary-backend cases are skipped and native fallback still runs.",
-     "Installed COMPAT Waypoints detected; primary-backend cases are active."] select _buildingBackendLoaded] call _check;
-if (_buildingBackendLoaded) then {
-private _house=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
-_house enableSimulationGlobal true;
-private _group=createGroup [east,true];
-_group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
-_group setVariable ["acex_headless_blacklist",true,true];
-private _members=[];
-for "_i" from 0 to 2 do {
-    private _unit=_group createUnit ["O_Soldier_F",[6250+_i*3,5770,0],[],0,"NONE"];
-    _unit setVariable ["acex_headless_blacklist",true,true];
-    _unit setVariable ["WAIT_CortexQA_Label",format ["COMPAT BUILDING %1",_i+1],true];
-    _members pushBack _unit;
-};
-missionNamespace setVariable ["WAIT_CortexQA_Actors",_members,true];
-private _rooms=_house buildingPos -1;
-private _visits=_rooms apply {false};
-private _memberVisits=_members apply {[]};
-["COMPAT garrison: physical occupation","The ordinary Cortex garrison order must delegate to installed COMPAT Waypoints. Every soldier must physically enter a real building position and remain there. Backend selection or a waypoint alone does not pass.",getPosATL _house] call _phase;
-private _garrisonAccepted=[_group,_house,20,createHashMapFromArray [["useBuildingBackend",true]]] call WAIT_fnc_CortexGarrison;
-private _garrisonBackend=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-["GARRISON-compatibility-backend",_garrisonAccepted && {(_garrisonBackend param [0,""]) == "COMPAT"} && {(_garrisonBackend param [1,""]) == "GARRISON"},str _garrisonBackend] call _check;
-private _garrisonArrived=[{
-    _members findIf {
-        private _unit=_x;
-        !alive _unit || {_rooms findIf {_unit distance _x <= 2.5} < 0}
-    } < 0
-},120] call _wait;
-["GARRISON-compatibility-physical-arrival",_garrisonArrived,str (_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x]})] call _check;
-sleep 8;
-private _garrisonHeld=_garrisonArrived && {_members findIf {
-    private _unit=_x;
-    !alive _unit || {_rooms findIf {_unit distance _x <= 3} < 0}
-} < 0};
-["GARRISON-compatibility-physical-hold",_garrisonHeld,str (_members apply {getPosATL _x})] call _check;
-{_x setUnitPos "DOWN"} forEach _members;
-["COMPAT garrison release","The soldiers now have an explicit prone stance. Releasing the delegated task must stop its controller while preserving that later stance.",getPosATL _house] call _phase;
-private _garrisonReleased=[_group] call WAIT_fnc_CortexGarrisonRelease;
-sleep 2;
-["GARRISON-compatibility-release-preserves-later-stance",_garrisonReleased
-    && {_members findIf {!alive _x || {unitPos _x != "DOWN"}} < 0}
-    && {(_group getVariable ["WAIT_Cortex_BuildingBackend",[]]) isEqualTo []},
-    str (_members apply {unitPos _x})] call _check;
-{_x setUnitPos "AUTO"} forEach _members;
-{private _exit=[6250+_forEachIndex*3,5770,0]; doStop _x; _x doMove _exit; _x setDestination [_exit,"LEADER PLANNED",true]} forEach _members;
-["COMPAT-CLEAR-outside-start",[{_members findIf {_x distance2D [6253,5770,0] > 8} < 0},45] call _wait] call _check;
-["COMPAT CQB: physical flow","The ordinary Cortex clearance order must delegate to installed COMPAT Waypoints. At least two soldiers must physically enter, and the team must traverse multiple real room positions. A running task marker alone does not pass.",getPosATL _house] call _phase;
-private _clearStart=_members apply {getPosATL _x};
-private _clearAccepted=[_group,_house,createHashMapFromArray [["useBuildingBackend",true]]] call WAIT_fnc_CortexClearBuilding;
-private _clearBackend=_group getVariable ["WAIT_Cortex_BuildingBackend",[]];
-["CLEAR-compatibility-backend",_clearAccepted && {(_clearBackend param [0,""]) == "COMPAT"} && {(_clearBackend param [1,""]) == "CQB"},str _clearBackend] call _check;
-private _clearObserved=[{
-    {
-        private _room=_x;
-        private _roomIndex=_forEachIndex;
-        {
-            private _worker=_x;
-            if (alive _worker && {(getPosASL _worker) vectorDistance (AGLToASL _room) <= 2}) then {
-                _visits set [_roomIndex,true];
-                (_memberVisits select _forEachIndex) pushBackUnique _roomIndex;
-            };
-        } forEach _members;
-    } forEach _rooms;
-    missionNamespace setVariable ["WAIT_CortexQA_Rooms",[_rooms,_visits],true];
-    ({_x isNotEqualTo []} count _memberVisits) >= 2 && {({_x} count _visits) >= 2}
-},150] call _wait;
-private _participants={_x isNotEqualTo []} count _memberVisits;
-private _visitedCount={_x} count _visits;
-["CLEAR-compatibility-multiple-soldiers-enter",_clearObserved && {_participants >= 2},str _memberVisits] call _check;
-["CLEAR-compatibility-multiple-rooms-traversed",_clearObserved && {_visitedCount >= 2},str _visits] call _check;
-private _physicallyTravelled=false;
-for "_memberIndex" from 0 to ((count _members)-1) do {
-    if ((_members select _memberIndex) distance2D (_clearStart select _memberIndex) >= 12) then {
-        _physicallyTravelled=true;
-    };
-};
-["CLEAR-compatibility-physical-travel",_physicallyTravelled,str (_members apply {getPosATL _x})] call _check;
-private _released=[_group,false] call WAIT_fnc_CortexClearRelease;
-private _handoverStart=_members apply {getPosATL _x};
-private _handoverDestination=[6330,5770,0];
-private _waypoint=_group addWaypoint [_handoverDestination,0];
-_waypoint setWaypointType "MOVE";
-_group setCurrentWaypoint _waypoint;
-["COMPAT CQB handover","The delegated CQB loop has been released. The same squad must obey a fresh ordinary waypoint without returning to the building.",_handoverDestination] call _phase;
-private _handoverMoved=[{
-    private _allMoved=true;
-    for "_memberIndex" from 0 to ((count _members)-1) do {
-        private _unit=_members select _memberIndex;
-        if (!alive _unit || {_unit distance2D (_handoverStart select _memberIndex) < 20}) then {
-            _allMoved=false;
-        };
-    };
-    _allMoved
-},90] call _wait;
-["CLEAR-compatibility-release-clears-backend",_released && {(_group getVariable ["WAIT_Cortex_BuildingBackend",[]]) isEqualTo []}] call _check;
-["CLEAR-compatibility-replacement-order-physical",_handoverMoved,str (_members apply {[getPosATL _x,currentCommand _x]})] call _check;
-missionNamespace setVariable ["WAIT_CortexQA_Rooms",[],true];
-missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
-{deleteVehicle _x} forEach _members;
-deleteGroup _group;
-deleteVehicle _house;
-};
-
 // Fresh groups distinguish clearance defects from state left by a previous garrison.
 // Keep all original comparisons above, including their failures.
 {
@@ -198,7 +90,7 @@ deleteVehicle _house;
     // Audit exactly that set rather than preserving the superseded exterior-leader assumption.
     private _clearingMembers=+_members;
     private _memberVisits=_clearingMembers apply {[]};
-    private _accepted=[_group,_house,createHashMapFromArray [["useBuildingBackend",false]]] call WAIT_fnc_CortexClearBuilding;
+    private _accepted=[_group,_house] call WAIT_fnc_CortexClearBuilding;
     [format ["CLEAR-fresh-%1-accepted",_size],_accepted] call _check;
     [{
         {private _room=_x; private _roomIndex=_forEachIndex; if (_clearingMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _room) <= 1.5}} >= 0) then {_visits set [_roomIndex,true]}} forEach _rooms;
@@ -258,7 +150,7 @@ for "_i" from 0 to 9 do {
 };
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_casualtyMembers,true];
 ["CQB casualty reinforcement","The ten-person squad starts with eight independent clearing workers and two reserves. One clearing soldier becomes a real casualty. A surviving reserve must join the clear and physically move toward the building; the remaining room queue must stay active.",getPosATL _casualtyHouse] call _phase;
-private _casualtyAccepted=[_casualtyGroup,_casualtyHouse,createHashMapFromArray [["useBuildingBackend",false]]] call WAIT_fnc_CortexClearBuilding;
+private _casualtyAccepted=[_casualtyGroup,_casualtyHouse] call WAIT_fnc_CortexClearBuilding;
 ["CLEAR-casualty-order-accepted",_casualtyAccepted] call _check;
 private _jobStarted=[{_casualtyGroup getVariable ["WAIT_AIPass_ClearBuilding",false]},15] call _wait;
 ["CLEAR-casualty-job-started",_jobStarted] call _check;
@@ -309,7 +201,7 @@ private _doorReady=isClass (configOf _doorHouse >> "AnimationSources" >> _doorSo
 ["CLEAR-door-fixture-closed-recognised",_doorReady] call _check;
 _doorHouse setVariable ["bis_disabled_Door_1",1,true];
 ["Clearance: locked entry","The real clearance order must not unlock the front door. This phase checks the actual door phase and lock variable; it does not count an accepted order as entry.",getPosATL _doorHouse] call _phase;
-private _doorAccepted=[_doorGroup,_doorHouse,createHashMapFromArray [["useBuildingBackend",false]]] call WAIT_fnc_CortexClearBuilding;
+private _doorAccepted=[_doorGroup,_doorHouse] call WAIT_fnc_CortexClearBuilding;
 ["CLEAR-door-order-accepted",_doorAccepted] call _check;
 private _lockHeld=true;
 private _lockedUntil=time+35;

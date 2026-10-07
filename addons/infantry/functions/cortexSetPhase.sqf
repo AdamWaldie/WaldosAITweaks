@@ -37,6 +37,7 @@ if !(_previous in _validPhases) then {_previous=_localPrevious};
 if (_localPrevious == _next && {!_force}) exitWith {false};
 _state set ["phase",_next];
 _state set ["phaseStart",_phaseStart];
+_state set ["phaseReason",_reason];
 _group setVariable ["WAIT_AIPass_PublicPhase",_next,true];
 private _entry=[serverTime,_previous,_next,_reason,clientOwner];
 private _history=_group getVariable ["WAIT_Cortex_PhaseTransitions",[]];

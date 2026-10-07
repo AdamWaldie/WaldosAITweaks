@@ -4,7 +4,9 @@
  * requested destination, radius and mode remain materially the same. This avoids command churn
  * that makes an engine group stop, turn around or continuously re-form.
  * Locality/authority: Call on the current group owner. The function exits without issuing a
- * command if the group is not local; addWaypoint and setCurrentWaypoint must remain owner-local.
+ * command if the group is not local or has become ineligible; addWaypoint and setCurrentWaypoint
+ * must remain owner-local. The shared gate prevents delayed callbacks from adding a WAIT route after
+ * Zeus, a player, or an external controller has taken ownership.
  * Repeat/JIP: The public intent record survives locality transfer. The new owner can reuse a
  * still-valid waypoint instead of injecting a duplicate. A materially changed request replaces
  * only the existing WAIT waypoint; authored mission and Zeus waypoints are never removed.
@@ -32,7 +34,8 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_position", [], [[]]], ["_radius", 25, [0]], ["_type", "MOVE", [""]], ["_operationGeneration", -1, [0]]];
-if (isNull _group || {!local _group} || {count _position < 2}) exitWith {[grpNull, -1]};
+if (isNull _group || {!local _group} || {count _position < 2}
+    || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull, -1]};
 // Callers do not need to thread an operation token through every tactical helper. When a common
 // operation is active, bind this route to its current generation automatically; ordinary mission
 // support moves remain intentionally unscoped.
@@ -64,8 +67,11 @@ private _sameRequest = _hasOwnedWaypoint
     && {abs (_radius - _previousRadius) <= 2}
     && {_type == _previousType};
 if (_sameRequest) exitWith {_previousWaypoint};
-
+// A curator, player or specialist can take the group after the earlier eligibility gate but before
+// the waypoint write. Recheck at the mutation boundary so no delayed WAIT route is inserted over it.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 [_group] call WAIT_fnc_CortexGroupMoveClear;
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 private _waypoint = _group addWaypoint [_position, 0, currentWaypoint _group];
 _waypoint setWaypointType _type;
 _waypoint setWaypointCompletionRadius _radius;

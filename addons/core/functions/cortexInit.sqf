@@ -19,7 +19,9 @@
  * optional handlers when their switches have been turned on since the last call. Player clients return immediately and pay nothing. Each
  * behaviour has its own WAIT_AIPass_<Behaviour>_Enable switch in \z\waldo_ai_tweaks\addons\main\settings\aiConfig.sqf, and
  * WAIT_fnc_CortexIsEligible keeps player groups and other WAIT features' units out.
- * Native danger remains active. Movement ownership is reserved only for finite WAIT operations.
+ * WAIT's configured danger FSM must own all three base-soldier slots. If another addon replaces any
+ * slot, this tactical runtime fails closed instead of running a second infantry brain beside it.
+ * Movement ownership is reserved only for finite WAIT operations.
  * Locality and authority: CBA supplies the effective enable value to every joining owner. A direct
  * server call while disabled requests enable through the CBA server layer; callbacks install local
  * work. Remote calls from anything other than the server are refused. A headless client waits for
@@ -61,6 +63,18 @@ if !(missionNamespace getVariable ["WAIT_AITweaks_SettingsReady", false]) exitWi
 if !(missionNamespace getVariable ["WAIT_AIPass_Enable", false]) exitWith {
     if (!isServer) exitWith {false};
     ([createHashMapFromArray [["WAIT_AIPass_Enable", true]]] call WAIT_fnc_CortexTuning) > 0
+};
+private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
+    [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
+};
+private _dangerFsmOwned=_dangerFsmPaths findIf {
+    (_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0
+} < 0;
+missionNamespace setVariable ["WAIT_AIPass_DangerOwnershipConflict",[[],_dangerFsmPaths] select !_dangerFsmOwned];
+if (!_dangerFsmOwned) exitWith {
+    missionNamespace setVariable ["WAIT_AIPass_Active",false];
+    diag_log format ["[WAIT] Infantry tactical runtime refused: WAIT does not own every base-soldier fsmDanger slot (%1).",_dangerFsmPaths];
+    false
 };
 missionNamespace setVariable ["WAIT_AIPass_Active", true];
 
@@ -160,15 +174,13 @@ if !(missionNamespace getVariable ["WAIT_AIPass_DiscoveryQueued", false]) then {
     [WAIT_fnc_CortexDiscover, createHashMap, 1] call WAIT_fnc_CortexQueueJob;
 };
 
-diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 compatibility=%7/%8 alternativeBackend=%9 meleeBackend=%10 specialistBackend=%11).",
+diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 dangerFSM=WAIT alternativeBackend=%7 meleeBackend=%8 specialistBackend=%9).",
     ["headless client", "server"] select isServer,
     missionNamespace getVariable ["WAIT_AIPass_Contact_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Flank_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false],
     missionNamespace getVariable ["WAIT_AIPass_Airborne_Enable", false],
-    missionNamespace getVariable ["WAIT_AIPass_DangerBackendLoaded", false],
-    missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"],
     missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],
     missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],
     missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false]

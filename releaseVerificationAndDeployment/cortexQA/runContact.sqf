@@ -1,7 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without
- * injected knowledge, including live contact interrupting an active search.
+ * Tests a real targetless explosion reflex with physical cover, exact release and danger during committed movement, then
+ * real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without injected
+ * knowledge, including live contact interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
  * Repeat/JIP: fresh actors and walls; public visual targets; removes only its own fixtures.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; required audit callbacks.
@@ -10,13 +11,96 @@
  */
 params ["_check","_phase","_wait"];
 [createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
-    ["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Regroup_Enable",false],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Regroup_Enable",false],
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
     ["WAIT_AIPass_FireControl_Enable",false],["WAIT_AIPass_Morale_Enable",false],
     ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_ContactReports_Enable",false],
     ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
+
+// Prove the engine-loaded FSM with a real targetless explosion before introducing any enemy. The
+// fixture reads production diagnostics but never calls DangerEngineSubmit, writes a response, or
+// assigns phase. Its authored AUTO scripted stance provides an exact baseline that the production
+// lease can observe and restore; a higher-priority commanded UP stance would suppress the reflex.
+private _reflexGroup=createGroup [east,true];
+_reflexGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_reflexGroup setVariable ["acex_headless_blacklist",true,true];
+_reflexGroup setCombatMode "BLUE";
+private _reflexUnit=_reflexGroup createUnit ["O_Soldier_F",[2300,1350,0],[],0,"NONE"];
+_reflexUnit allowDamage false;
+_reflexUnit setUnitPos "AUTO";
+_reflexUnit setVariable ["acex_headless_blacklist",true,true];
+_reflexUnit setVariable ["WAIT_CortexQA_Label","TARGETLESS EXPLOSION REFLEX",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
+// A real solid wall sits on the far side of the actor from the grenade. This turns the cover response
+// into a physical test instead of treating an accepted danger record or generated destination as success.
+private _dangerCoverWall=createVehicle ["Land_CncWall4_F",[2296,1350,0],[],0,"CAN_COLLIDE"];
+_dangerCoverWall setDir 90;
+private _reflexStart=getPosATL _reflexUnit;
+["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
+private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _coverMovesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
+private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _nativeStimulus=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
+},12] call _wait;
+private _physicalReflex=[{
+    (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
+        && {stance _reflexUnit in ["CROUCH","PRONE"]}
+},8] call _wait;
+private _physicalCover=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
+        && {_reflexUnit distance2D _reflexStart >= 2}
+},16] call _wait;
+private _released=[{
+    (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
+        && {toUpperANSI (unitPos _reflexUnit) == "AUTO"}
+        && {((_reflexGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+},12] call _wait;
+private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0;
+private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]];
+["DANGER-native-targetless-explosion",_nativeStimulus,str (_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
+["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
+    && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
+    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
+deleteVehicle _grenade;
+
+// Repeat the real engine stimulus while the same actor owns a committed WAIT route. The immediate
+// FSM may lower his profile, but its lease must never request DOWN and repeated danger must not
+// cancel, replace or arrest the operation's physical travel.
+private _movementStart=getPosATL _reflexUnit;
+private _movementDestination=_movementStart getPos [45,90];
+private _movementOperation=[_reflexGroup,"ADVANCE",_movementDestination,[_reflexUnit],[_movementDestination],"MANOEUVRE"] call WAIT_fnc_OperationStart;
+private _movementGeneration=_movementOperation getOrDefault ["generation",-1];
+[_reflexGroup,_movementDestination,4,"MOVE",_movementGeneration] call WAIT_fnc_CortexGroupMove;
+_reflexUnit setVariable ["WAIT_CortexQA_Target",_movementDestination,true];
+["Danger FSM: movement continuity","The soldier now follows a committed WAIT route through another real explosion. The danger reflex may crouch, but it must not request prone, replace the route or stop physical progress.",_movementDestination] call _phase;
+private _movementStarted=[{_reflexUnit distance2D _movementStart >= 4},20] call _wait;
+private _movementStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _movementGrenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _movementDanger=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _movementStatsBefore
+},12] call _wait;
+private _requestedProne=false;
+private _routeGenerationIntact=true;
+for "_sample" from 1 to 12 do {
+    sleep 0.25;
+    private _lease=_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]];
+    if (count _lease >= 2 && {toUpperANSI (_lease select 1) == "DOWN"}) then {_requestedProne=true};
+    private _currentOperation=_reflexGroup getVariable ["WAIT_Operation",createHashMap];
+    if (count _currentOperation == 0 || {(_currentOperation getOrDefault ["generation",-2]) != _movementGeneration}) then {_routeGenerationIntact=false};
+};
+private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] call _wait;
+["DANGER-committed-mover-not-forced-prone",_movementStarted && {_movementDanger} && {!_requestedProne},str [_requestedProne,unitPos _reflexUnit,stance _reflexUnit]] call _check;
+["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+deleteVehicle _movementGrenade;
+[_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
+deleteVehicle _dangerCoverWall;
+deleteVehicle _reflexUnit;
+deleteGroup _reflexGroup;
+
 private _group=createGroup [east,true];
 private _opposition=createGroup [west,true];
 {

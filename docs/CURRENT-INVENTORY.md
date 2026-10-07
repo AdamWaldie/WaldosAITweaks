@@ -25,13 +25,14 @@ tactical tuning resumes, so growth and ownership can be measured instead of infe
 | Aircraft | Attack planning, weapon capability, ingress/release/egress, missile reaction, attack-run flares, landing and deceleration | Cortex aircraft jobs and landing handlers |
 | Fires | Artillery roles, warning smoke, finite bursts, observation, counter-battery and shoot-and-scoot | Server mission authority plus gun owner |
 | Other actors | Civilian reactions, airborne insertion and naval assault | Event-driven or finite group job |
-| Operator support | Diagnostics, ZEN control and convoy module, visible QA overlays | Required ZEN and audit mission |
+| Operator support | Diagnostics, native Zeus orders, optional ZEN convoy dialog and visible QA overlays | CBA; ZEN only for the optional dialog |
 
 ## Foundation and optional integrations
 
-CBA is required infrastructure; ZEN is optional. Native engine danger remains the baseline. Optional external
-controllers receive explicit ownership checks; detection alone is not proof of compatibility.
-Each operation uses finite ownership and exact restoration, without disabling unrelated behaviour.
+CBA is required infrastructure; ZEN is optional. WAIT owns the base-soldier danger FSM while loaded;
+another replacement of the same engine slot is unsupported. Specialist and alternative movement controllers
+receive explicit finite ownership checks; detection alone is not proof of compatibility. Each operation uses
+generation-scoped ownership and exact restoration, without disabling unrelated behaviour.
 
 ## Known tuning and acceptance work
 

@@ -1,0 +1,68 @@
+class FSM {
+    fsmName = "WAIT owner-local building operation";
+    class States {
+        class Start {
+            name = "Start";
+            init = "_group=_this param [0,grpNull]; _epoch=_this param [1,-1]; _generation=_this param [2,-1]; _brain=_this param [3,createHashMap]; _phase=""ENTRY""; _reason="""";";
+            precondition = "";
+            class Links {
+                class Invalid {priority=5;to="Finished";condition="isNull _group || {!local _group} || {count _brain == 0}";action="_reason=""INVALID_START"";";};
+                class Route {priority=0;to="Router";condition="true";action="";};
+            };
+        };
+        class Router {
+            name = "Router";
+            init = "_phase=toUpperANSI (_brain getOrDefault [""phase"",""ENTRY""]);";
+            precondition = "";
+            class Links {
+                class FinishedJob {priority=11;to="Finished";condition="_brain getOrDefault [""finished"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""FINISHED""];";};
+                class Cancelled {priority=10;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};
+                class OwnershipLost {priority=9;to="Finished";condition="isNull _group || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_AIPass_ClearGeneration"",-2])}";action="_reason=""OWNERSHIP_LOST"";";};
+                class Zeus {priority=8;to="Finished";condition="[_group] call WAIT_fnc_CortexZeusHeld";action="_reason=""ZEUS"";";};
+                class External {priority=7;to="Finished";condition="[_group] call WAIT_fnc_CortexExternalTakeover";action="_reason=""EXTERNAL_OWNER"";";};
+                class Disabled {priority=6;to="Finished";condition="!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])";action="_reason=""DISABLED"";";};
+                class Delay {priority=5;to="Delay";condition="time < (_brain getOrDefault [""nextAt"",time])";action="";};
+                class Entry {priority=4;to="Entry";condition="_phase == ""ENTRY""";action="";};
+                class Sweep {priority=4;to="Sweep";condition="_phase == ""SWEEP""";action="";};
+                class Replan {priority=4;to="Replan";condition="_phase == ""REPLAN""";action="";};
+                class Egress {priority=4;to="Egress";condition="_phase == ""EGRESS""";action="";};
+                class Fallback {priority=0;to="Sweep";condition="true";action="";};
+            };
+        };
+        class Delay {
+            name = "Delay";
+            init = "";
+            precondition = "";
+            class Links {
+                class Interrupt {priority=5;to="Router";condition="_brain getOrDefault [""cancelled"",false] || {_brain getOrDefault [""finished"",false]} || {isNull _group} || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_AIPass_ClearGeneration"",-2])} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])} || {[_group] call WAIT_fnc_CortexZeusHeld} || {[_group] call WAIT_fnc_CortexExternalTakeover}";action="";};
+                class Due {priority=0;to="Router";condition="time >= (_brain getOrDefault [""nextAt"",time])";action="";};
+            };
+        };
+        class Entry {name="Entry";init="[_group,_epoch,_generation,_brain,""ENTRY""] call WAIT_fnc_BuildingOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+        class Sweep {name="Sweep";init="[_group,_epoch,_generation,_brain,""SWEEP""] call WAIT_fnc_BuildingOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+        class Replan {name="Replan";init="[_group,_epoch,_generation,_brain,""REPLAN""] call WAIT_fnc_BuildingOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+        class Egress {name="Egress";init="[_group,_epoch,_generation,_brain,""EGRESS""] call WAIT_fnc_BuildingOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+        class Waiting {
+            name = "Waiting";
+            init = "";
+            precondition = "";
+            class Links {
+                class Zeus {priority=9;to="Finished";condition="[_group] call WAIT_fnc_CortexZeusHeld";action="_reason=""ZEUS"";";};
+                class External {priority=8;to="Finished";condition="[_group] call WAIT_fnc_CortexExternalTakeover";action="_reason=""EXTERNAL_OWNER"";";};
+                class Cancelled {priority=7;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};
+                class Invalidated {priority=6;to="Finished";condition="isNull _group || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_AIPass_ClearGeneration"",-2])} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])}";action="_reason=""INVALIDATED_WHILE_WAITING"";";};
+                class SchedulerWatchdog {priority=5;to="Router";condition="(_brain getOrDefault [""pending"",false]) && {!(_brain getOrDefault [""completed"",false])} && {time >= ((_brain getOrDefault [""queuedAt"",time])+15)} && {time >= (missionNamespace getVariable [""WAIT_AIPass_ResumeGraceUntil"",-1])} && {!([] call WAIT_fnc_CortexIsPaused)}";action="_brain set [""pending"",false]; _brain set [""watchdogCount"",(_brain getOrDefault [""watchdogCount"",0])+1]; _brain set [""nextAt"",time]; missionNamespace setVariable [""WAIT_AIPass_NextJobDue"",time];";};
+                class Completed {priority=0;to="Router";condition="_brain getOrDefault [""completed"",false]";action="";};
+            };
+        };
+        class Finished {
+            name = "Finished";
+            init = "_brain set [""cancelled"",true]; _brain set [""cancelReason"",_reason]; if (!isNull _group && {local _group} && {_generation == (_group getVariable [""WAIT_AIPass_ClearGeneration"",-2])}) then {_group setVariable [""WAIT_BuildingBrain_State"",[_phase,_generation,_epoch,serverTime,_reason],true]; if ((_group getVariable [""WAIT_AIPass_ClearBuilding"",false]) && {_reason in [""ZEUS"",""EXTERNAL_OWNER"",""DISABLED""]}) then {[_group,false] call WAIT_fnc_CortexClearRelease;}; _group setVariable [""WAIT_BuildingBrain"",nil]; _group setVariable [""WAIT_BuildingBrain_FSM"",nil];};";
+            precondition = "";
+            class Links {};
+        };
+    };
+    initState = "Start";
+    finalStates[] = {"Finished"};
+};
+

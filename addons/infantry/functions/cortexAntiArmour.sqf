@@ -73,7 +73,7 @@ if (_armourIndex < 0) exitWith {false};
 private _armour = vehicle _enemyUnit;
 private _gunners = (units _group) select {
     private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-    ([_x] call WAIT_fnc_CortexCombatEffective) && {local _x} && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {vehicle _x == _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
+    ([_x] call WAIT_fnc_CortexCombatEffective) && {local _x} && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {isNull objectParent _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
         && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}
 };
 if (_gunners findIf {assignedTarget _x == _armour && {(_x getVariable ["WAIT_AIPass_TargetHold", -1]) > _now}} >= 0) exitWith {false};
@@ -97,12 +97,14 @@ if (_blocked && {!(_gunner checkAIFeature "PATH") || {!(_gunner checkAIFeature "
     || {(_group getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []}
     || {_group getVariable ["WAIT_AIPass_ClearBuilding",false]}}) exitWith {false};
 if (_blocked) exitWith {
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     private _spot = ([(getPosATL _gunner) getPos [6, (_enemyPos getDir _gunner) + selectRandom [-70, 70]], _enemyPos, 8, [], _group] call WAIT_fnc_CortexFindCover) select 0;
     _gunner doMove _spot;
     _gunner setVariable ["WAIT_Cortex_ActorMove",["ANTI_ARMOUR",+_spot,_now+10]];
     _state set ["antiArmourRelocation",[_gunner,+_spot,_now+10]];
     false
 };
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _gunner doTarget _armour;
 _gunner doFire _armour;
 _gunner setVariable ["WAIT_AIPass_TargetHold", _now + 15];

@@ -8,7 +8,7 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAArtillerySmoke.sqf";
  */
 params ["_check","_phase","_wait"];
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Artillery_Enable",true],["WAIT_AIPass_ArtillerySmoke_Enable",true],["WAIT_AIPass_InfantryOwnership","WAIT"]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Artillery_Enable",true],["WAIT_AIPass_ArtillerySmoke_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _gun=createVehicle ["O_Mortar_01_F",[1800,700,0],[],0,"NONE"];
 createVehicleCrew _gun;
 private _crew=crew _gun;

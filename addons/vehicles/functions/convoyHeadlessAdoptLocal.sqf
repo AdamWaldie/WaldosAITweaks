@@ -44,13 +44,7 @@ _group setVariable ["WAIT_Convoy_CrewDue",-1];
 // competing scheduler callbacks for the same convoy.
 private _jobToken=format ["%1:%2:%3:%4",_revision,_newOwner,_providerKey,_providerRevision];
 _group setVariable ["WAIT_Convoy_LocalJobToken",_jobToken];
-[WAIT_fnc_ConvoyJobStep,createHashMapFromArray [
-    ["subsystem","CONVOY"],
-    ["group",_group],
-    ["configuration",_configuration],
-    ["registryRevision",_revision],
-    ["jobToken",_jobToken]
-],0] call WAIT_fnc_CortexQueueJob;
+[_group,_configuration,_revision,_jobToken] call WAIT_fnc_ConvoyOperationStart;
 _group setVariable ["WAIT_Convoy_LastHeadlessAdoption",[_adoptionKey,_newOwner],true];
 [] call WAIT_fnc_SchedulerReconcile;
 

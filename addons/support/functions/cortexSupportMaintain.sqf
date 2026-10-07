@@ -28,6 +28,7 @@
  * Releasing support also restores the responder's pre-existing COMPAT group-AI setting. The scoped
  * lease prevents COMPAT and Cortex from issuing movement to the same group during rally or assault.
  * Repeat/JIP: unique tokens, shared deadlines and owner acknowledgements retire stale assignments.
+ * Route cleanup requires a matching generation and never touches a replacement operation.
  * Arguments: 0: group <GROUP>; 1: local state <HASHMAP>.
  * Return Value: Nothing.
  * Current callers: GroupTick.
@@ -36,6 +37,12 @@
  */
 params ["_group","_state"];
 if (!local _group) exitWith {};
+// The reservation may expire in the same scheduler turn that Zeus or another
+// controller claims the group. Retire WAIT's lease either way. A normal feature
+// shutdown still restores the support hold; only an actual replacement owner keeps
+// the saved combat permissions and follower commands out of its task.
+private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;
+private _mayRestoreGroup=!_externalTakeover;
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
 private _movementLeaseActive = count _movementLease == 2 && {time < (_movementLease select 1)} && {
@@ -59,8 +66,20 @@ if (_token == "") exitWith {
         [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     };
 };
+private _operationGeneration=_state getOrDefault ["supportOperationGeneration",-1];
+private _finishOperation={
+    params ["_result","_reason"];
+    if (_operationGeneration >= 0) then {
+        if (_result == "COMPLETE") then {
+            [_group,_operationGeneration,"COMPLETE",_reason] call WAIT_fnc_OperationRelease;
+        } else {
+            [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
+        };
+    };
+    _state deleteAt "supportOperationGeneration";
+};
 private _restoreAttack={
-    if (_state getOrDefault ["attackChanged",false]) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
+    if (_mayRestoreGroup && {_state getOrDefault ["attackChanged",false]}) then {_group enableAttack (_state getOrDefault ["baseAttack",true])};
     _state deleteAt "attackChanged"; _state deleteAt "baseAttack";
 };
 private _lease = _group getVariable ["WAIT_AIPass_SupportLease",[]];
@@ -73,6 +92,7 @@ private _sharedCoordinated = !isNull _requester
     && {[_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _supportEnabled = _sharedReinforce || {_sharedCoordinated};
 private _releaseSupport={
+    params [["_reason","SUPPORT_RELEASED"]];
     // Reject only the exact lease snapshot accepted by this owner. The server validates token,
     // snapshot and sender again, making repeated cleanup and a racing replacement lease harmless.
     if (count _lease == 6 && {_token == (_lease select 0)}) then {
@@ -80,28 +100,54 @@ private _releaseSupport={
     };
     // Delete only this support assignment's route. A later withdrawal, vehicle
     // manoeuvre, artillery scoot or tactical drill survives stale support cleanup.
-    if ((_supportOwnsMovement || {!_movementLeaseActive})
+    if (_operationGeneration >= 0
+        && {(_supportOwnsMovement || {!_movementLeaseActive})}
         && {_state getOrDefault ["responding",false] || {_state getOrDefault ["assaulting",false]}}) then {
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
+        [_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;
     };
     if (_supportOwnsMovement) then {_state deleteAt "movementLease"};
+    ["CANCELLED",_reason] call _finishOperation;
     [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     call _restoreAttack;
     {_state deleteAt _x} forEach ["supportToken","responding","respondingTo","respondUntil","arrivedAt","assaulting"];
 };
+// The cached operation step is intentionally infrequent. A curator or specialist can claim this
+// group between those steps, so retire the matching support lease before any covering hold or bound
+// setup below is allowed to write movement. Release observes _mayRestoreGroup and therefore never
+// restores WAIT's former command over the new owner.
+if (_externalTakeover) exitWith {
+    ["EXTERNAL"] call _releaseSupport;
+};
 private _abort = _group getVariable ["WAIT_Cortex_SupportAbort",[]];
 if (count _abort == 4 && {(_abort select 0) == _token}) exitWith {
     _group setVariable ["WAIT_Cortex_SupportAbort",nil,true];
-    call _releaseSupport;
+    ["SERVER_RETIREMENT"] call _releaseSupport;
 };
 if (_lease isEqualTo [] || {(_lease select 0) != _token} || {serverTime >= (_lease select 2)}
     || {!([_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!_supportEnabled}) then {
-    call _releaseSupport;
+    || {!_supportEnabled}) exitWith {
+    ["LEASE_EXPIRED"] call _releaseSupport
 };
 
-if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) then {
-    call _releaseSupport;
+if (_state getOrDefault ["assaulting",false] && {!([_group,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {
+    ["FEATURE_DISABLED"] call _releaseSupport
+};
+
+// Keep the common record current without adding a separate worker.  An external owner, a Zeus
+// command or a locality transition wins immediately; the reservation cleanup below then only
+// clears the matching token and never restores an older route.
+private _operationEndReason="";
+if (_operationGeneration >= 0) then {
+    private _operationState=[_group,_operationGeneration,3,30,true] call WAIT_fnc_OperationStep;
+    if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) then {
+        _operationEndReason=_operationState;
+    };
+    if (_operationState == "STALLED") then {_operationEndReason="NO_PROGRESS"};
+};
+// This exit belongs to the function scope. An exitWith nested inside the preceding condition block
+// returned only from that block and allowed an invalid reservation to continue into rally/hold work.
+if (_operationEndReason != "") exitWith {
+    [_operationEndReason] call _releaseSupport;
 };
 
 // Contact can begin before the rally is reached. Readiness must not depend on CALM.
@@ -139,7 +185,7 @@ if (_newMove || {!_coordinating}) then {
             // is not a valid ownership check. Preserve commands which cannot be a
             // combat-side effect of the hold. A new bound supplies its own target.
             private _command=toUpperANSI currentCommand _x;
-            if (!_coordinating && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}) then {
+            if (_mayRestoreGroup && {!_coordinating} && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}) then {
                 _x doFollow leader _group;
             };
         };
@@ -161,7 +207,7 @@ if (_coordinating) then {
         if ((_drill getOrDefault ["supportToken",""]) == _token) then {[_group,_state,"ABORT"] call WAIT_fnc_CortexFlankEnd};
         {
             private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-            if (local _x && {vehicle _x == _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
+            if (local _x && {isNull objectParent _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
                 && {_x checkAIFeature "PATH"} && {count _actorMove != 3 || {time >= (_actorMove select 2)}}) then {
                 doStop _x;
                 _x disableAI "PATH";

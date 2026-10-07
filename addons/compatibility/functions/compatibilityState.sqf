@@ -6,15 +6,11 @@
  * Arguments: 0 entity <OBJECT or GROUP>; 1 field <STRING>; 2 value/default <ANY>, default nil; 3 write <BOOL>, default false; 4 public <BOOL>, default false.
  * Return Value: ANY - field value for reads; BOOL for writes or an unknown field.
  * Current callers: ownership discovery/release, group tactics, convoy setup/release and diagnostics.
- * Example: [group soldier1,"dangerDisabled",false] call WAIT_fnc_CompatibilityState;
+ * Example: [vehicle player,"drivingPause",false] call WAIT_fnc_CompatibilityState;
  */
 
 params ["_entity",["_field","",[""]],["_value",nil],["_write",false,[false]],["_public",false,[false]]];
 private _key = switch (_field) do {
-    case "dangerDisabled": {"lambs_danger_disableGroupAI"};
-    case "currentTactic": {"lambs_main_currentTactic"};
-    case "executingTactic": {"lambs_danger_isExecutingTactic"};
-    case "forcedMovement": {"lambs_danger_forceMove"};
     case "drivingPause": {"HBQAD_Pause"};
     case "drivingCrewReturn": {"HBQAD_PreventDisembark"};
     default {""};

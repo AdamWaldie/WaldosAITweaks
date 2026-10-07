@@ -241,7 +241,11 @@ private _threatSide=0;
 private _sideVector=if (_threatSide > 0) then {_right} else {if (_threatSide < 0) then {_left} else {[ _left,_right] select (random 1 >= 0.5)}};
 private _isPlane=_aircraft isKindOf "Plane";
 private _standoffAvailable=_standoff && {serverTime >= (_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])};
-private _hasGun=_groundCandidates findIf {(_x select 2) in ["shotbullet","shotshell"]} >= 0;
+// Use the retained weapon-family classification rather than the raw simulation string. Some
+// configuration families expose a cannon through a non-standard projectile simulation; that is still
+// a valid STRAFE station once the loadout inspection has classified it as a gun. This keeps plan
+// availability and the later exact-station selection on the same facts.
+private _hasGun=_groundCandidates findIf {(_x select 4) == "GUN"} >= 0;
 private _hasRocket=_groundCandidates findIf {(_x select 4) == "ROCKET"} >= 0;
 private _hasBomb=_groundCandidates findIf {(_x select 4) == "BOMB"} >= 0;
 // Target protection changes weights, not geometry or damage. Reading the vehicle config once when a

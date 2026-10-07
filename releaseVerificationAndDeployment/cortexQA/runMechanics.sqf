@@ -27,8 +27,7 @@ private _newUnit={
     _unit
 };
 private _baseSettings=createHashMapFromArray [
-    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
-    ["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Flank_Enable",false],
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Flank_Enable",false],
     ["WAIT_AIPass_Advance_Enable",false],["WAIT_AIPass_Reinforce_Enable",false],
     ["WAIT_AIPass_CoordinatedAssault_Enable",false],["WAIT_AIPass_Morale_Enable",false],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_FireControl_Enable",false],
@@ -246,7 +245,7 @@ private _crewApplied=[{
     } < 0 && {abs ((_cargo skill "aimingAccuracy")-(_skillUnit skill "aimingAccuracy")) < 0.02}
 },20] call _wait;
 ["SKILL-vehicle-crew-profile",_crewApplied,format ["infantry=%1 crew=%2 cargo=%3",_skillUnit skill "aimingAccuracy",_operatingCrew apply {_x skill "aimingAccuracy"},_cargo skill "aimingAccuracy"]] call _check;
-private _turretPolicy=isClass (configFile >> "CfgPatches" >> "lambs_turrets");
+private _turretPolicy=["turretPolicy"] call WAIT_fnc_CompatibilityAvailable;
 private _dispersionApplied=_operatingCrew findIf {
     private _original=_x getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _x];
     if (_turretPolicy) then {abs (getCustomAimCoef _x-_original) > 0.01} else {getCustomAimCoef _x <= _original}
@@ -259,7 +258,7 @@ private _airCrew=crew _airVehicle;
 {_x allowDamage false; _x setVariable ["acex_headless_blacklist",true,true]; _objects pushBack _x} forEach _airCrew;
 _objects pushBack _airVehicle;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_skillUnit,_crewVehicle,_airVehicle],true];
-["Skill profile: infantry, ground and air dispersion","Read the measured aim coefficients. Dismounted infantry and cargo receive the modest infantry layer; ground operators receive the wider vehicle layer; aircraft operators receive the widest ordinary layer. COMPAT Turrets replaces the two vehicle layers when loaded.",getPosATL _airVehicle] call _phase;
+["Skill profile: infantry, ground and air dispersion","Read the measured aim coefficients. Dismounted infantry and cargo receive the modest infantry layer; ground operators receive the wider vehicle layer; aircraft operators receive the widest ordinary layer. An active external precision provider replaces the two vehicle layers.",getPosATL _airVehicle] call _phase;
 private _layeredDispersion=[{
     private _infantryOriginal=_skillUnit getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _skillUnit];
     private _cargoOriginal=_cargo getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _cargo];

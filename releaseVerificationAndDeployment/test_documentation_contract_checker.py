@@ -56,6 +56,18 @@ class DocumentationContractTests(unittest.TestCase):
         p.write_text(p.read_text().replace(', "LIVE"]', ', "IMMEDIATE_MAGIC"]', 1))
         self.assertTrue(any('invalid setting activation' in f for f in parity.audit(self.root)))
 
+    def test_settings_sections_keep_participation_profiles_and_performance_separate(self):
+        self.copy_settings_contract()
+        sections=(self.root/'addons/core/functions/aiTweaksSettingsSections.sqf').read_text()
+        spec=(self.root/'addons/core/functions/cortexTuningSpec.sqf').read_text()
+        self.assertLess(sections.index('"GENERAL", "01 General", "01 Participation and ownership"'),sections.index('"PROFILE", "01 General", "02 Tactical profile"'))
+        self.assertLess(sections.index('"PROFILE", "01 General", "02 Tactical profile"'),sections.index('"PERFORMANCE", "01 General", "03 Performance"'))
+        for name in ['WAIT_AIPass_BehaviourProfile','WAIT_AIPass_Aggression','WAIT_AIPass_Cohesion','WAIT_AIPass_ReactionSpeed','WAIT_AIPass_EngageRange','WAIT_AIPass_ZeusHoldSeconds']:
+            row=next(line for line in spec.splitlines() if line.lstrip().startswith('["'+name+'"'))
+            self.assertIn('"PROFILE", "NEXT_OPERATION"',row)
+        row=next(line for line in spec.splitlines() if line.lstrip().startswith('["WAIT_Cortex_CombinedArms_AirRange"'))
+        self.assertIn('"COORD", "NEXT_OPERATION"',row)
+
     def test_rejects_unknown_setting_sections(self):
         self.copy_settings_contract()
         p=self.root/'addons/core/functions/cortexTuningSpec.sqf'
@@ -76,6 +88,17 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertLess(registration.index('find "_Enable" >= 0'), registration.index('find "_Enable" < 0'))
         self.assertNotIn('_name find "Convoy"', (ROOT/'addons/core/functions/cortexTuningSpec.sqf').read_text())
 
+    def test_zen_is_optional_and_native_zeus_orders_remain_available(self):
+        config=(ROOT/'addons/main/config.cpp').read_text()
+        inventory=(ROOT/'docs/CURRENT-INVENTORY.md').read_text()
+        readme=(ROOT/'README.md').read_text()
+        zen=(ROOT/'addons/main/bootstrap/zenRegister.sqf').read_text()
+        self.assertNotIn('zen_main',config.lower())
+        self.assertIn('ZEN is optional',inventory)
+        self.assertIn('native Zeus orders',inventory)
+        self.assertIn('ZEN is optional',readme)
+        self.assertIn('isNil "zen_custom_modules_fnc_register"',zen)
+
     def test_cba_uses_shared_activation_without_a_second_settings_writer(self):
         registration=(ROOT/'addons/core/functions/aiTweaksRegisterSettings.sqf').read_text()
         tuning=(ROOT/'addons/core/functions/cortexTuning.sqf').read_text()
@@ -87,6 +110,6 @@ class DocumentationContractTests(unittest.TestCase):
         controls={row[0]:row[-1] for row in parity.settings()}
         self.assertEqual(controls['WAIT_AIPass_TickBudgetMs'],'LIVE')
         self.assertEqual(controls['WAIT_AIPass_Morale_RetreatDistance'],'NEXT_OPERATION')
-        self.assertEqual(controls['WAIT_AIPass_InfantryOwnership'],'NEXT_OPERATION')
+        self.assertNotIn('WAIT_AIPass_InfantryOwnership',controls)
 
 if __name__=='__main__': unittest.main()

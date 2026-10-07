@@ -33,7 +33,7 @@ private _replacement=grpNull;
 while {_cursor < count _candidates && {isNull _replacement}} do {
     private _candidate=_candidates select _cursor;
     _cursor=_cursor+1;
-    if (!isNull _candidate && {_candidate != _rejected} && {alive leader _candidate}
+    if (!isNull _candidate && {_candidate != _rejected} && {!isNull ([_candidate] call WAIT_fnc_CortexGroupTransmitter)}
         && {[_candidate] call WAIT_fnc_CortexIsEligible}
         && {((units _candidate) findIf {
             private _vehicle=vehicle _x;

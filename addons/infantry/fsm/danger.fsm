@@ -1,0 +1,92 @@
+class FSM {
+    fsmName = "WAIT engine danger response";
+    class States {
+        class Start {
+            name = "Start";
+            init = "_records=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]; _records append (_queue select [0,11]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records] call WAIT_fnc_DangerEngineSubmit;";
+            precondition = "";
+            class Links {
+                class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};
+                class Forced {priority = 2; to = "Forced"; condition = "_mode == ""FORCED"""; action = "";};
+                class Vehicle {priority = 1; to = "Vehicle"; condition = "_mode == ""VEHICLE"""; action = "";};
+                class Foot {priority = 0; to = "Dispatch"; condition = "true"; action = "";};
+            };
+        };
+        class Dispatch {
+            name = "Dispatch";
+            init = "";
+            precondition = "";
+            class Links {
+                class Immediate {priority = 3; to = "Immediate"; condition = "_mode == ""IMMEDIATE"""; action = "";};
+                class Hide {priority = 2; to = "Hide"; condition = "_mode == ""HIDE"""; action = "";};
+                class Engage {priority = 1; to = "Engage"; condition = "_mode == ""ENGAGE"""; action = "";};
+                class Assess {priority = 0; to = "Assess"; condition = "true"; action = "";};
+            };
+        };
+        class Forced {
+            name = "Forced";
+            init = "_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Vehicle {
+            name = "Vehicle";
+            init = "_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Immediate {
+            name = "Immediate";
+            init = "_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Hide {
+            name = "Hide";
+            init = "_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Engage {
+            name = "Engage";
+            init = "_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Assess {
+            name = "Assess";
+            init = "_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);";
+            precondition = "";
+            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+        };
+        class Waiting {
+            name = "Waiting";
+            init = "";
+            precondition = "";
+            class Links {
+                class Interrupted {priority = 4; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
+                class Drain {priority = 2; to = "Queued"; condition = "count _queue > 0"; action = "";};
+                class Done {priority = 0; to = "Finished"; condition = "time >= _deadline"; action = "";};
+            };
+        };
+        class Queued {
+            name = "Queued";
+            init = "_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records] call WAIT_fnc_DangerEngineSubmit;";
+            precondition = "";
+            class Links {
+                class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};
+                class Forced {priority = 2; to = "Forced"; condition = "_mode == ""FORCED"""; action = "";};
+                class Vehicle {priority = 1; to = "Vehicle"; condition = "_mode == ""VEHICLE"""; action = "";};
+                class Foot {priority = 0; to = "Dispatch"; condition = "true"; action = "";};
+            };
+        };
+        class Finished {
+            name = "Finished";
+            init = "[_this] call WAIT_fnc_DangerEngineRelease;";
+            precondition = "";
+            class Links {};
+        };
+    };
+    initState = "Start";
+    finalStates[] = {"Finished"};
+};

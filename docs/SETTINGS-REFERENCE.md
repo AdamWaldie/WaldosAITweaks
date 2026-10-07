@@ -8,21 +8,24 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 ## 01 General
 
-### 01 Participation
+### 01 Participation and ownership
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Enable` | Enable Cortex automatic tactics | CHECKBOX | true | [] | LIVE | Master control for Cortex actions and reactions. The purpose switches below choose which tactics Cortex may use; convoy control remains independent. |
-| `WAIT_AIPass_InfantryOwnership` | Infantry controller ownership | COMBO | "SPLIT" | [["SPLIT", "WAIT"], ["Shared ownership (recommended)", "WAIT only"]] | NEXT_OPERATION | Shared ownership keeps the base danger FSM active. A finite WAIT manoeuvre reserves only its responder and restores prior ownership afterwards. WAIT only gives this addon full group control. The building-task backend remains active in either mode; independent weapon configuration is preserved. |
+
+### 02 Tactical profile
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_BehaviourProfile` | Behaviour profile | COMBO | "" | [["", "MILITIA", "LINE", "VETERAN", "ELITE"], ["Follow the AI Rebalance profile", "Militia", "Line", "Veteran", "Elite"]] | NEXT_OPERATION | Tactics profile for every squad without a group or faction profile of its own. Skill values are not changed. |
 | `WAIT_AIPass_Aggression` | Aggression | SLIDER | 1.2 | [0, 2, 2] | NEXT_OPERATION | Scales flank/advance preference, optional grenade preparation, investigation and coordinated-assault participation. Positive local preferences choose which viable manoeuvre starts instead of deciding whether the squad acts. Default 1.2 adds initiative; 1 is the profile value and 0 excludes proactive tactics. |
 | `WAIT_AIPass_Cohesion` | Cohesion | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How much punishment squads take before morale breaks. Above 1 they hold longer, below 1 they break sooner. |
 | `WAIT_AIPass_ReactionSpeed` | Reaction speed | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How often squads re-assess. Above 1 they react faster and use more server time; below 1 slower. |
 | `WAIT_AIPass_EngageRange` | Engagement range (m) | SLIDER | 800 | [200, 1500, 0] | NEXT_OPERATION | Known enemies within this range of a squad leader are acted on. |
 | `WAIT_AIPass_ZeusHoldSeconds` | Zeus hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it. |
-| `WAIT_Cortex_CombinedArms_AirRange` | Aircraft support range (m) | SLIDER | 4000 | [500, 10000, 0] | NEXT_OPERATION | How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius. |
 
-### 02 Performance
+### 03 Performance
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -57,7 +60,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Contact_Enable` | Contact handling | CHECKBOX | true | [] | NEXT_OPERATION | Squads switch to combat on contact and return to their previous behaviour and waypoints afterwards. Needed by every combat option below. |
 | `WAIT_AIPass_PostContact_Enable` | Post-contact search | CHECKBOX | true | [] | NEXT_OPERATION | After contact is lost: hold, send two soldiers to check the last known position, regroup. |
 | `WAIT_AIPass_Investigate_Enable` | Investigation | CHECKBOX | true | [] | NEXT_OPERATION | Squads send two riflemen to check enemies they know about but have not seen. |
-| `WAIT_AIPass_Danger_Enable` | Danger assessment | CHECKBOX | true | [] | LIVE | Up to twelve owner-local group members wake one existing squad decision job. Native danger behaviour remains; no additional movement controller. Live acceptance pending. |
+| `WAIT_AIPass_Danger_Enable` | Danger response | CHECKBOX | true | [] | LIVE | Enables WAIT's bounded local danger reflex and tactical group handoff. When disabled, the configured FSM exits without issuing WAIT stance, movement, targeting or planning commands. |
 | `WAIT_AIPass_Hearing_Enable` | Nearby gunfire investigation | CHECKBOX | true | [] | NEXT_OPERATION | Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal. |
 | `WAIT_AIPass_PostContact_LostSeconds` | Contact lost delay (s) | SLIDER | 30 | [3, 120, 0] | NEXT_OPERATION | Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover. |
 | `WAIT_AIPass_PostContact_SecuritySeconds` | Security hold (s) | SLIDER | 10 | [0, 60, 0] | NEXT_OPERATION | Seconds spent securing the last contact before a search team moves. |
@@ -81,13 +84,13 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_StreetCrossing_Enable` | Street crossing | CHECKBOX | true | [] | NEXT_OPERATION | Flanking squads stop at roads, throw smoke and cross in one bound. |
 | `WAIT_AIPass_Assault_Enable` | Final assault | CHECKBOX | true | [] | NEXT_OPERATION | A flank can finish with a grenade and a rush on the enemy position. |
 | `WAIT_AIPass_Advance_Enable` | Bounding advance | CHECKBOX | true | [] | NEXT_OPERATION | Squads in a long firefight push a fire team towards their waypoint in covered bounds. |
-| `WAIT_AIPass_Advance_MinContactSeconds` | Advance contact delay | SLIDER | 5 | [0, 300, 0] | NEXT_OPERATION | Seconds of confirmed contact before a bounding advance may begin. The default reacts quickly enough to take ownership before native waypoint travel consumes the manoeuvre; other movement, knowledge and eligibility checks still apply. |
+| `WAIT_AIPass_Advance_MinContactSeconds` | Advance contact delay | SLIDER | 0 | [0, 300, 0] | NEXT_OPERATION | Optional seconds of confirmed contact before a bounding advance may begin. The default is zero because knowledge, morale, range, actor and avenue checks already decide whether the manoeuvre is viable. |
 | `WAIT_AIPass_Advance_Cooldown` | Advance repeat delay | SLIDER | 20 | [0, 180, 0] | NEXT_OPERATION | Seconds after an advance ends before the same squad may start another. This is shorter than the flank delay so a squad can continue progressing in successive tactical bounds without immediately restarting a finished drill. |
 | `WAIT_AIPass_Flank_MaxRange` | Flank range (m) | SLIDER | 400 | [100, 800, 0] | NEXT_OPERATION | Enemies farther than this are not flanked. |
 | `WAIT_AIPass_Flank_MinGroupSize` | Minimum flanking squad size | SLIDER | 6 | [2, 16, 0] | NEXT_OPERATION | Capable soldiers on foot required to split movement and support elements. |
 | `WAIT_AIPass_Flank_MinRange` | Minimum flank range (m) | SLIDER | 60 | [20, 200, 0] | NEXT_OPERATION | Nearer contacts are engaged without opening a flank route. |
 | `WAIT_AIPass_Flank_BoundDistance` | Flank bound distance (m) | SLIDER | 55 | [15, 100, 0] | NEXT_OPERATION | Intended distance of a covered bound; actual terrain may shorten it. |
-| `WAIT_AIPass_Flank_BoundPause` | Flank overwatch interval (s) | SLIDER | 2 | [0, 10, 1] | NEXT_OPERATION | Overwatch interval between bounds; does not require grenade completion. |
+| `WAIT_AIPass_Flank_BoundPause` | Optional overwatch interval (s) | SLIDER | 0 | [0, 10, 1] | NEXT_OPERATION | Optional deliberate halt after physical arrival. Zero keeps bounds and assault handoffs continuous; smoke and grenade actions never extend it. |
 | `WAIT_AIPass_Flank_BoundTimeout` | Bound no-progress limit (s) | SLIDER | 25 | [5, 60, 0] | NEXT_OPERATION | No-progress limit for a bound; reaching the limit never counts as arrival. |
 | `WAIT_AIPass_Flank_Cooldown` | Flank retry cooldown (s) | SLIDER | 90 | [10, 300, 0] | NEXT_OPERATION | Minimum interval before the same squad starts another flank. |
 
@@ -111,8 +114,12 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Regroup_Enable` | Survivor regroup | CHECKBOX | true | [] | NEXT_OPERATION | Survivors of a destroyed squad walk to and join a nearby friendly squad. |
+| `WAIT_AIPass_MedicalAssist_Enable` | Medical assistance | CHECKBOX | true | [] | NEXT_OPERATION | During CALM or SECURITY, one local medic physically treats a hurt squad-mate using native AI treatment. It yields to Zeus, direct orders and an active medical controller. |
 | `WAIT_AIPass_PostContact_RegroupSeconds` | Regroup limit (s) | SLIDER | 30 | [10, 120, 0] | NEXT_OPERATION | Maximum time for surviving squad members to close up before Cortex releases control. |
 | `WAIT_AIPass_Regroup_MaxRemnantSize` | Remnant size | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum surviving members eligible for remnant recovery. |
+| `WAIT_AIPass_MedicalAssist_Range` | Medical selection range (m) | SLIDER | 80 | [10, 200, 0] | NEXT_OPERATION | Maximum local medic-to-casualty distance considered for one finite assistance attempt. |
+| `WAIT_AIPass_MedicalAssist_DamageThreshold` | Medical damage threshold | SLIDER | 0.35 | [0.1, 0.9, 2] | NEXT_OPERATION | Minimum engine damage before WAIT considers vanilla medical assistance. |
+| `WAIT_AIPass_MedicalAssist_Timeout` | Medical attempt limit (s) | SLIDER | 45 | [10, 120, 0] | NEXT_OPERATION | Maximum duration of one native treatment attempt before WAIT releases it without altering health. |
 | `WAIT_AIPass_Regroup_MinimumPeakSize` | Minimum previous squad size | SLIDER | 3 | [2, 16, 0] | NEXT_OPERATION | Protects deliberately small teams from automatic merging. |
 | `WAIT_AIPass_Regroup_SearchRadius` | Recovery host search (m) | SLIDER | 400 | [50, 1000, 0] | NEXT_OPERATION | Search radius for a compatible friendly host squad. |
 | `WAIT_AIPass_Regroup_MaxGroupSize` | Recovery host size limit | SLIDER | 12 | [4, 24, 0] | NEXT_OPERATION | Maximum host membership after a physical survivor merge. |
@@ -136,6 +143,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Reinforce_Enable` | Reinforcement | CHECKBOX | true | [] | NEXT_OPERATION | Idle nearby squads move up behind a squad in contact. |
 | `WAIT_AIPass_CoordinatedAssault_Enable` | Coordinated assault | CHECKBOX | true | [] | NEXT_OPERATION | Reinforcing squads assault from both sides while the squad in contact fires. |
+| `WAIT_Cortex_CombinedArms_AirRange` | Aircraft support range (m) | SLIDER | 4000 | [500, 10000, 0] | NEXT_OPERATION | How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius. |
 | `WAIT_AIPass_Reinforce_Radius` | Reinforcement radius (m) | SLIDER | 600 | [100, 2000, 0] | NEXT_OPERATION | How far away idle squads may be sent to help. |
 | `WAIT_AIPass_Reinforce_MaxResponders` | Reinforcing squads | SLIDER | 2 | [0, 5, 0] | NEXT_OPERATION | Squads sent to help one squad in contact. |
 
@@ -147,16 +155,21 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 ## 05 Vehicles
 
-### 01 Combat
+### 01 General driving and route safety
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
+| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles only: applies sparse terrain-grade safety and one bounded native-route recovery while following an existing waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately. |
+
+### 02 Combat and withdrawal
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Vehicles_Enable` | Enable Cortex vehicle tactics | CHECKBOX | true | [] | NEXT_OPERATION | Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent. |
-| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles only: applies a sparse terrain-grade speed cap while following their existing native waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately. |
 | `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Gunners engage AT soldiers first, then armour; armour backs away from AT teams. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | Damage: withdraw mobile vehicle | CHECKBOX | true | [] | NEXT_OPERATION | Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke. |
 
-### 02 Passengers
+### 03 Passengers
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |

@@ -18,7 +18,7 @@ private _variants=[["",2]];
 {
 _x params ["_prefix","_targetOwner"];
 private _check={params ["_id","_passed",["_detail",""]]; [_prefix+_id,_passed,_detail] call _recordCheck};
-[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_InfantryOwnership","WAIT"]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _group=createGroup [east,true];
 _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _group setVariable ["acex_headless_blacklist",true,true];
@@ -203,7 +203,7 @@ if (_owners isNotEqualTo []) then {
         ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
         ["WAIT_AIPass_ContactReports_Enable",true],["WAIT_AIPass_Investigate_Enable",true],
         ["WAIT_AIPass_PostContact_Enable",true],["WAIT_AIPass_Morale_Enable",false],
-        ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_InfantryOwnership","WAIT"]
+        ["WAIT_AIPass_Regroup_Enable",false]
     ]] call WAIT_fnc_CortexTuning;
     private _stateGroup=createGroup [east,true];
     _stateGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
@@ -280,7 +280,7 @@ if (_owners isNotEqualTo []) then {
         ["WAIT_AIPass_PostContact_SecuritySeconds",2],["WAIT_AIPass_PostContact_SearchSeconds",60],
         ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_Flank_Enable",false],
         ["WAIT_AIPass_Advance_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],
-        ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_InfantryOwnership","WAIT"]
+        ["WAIT_AIPass_Reinforce_Enable",false]
     ]] call WAIT_fnc_CortexTuning;
     private _searchGroup=createGroup [east,true];
     private _searchEnemyGroup=createGroup [west,true];
@@ -349,8 +349,7 @@ if (_owners isNotEqualTo []) then {
     [createHashMapFromArray [
         ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
         ["WAIT_AIPass_Morale_Enable",true],["WAIT_AIPass_Surrender_Enable",false],
-        ["WAIT_AIPass_Morale_RetreatDistance",100],["WAIT_AIPass_Artillery_Enable",false],
-        ["WAIT_AIPass_InfantryOwnership","WAIT"]
+        ["WAIT_AIPass_Morale_RetreatDistance",100],["WAIT_AIPass_Artillery_Enable",false]
     ]] call WAIT_fnc_CortexTuning;
     private _retreatGroup=createGroup [east,true];
     _retreatGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];

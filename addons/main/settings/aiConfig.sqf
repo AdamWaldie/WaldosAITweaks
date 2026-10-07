@@ -51,8 +51,8 @@
  * - WAIT_AI_SkillVariance (ADVANCED): stable random offset chosen once per AI; 0 disables variation.
  * - WAIT_AI_InfantryDispersion (ADVANCED): script-level aim coefficient for dismounted AI and vehicle cargo.
  * - WAIT_AI_VehicleCrewAimMultiplier (ADVANCED): final aiming-skill multiplier for operating vehicle and aircraft crew.
- * - WAIT_AI_VehicleCrewDispersion (ADVANCED): script-level aim coefficient for ground-vehicle operators when COMPAT Turrets is absent.
- * - WAIT_AI_AirCrewDispersion (ADVANCED): wider script-level aim coefficient for aircraft operators when COMPAT Turrets is absent.
+ * - WAIT_AI_VehicleCrewDispersion (ADVANCED): script-level aim coefficient for ground-vehicle operators when no external precision provider is active.
+ * - WAIT_AI_AirCrewDispersion (ADVANCED): wider script-level aim coefficient for aircraft operators when no external precision provider is active.
  * - WAIT_AI_IncludedSides (MISSION MAKER): [] allows every side; example ["WEST", "GUER"] limits application.
  * - WAIT_AI_IncludedFactions (MISSION MAKER): [] allows all; otherwise list CfgFactionClasses names.
  * - WAIT_AI_ExcludedFactions (MISSION MAKER): listed factions are always skipped after the include checks.
@@ -105,7 +105,7 @@
  * - WAIT_AIPass_VehicleRemount_Enable (MISSION MAKER): Reboard recorded passengers on a normal return to CALM. Default true.
  * - WAIT_AIPass_VehicleWithdraw_Enable (MISSION MAKER): Damaged vehicle smoke and withdrawal. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
- * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Bounded member danger events wake the existing squad decision job; native danger remains. Default true.
+ * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
  * - WAIT_AIPass_Hearing_Enable (MISSION MAKER): Coarse nearby-gunfire reports for eligible squad leaders; requires investigation. Default true.
  * - WAIT_Convoy_MountedFire_Enable (MISSION MAKER): Mounted crew targeting under existing ROE. Default true.
  * - WAIT_Convoy_Cover_Enable (MISSION MAKER): Short passenger movement clear of vehicles after a halt, using cover during contact. Default true.
@@ -127,6 +127,10 @@
  * - WAIT_AIPass_TickBudgetMs (ADVANCED): milliseconds of work allowed on a frame with due jobs.
  * - WAIT_AIPass_LowFpsThreshold (ADVANCED): below this machine FPS, behaviour steps run half as often.
  * - WAIT_AIPass_Regroup_Enable (MISSION MAKER): survivors of a destroyed squad join a nearby friendly squad.
+ * - WAIT_AIPass_MedicalAssist_Enable (MISSION MAKER): a local medic physically treats a hurt squad-mate during CALM or SECURITY when no medical controller owns treatment. Default true.
+ * - WAIT_AIPass_MedicalAssist_Range (ADVANCED): maximum medic-to-casualty selection distance in metres.
+ * - WAIT_AIPass_MedicalAssist_DamageThreshold (ADVANCED): minimum engine damage before WAIT considers vanilla assistance.
+ * - WAIT_AIPass_MedicalAssist_Timeout (ADVANCED): finite treatment attempt limit; failure releases without health changes.
  * - WAIT_AIPass_Regroup_MaxRemnantSize (ADVANCED): a group this small or smaller counts as a remnant.
  * - WAIT_AIPass_Regroup_MinimumPeakSize (ADVANCED): groups that never reached this size (snipers,
  *   sentries) are never merged.
@@ -136,7 +140,6 @@
  * - WAIT_AIPass_Regroup_StuckSeconds (ADVANCED): no progress for this long retries once, then aborts without merging at a distance.
  * - WAIT_AIPass_Regroup_TimeoutSeconds (ADVANCED): limit for finding a host and for walking to it.
  * - WAIT_AIPass_Regroup_SettleSeconds (ADVANCED): wait after a kill so simultaneous deaths settle.
- * - WAIT_AIPass_InfantryOwnership (MISSION MAKER): optional infantry controller ownership: SPLIT preserves native/external danger behaviour outside finite WAIT movement; WAIT grants group control. Independent weapon policies remain active.
  * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. external civilian controller takes priority when loaded.
  * - WAIT_AIPass_CivilianReaction_Radius (ADVANCED): FiredNear distance which may trigger flight.
  * - WAIT_AIPass_CivilianReaction_Distance (ADVANCED): approximate one-shot escape distance.
@@ -161,7 +164,7 @@
  * - WAIT_AIPass_Flank_MinRange (ADVANCED): enemies nearer than this are fought, not flanked.
  * - WAIT_AIPass_Flank_MaxRange (ADVANCED): enemies farther than this are not flanked.
  * - WAIT_AIPass_Flank_BoundDistance (ADVANCED): length of one bound in metres.
- * - WAIT_AIPass_Flank_BoundPause (ADVANCED): seconds of overwatch between bounds.
+ * - WAIT_AIPass_Flank_BoundPause (ADVANCED): optional deliberate overwatch seconds after physical arrival; zero keeps movement continuous.
  * - WAIT_AIPass_Flank_BoundTimeout (ADVANCED): seconds without two metres of progress before a bound aborts; absolute bound limit is four times this value. Never counts as arrival.
  * - WAIT_AIPass_Flank_Cooldown (ADVANCED): seconds before the same squad may flank again.
  * - WAIT_AIPass_StreetCrossing_Enable (MISSION MAKER): flanking elements stop at roads, throw smoke and cross in one bound.
@@ -261,7 +264,7 @@ createHashMapFromArray [
         ["WAIT_AI_SkillVariance", 0],               // ADVANCED: one stable per-AI offset; 0 disables variation.
         ["WAIT_AI_InfantryDispersion", 1.35],       // ADVANCED: modest owner-local dispersion for dismounted AI and cargo.
         ["WAIT_AI_VehicleCrewAimMultiplier", 0.6],  // ADVANCED: vehicle/aircraft operating crew retain the selected profile at reduced precision.
-        ["WAIT_AI_VehicleCrewDispersion", 3.5],     // ADVANCED: ground-vehicle aim coefficient; skipped when COMPAT Turrets supplies config dispersion.
+        ["WAIT_AI_VehicleCrewDispersion", 3.5],     // ADVANCED: ground-vehicle aim coefficient; skipped when an external precision provider supplies configuration dispersion.
         ["WAIT_AI_AirCrewDispersion", 4.25],        // ADVANCED: aircraft aim coefficient; Dynamic AA remains exempt.
         ["WAIT_AI_IncludedSides", []],             // ARRAY of WEST/EAST/GUER/CIV strings; [] permits every side.
         ["WAIT_AI_IncludedFactions", []],          // ARRAY of CfgFactionClasses names; [] permits every faction.
@@ -310,6 +313,10 @@ createHashMapFromArray [
         ["WAIT_AIPass_TickBudgetMs", 1], // MILLISECONDS: work allowed on a frame with due jobs; at least one due job always runs.
         ["WAIT_AIPass_LowFpsThreshold", 25], // FPS: below this, behaviour steps are rescheduled half as often.
         ["WAIT_AIPass_Regroup_Enable", true], // BOOL: survivors of a destroyed squad regroup with a nearby friendly squad.
+        ["WAIT_AIPass_MedicalAssist_Enable", true], // BOOL: local vanilla medic assistance during CALM/SECURITY; yields to medical controllers.
+        ["WAIT_AIPass_MedicalAssist_Range", 80], // METRES: maximum eligible medic-to-casualty selection distance.
+        ["WAIT_AIPass_MedicalAssist_DamageThreshold", 0.35], // DAMAGE: minimum engine damage considered for treatment.
+        ["WAIT_AIPass_MedicalAssist_Timeout", 45], // SECONDS: bounded native treatment attempt before release.
         ["WAIT_AIPass_Regroup_MaxRemnantSize", 2], // COUNT: living members at or below this make a remnant.
         ["WAIT_AIPass_Regroup_MinimumPeakSize", 3], // COUNT: smaller deliberate teams are never merged.
         ["WAIT_AIPass_Regroup_SearchRadius", 400], // METRES: host squad search radius.
@@ -322,7 +329,6 @@ createHashMapFromArray [
         ["WAIT_AIPass_Aggression", 1.2], // 0-2: scales manoeuvre preference/participation and optional tactical actions; zero excludes them.
         ["WAIT_AIPass_Cohesion", 1], // 0.5-2: above 1 squads take more before morale breaks, below 1 they break sooner.
         ["WAIT_AIPass_ReactionSpeed", 1], // 0.5-2: above 1 squads re-assess more often (more server time), below 1 less often.
-        ["WAIT_AIPass_InfantryOwnership", "SPLIT"], // STRING: SPLIT (shared ownership with finite movement handover) or WAIT (addon group control). Independent weapon policies remain active.
         ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to an external civilian controller.
         ["WAIT_AIPass_CivilianReaction_Radius", 45], // METRES: nearby gunfire trigger range.
         ["WAIT_AIPass_CivilianReaction_Distance", 180], // METRES: approximate finite escape leg.
@@ -347,7 +353,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Flank_MinRange", 60], // METRES: nearer enemies are fought, not flanked.
         ["WAIT_AIPass_Flank_MaxRange", 400], // METRES: farther enemies are not flanked.
         ["WAIT_AIPass_Flank_BoundDistance", 55], // METRES: length of one bound (minimum 15).
-        ["WAIT_AIPass_Flank_BoundPause", 2], // SECONDS: overwatch halt between bounds.
+        ["WAIT_AIPass_Flank_BoundPause", 0], // SECONDS: optional deliberate overwatch after physical arrival; zero keeps movement continuous.
         ["WAIT_AIPass_Flank_BoundTimeout", 25], // SECONDS without progress before abort; absolute bound limit is 4x. Never counts as arrival.
         ["WAIT_AIPass_Flank_Cooldown", 90], // SECONDS: before the same squad flanks again.
         ["WAIT_AIPass_StreetCrossing_Enable", true], // BOOL: flanks stop at roads, smoke, and cross in one bound.
@@ -434,7 +440,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Assault_Enable", true], // BOOL: a flank can finish with a grenade and a rush on the enemy position.
         ["WAIT_AIPass_Assault_Range", 80], // METRES: the enemy must be this close to the flanking element to assault.
         ["WAIT_AIPass_Advance_Enable", true], // BOOL: pinned squads with somewhere to go push a team forward in bounds.
-        ["WAIT_AIPass_Advance_MinContactSeconds", 5], // SECONDS: confirmed contact before an advance is considered.
+        ["WAIT_AIPass_Advance_MinContactSeconds", 0], // SECONDS: optional confirmed-contact delay before an advance is considered.
         ["WAIT_AIPass_Advance_Cooldown", 20], // SECONDS: after an advance ends before the squad may start another.
         ["WAIT_AIPass_CoordinatedAssault_Enable", true], // BOOL: reinforcing squads assault together while the first squad fires.
         ["WAIT_AIPass_Stance_Enable", true], // BOOL: stance chosen from the height of the cover in front.

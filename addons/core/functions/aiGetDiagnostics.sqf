@@ -106,6 +106,19 @@ private _decelerationLandingConflict = _decelerationActive select {
 private _passEnabled = missionNamespace getVariable ["WAIT_AIPass_Enable", true];
 private _passActive = missionNamespace getVariable ["WAIT_AIPass_Active", false];
 private _passJobs = count (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + count (missionNamespace getVariable ["WAIT_AIPass_PendingJobs", []]);
+// The scheduler keeps these values on each queued operation already. Sample only twenty jobs here,
+// on demand, so diagnostics expose backlog and stale progress without becoming a background scan.
+private _schedulerQueue=(missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) select [0,20];
+private _schedulerCallbackMs=0;
+private _schedulerLatency=0;
+private _schedulerStaleProgress=0;
+{
+    _x params ["_dueAt","","_state"];
+    _schedulerCallbackMs=_schedulerCallbackMs+(_state getOrDefault ["lastCallbackMs",0]);
+    _schedulerLatency=_schedulerLatency max (_state getOrDefault ["queueLatency",0]);
+    private _progressAt=_state getOrDefault ["lastProgressAt",_dueAt];
+    if (time-_progressAt > 20) then {_schedulerStaleProgress=_schedulerStaleProgress+1};
+} forEach _schedulerQueue;
 private _externalActors=(allUnits select {alive _x}) apply {[_x,[_x] call WAIT_fnc_CortexExternalOwner]};
 _externalActors=_externalActors select {(_x select 1) != ""};
 private _alternativeBackendMovementLeases={_x getVariable ["WAIT_Cortex_AlternativeLease",[]] isNotEqualTo []} count _groups;
@@ -115,18 +128,18 @@ private _civilianReactions={serverTime < (_x getVariable ["WAIT_Cortex_CivilianR
 private _passState = if (!_passEnabled) then {"DISABLED"} else {if (_passActive && {!isNil {missionNamespace getVariable "WAIT_AIPass_SchedulerHandle"}}) then {"ACTIVE"} else {"ERROR"}};
 private _passHint = if (_passState == "ERROR") then {"WAIT_AIPass_Enable is true but the server scheduler is not running; check RPT for [WAIT] and that CBA is loaded."} else {""};
 private _regroupEnabled = missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true];
-private _dangerBackend = (["dangerBackend"] call WAIT_fnc_CompatibilityAvailable);
-private _buildingBackend = (["buildingBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _medicalEnabled = missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Enable", true];
+private _medicalBackend = (["medicalBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _medicalAidGroups = _groups select {(_x getVariable ["WAIT_Cortex_MedicalAid",[]]) isNotEqualTo []};
 private _turretPolicy = (["turretPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _suppressionPolicy = (["suppressionPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _launcherPolicy = (["launcherPolicy"] call WAIT_fnc_CompatibilityAvailable);
-private _dangerMovementLeases = {_x getVariable ["WAIT_Cortex_OwnershipLease", []] isNotEqualTo []} count _groups;
-private _dangerBusyGroups = {
-    private _currentTactic = [_x,"currentTactic",""] call WAIT_fnc_CompatibilityState;
-    ([_x,"executingTactic",false] call WAIT_fnc_CompatibilityState)
-        || {(_currentTactic isEqualType "") && {(toLowerANSI _currentTactic) find "task" == 0}}
-        || {(units _x) findIf {[_x,"forcedMovement",false] call WAIT_fnc_CompatibilityState} >= 0}
-} count _groups;
+private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
+    [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
+};
+private _dangerFsmOwned=_dangerFsmPaths findIf {
+    (_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0
+} < 0;
 // Danger response contexts are public, bounded and short-lived. This on-demand diagnostic reads
 // the existing group list only; it installs no handlers and adds no scheduler work.
 private _dangerResponses=_groups select {
@@ -138,6 +151,55 @@ private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
     private _action=_x getVariable ["WAIT_Danger_Action",[]];
     private _actionName=if (count _action == 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
     format ["%1:%2/%3/%4s",groupId _x,_actionName,_response select 0,(((_response select 3)-time) max 0) toFixed 1]
+};
+private _dangerEngineEvents=0;
+{_dangerEngineEvents=_dangerEngineEvents+(_x getVariable ["WAIT_Danger_EngineEvents",0])} forEach _groups;
+private _dangerEngineSubmissions=0;
+private _dangerEngineRecords=0;
+private _dangerEngineReflexOnly=0;
+private _dangerEngineBootstraps=0;
+private _dangerEngineCoverMoves=0;
+private _dangerEngineModes=createHashMap;
+{
+    private _stats=_x getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    _dangerEngineSubmissions=_dangerEngineSubmissions+(_stats getOrDefault ["submissions",0]);
+    _dangerEngineRecords=_dangerEngineRecords+(_stats getOrDefault ["acceptedRecords",0]);
+    _dangerEngineReflexOnly=_dangerEngineReflexOnly+(_stats getOrDefault ["reflexOnlyRecords",0]);
+    _dangerEngineBootstraps=_dangerEngineBootstraps+(_stats getOrDefault ["bootstraps",0]);
+    _dangerEngineCoverMoves=_dangerEngineCoverMoves+(_stats getOrDefault ["coverMoves",0]);
+    private _modes=_stats getOrDefault ["modes",createHashMap];
+    {
+        _dangerEngineModes set [_x,(_dangerEngineModes getOrDefault [_x,0])+(_modes getOrDefault [_x,0])];
+    } forEach (keys _modes);
+} forEach _groups;
+private _dangerEngineModeSummary=(keys _dangerEngineModes) apply {
+    format ["%1=%2",_x,_dangerEngineModes getOrDefault [_x,0]]
+};
+// Immediate stance leases are machine-local by design. Count only server-local actors during this
+// requested snapshot; headless owners report their equivalent state through their own runtime log.
+private _dangerStanceLeases={
+    local _x && {alive _x} && {
+        private _lease=_x getVariable ["WAIT_Danger_EngineStanceLease",[]];
+        count _lease >= 3 && {time < (_lease select 2)}
+    }
+} count allUnits;
+// Engine-confirmed contacts are local candidate records, never a public targeting channel. Show
+// only their bounded group/count summary so an operator can diagnose a leader-in-cover contact
+// handoff without exposing target identity or adding background work.
+private _dangerObservedGroups=_groups select {
+    private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
+    _contacts findIf {
+        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+            && {alive (_x select 0)} && {(_x select 1) > time}
+    } >= 0
+};
+private _dangerObservedSummary=(_dangerObservedGroups select [0,20]) apply {
+    private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
+    private _live={
+        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+            && {alive (_x select 0)} && {(_x select 1) > time}
+    } count _contacts;
+    format ["%1:%2",groupId _x,_live]
 };
 private _operatingCrew=allUnits select {
     !isPlayer _x && {vehicle _x != _x}
@@ -160,7 +222,9 @@ private _drivingAssistVehicles=(vehicles select {
 private _drivingAssistSnapshot=_drivingAssistVehicles apply {
     private _state=_x getVariable ["WAIT_DrivingAssist_State",[]];
     private _owner=_state param [3,grpNull,[grpNull]];
-    format ["%1 cap=%2 grade=%3 owner=%4 age=%5",typeOf _x,_state param [0,-1],(_state param [1,0]) toFixed 2,[groupId _owner,"unknown"] select (isNull _owner),(time-(_state param [2,time])) max 0 toFixed 1]
+    private _capMps=_state param [0,-1];
+    private _capKmh=if (_capMps < 0) then {-1} else {_capMps*3.6};
+    format ["%1 capKmh=%2 grade=%3 owner=%4 age=%5 recovery=%6",typeOf _x,_capKmh toFixed 1,(_state param [1,0]) toFixed 2,[groupId _owner,"unknown"] select (isNull _owner),(time-(_state param [2,time])) max 0 toFixed 1,_state param [8,"IDLE"]]
 };
 private _drivingLoaded=(["drivingBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _convoyRegistry=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
@@ -169,6 +233,15 @@ private _convoyVehicles=[];
 {_convoyVehicles append (((_x select 1) param [4,[]]) select {!isNull _x})} forEach _convoyRegistry;
 private _convoyRecoveries=0;
 {_convoyRecoveries=_convoyRecoveries+(_x getVariable ["WAIT_Convoy_RouteRecoveries",0])} forEach _convoyGroups;
+private _convoyBrains=(_convoyGroups select {local _x && {count (_x getVariable ["WAIT_Convoy_Brain",createHashMap]) > 0}}) select [0,20];
+private _convoyBrainSnapshot=_convoyBrains apply {
+    private _brain=_x getVariable ["WAIT_Convoy_Brain",createHashMap];
+    format ["%1 phase=%2 revision=%3 registry=%4 pending=%5 spacingPairs=%6 recoveryActors=%7 age=%8 schedulerWatchdogs=%9 cancel=%10",
+        groupId _x,_brain getOrDefault ["phase","UNKNOWN"],(_brain getOrDefault ["configuration",[]]) param [0,-1],
+        _brain getOrDefault ["registryRevision",-1],_brain getOrDefault ["pending",false],
+        _brain getOrDefault ["spacingPairs",0],_brain getOrDefault ["recoveryActors",0],
+        ((time-(_brain getOrDefault ["lastStepAt",time])) max 0) toFixed 1,_brain getOrDefault ["watchdogCount",0],_brain getOrDefault ["cancelReason",""]]
+};
 // A convoy needs its own local scheduler restart after a compatible transfer. Compare the
 // validated adoption record with the companion restart record, rather than treating owner
 // change alone as proof that spacing/passenger maintenance resumed.
@@ -184,7 +257,9 @@ private _navalBackend=(["navalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _navalGroups=_groups select {(_x getVariable ["WAIT_Cortex_NavalStatus",[]]) isNotEqualTo []};
 private _checks = [
     ["ai", "cortex", _passState, format ["enabled=%1 serverActive=%2 serverJobs=%3 paused=%4 includedSides=%5. %6", _passEnabled, _passActive, _passJobs, [] call WAIT_fnc_CortexIsPaused, missionNamespace getVariable ["WAIT_AIPass_IncludedSides", []], _passHint]],
+    ["ai", "cortex-scheduler", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["sampledJobs=%1 callbackMs=%2 maxQueueLatency=%3 staleProgress=%4",count _schedulerQueue,_schedulerCallbackMs toFixed 3,_schedulerLatency toFixed 2,_schedulerStaleProgress]],
     ["ai", "cortex-regroup", if (_passEnabled && {_regroupEnabled}) then {"LOADED"} else {"DISABLED"}, format ["enabled=%1 serverRegroupsCompleted=%2 serverUnitsJoined=%3", _regroupEnabled, missionNamespace getVariable ["WAIT_AIPass_RegroupsCompleted", 0], missionNamespace getVariable ["WAIT_AIPass_RegroupJoined", 0]]],
+    ["ai", "cortex-medical", if (!_passEnabled || {!_medicalEnabled}) then {"DISABLED"} else {if (_medicalBackend) then {"EXTERNAL"} else {if (_medicalAidGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}}, format ["enabled=%1 externalMedicalOwner=%2 activeAidGroups=%3 completed=%4. WAIT only issues one bounded native treatment command during CALM or SECURITY; combat, Zeus, a direct order or an external owner cancels it without changing health.",_medicalEnabled,_medicalBackend,count _medicalAidGroups,missionNamespace getVariable ["WAIT_AIPass_MedicalAssists",0]]],
     ["ai", "cortex-groups", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["serverManaged=%1 inContact=%2 retreating=%3 garrisons=%4 flanksCompleted=%5 retreats=%6 surrenders=%7 reinforcementsSent=%8 grenadeReactions=%9",
         {local _x && {_x getVariable ["WAIT_AIPass_Managed", false]}} count _groups,
         {local _x && {((_x getVariable ["WAIT_AIPass_State", createHashMap]) getOrDefault ["phase", ""]) == "CONTACT"}} count _groups,
@@ -216,15 +291,15 @@ private _checks = [
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["Up to twelve local AI group members provide Hit/Suppressed/hostile FiredNear observations; the group also records engine-confirmed EnemyDetected contact after verifying native knowledge. Records cap at 16 and expire after two seconds; same-cause callbacks throttle to 0.25 s; wake an existing group job at most twice per second. Published responses=%1 [action/cause/remaining: %2]. No target reveal, second movement owner or native danger replacement. Physical/latency and mixed-group performance acceptance pending.",count _dangerResponses,_dangerResponseSummary joinString ","]],
-    ["ai", "cortex-danger-ownership", if (_dangerBackend || {_buildingBackend} || {_turretPolicy} || {_suppressionPolicy} || {_launcherPolicy}) then {"ACTIVE"} else {"UNAVAILABLE"}, format ["danger=%1 waypoints=%2 turrets=%3 suppression=%4 rpg=%5 mode=%6 scopedMovementLeases=%7 externalDangerOwnedGroups=%8 busyLeaseRefusals=%9; config companions remain active in every mode", _dangerBackend, _buildingBackend, _turretPolicy, _suppressionPolicy, _launcherPolicy, missionNamespace getVariable ["WAIT_AIPass_InfantryOwnership", "SPLIT"], _dangerMovementLeases, _dangerBusyGroups, missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals", 0]]],
+    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The configured engine danger FSM exits without issuing WAIT commands while the runtime or danger feature is disabled. When enabled, tactical handoff drains at most 12 native records per step and maps relevant observations into a 16-record expiring group queue; same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Engine events=%1 submissions=%2 acceptedRecords=%3 reflexOnlyRecords=%4 first-contactBootstraps=%5 finiteCoverMoves=%6 modes=[%7]; published responses=%8 [action/cause/remaining: %9]; local observed contacts=%10 [group/count: %11]; server-local stance leases=%12. Friendly near-fire can produce a short local reflex but cannot create group CONTACT; engage causes require a live hostile source. Boarding, action, healing, rearm, join, fleeing and vehicle owners receive no posture or movement command. Native ATTACK remains eligible because it is also Arma's ordinary autonomous combat command; WAIT leaves native targeting and movement intact. Immediate stances are weak, finite and exact-owned; committed operation movers are never forced prone. Casualty and scream evidence remains a mobile alert and cannot authorise a cover move. One idle actor may take a bounded physical cover move after hit, explosion or suppression through the existing group-brain budget; any current command, operation or newer owner blocks it. No target reveal or second persistent movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,_dangerEngineSubmissions,_dangerEngineRecords,_dangerEngineReflexOnly,_dangerEngineBootstraps,_dangerEngineCoverMoves,_dangerEngineModeSummary joinString ",",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ",",_dangerStanceLeases]],
+    ["ai","cortex-danger-ownership",["ERROR","ACTIVE"] select _dangerFsmOwned,format ["exclusiveEngineFSM=%1 basePaths=%2. WAIT must own all west, east and independent soldier danger slots. It owns immediate danger response and submits expensive group planning to the shared scheduler; another fsmDanger replacement is unsupported.",_dangerFsmOwned,_dangerFsmPaths]],
     ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
-    ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies a terrain-grade speed cap only while a native waypoint is active; registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes the last cap, grade, owner group and sample age. Headless owners retain their local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],
-    ["ai","convoy-driving",if (_convoyHandoffMissing isNotEqualTo []) then {"ERROR"} else {if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7 missingCompatibilityHandoffRestart=%8. Road look-ahead is one bounded sample per convoy; WAIT keeps the committed final route and never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{[_x,"drivingPause",false] call WAIT_fnc_CompatibilityState} count _convoyVehicles,count _convoyHandoffMissing]],
+    ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies terrain-grade safety only while a native waypoint is active; a non-combat vehicle receives at most one route refresh, clear-rear reverse and final route retry. Registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes cap in km/h, grade, owner group, sample age and recovery state. Headless owners retain local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],
+    ["ai","convoy-driving",if (_convoyHandoffMissing isNotEqualTo []) then {"ERROR"} else {if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7 missingCompatibilityHandoffRestart=%8 brains=[%9]. One finite owner-local brain exposes cruise, spacing, contact, recovery, ordered hold, obstruction and arrival. Physical control remains one bounded shared-scheduler step; WAIT never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{[_x,"drivingPause",false] call WAIT_fnc_CompatibilityState} count _convoyVehicles,count _convoyHandoffMissing,_convoyBrainSnapshot joinString "; "]],
     ["ai","cortex-naval",if !(missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true]) then {"DISABLED"} else {if (_navalBackend) then {"EXTERNAL"} else {if (_navalGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}},format ["enabled=%1 navalBackendLoaded=%2 activeGroups=%3 statuses=%4. Uses the existing Cortex group scheduler, a bounded shore comparison and one finite native approach; the active specialist naval controller has exclusive ownership when loaded.",missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true],_navalBackend,count _navalGroups,_navalGroups apply {_x getVariable ["WAIT_Cortex_NavalStatus",[]]}]],
     ["ai","cortex-civilian-reactions",if !(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true]) then {"DISABLED"} else {if (missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false]) then {"EXTERNAL"} else {"LOADED"}},format ["eligibleUnarmedCivilians=%1 reactingNow=%2 radius=%3 distance=%4 cooldown=%5. FiredNear/Hit handlers are event-driven; external civilian controller has exclusive ownership when present.",count _civilianActors,_civilianReactions,missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Distance",180],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Cooldown",20]]],
     ["ai", "ai-profile", if (_enabled) then {"ACTIVE"} else {"DISABLED"}, format ["profile=%1 mode=%2 serverActive=%3", missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"], missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"], missionNamespace getVariable ["WAIT_AI_RebalanceActive", false]]],
-    ["ai", "ai-weapon-dispersion", if (!_enabled) then {"DISABLED"} else {"ACTIVE"}, format ["operatingCrew=%1 precisionExcluded=%2 infantry=%3 crewSkillMultiplier=%4 groundVehicle=%5 aircraft=%6 locallyAdjusted=%7 turretPolicy=%8 scriptVehicleLayer=%9. The public precision-exclusion compatibility contract supports independent weapon systems; COMPAT Turrets prevents a stacked script coefficient.",count _operatingCrew,count _precisionExcludedCrew,missionNamespace getVariable ["WAIT_AI_InfantryDispersion",1.35],missionNamespace getVariable ["WAIT_AI_VehicleCrewAimMultiplier",0.6],missionNamespace getVariable ["WAIT_AI_VehicleCrewDispersion",3.5],missionNamespace getVariable ["WAIT_AI_AirCrewDispersion",4.25],_crewAimAdjusted,_turretPolicy,!_turretPolicy]],
+    ["ai", "ai-weapon-dispersion", if (!_enabled) then {"DISABLED"} else {"ACTIVE"}, format ["operatingCrew=%1 precisionExcluded=%2 infantry=%3 crewSkillMultiplier=%4 groundVehicle=%5 aircraft=%6 locallyAdjusted=%7 turretPolicy=%8 scriptVehicleLayer=%9. The public precision-exclusion compatibility contract supports independent weapon systems; an active external precision provider prevents a stacked script coefficient.",count _operatingCrew,count _precisionExcludedCrew,missionNamespace getVariable ["WAIT_AI_InfantryDispersion",1.35],missionNamespace getVariable ["WAIT_AI_VehicleCrewAimMultiplier",0.6],missionNamespace getVariable ["WAIT_AI_VehicleCrewDispersion",3.5],missionNamespace getVariable ["WAIT_AI_AirCrewDispersion",4.25],_crewAimAdjusted,_turretPolicy,!_turretPolicy]],
     ["ai", "ai-headless-adoption", if (!_enabled) then {"DISABLED"} else {if (_missing isNotEqualTo [] || {_convoyHandoffMissing isNotEqualTo []}) then {"ERROR"} else {if (_hcGroups isNotEqualTo []) then {"ACTIVE"} else {"UNCONFIGURED"}}}, format ["connectedHCs=%1 hcOwnedGroups=%2 missingVerifiedAdoption=%3 activeConvoysMissingCompatibilityRestart=%4", count _hcOwners, count _hcGroups, count _missing, count _convoyHandoffMissing]],
     ["ai", "improved-helicopter-landing", if !(missionNamespace getVariable ["WAIT_ImprovedHelicopterLanding_Enable", true]) then {"DISABLED"} else {if (count _staleLanding > 0 || {count _groupedLanding > 0}) then {"ERROR"} else {if (count _activeLanding > 0) then {"ACTIVE"} else {"LOADED"}}}, format ["helicopters=%1 movementOwned=%2 activeControllers=%3 staleGroundAnchors=%4 groupedControllers=%5", count _helicopters, count _orphanedMovementControl, count _activeLanding, count _staleLanding, count _groupedLanding]],
     ["ai", "helicopter-deceleration", if (!_decelerationEnabled) then {"DISABLED"} else {if (count _decelerationLandingConflict > 0) then {"ERROR"} else {"ACTIVE"}}, format ["enabled=%1 tracked=%2 activelyCorrecting=%3 landingConflicts=%4 includeVTOL=%5", _decelerationEnabled, count _decelerationAircraft, count _decelerationActive, count _decelerationLandingConflict, missionNamespace getVariable ["WAIT_HelicopterDeceleration_IncludeVTOL", false]]]
@@ -312,13 +387,45 @@ _queue append (missionNamespace getVariable ["WAIT_AIPass_PendingJobs",[]]);
 private _overdue=0;
 private _oldest=0;
 private _staleOwners=0;
+private _keyedJobs=0;
 private _earliestQueued=-1;
+private _maxCallbackMs=0;
+private _maxRecordedLatency=0;
+private _skippedJobs=0;
+private _skipReasons=createHashMap;
+private _aircraftJobs=0;
+private _landingObserverJobs=0;
+private _decelerationObserverJobs=0;
+private _aircraftOverdue=0;
+private _aircraftOldest=0;
+private _aircraftMaxCallbackMs=0;
+private _aircraftMaxLatency=0;
 {
     _x params ["_due","","_jobState"];
     if (_earliestQueued < 0 || {_due < _earliestQueued}) then {_earliestQueued=_due};
     if (_due < time) then {_overdue=_overdue+1; _oldest=_oldest max (time-_due)};
+    if ((_jobState getOrDefault ["jobKey",""]) != "") then {_keyedJobs=_keyedJobs+1};
+    _maxCallbackMs=_maxCallbackMs max (_jobState getOrDefault ["lastCallbackMs",0]);
+    _maxRecordedLatency=_maxRecordedLatency max (_jobState getOrDefault ["queueLatency",0]);
+    private _skipReason=_jobState getOrDefault ["skippedReason",""];
+    if (_skipReason != "") then {
+        _skippedJobs=_skippedJobs+1;
+        _skipReasons set [_skipReason,(_skipReasons getOrDefault [_skipReason,0])+1];
+    };
     private _jobGroup=_jobState getOrDefault ["group",grpNull];
     if (!isNull _jobGroup && {!local _jobGroup || {(_jobState getOrDefault ["ownerEpoch",-1]) != (_jobGroup getVariable ["WAIT_AIPass_Epoch",0])}}) then {_staleOwners=_staleOwners+1};
+    if ((_jobState getOrDefault ["subsystem",""]) == "AIRCRAFT") then {
+        _aircraftJobs=_aircraftJobs+1;
+        private _aircraftKey=_jobState getOrDefault ["jobKey",""];
+        if (_aircraftKey find "WAIT_LANDING_" == 0) then {_landingObserverJobs=_landingObserverJobs+1};
+        if (_aircraftKey find "WAIT_DECEL_" == 0) then {_decelerationObserverJobs=_decelerationObserverJobs+1};
+        if (_due < time) then {
+            _aircraftOverdue=_aircraftOverdue+1;
+            _aircraftOldest=_aircraftOldest max (time-_due);
+        };
+        _aircraftMaxCallbackMs=_aircraftMaxCallbackMs max (_jobState getOrDefault ["lastCallbackMs",0]);
+        _aircraftMaxLatency=_aircraftMaxLatency max (_jobState getOrDefault ["queueLatency",0]);
+    };
 } forEach _queue;
 private _cachedNextDue=missionNamespace getVariable ["WAIT_AIPass_NextJobDue",-1];
 private _cacheConsistent=(_queue isEqualTo [] && {_cachedNextDue < 0})
@@ -329,7 +436,9 @@ private _queueHint=if (_cacheConsistent) then {
 } else {
     "The scheduler deadline cache is missing or later than the earliest queued job. Restart Cortex or inspect queue mutation paths before trusting idle scheduling."
 };
-_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 dueNow=%2 oldestDueSeconds=%3 staleOwnerJobs=%4 cachedNextDueSeconds=%5 earliestQueuedDueSeconds=%6 deadlineCacheConsistent=%7 fps=%8 budgetMs=%9 paused=%10. %11",count _queue,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_queueHint]];
+_checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11 maxCallbackMs=%12 maxRecordedQueueLatencySeconds=%13 skippedJobs=%14 skipReasons=%15. %16",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_maxCallbackMs,_maxRecordedLatency,_skippedJobs,_skipReasons,_queueHint]];
+private _aircraftQueueState=if (_aircraftOverdue > 0 && {_aircraftOldest > 5}) then {"ERROR"} else {if (_aircraftJobs > 0) then {"ACTIVE"} else {"LOADED"}};
+_checks pushBack ["ai","aircraft-scheduler-health",_aircraftQueueState,format ["serverLocalJobs=%1 landingObservers=%2 decelerationObservers=%3 dueNow=%4 oldestDueSeconds=%5 maxCallbackMs=%6 maxRecordedQueueLatencySeconds=%7 schedulerActive=%8 landingSchedulerActive=%9 decelerationSchedulerActive=%10. This owner-local snapshot excludes aircraft currently owned by clients or headless clients; repeat it on the affected owner before diagnosing a missing observer.",_aircraftJobs,_landingObserverJobs,_decelerationObserverJobs,_aircraftOverdue,_aircraftOldest,_aircraftMaxCallbackMs,_aircraftMaxLatency,missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive",false]]];
 // Coordinated work is server-owned, so expose the lease/turn state which an HC-only
 // group snapshot cannot explain. This is calculated only for an on-demand report.
 private _supportRequests=missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
@@ -347,6 +456,10 @@ _checks pushBack ["ai","cortex-coordination-health",if (_retiredSupportTeams > 0
     private _request=_supportRequests get _x;
     private _requester=_request getOrDefault ["requester",grpNull];
     _checks pushBack ["ai","cortex-coordination-"+_x,"LOADED",format ["requester=%1 leases=%2 active=%3 completed=%4 retired=%5 failuresByToken=%6 secondsRemaining=%7",if (isNull _requester) then {"NULL"} else {groupId _requester},count (_request getOrDefault ["leases",[]]),_request getOrDefault ["boundActive",[]],_request getOrDefault ["boundCompleted",[]],_request getOrDefault ["boundRetired",[]],_request getOrDefault ["boundFailuresByToken",createHashMap],((_request getOrDefault ["expiry",serverTime])-serverTime) max 0]];
+    private _brain=if (isNull _requester) then {createHashMap} else {_requester getVariable ["WAIT_Support_Brain",createHashMap]};
+    private _brainHealthy=count _brain > 0 && {(_brain getOrDefault ["serial",-1]) == (_request getOrDefault ["serial",-2])}
+        && {!(_brain getOrDefault ["cancelled",false])} && {!(_brain getOrDefault ["finished",false])};
+    _checks pushBack ["ai","wait-support-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["requester=%1 phase=%2 generation=%3 pending=%4 secondsSinceStep=%5 dueInSeconds=%6 leases=%7 cursor=%8 schedulerWatchdogs=%9. The server FSM owns discovery and coordination persistence; responder movement remains owner-local.",if (isNull _requester) then {"NULL"} else {groupId _requester},_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},((_brain getOrDefault ["nextAt",time])-time) max 0,count (_request getOrDefault ["leases",[]]),_request getOrDefault ["cursor",0],_brain getOrDefault ["watchdogCount",0]]];
 } forEach ((keys _supportRequests) select [0,20]);
 private _localGroups=_groups select {local _x && {_x getVariable ["WAIT_AIPass_Managed",false]}};
 _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot serverTime=%1; server-local managed groups=%2, sampled=%3 (limit 20); HC-owned groups=%4. HC private action/queue state is unavailable here, not zero. Stationary or PATH-disabled units may be covering; one snapshot cannot prove a stall.",serverTime,count _localGroups,(count _localGroups) min 20,count _hcGroups]];
@@ -363,6 +476,13 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
 {
     private _group=_x;
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
+    private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    private _brainPhase=_brain getOrDefault ["phase","MISSING"];
+    private _brainHealthy=count _brain > 0
+        && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+        && {(_brain getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_GroupBrain_Generation",0])}
+        && {!(_brain getOrDefault ["cancelled",false])};
+    _checks pushBack ["ai",format ["wait-group-brain-%1",netId leader _group],["ERROR","LOADED"] select _brainHealthy,format ["group=%1 owner=%2 semanticPhase=%3 legacyPhase=%4 generation=%5 ownerEpoch=%6 pending=%7 secondsSinceStep=%8 secondsUntilDue=%9 schedulerWatchdogs=%10 cancelReason=%11. The FSM is the persistent decision owner; after fifteen unpaused seconds and the resume grace, a watchdog only wakes the same keyed shared-scheduler job and never creates another decision owner. Physical results still require route, movement, firing or room evidence.",groupId _group,groupOwner _group,_brainPhase,_brain getOrDefault ["legacyPhase","UNKNOWN"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["ownerEpoch",-1],_brain getOrDefault ["pending",false],if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {time-(_brain get "lastStepAt")},((_brain getOrDefault ["nextAt",time])-time) max 0,_brain getOrDefault ["watchdogCount",0],_brain getOrDefault ["cancelReason",""]]];
     private _phaseTransition=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
     if (count _phaseTransition == 5) then {
         private _phaseCurrent=_state getOrDefault ["phase","UNKNOWN"];
@@ -378,7 +498,8 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _resumeGrace=((missionNamespace getVariable ["WAIT_AIPass_ResumeGraceUntil",-1])-time) max 0;
         private _movementLease=_state getOrDefault ["movementLease",[]];
         private _healthy=_heartbeatAge <= _watchdog || {_resumeGrace > 0};
-        _checks pushBack ["ai",format ["cortex-drill-health-%1",netId _group],["ERROR","LOADED"] select _healthy,format ["group=%1 type=%2 stage=%3 token=%4 heartbeatAgeSeconds=%5 watchdogSeconds=%6 movementLease=%7 resumeGraceSeconds=%8. An overdue controller is released through common drill cleanup; a stored drill or waypoint is not completion evidence.",groupId _group,_drill getOrDefault ["type","UNKNOWN"],_drill getOrDefault ["stage","UNKNOWN"],_drill getOrDefault ["token",""],_heartbeatAge,_watchdog,_movementLease,_resumeGrace]];
+        private _drillFsmJob=_group getVariable ["WAIT_Cortex_DrillFSMJob",createHashMap];
+        _checks pushBack ["ai",format ["cortex-drill-health-%1",netId _group],["ERROR","LOADED"] select _healthy,format ["group=%1 type=%2 stage=%3 token=%4 heartbeatAgeSeconds=%5 watchdogSeconds=%6 movementLease=%7 resumeGraceSeconds=%8 schedulerWatchdogs=%9. An overdue controller wakes its same keyed scheduler callback; a stored drill or waypoint is not completion evidence.",groupId _group,_drill getOrDefault ["type","UNKNOWN"],_drill getOrDefault ["stage","UNKNOWN"],_drill getOrDefault ["token",""],_heartbeatAge,_watchdog,_movementLease,_resumeGrace,_drillFsmJob getOrDefault ["watchdogCount",0]]];
     };
     private _remount=_group getVariable ["WAIT_Cortex_Remount",[]];
     if (count _remount == 2) then {
@@ -433,9 +554,14 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
             && {side _combinedRequester == side _group} && {_combinedName in ["GROUND_FIRE","GROUND_MANOEUVRE","AIR_ATTACK"]};
         _checks pushBack ["ai",format ["cortex-combined-role-%1",netId _group],["ERROR","LOADED"] select _combinedHealthy,format ["group=%1 token=%2 role=%3 requester=%4 target=%5 secondsRemaining=%6 applied=%7 result=%8. Combined roles share an opportunity only; they contain no assembly readiness or infantry movement gate.",groupId _group,_combinedRole param [0,""],_combinedName,groupId _combinedRequester,_combinedTarget,(_combinedExpiry-serverTime) max 0,_group getVariable ["WAIT_Cortex_CombinedApplied",[]],_group getVariable ["WAIT_Cortex_CombinedResult",[]]]];
     };
+    private _buildingBrain=_group getVariable ["WAIT_BuildingBrain",createHashMap];
+    if (count _buildingBrain > 0) then {
+        private _buildingJob=_buildingBrain getOrDefault ["job",createHashMap];
+        _checks pushBack ["ai",format ["wait-building-fsm-%1",netId _group],"ACTIVE",format ["group=%1 phase=%2 generation=%3 ownerEpoch=%4 pending=%5 nextStepSeconds=%6 progressAgeSeconds=%7 visited=%8 unreachable=%9 rooms=%10 schedulerWatchdogs=%11 cancellation=%12. Physical visits remain the clearance authority; the FSM state is intent and ownership evidence only.",groupId _group,_buildingBrain getOrDefault ["phase","UNKNOWN"],_buildingBrain getOrDefault ["generation",-1],_buildingBrain getOrDefault ["ownerEpoch",-1],_buildingBrain getOrDefault ["pending",false],((_buildingBrain getOrDefault ["nextAt",time])-time) max 0,(serverTime-(_buildingJob getOrDefault ["lastProgressAt",serverTime])) max 0,count (_buildingJob getOrDefault ["cleared",[]]),count (_buildingJob getOrDefault ["unreachable",[]]),count (_buildingJob getOrDefault ["positions",[]]),_buildingBrain getOrDefault ["watchdogCount",0],_buildingBrain getOrDefault ["cancelReason",""]]];
+    };
     private _operation=_group getVariable ["WAIT_Operation",createHashMap];
     if (count _operation > 0) then {
-        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 cancellation=%10. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],_operation getOrDefault ["cancelReason",""]]];
+        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 recoveryAttempts=%10 unavailableActors=%11 cancellation=%12. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],count (keys (_operation getOrDefault ["recovery",createHashMap])),count (_operation getOrDefault ["unavailable",[]]),_operation getOrDefault ["cancelReason",""]]];
     };
     _checks pushBack ["ai",format ["cortex-group-context-%1",netId _group],"LOADED",format ["group=%1 phaseAgeSeconds=%2 lastSeenAgeSeconds=%3 morale=%4 moraleState=%5 investigating=%6 searchMembers=%7 reinforcementResponding=%8 dismounted=%9 withdrawnVehicles=%10 disabledFeatures=%11 externalControl=%12. Ages are owner-local; unknown uses -1. Stored intentions are not physical completion.",groupId _group,if ("phaseStart" in _state) then {time-(_state get "phaseStart")} else {-1},if ("lastSeen" in _state) then {time-(_state get "lastSeen")} else {-1},_state getOrDefault ["morale",-1],_state getOrDefault ["moraleState","UNKNOWN"],_state getOrDefault ["areaInvestigation",""],count (_state getOrDefault ["searchTeam",[]]),_state getOrDefault ["responding",false],count (_state getOrDefault ["dismounted",[]]),count (_state getOrDefault ["withdrawn",[]]),_group getVariable ["WAIT_AIPass_DisabledFeatures",[]],[_group] call WAIT_fnc_CompatibilityExternalControl]];
     private _actors=_members apply {[_x,currentCommand _x,round speed _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x,unitCombatMode _x]};
@@ -473,6 +599,12 @@ private _missions=missionNamespace getVariable ["WAIT_AIPass_FireMissions",creat
     private _mission=_missions get _x;
     private _phase=_mission getOrDefault ["phase","UNKNOWN"];
     _checks pushBack ["ai","cortex-fire-"+_x,if (_phase == "UNCERTAIN") then {"ERROR"} else {"LOADED"},format ["purpose=%1 phase=%2 confirmedShots=%3 remaining=%4 burstsLeft=%5 dueInSeconds=%6 owner=%7. PENDING is awaiting a firing event, not confirmed fire; UNCERTAIN must not be retried blindly.",_mission getOrDefault ["purpose","UNKNOWN"],_phase,_mission getOrDefault ["fired",0],_mission getOrDefault ["remaining",0],_mission getOrDefault ["burstsLeft",0],(_mission getOrDefault ["due",time])-time,owner (_mission getOrDefault ["battery",objNull])]];
+    private _battery=_mission getOrDefault ["battery",objNull];
+    private _brain=if (isNull _battery) then {createHashMap} else {_battery getVariable ["WAIT_Artillery_Brain",createHashMap]};
+    private _brainState=if (isNull _battery) then {[]} else {_battery getVariable ["WAIT_Artillery_Brain_State",[]]};
+    private _brainHealthy=count _brain > 0 && {(_brain getOrDefault ["token",""]) == (_mission getOrDefault ["token",""])}
+        && {!(_brain getOrDefault ["cancelled",false])} && {!(_brain getOrDefault ["finished",false])};
+    _checks pushBack ["ai","wait-artillery-fsm-"+_x,["ERROR","LOADED"] select _brainHealthy,format ["phase=%1 generation=%2 pending=%3 dueInSeconds=%4 lastStepAge=%5 nativePhase=%6 token=%7 schedulerWatchdogs=%8 state=%9. The FSM owns persistence; shot, observer and warning work remains bounded.",_brain getOrDefault ["phase","MISSING"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["pending",false],((_brain getOrDefault ["nextAt",time])-time) max 0,if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {(time-(_brain get "lastStepAt")) max 0},_phase,_mission getOrDefault ["token",""],_brain getOrDefault ["watchdogCount",0],_brainState]];
 } forEach ((keys _missions) select [0,20]);
 private _convoys=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
 {
@@ -502,7 +634,8 @@ private _attackAircraft=vehicles select {_x isKindOf "Air" && {(_x getVariable [
     _checks pushBack ["ai",format ["cortex-attack-flares-%1",netId _x],"LOADED",format ["class=%1 owner=%2 phase=%3 cooldownRemaining=%4 speed=%5 alive=%6. Phase describes the last requested leg, not actual release; inspect Fired events and countermeasure ammunition. No flight commands are issued.",typeOf _x,owner _x,_x getVariable ["WAIT_Cortex_AttackFlarePhase",""],((_x getVariable ["WAIT_Cortex_AttackFlareCooldown",0])-serverTime) max 0,speed _x,alive _x]];
 } forEach (_attackAircraft select [0,20]);
 private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
-    (_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []
+    count (_x getVariable ["WAIT_AirAttack_Brain",createHashMap]) > 0
+        || {(_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []}
         || {(_x getVariable ["WAIT_Cortex_AirAttackOutcome",[]]) isNotEqualTo []}
 }};
 {
@@ -510,18 +643,33 @@ private _adaptiveAircraft=vehicles select {_x isKindOf "Air" && {
     private _plan=_aircraft getVariable ["WAIT_Cortex_AirAttackPlan",[]];
     private _outcome=_aircraft getVariable ["WAIT_Cortex_AirAttackOutcome",[]];
     private _request=_aircraft getVariable ["WAIT_Cortex_CountermeasureLastRequest",[]];
+    private _brainState=_aircraft getVariable ["WAIT_AirAttack_Brain_State",[]];
+    private _airBrain=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
     private _reason=_outcome param [0,""];
     private _healthy=alive _aircraft && {(getPosATL _aircraft select 2) >= 25}
         && {_reason in ["","COMPLETE","CONTROL_RELEASED","TARGET_LOST","AUTHORED_ROUTE_CHANGED","NOT_ATTACKING"]};
     _checks pushBack ["ai",format ["cortex-air-attack-%1",netId _aircraft],["ERROR","LOADED"] select _healthy,
-        format ["class=%1 owner=%2 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%3 lastOutcome=[reason,time,pattern,actualShots]=%4 lastCountermeasureRequest=%5 standoffBlockedSeconds=%6 crewRetained=%7. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
-            typeOf _aircraft,owner _aircraft,_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
+        format ["class=%1 owner=%2 brain=[phase,generation,time,reason,delay]=%3 schedulerWatchdogs=%4 current=[token,pattern,stage,target,destination,remaining,actualShots,observedAA,speed,altitude,approachCM,egressCM,platform,lateralTurret,standoffWeapon,standoffTurret,fireSolution,stageAltitudes,stageSpeeds,captureRadii,attackMinimum,points,selectedWeapon,selectedSimulation,selectedTurret]=%5 lastOutcome=[reason,time,pattern,actualShots]=%6 lastCountermeasureRequest=%7 standoffBlockedSeconds=%8 crewRetained=%9. A Fired event is not an effective attack by itself; inspect the live solution, release geometry, projectile result and physical egress.",
+            typeOf _aircraft,owner _aircraft,_brainState,_airBrain getOrDefault ["watchdogCount",0],_plan,_outcome,_request,((_aircraft getVariable ["WAIT_Cortex_AirStandoffBlockedUntil",0])-serverTime) max 0,(crew _aircraft) findIf {!alive _x || {vehicle _x != _aircraft}} < 0]];
 } forEach (_adaptiveAircraft select [0,20]);
 _checks pushBack ["ai","cortex-air-attack-snapshot-limits","LOADED",format ["Adaptive aircraft total=%1 sampled=%2 (limit 20). Active plans and retained outcomes are included; physical travel, Fired events and explicit transitions remain the acceptance evidence.",count _adaptiveAircraft,(count _adaptiveAircraft) min 20]];
+private _flightLeased=vehicles select {_x isKindOf "Air" && {count (_x getVariable ["WAIT_FlightLease",createHashMap]) > 0}};
+{
+    private _lease=_x getVariable ["WAIT_FlightLease",createHashMap];
+    private _leaseOwner=_lease getOrDefault ["owner",-1];
+    private _healthy=alive _x && {_leaseOwner == owner _x};
+    _checks pushBack ["ai",format ["wait-flight-lease-%1",netId _x],["ERROR","ACTIVE"] select _healthy,format [
+        "class=%1 aircraftOwner=%2 controller=%3 token=%4 priority=%5 leaseOwner=%6 revision=%7 age=%8 lastRelease=%9. Exactly one WAIT controller may mutate flight; player, Zeus and specialist ownership invalidate it.",
+        typeOf _x,owner _x,_lease getOrDefault ["controller",""],_lease getOrDefault ["token",""],
+        _lease getOrDefault ["priority",0],_leaseOwner,_lease getOrDefault ["revision",-1],
+        serverTime-(_lease getOrDefault ["startedAt",serverTime]),_x getVariable ["WAIT_FlightLeaseLast",[]]
+    ]];
+} forEach (_flightLeased select [0,20]);
+_checks pushBack ["ai","wait-flight-lease-snapshot-limits","LOADED",format ["Flight leases total=%1 sampled=%2 (limit 20).",count _flightLeased,(count _flightLeased) min 20]];
 private _compat = missionNamespace getVariable ["WAIT_AITweaks_Compatibility", createHashMap];
 private _providers = (keys _compat) select {_compat get _x};
 _providers sort true;
 _checks pushBack ["ai", "ai-external-providers", "LOADED", format [
-    "Detected=%1. Optional providers reserve actors through active operation markers. Detection does not certify compatibility; native danger remains available without a provider.", _providers
+    "Detected=%1. Specialist and independent-domain providers may reserve actors through active operation markers. They do not share WAIT's engine danger or building progression. Any other fsmDanger replacement is unsupported.", _providers
 ]];
 ["ai", _checks] call WAIT_fnc_AITweaksDiagnosticReport

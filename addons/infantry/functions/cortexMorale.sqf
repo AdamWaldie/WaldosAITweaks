@@ -87,10 +87,15 @@ if (_current != "BROKEN") exitWith {""};
 private _allOnFoot = _alive findIf {vehicle _x != _x} < 0;
 if (_allOnFoot && {[_group,"WAIT_AIPass_Surrender_Enable", true] call WAIT_fnc_CortexFeatureEnabled} && {_count <= (_profile get "surrenderSurvivors")}
     && {_enemies findIf {(_x select 3) < 60} >= 0}) then {
-    private _leaderPos = getPosATL leader _group;
+    private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _anchor) then {_anchor=leader _group};
+    private _leaderPos = getPosATL _anchor;
     private _side = side _group;
-    private _friendsNear = allGroups findIf {
-        _x != _group && {side _x == _side} && {(units _x) findIf {[_x] call WAIT_fnc_CortexCombatEffective && {!fleeing _x}} >= 0} && {(leader _x) distance2D _leaderPos < 300}
+    // This runs only for a broken squad, but must still stay spatially bounded. Scanning every
+    // group turns simultaneous morale checks into an O(groups squared) workload at scale.
+    private _friendsNear = (_leaderPos nearEntities ["Man",300]) findIf {
+        alive _x && {group _x != _group} && {side group _x == _side}
+            && {[_x] call WAIT_fnc_CortexCombatEffective} && {!fleeing _x}
     } >= 0;
     if (!_friendsNear) exitWith {"SURRENDER"};
     ["", "RETREAT"] select ((_state getOrDefault ["phase", ""]) == "CONTACT")

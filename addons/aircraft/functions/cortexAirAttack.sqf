@@ -52,13 +52,12 @@
  * it creates no timed guard, replacement route, pilot order or delayed semantic restoration.
  * Locality/authority: aircraft owner only. Public summary/outcome arrays support Zeus diagnostics;
  * movement commands and Fired handlers remain owner-local.
- * Repeat/JIP: one job per aircraft. Cleanup removes the owned handler,
+ * Repeat/JIP: one finite FSM brain per aircraft. Cleanup removes the owned handler,
  * named waypoint, speed limit and public plan; a short owner-local re-attack interval prevents immediate duplicate runs.
  * Arguments: 0: scheduler job <HASHMAP>; aircraft <OBJECT> is required; target <OBJECT> is optional
  * when an authenticated combined-arms opportunity already selected it.
- * Return Value: NUMBER delay, or -1 after cleanup.
- * Current callers: WAIT_fnc_CortexDiscover and WAIT_fnc_CortexCombinedArmsLocal through the
- * budgeted Cortex scheduler.
+ * Return Value: NUMBER delay for the owning FSM, or -1 after cleanup.
+ * Current caller: WAIT_fnc_AirAttackOperationStep through the shared scheduler.
  * Example: [createHashMapFromArray [["aircraft",_plane]]] call WAIT_fnc_CortexAirAttack;
  */
 params [["_job",createHashMap,[createHashMap]]];
@@ -168,7 +167,12 @@ private _finish={
             private _resumeWaypointIndex=(waypoints _resumeGroup) findIf {
                 waypointPosition _x distance2D _resumePosition <= 2
             };
-            if (count _resumePosition >= 2 && {!([_resumeGroup] call WAIT_fnc_CortexZeusHeld)}) then {
+            // The shared takeover boundary includes player occupants, Zeus and specialist markers
+            // on every crew group. A completed attack must not re-form the aircraft over any one
+            // of those newer owners merely because its own operation reached a normal release.
+            private _resumeExternal = [_resumeGroup] call WAIT_fnc_CortexExternalTakeover
+                || {(crew _aircraft) findIf {[group _x] call WAIT_fnc_CortexExternalTakeover} >= 0};
+            if (count _resumePosition >= 2 && {!_resumeExternal}) then {
                 {if (alive _x && {!isPlayer _x}) then {_x doFollow leader _resumeGroup}} forEach crew _aircraft;
                 if (_resumeWaypointIndex >= 0 && {_resumeWaypointIndex < count waypoints _resumeGroup}
                     && {waypointPosition [_resumeGroup,_resumeWaypointIndex] distance2D _resumePosition <= 2}) then {
@@ -193,13 +197,40 @@ private _finish={
     _aircraft setVariable ["WAIT_Cortex_AirAttackTarget",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidedWeapon",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidanceTarget",nil];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedWeapon",nil];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedMagazine",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackJob",nil];
     _aircraft setVariable ["WAIT_Cortex_AirAttackToken",nil];
+    // The flight waypoint has already been removed above. The common operation result records
+    // whether that finite native attempt completed; stale or externally cancelled generations
+    // are intentionally a no-op.
+    private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
+    if (!isNull _finishGroup && {local _finishGroup} && {_operationGeneration >= 0}) then {
+        if (_reason in ["COMPLETE","TARGET_DESTROYED"]) then {
+            [_finishGroup,_operationGeneration,"COMPLETE",_reason] call WAIT_fnc_OperationRelease;
+        } else {
+            [_finishGroup,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
+        };
+    };
     -1
 };
 private _pilot=driver _aircraft;
 private _group=group _pilot;
 private _stage=_job getOrDefault ["stage",""];
+private _flightLeaseToken=_job getOrDefault ["flightLeaseToken",""];
+// Air operations share the same generation contract as ground operations, but retain their own
+// native flight lease. The common record makes replacement, locality and Zeus diagnostics
+// explicit without asking an infantry movement helper to fly an aircraft.
+private _setOperationPhase={
+    params ["_phase"];
+    private _generation=_job getOrDefault ["operationGeneration",-1];
+    if (_generation < 0 || {isNull _group} || {!local _group}) exitWith {};
+    private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+    if (count _operation > 0 && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
+        _operation set ["phase",_phase];
+        _group setVariable ["WAIT_Operation",_operation,true];
+    };
+};
 // Generic eligibility is a start gate. Re-evaluating every broad filter during a finite owned run
 // allowed a transient locality/filter marker to cancel a valid attack just before weapon release.
 // Runtime master/feature changes, locality, explicit exclusions and Zeus still release immediately.
@@ -207,9 +238,23 @@ private _explicitlyExcluded=[_group] call WAIT_fnc_CompatibilityExternalControl
     || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])}
     || {_group getVariable ["WAIT_AI_Exclude",false]}
     || {_group getVariable ["WAIT_AIPass_Exclude",false]};
+// Planning can inspect weapon and terrain facts for a full scheduler slice.  Keep ownership cheap
+// to recheck at each native-command boundary so that a curator, player controller or specialist
+// that claims the aircraft during planning receives an immediate release rather than one stale
+// flight, targeting or fire request.
+private _mayControlAircraft = {
+    local _aircraft && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+        && {!([_group] call WAIT_fnc_CortexZeusHeld)}
+};
+if (_job getOrDefault ["flightLeaseLost",false]
+    || {!([_aircraft,"AIR_ATTACK",_flightLeaseToken] call WAIT_fnc_FlightLeaseValid)}) exitWith {
+    _job set ["releaseDetail",["flightLease",_aircraft getVariable ["WAIT_FlightLease",createHashMap]]];
+    ["FLIGHT_OWNER_CHANGED"] call _finish
+};
 private _allowed=local _aircraft && {alive _aircraft} && {!isNull _pilot} && {alive _pilot} && {!isPlayer _pilot}
     && {!unitIsUAV _aircraft} && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {!([] call WAIT_fnc_CortexIsPaused)}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {!([_group] call WAIT_fnc_CortexZeusHeld)}
     && {[_group,"WAIT_Cortex_AirAttack_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {!_explicitlyExcluded}
@@ -245,6 +290,7 @@ if (_stage == "") then {
     if (isNull _target) then {_startFailure="NO_TARGET"};
     private _plan=if (_startFailure == "") then {[_aircraft,_target] call WAIT_fnc_CortexAirAttackPlan} else {createHashMap};
     if (_startFailure == "" && {count _plan == 0}) then {_startFailure="NO_PLAN"};
+    if (_startFailure == "" && {!([] call _mayControlAircraft)}) then {_startFailure="CONTROL_RELEASED"};
     if (_startFailure == "") then {
     private _waypointIndex=currentWaypoint _group;
     private _resumePosition=[];
@@ -306,6 +352,16 @@ if (_stage == "") then {
     // route-diff and cleanup ownership unambiguous when an unrelated controller adds waypoints.
     _job set ["ownedWaypointName",format ["WAIT_AIR_%1",_plan get "token"]];
     _job set ["previousAttackEnabled",attackEnabled _group];
+    private _participants=(crew _aircraft) select {
+        alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
+    };
+    private _operation=[_group,format ["AIR_%1",_plan get "pattern"],_target,_participants,
+        +(_plan get "points"),"INGRESS"] call WAIT_fnc_OperationStart;
+    if (count _operation == 0) then {
+        _startFailure="OPERATION_UNAVAILABLE";
+    } else {
+        _job set ["operationGeneration",_operation get "generation"];
+    };
     // Record the authored policy for exact cleanup, but do not disable it. Disabling group attacks
     // prevented native pilots and turrets from building a valid solution while Cortex waited to fire.
     _aircraft setVariable ["WAIT_Cortex_AirAttackToken",_plan get "token"];
@@ -316,9 +372,19 @@ if (_stage == "") then {
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidedWeapon",
         ["",_plan getOrDefault ["selectedWeapon",""]] select ((_plan getOrDefault ["selectedWeaponClass",""]) == "GUIDED")];
     _aircraft setVariable ["WAIT_Cortex_AirAttackGuidanceTarget",_target];
+    // A native group may fire other weapons while it is approaching the finite attack leg. Only
+    // the exact loaded station selected by this plan may advance its delivery counter: accepting
+    // any non-countermeasure Fired event let defensive or unrelated native fire make a failed
+    // rocket, bomb or guided pass look complete and begin egress early.
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedWeapon",_plan getOrDefault ["selectedWeapon",""]];
+    _aircraft setVariable ["WAIT_Cortex_AirAttackSelectedMagazine",_plan getOrDefault ["selectedMagazine",""]];
     private _handler=_aircraft addEventHandler ["Fired",{
-        params ["_aircraft","_weapon","","","","","_projectile"];
-        if (toLowerANSI getText (configFile >> "CfgWeapons" >> _weapon >> "simulation") != "cmlauncher") then {
+        params ["_aircraft","_weapon","","","","_magazine","_projectile"];
+        private _selectedWeapon=_aircraft getVariable ["WAIT_Cortex_AirAttackSelectedWeapon",""];
+        private _selectedMagazine=_aircraft getVariable ["WAIT_Cortex_AirAttackSelectedMagazine",""];
+        private _selectedRelease=_weapon == _selectedWeapon
+            && {_selectedMagazine != ""} && {_magazine == _selectedMagazine};
+        if (_selectedRelease) then {
             _aircraft setVariable ["WAIT_Cortex_AirAttackShots",(_aircraft getVariable ["WAIT_Cortex_AirAttackShots",0])+1];
             // Preserve native ballistics and seeker behaviour, but give the projectile the hostile
             // already selected by its operator. fireAtTarget alone can launch a guided pylon round
@@ -378,6 +444,7 @@ if (_targetUnavailable && {!(_job getOrDefault ["targetDestroyed",false])}) then
         if (_stage == "INGRESS") then {
             [_group,_job,"ATTACK","ACTUAL_FIRE"] call WAIT_fnc_CortexDrillSetStage;
             _stage="ATTACK";
+            ["ATTACK"] call _setOperationPhase;
         };
         if (_stage == "ATTACK") then {
             [_group,_job,"EGRESS","TARGET_DESTROYED"] call WAIT_fnc_CortexDrillSetStage;
@@ -386,6 +453,7 @@ if (_targetUnavailable && {!(_job getOrDefault ["targetDestroyed",false])}) then
             _job set ["egressStartedAt",serverTime];
             _job set ["deadline",serverTime+75];
             _stage="EGRESS";
+            ["EGRESS"] call _setOperationPhase;
         };
     };
 };
@@ -412,6 +480,7 @@ private _unsafeDelivery=_isPlane && {_stage == "ATTACK"} && {
     (_currentAGL < 90 && {_verticalSpeed < -3})
         || {_lookaheadClearances isNotEqualTo [] && {selectMin _lookaheadClearances < 120}}
 };
+if (_unsafeDelivery && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_unsafeDelivery) exitWith {
     private _safeRecoveryHeight=((_job getOrDefault ["stageAltitudes",[450,450,450]]) select 0) max 450;
     _aircraft flyInHeight _safeRecoveryHeight;
@@ -475,6 +544,7 @@ private _stageSpeeds=_job getOrDefault ["stageSpeeds",[_job get "speed",_job get
 // every scheduler tick. Update it only on a real stage transition. The attack-stage target order
 // lets the native air-combat FSM handle subsequent contact movement without Cortex chasing it.
 private _commandedStage=_job getOrDefault ["commandedStage",""];
+if (_commandedStage != _stage && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_commandedStage != _stage) then {
     _aircraft limitSpeed (_stageSpeeds select _stageIndex);
     // MOVE waypoint height is not a reliable flight-profile input for native aircraft. Apply one
@@ -525,6 +595,7 @@ if (_stageDistance <= _stageBest-40) then {
     _job set ["stageProgressAt",serverTime];
 };
 private _routeStalled=serverTime >= (_job getOrDefault ["stageProgressAt",serverTime])+([35,24] select !_isPlane);
+if (_stage == "ATTACK" && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_stage == "ATTACK") then {
     // This flag is live for one scheduler pass only. It selects a faster cadence while a fixed
     // weapon is inside its terminal basket without turning every aircraft job into a high-rate
@@ -585,9 +656,13 @@ if (_stage == "ATTACK") then {
         && {vectorMagnitude _targetVector > 0.01}) then {
         (vectorNormalized _predictedLaunchVelocity) vectorDotProduct (vectorNormalized _targetVector)
     } else {-1};
+    // The planner selected a concrete magazine/weapon/turret tuple. A different compatible
+    // magazine can carry a different seeker or delivery family on the same launcher, so treating
+    // it as interchangeable here can release the wrong ordnance at a ground target. Refuse the
+    // finite release when that exact station is depleted and let native combat decide what to do.
     private _loaded=(magazinesAllTurrets _aircraft) findIf {
         (_x select 1) isEqualTo _turret && {(_x select 2) > 0}
-            && {(_x select 0) == _selectedMagazine || {(_x select 0) in compatibleMagazines _weapon}}
+            && {(_x select 0) == _selectedMagazine}
     } >= 0;
     private _envelope=switch _weaponClass do {
         case "GUN": {if (_airContact) then {[100,2200,0.999]} else {[120,1400,0.9995]}};
@@ -820,6 +895,7 @@ switch _stage do {
         if (_stageDistance <= _effectiveCapture || {_stagePassed} || {_ingressBehind} || {_lateralWeaponEntry}) then {
             [_group,_job,"ATTACK","INGRESS_ARRIVAL"] call WAIT_fnc_CortexDrillSetStage;
             _stage="ATTACK";
+            ["ATTACK"] call _setOperationPhase;
             _job set ["commandedStage",""];
             _job set ["deadline",serverTime+50];
             _job set ["attackStartedAt",serverTime];
@@ -890,6 +966,7 @@ switch _stage do {
             _job set ["deliveryMissed",true];
             [_group,_job,"EGRESS","DELIVERY_WINDOW_PASSED"] call WAIT_fnc_CortexDrillSetStage;
             _stage="EGRESS";
+            ["EGRESS"] call _setOperationPhase;
             _job set ["commandedStage",""];
             _job set ["egressStartPosition",getPosATL _aircraft];
             _job set ["egressStartedAt",serverTime];
@@ -905,6 +982,7 @@ switch _stage do {
             && {_deliveryComplete}) then {
             [_group,_job,"EGRESS","ACTUAL_FIRE"] call WAIT_fnc_CortexDrillSetStage;
             _stage="EGRESS";
+            ["EGRESS"] call _setOperationPhase;
             _job set ["commandedStage",""];
             _job set ["egressStartPosition",getPosATL _aircraft];
             _job set ["egressStartedAt",serverTime];
@@ -920,4 +998,3 @@ switch _stage do {
     case "EGRESS": {};
 };
 0.5
-

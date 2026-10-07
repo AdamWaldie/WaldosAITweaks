@@ -15,7 +15,9 @@ if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
 _configuration params ["_revision", "", "", "", "_vehicles", "_phase", "_cargo", "_restore", ["_reason", "MANUAL"], ["_threat", []], ["_deadline", 0]];
 if (time < (_group getVariable ["WAIT_Convoy_CrewDue", -1])) exitWith {};
 _group setVariable ["WAIT_Convoy_CrewDue", time + 5];
-if ([_group] call WAIT_fnc_CompatibilityExternalControl || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])} || {[] call WAIT_fnc_CortexIsPaused} || {[_group] call WAIT_fnc_CortexZeusHeld}
+private _externalCrew = _vehicles findIf {(crew _x) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0} >= 0;
+if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CompatibilityExternalControl} || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures",[]])} || {[] call WAIT_fnc_CortexIsPaused}
+    || {_externalCrew}
     || {_vehicles findIf {(crew _x) findIf {isPlayer _x || {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}} >= 0} >= 0}) exitWith {[_group, _configuration, true] call WAIT_fnc_ConvoyDismountLocal};
 private _seats = createHashMap;
 {
@@ -80,7 +82,8 @@ private _seats = createHashMap;
             };
             if (_fireEnabled && {local _unit} && {alive _unit} && {!isPlayer _unit} && {!_passenger} && {_role in ["gunner", "commander", "turret"]}
                 && {!(_unit getVariable ["ACE_isUnconscious", false])} && {lifeState _unit != "INCAPACITATED"}
-                && {combatMode group _unit in ["YELLOW", "RED"]} && {unitCombatMode _unit in ["YELLOW", "RED"]}) then {
+                && {combatMode group _unit in ["YELLOW", "RED"]} && {unitCombatMode _unit in ["YELLOW", "RED"]}
+                && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                 private _report = [_unit] call WAIT_fnc_ConvoyThreat;
                 if (_report isNotEqualTo []) then {
                     private _enemy = _report select 0;
@@ -98,7 +101,7 @@ private _seats = createHashMap;
             };
         } forEach fullCrew [_vehicle, "", false];
         // Stop after any necessary boarding repair so the last driver command remains HALT.
-        if (_phase == "HALT" && {local _vehicle}) then {
+        if (_phase == "HALT" && {local _vehicle} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
             // Some tracked steering controllers retain the last drive path despite driver STOP.
             // Retire that movement source explicitly before applying the stationary command.
             if (isAISteeringComponentEnabled _vehicle) then {
@@ -113,6 +116,7 @@ private _seats = createHashMap;
                 };
             };
             _vehicle forceSpeed 0;
+            _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,0]];
             if (local driver _vehicle && {!isNull driver _vehicle}) then {doStop driver _vehicle};
         };
     };
@@ -125,7 +129,7 @@ if (_phase != "HALT") exitWith {};
         && {local _unit} && {alive _unit} && {!isPlayer _unit} && {vehicle _unit == _vehicle}
         && {(_unit getVariable ["WAIT_Convoy_Unloaded", []]) isNotEqualTo [_group, _revision]}
         && {abs speed _vehicle < 1} && {!(_unit getVariable ["ACE_isUnconscious", false])} && {lifeState _unit != "INCAPACITATED"}
-        && {!isPlayer leader group _unit} && {!([group _unit] call WAIT_fnc_CortexZeusHeld)} && {isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}) then {
+        && {!isPlayer leader group _unit} && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
         private _seat = _seats getOrDefault [netId _unit, []];
         if (_seat isNotEqualTo [] && {(_seat select 0) == _vehicle} && {(_seat select 1) == "cargo" || {(_seat select 1) == "turret" && {_seat select 2}}}) then {
             if ([_group,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled && {[group _unit,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled} && {serverTime < _deadline} && {isNil {_unit getVariable "WAIT_Convoy_Dismount"}}) then {

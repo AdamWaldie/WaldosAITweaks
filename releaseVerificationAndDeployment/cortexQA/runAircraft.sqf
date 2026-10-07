@@ -598,6 +598,7 @@ private _observedProfiles=createHashMap;
     private _selectedSimulation=_initialPlan param [23,""];
     private _selectedTurret=_initialPlan param [24,[]];
     private _selectedWeaponClass=_initialPlan param [25,""];
+    private _selectedMagazine=_initialPlan param [26,""];
     private _terrainLift=_initialPlan param [27,0];
     private _terrainClearanceMinimum=_initialPlan param [28,0];
     private _terrainSampleCount=_initialPlan param [29,0];
@@ -693,6 +694,16 @@ private _observedProfiles=createHashMap;
         && {_expectedWeaponClass == "" || {_selectedWeaponClass == _expectedWeaponClass}},
         str [_pattern,_selectedWeapon,_selectedSimulation,_selectedTurret,_selectedWeaponClass,
             _expectedWeaponClass]] call _recordCheck;
+    // The plan is only meaningful when its exact selected station is still loaded. A compatible
+    // launcher can carry materially different ordnance, particularly guided ground and air rounds;
+    // treating any compatible magazine as sufficient can turn an unarmed or wrong-loadout fixture
+    // into a false release result.
+    private _selectedStationLoaded=(magazinesAllTurrets _aircraft) findIf {
+        (_x select 1) isEqualTo _selectedTurret && {(_x select 2) > 0}
+            && {(_x select 0) == _selectedMagazine}
+    } >= 0;
+    [_id+"-selected-station-loaded",_selectedStationLoaded,
+        str [_selectedWeapon,_selectedTurret,_selectedMagazine,magazinesAllTurrets _aircraft]] call _recordCheck;
     [_id+"-armed-live-operator",_selectedWeapon != "" && {!isNull _selectedOperator}
         && {alive _selectedOperator},str [_class,_selectedWeapon,_selectedTurret,_selectedOperator,fullCrew _aircraft]] call _recordCheck;
     [_id+"-damageable-target-prerequisite",!_mustDestroy || {isDamageAllowed _plannedTargetObject},

@@ -38,16 +38,27 @@
 
 params [["_state", createHashMap, [createHashMap]]];
 private _group = _state getOrDefault ["group", grpNull];
+// A feature gate changing must still release WAIT's own temporary STOP hold, but an
+// active Zeus or specialist controller owns the next order. Keep that distinction
+// inside the shared finish path because it may execute after a delayed retry.
+private _mayRestoreHeld = {
+    params ["_candidate"];
+    !isNull _candidate
+        && {local _candidate}
+        && {!([_candidate] call WAIT_fnc_CortexExternalTakeover)}
+};
 private _finish = {
     if (!isNull _group) then {
-        {
-            if (alive _x && {local _x}) then {
-                private _command = toUpperANSI currentCommand _x;
-                if (_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]) then {
-                    _x doFollow (leader group _x);
+        if ([_group] call _mayRestoreHeld) then {
+            {
+                if (alive _x && {local _x}) then {
+                    private _command = toUpperANSI currentCommand _x;
+                    if (_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]) then {
+                        _x doFollow (leader group _x);
+                    };
                 };
-            };
-        } forEach (_state getOrDefault ["held",[]]);
+            } forEach (_state getOrDefault ["held",[]]);
+        };
         _state set ["held",[]];
         _group setVariable ["WAIT_AIPass_RegroupQueued", nil];
         _group setVariable ["WAIT_AIPass_RegroupHost", nil];
@@ -87,11 +98,21 @@ if (_phase == "EVALUATE") exitWith {
     private _minimumHost = (missionNamespace getVariable ["WAIT_AIPass_Regroup_MaxRemnantSize", 2]) + 1;
     private _host = grpNull;
     private _hostDistance = _radius;
+    // Regroup is exceptional but can coincide across several casualty remnants. Bound discovery to
+    // actual nearby soldiers instead of scanning every group on the server.
+    private _candidateGroups=[];
+    {
+        private _candidateGroup=group _x;
+        if (!isNull _candidateGroup && {_candidateGroup != _group} && {!(_candidateGroup in _candidateGroups)}) then {
+            _candidateGroups pushBack _candidateGroup;
+        };
+    } forEach (_origin nearEntities ["Man",_radius]);
     {
         private _candidate = _x;
-        private _leader = leader _candidate;
+        private _leader = [_candidate] call WAIT_fnc_CortexGroupAnchor;
+        if (isNull _leader) then {_leader=leader _candidate};
         if (_candidate != _group && {side _candidate == _side} && {local _candidate}
-            && {alive _leader} && {vehicle _leader == _leader}) then {
+            && {!isNull _leader} && {alive _leader} && {vehicle _leader == _leader}) then {
             private _hostAlive = {alive _x} count units _candidate;
             private _distance = _leader distance2D _origin;
             if (_distance < _hostDistance && {_hostAlive >= _minimumHost}
@@ -102,7 +123,7 @@ if (_phase == "EVALUATE") exitWith {
                 _hostDistance = _distance;
             };
         };
-    } forEach allGroups;
+    } forEach _candidateGroups;
 
     if (isNull _host) exitWith {
         if (time - (_state get "firstEvaluation") >= _timeout) then {call _finish} else {20}
@@ -174,7 +195,9 @@ if (time - (_state get "lastProgress") >= (missionNamespace getVariable ["WAIT_A
         _state set ["lastProgress",time];
         3
     };
-    {_x doFollow leader _group} forEach _remaining;
+    if ([_group] call _mayRestoreHeld) then {
+        {_x doFollow leader _group} forEach _remaining;
+    };
     diag_log format ["[WAIT] Regroup stalled group=%1 host=%2 remaining=%3",_group,_host,_farthest];
     call _finish
 };

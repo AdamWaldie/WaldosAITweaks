@@ -1,16 +1,16 @@
 /*
  * Author: WaldoTheWarfighter
  * Installs optional, repeat-safe locality handlers for AI helicopter cruise-deceleration correction.
- * The current vehicle owner alone samples and corrects an aircraft. A Local event restarts tracking
- * after server/headless-client migration; JIP machines do not become a second authority.
- * A machine-local generation invalidates sleeping workers even after a rapid ownership round trip.
+ * The current vehicle owner samples through the one shared bounded scheduler and corrects an aircraft.
+ * A Local event retires the prior generation and queues one owner-local step after server/headless-client
+ * migration; JIP machines do not become a second authority.
  *
  * Improved Helicopter Landing always has priority. The tracker stands down for any supported landing
  * waypoint and the correction loop releases immediately if the landing controller becomes active.
  * Locality and authority: Each machine installs only its local detection handlers. Only the
- * aircraft's current owner starts a tracker or changes flight velocity.
+ * aircraft's current owner queues sampling or changes flight velocity.
  * Repeat/JIP: The local installed flag prevents duplicate handlers. A joining machine starts
- * only the tracking appropriate to aircraft it owns.
+ * only the bounded sampling appropriate to aircraft it owns.
  *
  * Arguments: None.
  * Return Value: BOOL - true when installed/already installed; false while disabled.
@@ -41,13 +41,23 @@ private _install = {
             if (_isLocal) then {
                 _aircraft setVariable ["WAIT_HelicopterDeceleration_Active", false, true];
                 _aircraft setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", true];
-                [_aircraft,_aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]] spawn WAIT_fnc_HelicopterDecelerationTrackLocal;
+                missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", true];
+                [] call WAIT_fnc_SchedulerReconcile;
+                [WAIT_fnc_HelicopterDecelerationStep, createHashMapFromArray [
+                    ["aircraft", _aircraft], ["generation", _aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]],
+                    ["subsystem", "AIRCRAFT"], ["jobKey", "WAIT_DECEL_" + netId _aircraft]
+                ], 0.1, "WAIT_DECEL_" + netId _aircraft] call WAIT_fnc_CortexQueueJob;
             };
         }];
     };
     if (local _aircraft && {!(_aircraft getVariable ["WAIT_HelicopterDeceleration_TrackedLocal", false])}) then {
         _aircraft setVariable ["WAIT_HelicopterDeceleration_TrackedLocal", true];
-        [_aircraft,_aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]] spawn WAIT_fnc_HelicopterDecelerationTrackLocal;
+        missionNamespace setVariable ["WAIT_Aircraft_DecelerationSchedulerActive", true];
+        [] call WAIT_fnc_SchedulerReconcile;
+        [WAIT_fnc_HelicopterDecelerationStep, createHashMapFromArray [
+            ["aircraft", _aircraft], ["generation", _aircraft getVariable ["WAIT_HelicopterDeceleration_GenerationLocal",0]],
+            ["subsystem", "AIRCRAFT"], ["jobKey", "WAIT_DECEL_" + netId _aircraft]
+        ], 0.1, "WAIT_DECEL_" + netId _aircraft] call WAIT_fnc_CortexQueueJob;
     };
 };
 missionNamespace setVariable ["WAIT_HelicopterDeceleration_InstallLocal", _install];

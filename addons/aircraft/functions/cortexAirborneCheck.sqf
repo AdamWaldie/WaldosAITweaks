@@ -58,7 +58,7 @@ private _cargo = _riding select {vehicle _x == _aircraft && {_x in _passengers}}
 if (_cargo isEqualTo []) exitWith {-1};
 
 private _pilot = driver _aircraft;
-if (!alive _aircraft || {!alive _pilot} || {isPlayer _pilot} || {isPlayer effectiveCommander _aircraft}) exitWith {[5, -1] select _force};
+if (!alive _aircraft || {!alive _pilot} || {isPlayer _pilot} || {isPlayer effectiveCommander _aircraft} || {[group _pilot] call WAIT_fnc_CortexExternalTakeover}) exitWith {[5, -1] select _force};
 if (time < (_aircraft getVariable ["WAIT_AIPass_DropUntil", -1])) exitWith {[5, -1] select _force};
 // The mission maker planned a landing: an unload or get-out still ahead on the pilots' or the squad's
 // own waypoints. Zeus and scripted drops (force) are deliberate and override it.
@@ -80,7 +80,7 @@ if (!_force) then {
 };
 if (_target isEqualTo []) exitWith {10};
 private _distance = _aircraft distance2D _target;
-if (!_force && {local _aircraft} && {!(_aircraft getVariable ["WAIT_AIPass_AirborneClimb", false])}) then {
+if (!_force && {local _aircraft} && {!([group _pilot] call WAIT_fnc_CortexExternalTakeover)} && {!(_aircraft getVariable ["WAIT_AIPass_AirborneClimb", false])}) then {
     _aircraft setVariable ["WAIT_AIPass_AirborneClimb", true];
     _aircraft flyInHeight (missionNamespace getVariable ["WAIT_AIPass_Airborne_Altitude", 250]);
 };

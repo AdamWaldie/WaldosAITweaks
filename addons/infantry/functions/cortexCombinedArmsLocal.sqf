@@ -42,13 +42,16 @@ if (_role == "AIR_ATTACK" && {
     !(_asset isKindOf "Air") || {isTouchingGround _asset}
         || {!([_group,"WAIT_Cortex_AirAttack_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
 }) exitWith {false};
+// Role discovery and weapon preflight may take longer than an external order transition.
+// Recheck before assigning targets or starting a finite manoeuvre.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _group reveal [_target,2.5];
 {
-    if (alive _x && {local _x} && {!isPlayer _x}) then {_x doTarget _target};
+    if (alive _x && {local _x} && {!isPlayer _x} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_x doTarget _target};
 } forEach crew _asset;
 if (_role == "GROUND_FIRE") exitWith {
     private _gunner=gunner _asset;
-    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]}) then {_gunner doFire _target};
+    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doFire _target};
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];
     true
@@ -85,17 +88,29 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         false
     };
     private _destination=_selected select ((count _selected)-1);
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     if !([_group,"COMBINED_GROUND",true,_expiry] call WAIT_fnc_CortexOwnershipLease) exitWith {
         _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"EXTERNAL_BUSY",serverTime,_target],true];
         false
     };
+    // This remains native vehicle pathfinding, but the temporary firing-area move has a common
+    // lifecycle so a later Zeus order, locality migration or role expiry cannot leave an orphaned
+    // combined-arms waypoint behind.
+    private _operation=[_group,"COMBINED_GROUND",_target,[],[_destination],"MANOEUVRE"] call WAIT_fnc_OperationStart;
+    if (count _operation == 0) exitWith {
+        [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"OWNER_LOST",serverTime,_target],true];
+        false
+    };
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
     private _state=[_group] call WAIT_fnc_CortexGroupState;
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
     [WAIT_fnc_CortexCombinedGroundStep,createHashMapFromArray [
         ["group",_group],["asset",_asset],["target",_target],["token",_token],
-        ["expiry",_expiry],["destination",_destination],["lastPosition",_start],
+        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],["lastPosition",_start],
         ["progressAt",time],["stalls",0]
     ],1] call WAIT_fnc_CortexQueueJob;
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
@@ -113,11 +128,11 @@ if (_role == "AIR_ATTACK") exitWith {
         [_requester,_group,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
         false
     };
+    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
     if !(_asset getVariable ["WAIT_Cortex_AirAttackJob",false]) then {
-        _asset setVariable ["WAIT_Cortex_AirAttackJob",true];
         // The server already authenticated this live hostile. Pass it into the finite controller;
         // doTarget is asynchronous and assignedTarget may not be populated half a second later.
-        [WAIT_fnc_CortexAirAttack,createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_CortexQueueJob;
+        [createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_AirAttackOperationStart;
     };
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];

@@ -12,15 +12,16 @@
  * (WAIT_fnc_CortexGroupMove) at FULL speed, so its own waypoints resume afterwards. Soldiers holding
  * ground from a drill fall back with it. One soldier throws smoke towards the enemy, and with
  * artillery support and WAIT_AIPass_ArtillerySmoke_Enable on, a friendly battery selected by the server across owners
- * lays a smoke screen between the squad and the enemy, never within 50 m of friendlies. A carried-smoke thrower is handed back
- * to the same withdrawal route after the throw animation; this is guarded by the exact public withdrawal intent and Zeus hold,
- * so it cannot revive an old retreat or replace a curator order. Any flank drill ends because the phase
+ * lays a smoke screen between the squad and the enemy, never within 50 m of friendlies. A carried-smoke throw is opportunistic:
+ * it never pauses, replaces or reissues the committed withdrawal route. Any flank drill ends because the phase
  * leaves CONTACT. Individual attack assignments are suspended and behaviour set to AWARE for
  * withdrawal. A RED group temporarily uses YELLOW: it keeps firing, but the engine may no longer
  * replace the retreat waypoint with independent pursuit. GroupTick measures physical travel; a
  * vanished waypoint or 15 seconds without progress replans around the obstruction at a different
  * angle, without teleporting anyone. Attack, combat mode, behaviour and speed
- * changes are recorded for CALM, release and ownership cleanup. A later Zeus ROE change is preserved.
+ * changes are recorded for CALM, release and ownership cleanup. A separated survivor receives one
+ * local recovery order and is then quarantined from progress accounting, so he cannot stall the
+ * rest of the withdrawal. A later Zeus ROE change is preserved.
  * Locality and authority: call where the group is local; server selects and dispatches supporting artillery.
  * Repeat/JIP: caller phase prevents repeated entry. A public movement intent lets a new group owner
  * resume the same bounded withdrawal without repeating smoke or artillery effects.
@@ -44,7 +45,9 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_resume",[],[[]]]];
-private _leader = leader _group;
+// Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
+private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
+if (isNull _leader) then {_leader=leader _group};
 private _resuming = count _resume == 7 && {(_resume select 0) == "INFANTRY"};
 private _enemyPos = if (_resuming) then {_resume select 3} else {_state getOrDefault ["enemyPos", []]};
 if (count _enemyPos < 2) exitWith {false};
@@ -126,6 +129,21 @@ if (behaviour _leader != "AWARE") then {
     _state set ["behaviourChanged",true];
     _group setBehaviour "AWARE";
 };
+// Withdrawal is an ordinary finite operation. It owns one route and can therefore be cancelled
+// immediately by Zeus, an external controller or locality migration through the common lifecycle.
+// A resumed locality handover receives a fresh generation after the former owner has retired its
+// prior local generation; it never resurrects an old route over a later order.
+private _participants=(units _group) select {
+    alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
+        && {lifeState _x != "INCAPACITATED"}
+};
+private _operation=[_group,"WITHDRAW",_point,_participants,[_point],"MOVING"] call WAIT_fnc_OperationStart;
+if (count _operation == 0) exitWith {
+    [_group,"INFANTRY_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
+    _group setVariable ["WAIT_Cortex_Withdrawal",["OWNER_LOST",0,0],true];
+    false
+};
+_state set ["withdrawOperationGeneration",_operation get "generation"];
 [_group, _point, 30] call WAIT_fnc_CortexGroupMove;
 private _origin = if (_resuming) then {+(_resume select 1)} else {getPosATL _leader};
 private _startedAt = if (_resuming) then {_resume select 4} else {serverTime};
@@ -152,27 +170,12 @@ if (!_resuming) then {
     // Preserve the leader's route ownership when another survivor can throw the screen.
     _smokers=(_smokers select {_x != _leader})+(_smokers select {_x == _leader});
     // Use one available carried smoke, rather than selecting a possibly empty carrier.
-    private _smoker=objNull;
     {
-        if ([_x, _enemyPos, "SMOKE"] call WAIT_fnc_CortexThrowGrenade) exitWith {_smoker=_x};
+        if ([_x, _enemyPos, "SMOKE"] call WAIT_fnc_CortexThrowGrenade) exitWith {};
     } forEach _smokers;
-    if (!isNull _smoker) then {
-        [{
-            params ["_group","_smoker","_target","_intent"];
-            if (isNull _group || {!local _group} || {!alive _smoker} || {group _smoker != _group}
-                || {(_group getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isNotEqualTo _intent}
-                || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo []}) exitWith {};
-            private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
-            private _lease=_state getOrDefault ["movementLease",[]];
-            if ((_state getOrDefault ["phase",""]) == "RETREAT" && {count _lease == 2}
-                && {(_lease select 0) == "INFANTRY_WITHDRAW"} && {time < (_lease select 1)}) then {
-                if (_smoker == leader _group) then {_smoker doMove _target} else {_smoker doFollow leader _group};
-            };
-        },[_group,_smoker,+_point,+_withdrawalIntent],2] call CBA_fnc_waitAndExecute;
-    };
     // A communicating retreating squad asks server-coordinated artillery for smoke; no radio item is required.
     if ((missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false]) && {[_group,"WAIT_AIPass_ArtillerySmoke_Enable", true] call WAIT_fnc_CortexFeatureEnabled}
-        && {[_leader] call WAIT_fnc_CortexCanTransmit}) then {
+        && {!isNull ([_group] call WAIT_fnc_CortexGroupTransmitter)}) then {
         private _screen = _enemyPos getPos [((_enemyPos distance2D _leader) * 0.4) min 80, _enemyPos getDir _leader];
         private _side = side _group;
         private _friendlyNear = (_screen nearEntities [["CAManBase", "LandVehicle"], 50]) findIf {

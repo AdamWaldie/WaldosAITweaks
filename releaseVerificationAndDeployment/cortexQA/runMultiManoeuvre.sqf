@@ -88,8 +88,7 @@ private _terrainPosition={
     missionNamespace setVariable ["WAIT_AIPass_FarRange",5000];
     // Independent-drill baseline: mutual timing is observed, not a coordination claim.
     [createHashMapFromArray [
-        ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
-        ["WAIT_AIPass_InfantryOwnership","WAIT"],["WAIT_AIPass_Flank_Enable",_mode == "FLANK"],
+        ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Flank_Enable",_mode == "FLANK"],
         ["WAIT_AIPass_Advance_Enable",_mode == "BOUND"],["WAIT_AIPass_Aggression",2],
         ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_Regroup_Enable",false],
         ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false],

@@ -10,7 +10,9 @@
  * failure and leaves movement enabled rather than renewing forever around an unreachable doorway.
  * Routes stage at a real entrance when approaching from more than 30 m, then commit directly to the
  * interior destination. This avoids the long idle planning pause seen when the engine receives a
- * distant interior destination. Units move upright at assault pace until they reach their post.
+ * distant interior destination. A machine-local, damage-aware building topology cache shares that
+ * entrance-anchor lookup between soldiers while refreshing a materially changed structure. Units move
+ * upright at assault pace until they reach their post.
  * Nearby units try the interior destination directly, matching the engine path that works on viable
  * building models, then try up to four usable entrances nearest-first as bounded recovery.
  * Twelve seconds without two metres of progress retries the current leg twice, including commands
@@ -45,6 +47,12 @@ private _generation = (_group getVariable ["WAIT_AIPass_GarrisonGeneration", 0])
 _group setVariable ["WAIT_AIPass_GarrisonGeneration", _generation];
 _group setVariable ["WAIT_AIPass_GarrisonApplied", true];
 private _routes = createHashMap;
+private _buildingTopologyCache=missionNamespace getVariable ["WAIT_Cortex_GarrisonTopology",createHashMap];
+// Every later movement write is guarded again because an external controller can take
+// ownership after this application passed its initial eligibility check.
+private _mayIssueMovement = {
+    !([_group] call WAIT_fnc_CortexExternalTakeover)
+};
 private _buildingEntries = {
     params ["_building","_unit","_destination"];
     if (isNull _building) exitWith {[]};
@@ -62,7 +70,16 @@ private _buildingEntries = {
 private _buildingAnchor = {
     params ["_building","_entry","_destination"];
     if (isNull _building || {_entry isEqualTo []}) exitWith {_destination};
-    private _positions=_building buildingPos -1;
+    private _cacheKey=netId _building;
+    if (_cacheKey == "") then {_cacheKey=str _building};
+    private _damage=damage _building;
+    private _cached=_buildingTopologyCache getOrDefault [_cacheKey,[]];
+    if (_cached isEqualTo [] || {abs ((_cached select 0)-_damage) > 0.05}) then {
+        _cached=[_damage,+(_building buildingPos -1)];
+        _buildingTopologyCache set [_cacheKey,_cached];
+        missionNamespace setVariable ["WAIT_Cortex_GarrisonTopology",_buildingTopologyCache];
+    };
+    private _positions=+(_cached select 1);
     if (_positions isEqualTo []) exitWith {_destination};
     _positions=[_positions,[],{_x distance2D _entry},"ASCEND"] call BIS_fnc_sortBy;
     +(_positions select 0)
@@ -82,7 +99,7 @@ private _buildingAnchor = {
             private _duck = {
                 params ["_unit"];
                 if (!local _unit || {isPlayer _unit} || {lifeState _unit == "INCAPACITATED"} || {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
-                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)}) exitWith {};
+                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)} || {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};
                 if (time < (_unit getVariable ["WAIT_AIPass_DuckUntil", -1])) exitWith {};
                 private _until = time + 4 + random 4;
                 _unit setVariable ["WAIT_AIPass_DuckUntil", _until];
@@ -93,7 +110,8 @@ private _buildingAnchor = {
                     params ["_unit", "_until"];
                     if (alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"} && {(_unit getVariable ["WAIT_AIPass_DuckUntil", -1]) == _until}
                         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isNotEqualTo []}
-                        && {[group _unit] call WAIT_fnc_CortexIsEligible}) then {
+                        && {[group _unit] call WAIT_fnc_CortexIsEligible}
+                        && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                         if (unitPos _unit == (_unit getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
                             _unit setUnitPos (_unit getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
                         };
@@ -106,9 +124,9 @@ private _buildingAnchor = {
                 ["Hit", _unit addEventHandler ["Hit", _duck]]
             ]];
         };
-        // Release from the former formation command before assigning an individual building slot.
-        // Defence release issues doFollow; clear that formation task before issuing the new move.
-        doStop _unit;
+        // Release the former formation task only while WAIT still owns movement. A curator or
+        // specialist can take over between setup and this first individual building command.
+        if (call _mayIssueMovement) then {doStop _unit};
         private _destination = _assignment select 0;
         private _building = _assignment param [2,objNull];
         private _entries=[_building,_unit,_destination] call _buildingEntries;
@@ -117,9 +135,12 @@ private _buildingAnchor = {
         private _target = if (_approach) then {_entries select 0} else {_destination};
         private _anchor=if (_approach) then {[_building,_target,_destination] call _buildingAnchor} else {[]};
         _routes set [netId _unit,[_target,_approach,getPosATL _unit,time,0,[str _destination],0,_entries,_entryIndex,_anchor,false]];
-        if (_unit distance _destination > 2) then {
+        if (_unit distance _destination > 2 && {call _mayIssueMovement}) then {
             _unit setUnitPos "UP";
             _unit forceSpeed 4;
+            // Record the exact value WAIT applied.  Release restores the previous value only
+            // while this lease is still intact, so a later controller's forced speed survives.
+            _unit setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",4];
             _unit doMove _target;
             _unit setDestination [_target,"LEADER PLANNED",true];
         };
@@ -130,7 +151,15 @@ private _buildingAnchor = {
     private _group = _job get "group";
     if (isNull _group || {!local _group} || {(_group getVariable ["WAIT_AIPass_Garrison", []]) isEqualTo []}) exitWith {-1};
     if ((_group getVariable ["WAIT_AIPass_GarrisonGeneration", -1]) != (_job get "generation")) exitWith {-1};
-    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {2};
+    // Retire the hold immediately when a player, Zeus or specialist controller owns the group.
+    // Returning a delay alone would leave WAIT's PATH lock and published assignment behind.
+    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {
+        [_group,false] call WAIT_fnc_CortexGarrisonRelease;
+        -1
+    };
+    private _mayIssueMovement = {
+        !([_group] call WAIT_fnc_CortexExternalTakeover)
+    };
     private _pending = 0;
     {
         private _assignment = _x getVariable ["WAIT_AIPass_GarrisonPos", []];
@@ -141,13 +170,19 @@ private _buildingAnchor = {
             _pending=_pending+1;
         };
         if (alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {_assignment isNotEqualTo []} && {_x checkAIFeature "PATH"} && {!(_x getVariable ["WAIT_AIPass_GarrisonFailed",false])}) then {
-            private _openedDoor = [_x,_assignment param [2,objNull]] call WAIT_fnc_CortexBuildingDoor;
+            private _openedDoor = if (call _mayIssueMovement) then {
+                [_x,_assignment param [2,objNull]] call WAIT_fnc_CortexBuildingDoor
+            } else {false};
             if (_x distance (_assignment select 0) <= 2) then {
-                doStop _x;
-                _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
-                _x setVariable ["WAIT_AIPass_GarrisonDisabledPath", true, true];
-                _x disableAI "PATH";
-                _x doWatch ((_assignment select 0) getPos [50, _assignment select 1]);
+                // Arrival locks are movement ownership too. Do not freeze or retask a soldier
+                // whose group changed owner while this bounded callback was already running.
+                if (call _mayIssueMovement) then {
+                    doStop _x;
+                    _x forceSpeed (_x getVariable ["WAIT_Cortex_GarrisonForcedSpeed",-1]);
+                    _x setVariable ["WAIT_AIPass_GarrisonDisabledPath", true, true];
+                    _x disableAI "PATH";
+                    _x doWatch ((_assignment select 0) getPos [50, _assignment select 1]);
+                };
             } else {
                 if (time > (_job get "deadline")) then {
                     _x setVariable ["WAIT_AIPass_GarrisonFailed",true,true];
@@ -158,13 +193,22 @@ private _buildingAnchor = {
                     _route params ["_target","_approach","_lastPosition","_lastProgress","_retries","_attempted","_reassignments","_entries","_entryIndex","_anchor","_crossing"];
                     // Door requests can repeat on multi-door buildings. Reissue the current move, but
                     // only measured travel renews progress so an actor at a threshold cannot wait forever.
-                    if (_openedDoor) then {_x doMove _target; _x setDestination [_target,"LEADER PLANNED",true]};
-                    if (_approach && {_x distance2D _target <= 5}) then {
-                        _route set [0,_anchor]; _route set [1,false]; _route set [10,true];
-                        _route set [2,getPosATL _x]; _route set [3,time];
-                        _x doMove _anchor; _x setDestination [_anchor,"LEADER PLANNED",true];
+                    if (_openedDoor && {call _mayIssueMovement}) then {_x doMove _target; _x setDestination [_target,"LEADER PLANNED",true]};
+                    if (_approach && {_x distance2D _target <= 5} && {call _mayIssueMovement}) then {
+                        // setDestination requires a real PositionAGL triplet. Some building models
+                        // expose an exterior entry but no usable interior crossing anchor; proceed
+                        // toward the assigned building position instead of issuing [] and aborting
+                        // the entire owner-local garrison callback.
+                        private _crossTarget=if (count _anchor >= 3) then {_anchor} else {_assignment select 0};
+                        _route set [0,_crossTarget];
+                        _route set [1,false];
+                        _route set [10,count _anchor >= 3];
+                        _route set [2,getPosATL _x];
+                        _route set [3,time];
+                        _x doMove _crossTarget;
+                        _x setDestination [_crossTarget,"LEADER PLANNED",true];
                     } else {
-                        if (_crossing && {_x distance _anchor <= 2}) then {
+                        if (_crossing && {count _anchor >= 3} && {_x distance _anchor <= 2} && {call _mayIssueMovement}) then {
                             _route set [0,_assignment select 0]; _route set [2,getPosATL _x];
                             _route set [3,time]; _route set [4,0]; _route set [10,false];
                             _x doMove (_assignment select 0);
@@ -174,7 +218,7 @@ private _buildingAnchor = {
                             _route set [2,getPosATL _x]; _route set [3,time];
                         } else {
                             if (time-_lastProgress >= 12) then {
-                                if (_retries < 2) then {
+                                if (_retries < 2 && {call _mayIssueMovement}) then {
                                     doStop _x; _x doMove _target;
                                     _x setDestination [_target,"LEADER PLANNED",true];
                                     _route set [3,time]; _route set [4,_retries+1];
@@ -183,7 +227,7 @@ private _buildingAnchor = {
                                     // entrance was reached, cycling outside creates the visible door
                                     // orbit and cannot repair a broken interior navigation path.
                                     private _nextEntry=if (_approach || {_crossing}) then {_entryIndex+1} else {count _entries};
-                                    if (_nextEntry < count _entries) then {
+                                    if (_nextEntry < count _entries && {call _mayIssueMovement}) then {
                                         private _nextTarget=_entries select _nextEntry;
                                         _route set [0,_nextTarget];
                                         _route set [1,true];
@@ -205,7 +249,7 @@ private _buildingAnchor = {
                                         private _key=str (_x select 0);
                                         !(_key in _attempted) && {!(_key in _occupied)}
                                     };
-                                    if (_reassignments < 2 && {_alternatives isNotEqualTo []}) then {
+                                    if (_reassignments < 2 && {_alternatives isNotEqualTo []} && {call _mayIssueMovement}) then {
                                         private _routeUnit=_x;
                                         _alternatives=[_alternatives,[],{(_x select 0) distance2D getPosATL _routeUnit},"ASCEND"] call BIS_fnc_sortBy;
                                         private _replacement=_alternatives select 0;
