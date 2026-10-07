@@ -35,13 +35,30 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('class External',waiting)
         self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
         self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
-        self.assertIn('(_brain getOrDefault [""queuedAt"",time])+3',fsm)
+        self.assertIn('(_brain getOrDefault [""queuedAt"",time])+15',fsm)
         self.assertIn('WAIT_AIPass_NextJobDue',fsm)
+        self.assertIn('WAIT_AIPass_ResumeGraceUntil',fsm)
+        self.assertIn('WAIT_fnc_CortexIsPaused',fsm)
         self.assertIn('if (_brain getOrDefault ["cancelled",false]) exitWith',step)
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('schedulerWatchdogs=',diagnostics)
         self.assertIn('only wakes the same keyed shared-scheduler job',diagnostics)
 
+    def test_persistent_fsm_watchdogs_only_recover_real_scheduler_starvation(self):
+        for name in [
+            "groupTactics.fsm",
+            "buildingOperation.fsm",
+            "convoyOperation.fsm",
+            "supportRequest.fsm",
+            "artilleryMission.fsm",
+            "airAttackOperation.fsm",
+        ]:
+            fsm = (ROOT / "addons/main/fsm" / name).read_text(encoding="utf-8")
+            with self.subTest(fsm=name):
+                self.assertIn('(_brain getOrDefault [""queuedAt"",time])+15', fsm)
+                self.assertNotIn('(_brain getOrDefault [""queuedAt"",time])+3', fsm)
+                self.assertIn('WAIT_AIPass_ResumeGraceUntil', fsm)
+                self.assertIn('WAIT_fnc_CortexIsPaused', fsm)
     def test_building_operation_fsm_owns_clearance_progression(self):
         clear=source('cortexClearBuilding')
         start=source('buildingOperationStart')

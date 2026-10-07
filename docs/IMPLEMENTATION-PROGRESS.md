@@ -96,7 +96,7 @@ after a ref rewrite; removal is not universal. Static success is not live accept
 - Shared operation cleanup now records whether the operation began on foot. Only those operations release a WAIT danger-posture lease; aircraft, vehicle and naval operations retain their native combat state while still receiving the same generation, cancellation and diagnostic lifecycle. Static validation passes; mixed-operation handover acceptance remains pending.
 - Shared operation progress now retains each actor's last meaningful position until that actor crosses the configured distance. Slow continuous travel therefore accumulates instead of being erased at every scheduler callback and misclassified as a stall. Static validation passes; packaged physical acceptance remains pending.
 - Shared recovery progress is now actor-scoped. A quarantined actor can renew only its own observation window and cannot conceal a stationary manoeuvre element. Tactical drills consume the shared STALLED outcome at the configured bound timeout; support releases a stalled reservation as NO_PROGRESS; withdrawal re-reads the operation after quarantine and advances to another eligible straggler instead of retrying the same exhausted actor. Static validation passes; physical blocked-actor, support-stall and withdrawal-casualty acceptance remain pending.
-- Ground tactics, building progression, convoy control, aircraft attacks and cross-squad support now recheck Zeus and external ownership while their shared-scheduler callback is pending. These FSMs no longer retain control until the three-second watchdog. Ground/building/convoy controllers use their existing owned-state release; aircraft first removes its exact temporary waypoint and flight lease through the normal attack cleanup; support first retracts exact responder reservations. Artillery retains its separate uncertain-shot quarantine after an accepted native fire command, but issues no later shot or movement command after eligibility is lost. Static validation passes; packaged interruption acceptance remains pending.
+- Ground tactics, building progression, convoy control, aircraft attacks and cross-squad support now recheck Zeus and external ownership while their shared-scheduler callback is pending. These FSMs release immediately and do not wait for the starvation watchdog. Ground/building/convoy controllers use their existing owned-state release; aircraft first removes its exact temporary waypoint and flight lease through the normal attack cleanup; support first retracts exact responder reservations. Artillery retains its separate uncertain-shot quarantine after an accepted native fire command, but issues no later shot or movement command after eligibility is lost. Static validation passes; packaged interruption acceptance remains pending.
 - Building and convoy callbacks now propagate terminal shared-operation results to the outer function scope before any later room, formation, speed or recovery mutation. A replaced combined-ground generation can no longer clear the replacement generation's movement or alternative-backend lease. These fixes close nested SQF `exitWith` paths that released ownership but then continued executing the old callback. Static and package validation pass; physical Zeus, replacement and locality interruption acceptance remains pending.
 - Medical assistance now uses an explicit finite physical approach followed by Arma's native `HealSoldier` action at treatment range, including immediate treatment when already close enough. The previous unrecognised `doHeal` form blocked PBO compilation. Every movement and treatment write now rechecks Zeus and specialist ownership. A live danger response cancels aid before the same group tick continues into combat assessment, preventing treatment from delaying a hit or suppression reaction. Support lease and feature-expiry exits were also corrected to top-level finite-operation exits. Seven PBOs now compile and seal; physical treatment, danger interruption and support-release acceptance remain pending.
 - Building clearance now forms bounded lead/security pairs rather than giving the first available room to one single-worker lane. The security partner remains at a real entry until the lead crosses it, follows into the first room, and trails successive rooms; buildings with no usable entry positions still receive a physical paired first-room attempt. Static and package validation pass; multi-model, casualty and traversal acceptance remains pending.
@@ -120,18 +120,19 @@ The first standalone combat batch exposed an audit prerequisite defect: camera t
 
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
-Its scheduler wait now has a bounded three-second watchdog. A delayed or lost due callback wakes the same
-generation-keyed queue entry rather than appending work, and a cancelled callback exits before invoking legacy
-group logic. Owner epoch, generation, addon-disable and explicit cancellation can therefore end the wait even
-when the scheduler is under load. Diagnostics expose the watchdog count so queue pressure is visible instead of
-appearing as an unexplained idle squad.
+Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the
+same generation-keyed queue entry rather than appending work, and a cancelled callback exits before invoking legacy
+group logic. The watchdog cannot run during SafeStart or ENDEX and remains suppressed through the scheduler's
+resume grace. Ordinary pause deferral and bounded queue latency therefore cannot cause the FSM to clear and requeue
+healthy work every few seconds. Owner epoch, generation, addon-disable and explicit cancellation can still end the
+wait immediately. Diagnostics expose the watchdog count so real queue pressure is visible instead of appearing as
+an unexplained idle squad.
 
-The same bounded wait contract now covers building, convoy, aircraft-attack, artillery and support-request
-FSMs. Each queued step records its submission time; a three-second overdue wait wakes the same coalescing key,
+The same bounded wait contract covers building, convoy, aircraft-attack, artillery and support-request FSMs. Each
+queued step records its submission time; only a fifteen-second unpaused overdue wait wakes the same coalescing key,
 and a cancelled or finished callback exits before physical implementation logic. Controller diagnostics include
-their recovery counts. This removes an identical indefinite-wait path from six production brains without adding
-a worker, scan or per-unit loop. Static and packaged validation are required; physical queue-pressure acceptance
-remains pending.
+their recovery counts. This removes an identical indefinite-wait path from six production brains without adding a
+worker, scan or per-unit loop. Static validation passes; physical queue-pressure acceptance remains pending.
 
 The tactical-drill FSM now gives a lost recurring advance/flank callback a fifteen-second same-key retry before
 the existing thirty-second group cleanup releases the manoeuvre. This preserves a chance to continue through

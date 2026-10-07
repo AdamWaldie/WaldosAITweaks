@@ -111,13 +111,15 @@ Active operation FSMs check cached Zeus-order markers and external ownership bef
 
 An artillery order already accepted by the engine is treated separately. WAIT stops issuing new fire or relocation commands when eligibility changes, but retains the bounded uncertain-shot record until the engine confirms the shot or its quarantine expires. This bookkeeping does not own movement or block a newer Zeus order; it prevents an unconfirmed shot from being retried.
 
-Every scheduler-backed operation FSM has a three-second watchdog while a due callback is pending. This
-covers group tactics, building progression, convoy control, aircraft attacks, artillery and support requests.
-Each watchdog clears only its local pending flag and wakes the same generation-keyed scheduler entry, so it
-cannot create a second brain or grow a parallel queue. Cancellation, disablement, ownership and generation
-changes end the wait before a stale callback can act. The callback repeats those checks before implementation
-logic. Diagnostics expose watchdog activations per controller; any recurring count is a performance or
-queue-health finding rather than proof of successful behaviour.
+Every scheduler-backed operation FSM has a fifteen-second starvation watchdog while a due callback is pending.
+This covers group tactics, building progression, convoy control, aircraft attacks, artillery and support requests.
+The watchdog is disabled during SafeStart or ENDEX and remains suppressed through the scheduler's resume grace,
+so a deliberate pause or ordinary budget latency cannot create repeated recovery churn. A genuine overdue wait
+clears only its local pending flag and wakes the same generation-keyed scheduler entry, so it cannot create a
+second brain or grow a parallel queue. Cancellation, disablement, ownership and generation changes end the wait
+before a stale callback can act. The callback repeats those checks before implementation logic. Diagnostics expose
+watchdog activations per controller; any recurring count is a performance or queue-health finding rather than proof
+of successful behaviour.
 
 Tactical drills use a separate fifteen-second same-key recovery before the existing thirty-second
 movement-lease cleanup. A missing recurring callback is therefore retried once through the FSM while
