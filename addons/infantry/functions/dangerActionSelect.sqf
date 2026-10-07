@@ -8,7 +8,7 @@
  * generation, so a new owner reconstructs it from a fresh local observation.
  * Arguments: 0: group <GROUP>; 1: selected event <ARRAY> [cause, position, observedAt, expires].
  * Return Value: STRING - RELEASE, MAINTAIN, VEHICLE, HIDE or ENGAGE.
- * Current callers: WAIT_fnc_DangerStep.
+ * Current callers: WAIT_fnc_DangerStep, WAIT_fnc_OperationCancel and WAIT_fnc_OperationRelease.
  * Example: [group player,["SUPPRESSED",getPosATL player,time,time + 2]] call WAIT_fnc_DangerActionSelect;
  */
 

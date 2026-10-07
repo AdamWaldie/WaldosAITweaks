@@ -106,3 +106,6 @@ Previously, the presence of any operation caused the reaction function to return
 Starting a new on-foot operation now reattaches any still-live danger context only after the new generation is
 authoritative; stale posture is released. Contact-to-manoeuvre transitions therefore do not briefly discard the
 combat response while waiting for another engine event.
+Completion or cancellation now performs the inverse handoff: after removing the old movement owner, it
+reclassifies an unexpired danger context and restores only the bounded posture. Zeus, player and specialist
+takeover still rejects that reaction, so a new external order cannot be overwritten.
