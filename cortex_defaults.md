@@ -204,7 +204,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 
 ## Behaviour profile map
 
-WAIT_AIPass_ProfileBehaviour has these defaults. Chance values are weighted by aggression and eligibility; they are not a promise to act on every tick.
+WAIT_AIPass_ProfileBehaviour has these defaults. Preference values are weighted by aggression and eligibility. A zero value opts out. A positive investigation preference scales accepted search range without randomly withholding an otherwise viable search; assault preference controls optional grenade preparation.
 
 ```sqf
             ["MILITIA", createHashMapFromArray [["flankChance", 0.3], ["assaultChance", 0.2], ["advanceChance", 0.3], ["investigateChance", 0.4], ["coordinatedChance", 0.2], ["moraleShaken", 0.65], ["moraleBroken", 0.4], ["retreatScale", 1.5], ["surrenderSurvivors", 3]]],

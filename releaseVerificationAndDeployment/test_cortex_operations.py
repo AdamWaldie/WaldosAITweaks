@@ -3358,6 +3358,16 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('doTarget objNull',regroup)
         self.assertNotIn('doWatch objNull',regroup)
 
+    def test_known_contact_investigation_has_no_random_idle_gate(self):
+        tick=source('cortexGroupTick')
+        calm=tick.split('case "CALM": {',1)[1].split('case "INVESTIGATE": {',1)[0]
+        known=calm.split('&& {_enemies isNotEqualTo []}',1)[1]
+        self.assertNotIn('random 1',known)
+        self.assertIn('_investigationPreference > 0',known)
+        self.assertIn('_investigationRange',known)
+        self.assertIn('(0.5 + 0.5 * _investigationPreference)',calm)
+        self.assertLess(known.index('_investigationPreference > 0'),known.index('[_state, "investigate", 120]'))
+
     def test_runtime_phase_gates_release_active_investigation_and_post_contact_work(self):
         tick=source('cortexGroupTick')
         gates=tick.split('// Runtime switches are authoritative permissions',1)[1].split('// Soldiers holding ground',1)[0]

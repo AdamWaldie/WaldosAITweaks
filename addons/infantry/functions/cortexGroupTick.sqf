@@ -12,8 +12,9 @@
  * CALM -> CONTACT when an enemy was seen in the last 10 s.
  * CALM -> INVESTIGATE when the squad knows about an enemy within
  *   WAIT_AIPass_Investigate_Range that it has not seen, for example one revealed by a contact report
- *   or heard firing, and the behaviour profile's investigateChance roll succeeds (at most every
- *   120 s). Within 150 m, two riflemen check the believed position while the rest watch it; a small
+ *   or heard firing, and the behaviour profile permits investigation. This is a deterministic tactical
+ *   eligibility decision rather than a random permission to act. Within 150 m, two riflemen check
+ *   the believed position while the rest watch it; a small
  *   squad, or any farther contact, has the whole squad move up together. It ends after
  *   WAIT_AIPass_Investigate_Seconds or on arrival, back in CALM.
  * CONTACT -> SECURITY after WAIT_AIPass_PostContact_LostSeconds without a sighting and after any
@@ -531,9 +532,12 @@ switch (_state get "phase") do {
         if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};
         private _area = _group getVariable ["WAIT_AIPass_AreaReport",[]];
         if (_area isNotEqualTo [] && {serverTime >= (_area select 2)}) then {_group setVariable ["WAIT_AIPass_AreaReport",nil,true]; _area = []};
+        private _investigationPreference=[_group, "investigateChance"] call WAIT_fnc_CortexProfile;
+        private _investigationRange=(["WAIT_AIPass_Investigate_Range",300] call _get) * (0.5 + 0.5 * _investigationPreference);
         if (!_ordered && {!_groupMovementOwned} && {!(_state getOrDefault ["responding",false])} && {_enemies isEqualTo []} && {_area isNotEqualTo []}
             && {["WAIT_AIPass_Investigate_Enable",true] call _get} && {!([_state,"investigate"] call WAIT_fnc_CortexCooldown)}
-            && {leader _group distance2D (_area select 0) <= (["WAIT_AIPass_Investigate_Range",300] call _get)}
+            && {_investigationPreference > 0}
+            && {leader _group distance2D (_area select 0) <= _investigationRange}
             && {[_group, ["WAIT_AIPass_ContactReports_Enable","WAIT_AIPass_Hearing_Enable"] select ((_area select 3) == "SOUND"),true] call WAIT_fnc_CortexFeatureEnabled}) then {
             [_state,"investigate",120] call WAIT_fnc_CortexCooldown;
             private _target = _area select 0;
@@ -546,10 +550,11 @@ switch (_state get "phase") do {
 
         if (!_ordered && {!_groupMovementOwned} && {!(_state getOrDefault ["responding", false])} && {_enemies isNotEqualTo []}
             && {["WAIT_AIPass_Investigate_Enable", true] call _get}
-            && {((_enemies select 0) select 3) <= (["WAIT_AIPass_Investigate_Range", 300] call _get)}
+            && {_investigationPreference > 0}
+            && {((_enemies select 0) select 3) <= _investigationRange}
             && {!([_state, "investigate"] call WAIT_fnc_CortexCooldown)}) then {
-            [_state, "investigate", 120] call WAIT_fnc_CortexCooldown;
-            if (random 1 < ([_group, "investigateChance"] call WAIT_fnc_CortexProfile)) then {
+            if (_investigationPreference > 0) then {
+                [_state, "investigate", 120] call WAIT_fnc_CortexCooldown;
                 private _target = (_enemies select 0) select 1;
                 _state set ["baseBehaviour", behaviour _leader];
                 _state set ["baseSpeed", speedMode _group];
