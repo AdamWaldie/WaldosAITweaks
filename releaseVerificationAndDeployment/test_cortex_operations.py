@@ -396,6 +396,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
+        self.assertIn('private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply',diagnostics)
+        self.assertIn('WAIT must own all west, east and independent soldier danger slots',diagnostics)
         lifecycle=(ROOT/'docs/ADDON-LIFECYCLE.md').read_text(encoding='utf-8')
         for state in ['`ASSESS`','`IMMEDIATE`','`HIDE`','`ENGAGE`','`VEHICLE`','`FORCED`','release']:
             self.assertIn(state,lifecycle)
@@ -434,6 +436,12 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(action.index('!isNull objectParent _actor'),action.index('WAIT_Operation'))
         for forbidden in [' doMove ', ' doTarget ', 'reveal', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,action)
+        compatibility_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCompatibility.sqf').read_text(encoding='utf-8')
+        for base in ['SoldierWB','SoldierEB','SoldierGB']:
+            self.assertIn(base,compatibility_audit)
+        self.assertIn('COMPAT-exclusive-danger-fsm-',compatibility_audit)
+        self.assertIn('find "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"',compatibility_audit)
+        self.assertNotIn('find "\\\\z\\\\waldo_ai_tweaks',compatibility_audit)
 
     def test_danger_action_owns_posture_without_owning_movement(self):
         reaction=source('dangerReact')
