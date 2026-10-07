@@ -41,6 +41,12 @@
 params [["_group", grpNull, [grpNull]], ["_forget", true, [false]], ["_reason", "", [""]]];
 if (isNull _group) exitWith {};
 private _state = _group getVariable ["WAIT_AIPass_State", createHashMap];
+private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+if (count _brain > 0) then {
+    _brain set ["cancelled",true];
+    _brain set ["cancelReason",if (_reason == "") then {"RELEASED"} else {_reason}];
+    _brain set ["wakeAt",time];
+};
 private _yieldToZeus=local _group && {[_group] call WAIT_fnc_CortexZeusHeld};
 // The helper covers player members, curator possession, specialist ownership and explicit
 // compatibility markers. Do not restore a stale WAIT formation or posture when any one of those
@@ -87,8 +93,8 @@ if (local _group) then {
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
-    private _dangerJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-    if (count _dangerJob > 0) then {_dangerJob deleteAt "responsiveUntil"};
+    private _currentBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _currentBrain > 0) then {_currentBrain deleteAt "responsiveUntil"};
 };
 // General driving owns a speed cap, never a route. Its former vehicle may no longer contain this
 // group by the time Zeus, a player or another controller takes ownership, so release the tracked
@@ -120,4 +126,10 @@ if (local _group && {_group getVariable ["WAIT_AIPass_DangerBackendDisabledByPas
     _group setVariable ["WAIT_AIPass_DangerBackendBaseline", nil, true];
 };
 _group setVariable ["WAIT_AIPass_State", nil];
-if (_forget) then {_group setVariable ["WAIT_AIPass_Managed", nil]; _group setVariable ["WAIT_Cortex_GroupJob",nil]};
+if (_forget) then {
+    _group setVariable ["WAIT_AIPass_Managed",nil];
+    _group setVariable ["WAIT_GroupBrain_Generation",(_group getVariable ["WAIT_GroupBrain_Generation",0])+1];
+    _group setVariable ["WAIT_GroupBrain",nil];
+    _group setVariable ["WAIT_GroupBrain_FSM",nil];
+    _group setVariable ["WAIT_Cortex_GroupJob",nil];
+};

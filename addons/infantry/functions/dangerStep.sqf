@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Assess current danger, publish one finite response context and wake the existing group job without creating a tactical owner.
+ * Purpose: Assess current danger, publish one finite response context and wake the existing group tactics FSM without creating a second tactical owner.
  * Locality / Authority: owner-local; never reveals targets or sends movement commands.
  * Repeat/JIP: generation-checked response context is public for diagnostics; a new owner rebuilds it from fresh observations.
  * Arguments: 0: group <GROUP>, grpNull; 1: owner epoch <NUMBER>, -1; 2: generation <NUMBER>, -1.
@@ -23,8 +23,8 @@ if (_yieldToOwner) exitWith {
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
-    private _existingJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-    if (count _existingJob > 0) then {_existingJob deleteAt "responsiveUntil"};
+    private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
 };
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
@@ -34,8 +34,8 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
-    private _existingJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-    if (count _existingJob > 0) then {_existingJob deleteAt "responsiveUntil"};
+    private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
 };
 if ([] call WAIT_fnc_CortexIsPaused) exitWith {
@@ -45,8 +45,8 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
-    private _existingJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-    if (count _existingJob > 0) then {_existingJob deleteAt "responsiveUntil"};
+    private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
 };
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
@@ -55,7 +55,7 @@ private _selected=[_events] call WAIT_fnc_DangerSelect;
 if (_selected isEqualTo []) exitWith {
     private _response=_group getVariable ["WAIT_Danger_Response",[]];
     // Continue the finite FSM only while a response lease is live. This keeps the posture lease
-    // and the group-job wake context coherent without creating a persistent worker.
+    // and the group-brain wake context coherent without creating a persistent worker.
     if (count _response == 5 && {(_response select 4) == _generation} && {time < (_response select 3)}) then {
         0.25
     } else {
@@ -64,16 +64,16 @@ if (_selected isEqualTo []) exitWith {
         if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact};
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
-        private _existingJob=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-        if (count _existingJob > 0) then {_existingJob deleteAt "responsiveUntil"};
+        private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+        if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
         -1
     }
 };
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
-// This is a finite handoff, not a target assignment or movement order. GroupTick can respond on
-// its already-owned scheduler cycle while retaining its route, operation and external ownership.
+// This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
+// respond on its already-owned scheduler cycle while retaining route, operation and external ownership.
 private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["DETECTED",1.5],["GUNFIRE",1]];
 private _responseLifetime=_responseDurations getOrDefault [_cause,1];
 private _response=[_cause,+_position,_observedAt,time+_responseLifetime,_generation];
@@ -93,12 +93,17 @@ if (_replace) then {
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
 };
 // A group retains one movement/decision owner. Events only shorten its existing deadline.
-private _job=_group getVariable ["WAIT_Cortex_GroupJob",createHashMap];
-if (count _job > 0 && {(_job getOrDefault ["ownerEpoch",-1]) == _epoch}
+private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+if (count _brain == 0) then {
+    [_group,true] call WAIT_fnc_GroupBrainStart;
+    _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+};
+if (count _brain > 0 && {(_brain getOrDefault ["ownerEpoch",-1]) == _epoch}
     && {time >= (_group getVariable ["WAIT_Danger_WakeAfter",0])}) then {
     _group setVariable ["WAIT_Danger_WakeAfter",time+0.5];
-    _job set ["responsiveUntil",time+_responseLifetime];
-    _job set ["wakeAt",time];
+    _brain set ["responsiveUntil",time+_responseLifetime];
+    _brain set ["wakeAt",time];
+    _brain set ["nextAt",time];
     missionNamespace setVariable ["WAIT_AIPass_NextJobDue",time];
 };
 0.25

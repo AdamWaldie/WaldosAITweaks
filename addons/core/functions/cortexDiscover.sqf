@@ -5,8 +5,9 @@
  *
  * One sweep caches candidates and installs repeat-safe ground-group ownership handlers:
  * - caches player positions for the distance tiers (one allPlayers read per sweep, not per group);
- * - starts a WAIT_fnc_CortexGroupTick job for each newly local, eligible non-aircraft group and records its
- *   peak strength, which is how groups handed over by ACE or another headless controller are picked up;
+ * - starts one generation-scoped owner-local group tactics FSM for each newly local, eligible
+ *   non-aircraft group and records its peak strength. The FSM submits bounded decisions to the shared
+ *   scheduler, so headless handover cannot leave a second persistent group worker behind;
  * - re-applies garrison orders on the new owner after a locality change, because disableAI and
  *   event handlers are stored per machine;
  * - reconciles blanket Cortex-mode and finite SPLIT-mode COMPAT movement ownership;
@@ -38,8 +39,8 @@
  * Result: local AI groups are brought under the pass within one sweep.
  *
  * Current caller: WAIT_fnc_CortexInit.
- * Danger assessment: bounded member events use generation-scoped finite FSMs and only wake the existing
- * group decision job; handlers retire on membership/owner changes and shutdown. No second movement owner.
+ * Danger assessment: bounded member events use generation-scoped finite FSMs and only wake the current
+ * group tactics brain; handlers retire on membership/owner changes and shutdown. No second movement owner.
  */
 
 if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
@@ -126,12 +127,9 @@ private _spotters = [];
                 [_group,_dangerLease select 0,true,_dangerLease select 2] call WAIT_fnc_CortexOwnershipLease;
             };
         };
-        if (!(_group getVariable ["WAIT_AIPass_Managed", false]) && {_eligible}) then {
-            _group setVariable ["WAIT_AIPass_Managed", true];
+        if (_eligible) then {
             _group setVariable ["WAIT_AIPass_PeakSize", (_group getVariable ["WAIT_AIPass_PeakSize", 0]) max ({alive _x} count units _group)];
-            private _groupJob=createHashMapFromArray [["group",_group]];
-            _group setVariable ["WAIT_Cortex_GroupJob",_groupJob];
-            [WAIT_fnc_CortexGroupTick,_groupJob,random 2] call WAIT_fnc_CortexQueueJob;
+            [_group,false] call WAIT_fnc_GroupBrainStart;
         };
     };
 } forEach allGroups;

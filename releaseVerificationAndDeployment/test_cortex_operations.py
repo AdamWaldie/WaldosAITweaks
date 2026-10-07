@@ -7,6 +7,28 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'addons/main/functions/Cortex'
 def source(name): return next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
+    def test_group_tactics_fsm_owns_the_persistent_ground_brain(self):
+        discover=source('cortexDiscover')
+        start=source('groupBrainStart')
+        queue=source('groupBrainQueue')
+        step=source('groupBrainStep')
+        fsm=(ROOT/'addons/main/fsm/groupTactics.fsm').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_GroupBrainStart',discover)
+        self.assertNotIn('[WAIT_fnc_CortexGroupTick,_groupJob',discover)
+        self.assertIn('groupTactics.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_fnc_GroupBrainStep',queue)
+        self.assertIn('ownerEpoch',step)
+        self.assertIn('WAIT_GroupBrain_Generation',step)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',step)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',step)
+        self.assertIn('WAIT_fnc_CortexGroupTick',step)
+        for state in ['Calm','Contact','Support','Manoeuvre','Assault','Clear','Security','Withdraw']:
+            self.assertIn('class '+state,fsm)
+        self.assertIn('WAIT_GroupBrain_Generation',fsm)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+
     def test_scheduler_diagnostics_clear_transient_skip_state_after_resumption(self):
         scheduler=source('cortexSchedulerTick')
         self.assertIn('_state set ["skippedReason","PAUSED"]',scheduler)
@@ -26,9 +48,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('select [0,16]',selection)
         self.assertIn('_expires > _now',selection)
         self.assertNotIn(' sort ',selection)
-        self.assertIn('WAIT_Cortex_GroupJob',step)
-        self.assertIn('_job set ["wakeAt",time]',step)
-        self.assertIn('_job set ["responsiveUntil",time+_responseLifetime]',step)
+        self.assertIn('WAIT_GroupBrain',step)
+        self.assertIn('_brain set ["wakeAt",time]',step)
+        self.assertIn('_brain set ["nextAt",time]',step)
+        self.assertIn('_brain set ["responsiveUntil",time+_responseLifetime]',step)
+        self.assertIn('WAIT_fnc_GroupBrainStart',step)
         self.assertIn('_state deleteAt "wakeAt"',scheduler)
         self.assertIn('getOrDefault ["wakeAt",_dueAt]',scheduler)
         self.assertIn('getOrDefault ["responsiveUntil",-1]',scheduler)

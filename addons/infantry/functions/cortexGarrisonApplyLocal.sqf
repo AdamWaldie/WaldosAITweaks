@@ -195,11 +195,20 @@ private _buildingAnchor = {
                     // only measured travel renews progress so an actor at a threshold cannot wait forever.
                     if (_openedDoor && {call _mayIssueMovement}) then {_x doMove _target; _x setDestination [_target,"LEADER PLANNED",true]};
                     if (_approach && {_x distance2D _target <= 5} && {call _mayIssueMovement}) then {
-                        _route set [0,_anchor]; _route set [1,false]; _route set [10,true];
-                        _route set [2,getPosATL _x]; _route set [3,time];
-                        _x doMove _anchor; _x setDestination [_anchor,"LEADER PLANNED",true];
+                        // setDestination requires a real PositionAGL triplet. Some building models
+                        // expose an exterior entry but no usable interior crossing anchor; proceed
+                        // toward the assigned building position instead of issuing [] and aborting
+                        // the entire owner-local garrison callback.
+                        private _crossTarget=if (count _anchor >= 3) then {_anchor} else {_assignment select 0};
+                        _route set [0,_crossTarget];
+                        _route set [1,false];
+                        _route set [10,count _anchor >= 3];
+                        _route set [2,getPosATL _x];
+                        _route set [3,time];
+                        _x doMove _crossTarget;
+                        _x setDestination [_crossTarget,"LEADER PLANNED",true];
                     } else {
-                        if (_crossing && {_x distance _anchor <= 2} && {call _mayIssueMovement}) then {
+                        if (_crossing && {count _anchor >= 3} && {_x distance _anchor <= 2} && {call _mayIssueMovement}) then {
                             _route set [0,_assignment select 0]; _route set [2,getPosATL _x];
                             _route set [3,time]; _route set [4,0]; _route set [10,false];
                             _x doMove (_assignment select 0);

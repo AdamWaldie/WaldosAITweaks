@@ -134,6 +134,15 @@ if (!isNil "_civilianCreated") then {
 {
     [_x,true] call WAIT_fnc_CortexHearingLocal;
     [_x,true] call WAIT_fnc_DangerSetup;
+    private _brain=_x getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _brain > 0) then {
+        _brain set ["cancelled",true];
+        _brain set ["cancelReason","CORTEX_STOPPED"];
+        _brain set ["wakeAt",time];
+    };
+    _x setVariable ["WAIT_GroupBrain_Generation",(_x getVariable ["WAIT_GroupBrain_Generation",0])+1];
+    _x setVariable ["WAIT_GroupBrain",nil];
+    _x setVariable ["WAIT_GroupBrain_FSM",nil];
     _x setVariable ["WAIT_Cortex_GroupJob",nil];
     if (local _x) then {_x setVariable ["WAIT_AIPass_AreaReport",nil,true]};
     if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}}) then {

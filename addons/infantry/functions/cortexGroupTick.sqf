@@ -76,7 +76,8 @@
  * [WAIT_fnc_CortexGroupTick, createHashMapFromArray [["group", _group]], 1] call WAIT_fnc_CortexQueueJob;
  * Result: the group is managed by the pass on this machine.
  *
- * Current caller: jobs queued by WAIT_fnc_CortexDiscover.
+ * Current caller: WAIT_fnc_GroupBrainStep, as a one-shot callback selected by the owner-local
+ * groupTactics FSM. Discovery starts the FSM and never queues this function persistently.
  */
 
 params [["_job", createHashMap, [createHashMap]]];

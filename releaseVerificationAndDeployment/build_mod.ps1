@@ -31,6 +31,8 @@ try {
     if ($LASTEXITCODE) { throw 'FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
     if ($LASTEXITCODE) { throw 'Danger FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+    if ($LASTEXITCODE) { throw 'Group tactics FSM configuration validation failed' }
     & $Python releaseVerificationAndDeployment/mod_pipeline.py seal ".hemttout/$($Mode.ToLowerInvariant())"
     if ($LASTEXITCODE) { throw 'Package sealing failed' }
 } finally { Pop-Location }

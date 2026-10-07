@@ -435,6 +435,13 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
 {
     private _group=_x;
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
+    private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    private _brainPhase=_brain getOrDefault ["phase","MISSING"];
+    private _brainHealthy=count _brain > 0
+        && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+        && {(_brain getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_GroupBrain_Generation",0])}
+        && {!(_brain getOrDefault ["cancelled",false])};
+    _checks pushBack ["ai",format ["wait-group-brain-%1",netId leader _group],["ERROR","LOADED"] select _brainHealthy,format ["group=%1 owner=%2 semanticPhase=%3 legacyPhase=%4 generation=%5 ownerEpoch=%6 pending=%7 secondsSinceStep=%8 secondsUntilDue=%9 cancelReason=%10. The FSM is the persistent decision owner; physical results still require route, movement, firing or room evidence.",groupId _group,groupOwner _group,_brainPhase,_brain getOrDefault ["legacyPhase","UNKNOWN"],_brain getOrDefault ["generation",-1],_brain getOrDefault ["ownerEpoch",-1],_brain getOrDefault ["pending",false],if ((_brain getOrDefault ["lastStepAt",-1]) < 0) then {-1} else {time-(_brain get "lastStepAt")},((_brain getOrDefault ["nextAt",time])-time) max 0,_brain getOrDefault ["cancelReason",""]]];
     private _phaseTransition=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
     if (count _phaseTransition == 5) then {
         private _phaseCurrent=_state getOrDefault ["phase","UNKNOWN"];

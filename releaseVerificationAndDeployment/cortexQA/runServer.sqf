@@ -109,7 +109,7 @@ private _garrisonAccepted=if (_dangerBuilding) then {
         && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} >= 0}
 };
 ["ORD-04-garrison-accepted",_garrisonAccepted,str _buildingBackend] call _check;
-["Garrison movement",["COMPAT is absent, so the public Zeus order must use the native Cortex fallback.","Installed COMPAT Waypoints must own the public Zeus order."] select _dangerBuilding
+["Garrison movement",(["COMPAT is absent, so the public Zeus order must use the native Cortex fallback.","Installed COMPAT Waypoints must own the public Zeus order."] select _dangerBuilding)
     + " Both soldiers must physically enter and hold real building positions; backend selection or an assignment alone does not pass.",getPosATL _house] call _phase;
 ["ORD-04b-garrison-arrival",[{call _atHouse},95] call _wait,str (units _group apply {[getPosATL _x,currentCommand _x,expectedDestination _x]})] call _check;
 sleep 5;

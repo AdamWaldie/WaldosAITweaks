@@ -70,6 +70,9 @@ class CfgFunctions {
             class DangerStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerStep.sqf";};
             class DangerSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSetup.sqf";};
             class DangerReact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerReact.sqf";};
+            class GroupBrainStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\groupBrainStart.sqf";};
+            class GroupBrainQueue {file = "\z\waldo_ai_tweaks\addons\infantry\functions\groupBrainQueue.sqf";};
+            class GroupBrainStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\groupBrainStep.sqf";};
             class OperationStart {file = "\z\waldo_ai_tweaks\addons\core\functions\operationStart.sqf";};
             class OperationStep {file = "\z\waldo_ai_tweaks\addons\core\functions\operationStep.sqf";};
             class OperationCancel {file = "\z\waldo_ai_tweaks\addons\core\functions\operationCancel.sqf";};

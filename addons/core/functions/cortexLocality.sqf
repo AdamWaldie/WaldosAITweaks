@@ -17,8 +17,8 @@
  * Current callers: group Local handler and discovery.
  * Example: [_group, local _group] call WAIT_fnc_CortexLocality;
  * Result: the new owner releases stale transient controls and resumes one valid durable intent.
- * Danger assessment: bounded member events use generation-scoped finite FSMs and only wake the existing
- * group decision job; handlers retire on membership/owner changes and shutdown. No second movement owner.
+ * Danger assessment: bounded member events wake the generation-scoped group tactics FSM; handlers and
+ * the old owner brain retire on membership/owner changes and shutdown. No second movement owner.
  */
 params [["_group", grpNull, [grpNull]], ["_gained", false, [true]]];
 if (isNull _group) exitWith {};
@@ -39,6 +39,15 @@ if (local _group) then {
 };
 [_group,true] call WAIT_fnc_CortexHearingLocal;
 [_group,true] call WAIT_fnc_DangerSetup;
+private _oldBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+if (count _oldBrain > 0) then {
+    _oldBrain set ["cancelled",true];
+    _oldBrain set ["cancelReason","LOCALITY_CHANGE"];
+    _oldBrain set ["wakeAt",time];
+};
+_group setVariable ["WAIT_GroupBrain_Generation",(_group getVariable ["WAIT_GroupBrain_Generation",0])+1];
+_group setVariable ["WAIT_GroupBrain",nil];
+_group setVariable ["WAIT_GroupBrain_FSM",nil];
 _group setVariable ["WAIT_Cortex_GroupJob",nil];
 {
         private _unit = _x;
