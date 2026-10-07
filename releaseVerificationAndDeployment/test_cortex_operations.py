@@ -711,6 +711,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _openedDoor = if (call _mayIssueMovement)',garrison)
         self.assertIn('[_group] call WAIT_fnc_CortexExternalTakeover',reserve)
         self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x doMove _position;'))
+
+    def test_garrison_duck_handlers_yield_to_a_later_external_owner(self):
+        """Suppression callbacks must not alter the posture of a Zeus or specialist-owned unit."""
+        garrison=source('cortexGarrisonApplyLocal')
+        duck=garrison.split('private _duck = {',1)[1].split('_unit setVariable ["WAIT_AIPass_GarrisonHandlerIds"',1)[0]
+        self.assertGreaterEqual(duck.count('WAIT_fnc_CortexExternalTakeover'),2)
+        self.assertIn('|| {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};',duck)
+        self.assertIn('&& {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {',duck)
+
     def test_reactive_direct_commands_recheck_external_ownership(self):
         dismount=source('convoyDismountLocal')
         civilian=source('cortexCivilianReact')
