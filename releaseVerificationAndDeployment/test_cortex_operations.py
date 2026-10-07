@@ -30,6 +30,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
         self.assertIn('_brain set ["queuedAt",time]',queue)
         self.assertIn('class SchedulerWatchdog',fsm)
+        waiting=fsm[fsm.index('class Waiting'):fsm.index('class Finished',fsm.index('class Waiting'))]
+        self.assertIn('class Zeus',waiting)
+        self.assertIn('class External',waiting)
+        self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
+        self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
         self.assertIn('(_brain getOrDefault [""queuedAt"",time])+3',fsm)
         self.assertIn('WAIT_AIPass_NextJobDue',fsm)
         self.assertIn('if (_brain getOrDefault ["cancelled",false]) exitWith',step)
@@ -68,6 +73,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('wait-building-fsm-',diagnostics)
         self.assertIn('_brain set ["queuedAt",time]',queue)
         self.assertIn('class SchedulerWatchdog',fsm)
+        waiting=fsm[fsm.index('class Waiting'):fsm.index('class Finished',fsm.index('class Waiting'))]
+        self.assertIn('class Zeus',waiting)
+        self.assertIn('class External',waiting)
+        self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
+        self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
         self.assertIn('watchdogCount',start+fsm+diagnostics)
         self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith {-1}',step)
     def test_convoy_operation_fsm_replaces_persistent_scheduler_job(self):
@@ -86,6 +96,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Convoy_Brain',release)
         self.assertIn('_brain set ["queuedAt",time]',queue)
         self.assertIn('class SchedulerWatchdog',fsm)
+        waiting=fsm[fsm.index('class Waiting'):fsm.index('class Finished',fsm.index('class Waiting'))]
+        self.assertIn('class Zeus',waiting)
+        self.assertIn('class External',waiting)
+        self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
+        self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
         self.assertIn('watchdogCount',start+fsm+source('aiGetDiagnostics'))
         self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 
@@ -104,7 +119,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('current caller: wait_fnc_airattackoperationstep',attack.lower())
         for state in ['Plan','Ingress','Attack','Egress']:
             self.assertIn('class '+state,fsm)
-        self.assertNotIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('call WAIT_fnc_CortexAirAttack',fsm)
+        waiting=fsm[fsm.index('class Waiting'):fsm.index('class Finished',fsm.index('class Waiting'))]
+        self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
+        self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
         self.assertIn('WAIT_AirAttack_Brain_State',diagnostics)
         stop=source('cortexStop')
         self.assertIn('WAIT_AirAttack_Brain',stop)
@@ -160,6 +180,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('wait-support-fsm-',diagnostics)
         self.assertIn('_brain set ["queuedAt",time]',queue)
         self.assertIn('class SchedulerWatchdog',fsm)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('call WAIT_fnc_CortexSupportStep',fsm)
+        waiting=fsm[fsm.index('class Waiting'):fsm.index('class Finished',fsm.index('class Waiting'))]
+        self.assertLess(waiting.index('class Zeus'),waiting.index('class SchedulerWatchdog'))
+        self.assertLess(waiting.index('class External'),waiting.index('class SchedulerWatchdog'))
         self.assertIn('watchdogCount',start+fsm+diagnostics)
         self.assertIn('if (_brain getOrDefault ["cancelled",false] || {_brain getOrDefault ["finished",false]}) exitWith',step)
 

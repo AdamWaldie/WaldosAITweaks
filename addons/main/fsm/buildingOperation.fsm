@@ -47,6 +47,8 @@ class FSM {
             init = "";
             precondition = "";
             class Links {
+                class Zeus {priority=9;to="Finished";condition="[_group] call WAIT_fnc_CortexZeusHeld";action="_reason=""ZEUS"";";};
+                class External {priority=8;to="Finished";condition="[_group] call WAIT_fnc_CortexExternalTakeover";action="_reason=""EXTERNAL_OWNER"";";};
                 class Cancelled {priority=7;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};
                 class Invalidated {priority=6;to="Finished";condition="isNull _group || {!local _group} || {_epoch != (_group getVariable [""WAIT_AIPass_Epoch"",0])} || {_generation != (_group getVariable [""WAIT_AIPass_ClearGeneration"",-2])} || {!(missionNamespace getVariable [""WAIT_AIPass_Active"",false])}";action="_reason=""INVALIDATED_WHILE_WAITING"";";};
                 class SchedulerWatchdog {priority=5;to="Router";condition="(_brain getOrDefault [""pending"",false]) && {!(_brain getOrDefault [""completed"",false])} && {time >= ((_brain getOrDefault [""queuedAt"",time])+3)}";action="_brain set [""pending"",false]; _brain set [""watchdogCount"",(_brain getOrDefault [""watchdogCount"",0])+1]; _brain set [""nextAt"",time]; missionNamespace setVariable [""WAIT_AIPass_NextJobDue"",time];";};
