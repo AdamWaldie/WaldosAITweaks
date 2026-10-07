@@ -367,6 +367,8 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('class '+state,engine_fsm)
         self.assertIn('first-contactBootstraps=',diagnostics)
         self.assertIn('reflexOnlyRecords=',diagnostics)
+        self.assertIn('WAIT_Danger_EngineStanceLease',diagnostics)
+        self.assertIn('server-local stance leases=',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
