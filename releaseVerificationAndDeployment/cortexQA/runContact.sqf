@@ -1,7 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without
- * injected knowledge, including live contact interrupting an active search.
+ * Tests a real targetless explosion reflex and exact release, then real occlusion, physical exposure,
+ * sight loss, post-contact flow and reacquisition without injected knowledge, including live contact
+ * interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
  * Repeat/JIP: fresh actors and walls; public visual targets; removes only its own fixtures.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; required audit callbacks.
@@ -16,6 +17,46 @@ params ["_check","_phase","_wait"];
     ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_ContactReports_Enable",false],
     ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
+
+// Prove the engine-loaded FSM with a real targetless explosion before introducing any enemy. The
+// fixture reads production diagnostics but never calls DangerEngineSubmit, writes a response, or
+// assigns phase. Its authored UP stance provides an exact baseline for release verification.
+private _reflexGroup=createGroup [east,true];
+_reflexGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_reflexGroup setVariable ["acex_headless_blacklist",true,true];
+_reflexGroup setCombatMode "BLUE";
+private _reflexUnit=_reflexGroup createUnit ["O_Soldier_F",[2300,1350,0],[],0,"NONE"];
+_reflexUnit allowDamage false;
+_reflexUnit setUnitPos "UP";
+_reflexUnit setVariable ["acex_headless_blacklist",true,true];
+_reflexUnit setVariable ["WAIT_CortexQA_Label","TARGETLESS EXPLOSION REFLEX",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
+["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. The soldier must physically duck, release WAIT's exact posture lease and return to the authored UP stance and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
+private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _nativeStimulus=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
+},12] call _wait;
+private _physicalReflex=[{
+    (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
+        && {stance _reflexUnit in ["CROUCH","PRONE"]}
+},8] call _wait;
+private _released=[{
+    (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
+        && {toUpperANSI (unitPos _reflexUnit) == "UP"}
+        && {((_reflexGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+},12] call _wait;
+private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0;
+private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]];
+["DANGER-native-targetless-explosion",_nativeStimulus,str (_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
+["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
+    && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
+    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
+deleteVehicle _grenade;
+deleteVehicle _reflexUnit;
+deleteGroup _reflexGroup;
+
 private _group=createGroup [east,true];
 private _opposition=createGroup [west,true];
 {
