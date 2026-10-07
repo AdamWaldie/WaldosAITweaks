@@ -120,6 +120,8 @@ persistent callback failure still releases owned PATH, behaviour and ROE state t
 
 The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a weak stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. WAIT's cause assessment and finite response handoff are implemented; physical reaction, transition and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
 
+The configured engine slot cannot be swapped at runtime. Disabling `WAIT_AIPass_Danger_Enable`, pausing the tactical pass or disabling the wider pass therefore stops group handoff and planning while retaining the bounded local baseline reaction. Player, Zeus, CARELESS, forced-command, mounted and specialist ownership boundaries still take precedence. This prevents a live settings change from leaving base soldiers without any danger FSM.
+
 ## Danger assessment
 
 `WAIT_AIPass_Danger_Enable` is a server-enforced, live CBA option under Infantry / Contact, default true.

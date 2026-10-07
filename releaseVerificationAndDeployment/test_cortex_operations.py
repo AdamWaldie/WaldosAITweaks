@@ -310,11 +310,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_queue select [0,11]',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
+        self.assertNotIn('select _accepted',engine_fsm)
+        self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
+        mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]
+        self.assertNotIn('WAIT_AIPass_Active',mode_preflight)
+        self.assertNotIn('WAIT_AIPass_Danger_Enable',mode_preflight)
+        self.assertNotIn('CortexIsPaused',mode_preflight)
         for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Queued','Finished']:
             self.assertIn('class '+state,engine_fsm)
         self.assertIn('first-contactBootstraps=',diagnostics)
         self.assertIn('reflexOnlyRecords=',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
+        self.assertIn('then {"BASELINE"} else {"LOADED"}',diagnostics)
         self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text()
         self.assertIn('_zeusToken isNotEqualTo',fsm)
