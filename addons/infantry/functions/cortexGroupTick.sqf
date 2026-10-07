@@ -43,12 +43,17 @@
  * contact near players; WAIT_AIPass_TickNear within WAIT_AIPass_NearRange; WAIT_AIPass_TickMid
  * within WAIT_AIPass_FarRange; WAIT_AIPass_TickFar beyond. Beyond FarRange only the state ladder
  * and morale run; drills, fire control and support calls are skipped.
- * In CONTACT near players, each enabled behaviour runs: fire control, stance, anti-armour, vehicles,
- * flanking (with final assault), bounding advance, contact reports, ammo sharing, artillery,
- * reinforcement and coordinated assault. Garrison and defence orders run their own break and reserve
- * logic instead of flanking or retreating. Soldiers left holding ground by a drill rejoin when the
- * leader comes within 30 m. Reinforcement rallies are optional fallback positions; an acknowledged
- * responder with a safe shared-contact approach may enter a coordinated assault immediately.
+ * In CONTACT near players, immediate posture, morale, stance and vehicle safety remain available
+ * after a validated danger event. Target-dependent work (anti-armour, artillery, reinforcement,
+ * coordination, flanking and advance) starts only after native knowledge contains an enemy. A hit
+ * or explosion can therefore wake the finite combat state without manufacturing a target, consuming
+ * tactical cooldowns or dispatching squads toward the danger sample. With target knowledge, each
+ * enabled behaviour runs: fire control, stance, anti-armour, vehicles, flanking (with final assault),
+ * bounding advance, contact reports, ammo sharing, artillery, reinforcement and coordinated assault.
+ * Garrison and defence orders run their own break and reserve logic instead of flanking or retreating.
+ * Soldiers left holding ground by a drill rejoin when the leader comes within 30 m. Reinforcement
+ * rallies are optional fallback positions; an acknowledged responder with a safe shared-contact
+ * approach may enter a coordinated assault immediately.
  * WAIT's configured engine danger FSM owns immediate unit reactions. This group brain owns bounded
  * tactics and expensive planning through the shared scheduler; it does not wait on another danger
  * controller or start a second movement worker.
@@ -281,6 +286,10 @@ if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {[_group,false] ca
 private _navalOwnsMovement=[_group,_state,_enemies] call WAIT_fnc_CortexNavalAssault;
 _groupMovementOwned=_groupMovementOwned || {_navalOwnsMovement};
 private _visible = _enemies select {(_x select 2) <= 10};
+// Danger geometry is deliberately approximate and carries no hostile identity. It may drive the
+// immediate finite response and local safety layers, but it is never sufficient authority for a
+// route, support request, artillery request or target-specific weapon order.
+private _hasTargetKnowledge = _enemies isNotEqualTo [];
 private _garrisoned = (_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo [];
 private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo [];
 private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
@@ -615,7 +624,7 @@ switch (_state get "phase") do {
             } forEach _alive;
             if (["WAIT_AIPass_FireControl_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexFireControl};
             if (["WAIT_AIPass_Stance_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexStance};
-            if (["WAIT_AIPass_AntiArmour_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
+            if (_hasTargetKnowledge && {["WAIT_AIPass_AntiArmour_Enable", true] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
             if (["WAIT_AIPass_Vehicles_Enable", true] call _get) then {
                 _vehicleOwnsMovement = [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
             };
@@ -628,17 +637,17 @@ switch (_state get "phase") do {
             if (["WAIT_AIPass_ContactReports_Enable",true] call _get) then {
                 [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
             };
-            if (["WAIT_AIPass_Artillery_Enable", false] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexArtilleryRequest};
-            if (!_ordered && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
+            if (_hasTargetKnowledge && {["WAIT_AIPass_Artillery_Enable", false] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexArtilleryRequest};
+            if (_hasTargetKnowledge && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
                 || {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}}) then {[_group, _state] call WAIT_fnc_CortexReinforce};
             // Select one movement owner. A coordinated assault keeps this requester as the
             // base of fire while its responders manoeuvre; it must be decided before a local
             // flank or advance can acquire the same group's movement state.
             private _coordinatedOwnsMovement = _vehicleOwnsMovement;
-            if (!_ordered && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
+            if (_hasTargetKnowledge && {!_ordered} && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
                 _coordinatedOwnsMovement = [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
             };
-            if (!_ordered && {!_coordinatedOwnsMovement}) then {
+            if (_hasTargetKnowledge && {!_ordered} && {!_coordinatedOwnsMovement}) then {
                 [_group, _state, _enemies,
                     ["WAIT_AIPass_Flank_Enable", true] call _get,
                     ["WAIT_AIPass_Advance_Enable", true] call _get

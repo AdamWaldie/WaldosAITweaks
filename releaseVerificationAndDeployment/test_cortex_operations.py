@@ -2309,7 +2309,7 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         coordinated=source('cortexCoordinatedAssault')
         self.assertLess(tick.index('private _coordinatedOwnsMovement = _vehicleOwnsMovement'),tick.index('call WAIT_fnc_CortexTacticalStart'))
-        self.assertIn('if (!_ordered && {!_coordinatedOwnsMovement})',tick)
+        self.assertIn('if (_hasTargetKnowledge && {!_ordered} && {!_coordinatedOwnsMovement})',tick)
         self.assertIn('["WAIT_AIPass_Flank_Enable", true] call _get',tick)
         self.assertIn('["WAIT_AIPass_Advance_Enable", true] call _get',tick)
         self.assertIn('_state set ["coordinatedPendingUntil",time+15]',coordinated)
@@ -4944,6 +4944,28 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('doMove',text)
         tick=source('cortexGroupTick')
         self.assertIn('if (!_ordered && {_visible isEqualTo []}',tick)
+
+    def test_danger_only_contact_does_not_authorise_target_dependent_tactics(self):
+        tick=source('cortexGroupTick')
+        self.assertIn('private _hasTargetKnowledge = _enemies isNotEqualTo [];',tick)
+        self.assertIn('Danger geometry is deliberately approximate',tick)
+        for dispatch in [
+            'WAIT_fnc_CortexAntiArmour',
+            'WAIT_fnc_CortexArtilleryRequest',
+            'WAIT_fnc_CortexReinforce',
+            'WAIT_fnc_CortexCoordinatedAssault',
+            'WAIT_fnc_CortexTacticalStart'
+        ]:
+            contact=tick.split('case "CONTACT": {',1)[1]
+            call=contact.index(dispatch)
+            guard=contact.rfind('_hasTargetKnowledge',0,call)
+            self.assertGreaterEqual(guard,0,dispatch)
+            self.assertLess(call-guard,500,dispatch)
+        # Local immediate response and vehicle stop restoration still run without target identity.
+        contact=tick.split('case "CONTACT": {',1)[1]
+        self.assertIn('WAIT_fnc_CortexMorale',contact)
+        self.assertIn('WAIT_fnc_CortexStance',contact)
+        self.assertIn('WAIT_fnc_CortexVehicles',contact)
 
     def test_cross_group_dismount_safe_stop_is_owner_validated_and_reversible(self):
         vehicles=source('cortexVehicles')
