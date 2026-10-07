@@ -2,7 +2,9 @@
  * Author: WaldoTheWarfighter
  * Purpose: Applies a sparse, owner-local safety speed cap and bounded physical recovery to an
  * ordinary AI ground vehicle that is already following a native waypoint. This is the standalone
- * driving layer; registered convoys retain their separate predecessor-spacing controller.
+ * driving layer; registered convoys retain their separate predecessor-spacing controller. Terrain
+ * thresholds are expressed in km/h for settings and diagnostics, then converted to the metres per
+ * second required by forceSpeed before the command and ownership lease are recorded.
  * Locality / Authority: Runs only where the vehicle is local. It never creates, replaces or
  * deletes a waypoint and yields to players, Zeus remote control, convoy ownership and specialist
  * driving ownership.
@@ -87,8 +89,16 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
                 _vehicle setVariable ["WAIT_DrivingAssist_Restore",_previous];
             };
             private _saved=_previous param [0,-1];
-            if (_saved > 0) then {_cap=_cap min _saved};
-            if (call _mayIssueDriving) then {_vehicle forceSpeed _cap};
+            // Arma forceSpeed/getForcedSpeed values are metres per second. Keep the policy value
+            // readable in km/h, but keep the actual lease in engine units so another controller's
+            // cap is detected and the pre-WAIT value can be restored exactly.
+            private _capMps=_cap/3.6;
+            if (_saved > 0) then {_capMps=_capMps min _saved};
+            if !(call _mayIssueDriving) then {
+                // Do not retain a restore record or claim a lease that WAIT never applied.
+                [_vehicle] call WAIT_fnc_DrivingAssistRelease;
+            } else {
+            _vehicle forceSpeed _capMps;
             // Retain the owning group for diagnostics only. The lease remains the forced-speed
             // value: this reference never grants route or movement ownership to WAIT.
             // Native vehicles can abandon an otherwise valid MOVE command after a small collision
@@ -151,9 +161,10 @@ _group setVariable ["WAIT_DrivingAssist_Vehicles",_vehicles];
                     _progressAt=time;
                 };
             };
-            _vehicle setVariable ["WAIT_DrivingAssist_State",[_cap,_maximumGrade,time,_group,
+            _vehicle setVariable ["WAIT_DrivingAssist_State",[_capMps,_maximumGrade,time,_group,
                 _progressPosition,_progressAt,_recoveryStage,_recoveryUntil,_recoveryResult]];
             _vehicle setVariable ["WAIT_DrivingAssist_Next",time+4];
+            };
             };
         };
     };

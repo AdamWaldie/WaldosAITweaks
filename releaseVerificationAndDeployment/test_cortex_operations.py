@@ -768,7 +768,9 @@ class CortexOperations(unittest.TestCase):
         driving=source('drivingAssistStart')
         self.assertIn('private _mayIssueDriving = {',driving)
         self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',driving)
-        self.assertIn('if (call _mayIssueDriving) then {_vehicle forceSpeed _cap};',driving)
+        self.assertIn('if !(call _mayIssueDriving) then {',driving)
+        self.assertIn('[_vehicle] call WAIT_fnc_DrivingAssistRelease;',driving)
+        self.assertLess(driving.index('if !(call _mayIssueDriving) then {'),driving.index('_vehicle forceSpeed _capMps;'))
         recovery=driving.split('if (_hasRoute &&',1)[1].split('switch (_recoveryStage)',1)[0]
         self.assertIn('&& {call _mayIssueDriving}',recovery)
     def test_naval_operations_release_without_overwriting_external_orders(self):
@@ -4784,7 +4786,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',start)
         self.assertIn('getTerrainHeightASL _sample',start)
         self.assertIn('time+4',start)
-        self.assertIn('forceSpeed _cap',start)
+        self.assertIn('private _capMps=_cap/3.6;',start)
+        self.assertIn('if (_saved > 0) then {_capMps=_capMps min _saved};',start)
+        self.assertIn('forceSpeed _capMps',start)
+        self.assertIn('["WAIT_DrivingAssist_State",[_capMps,',start)
         self.assertIn('WAIT_fnc_DrivingAssistStart',group_tick)
         self.assertIn('WAIT_DrivingAssist_Restore',release)
         self.assertIn('WAIT_DrivingAssist_State',release)
@@ -4794,6 +4799,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_DrivingAssist_Vehicles',source('cortexReleaseGroup'))
         diagnostics=source('aiGetDiagnostics')
         self.assertIn('general-driving',diagnostics)
+        self.assertIn('capKmh=%2',diagnostics)
+        self.assertIn('_capMps*3.6',diagnostics)
 
     def test_danger_lifecycle_uses_a_live_group_actor_for_leader_loss_cleanup(self):
         """A dead original leader cannot strand a short danger posture or operation record."""
