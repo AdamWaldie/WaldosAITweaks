@@ -454,6 +454,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',cancel)
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',release)
+        for completion in [cancel,release]:
+            self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',completion)
+            self.assertLess(completion.index('ownerEpoch'),completion.index('call WAIT_fnc_CortexGroupMoveClear'))
+        self.assertIn('toUpperANSI _reason != "OWNERSHIP_LOST"',cancel)
         self.assertIn('getOrDefault ["dangerPosture",false]',cancel)
         self.assertIn('getOrDefault ["dangerPosture",false]',release)
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',release)
@@ -2568,6 +2572,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"COMBINED_GROUND"',local+ground_step)
         self.assertIn('WAIT_fnc_CortexZeusHeld',ground_step)
         self.assertIn('if (_stalls >= 1)',ground_step)
+        self.assertIn('[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;',ground_step)
         self.assertNotIn('setPos',ground_step)
         self.assertNotIn('setVelocity',ground_step)
         self.assertNotIn('CortexCanTransmit',local)
@@ -3118,7 +3123,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _movementLeaseActive = count _movementLease == 2',maintain)
         self.assertIn('private _supportOwnsMovement = _movementLeaseActive',maintain)
         self.assertIn('["SUPPORT_RALLY","COORDINATED_ASSAULT"]',maintain)
-        self.assertIn('if ((_supportOwnsMovement || {!_movementLeaseActive})',maintain)
+        self.assertIn('if (_operationGeneration >= 0',maintain)
+        self.assertIn('&& {(_supportOwnsMovement || {!_movementLeaseActive})}',maintain)
         self.assertIn('if (_supportOwnsMovement) then {_state deleteAt "movementLease"}',maintain)
 
     def test_all_group_manoeuvres_use_one_shared_movement_owner(self):
@@ -5200,6 +5206,9 @@ class CortexOperations(unittest.TestCase):
                        '"FEATURE_DISABLED"','"ZEUS"','"EXTERNAL"']:
             self.assertIn(marker,maintain)
         self.assertIn('case "SUPPORT_RALLY": {"supportOperationGeneration"};',tick)
+        self.assertNotIn('[_group] call WAIT_fnc_CortexGroupMoveClear;',apply)
+        self.assertIn('[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;',maintain)
+        self.assertIn('if (_operationGeneration >= 0',maintain)
 
     def test_naval_release_is_token_scoped_and_never_forces_boarding(self):
         release=source('cortexNavalRelease')
@@ -5208,6 +5217,9 @@ class CortexOperations(unittest.TestCase):
                        'NAVAL_ASSAULT','NAVAL_LANDING']:
             self.assertIn(marker,release)
         self.assertIn('abs ((getForcedSpeed _boat)-_ownedStop) <= 0.1',release)
+        self.assertIn('[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;',release)
+        self.assertNotIn('[_group] call WAIT_fnc_CortexGroupMoveClear;',release)
+        self.assertIn('if (_operationGeneration >= 0 &&',release)
         self.assertIn('WAIT_Cortex_NavalForcedSpeed",[getForcedSpeed _boat,0]',source('cortexNavalAssault'))
         for forbidden in ['moveIn','orderGetIn true','assignAs','setPos','deleteVehicle']:
             self.assertNotIn(forbidden,release)

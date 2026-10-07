@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Cancels one matching WAIT operation and removes only its owned movement state.
  * Locality/authority: Current group owner only; callers forward before invoking when required.
- * Repeat/JIP: A missing or superseded generation is a no-op. The cancellation result is public for diagnostics and JIP inspection.
+ * Repeat/JIP: A missing or superseded generation is a no-op. Previous-owner work is rejected except for the new owner's explicit OWNERSHIP_LOST cleanup.
  * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 reason <STRING, CANCELLED>.
  * Return Value: BOOL - true when the matching operation was cancelled.
  * Current callers: OperationStart, Zeus handover, release and recovery failure paths.
@@ -12,6 +12,8 @@ params [["_group",grpNull,[grpNull]],["_generation",-1,[0]],["_reason","CANCELLE
 if (isNull _group || {!local _group}) exitWith {false};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {false};
+if (toUpperANSI _reason != "OWNERSHIP_LOST"
+    && {(_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {false};
 _operation set ["cancelReason",toUpperANSI _reason];
 _operation set ["phase","CANCELLED"];
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;

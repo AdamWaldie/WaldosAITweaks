@@ -7,8 +7,8 @@
  * public boat plan may clear that plan or restore the boat. Passenger groups release only their
  * own movement lease. Zeus takeover and locality cleanup use this same path.
  * Repeat/JIP: public plan tokens, exact saved forced-speed values and the owned zero cap make
- * repeated or late cleanup harmless. A later controller's speed survives release. No unit is
- * boarded, moved or teleported during release.
+ * repeated or late cleanup harmless. Route cleanup requires the matching generation, and a later
+ * controller's speed survives release. No unit is boarded, moved or teleported during release.
  *
  * Arguments:
  * 0: group <GROUP>
@@ -54,13 +54,13 @@ if (!isNull _boat) then {
         _boat setVariable ["WAIT_Cortex_NavalPlan",nil,true];
     };
 };
+private _operationGeneration=_state getOrDefault ["navalOperationGeneration",-1];
 private _movement=_state getOrDefault ["movementLease",[]];
-if ((_movement param [0,""]) in ["NAVAL_ASSAULT","NAVAL_LANDING"]) then {
-    [_group] call WAIT_fnc_CortexGroupMoveClear;
+if (_operationGeneration >= 0 && {(_movement param [0,""]) in ["NAVAL_ASSAULT","NAVAL_LANDING"]}) then {
+    [_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;
     [_group,_movement param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
     _state deleteAt "movementLease";
 };
-private _operationGeneration=_state getOrDefault ["navalOperationGeneration",-1];
 if (_operationGeneration >= 0) then {
     if (toUpperANSI _reason == "COMPLETE") then {
         [_group,_operationGeneration,"COMPLETE","NAVAL_"+toUpperANSI _reason] call WAIT_fnc_OperationRelease;

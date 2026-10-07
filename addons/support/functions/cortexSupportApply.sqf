@@ -107,7 +107,6 @@ if (_okay && {_adopting || {!_same} || {_attackAllowed && {!(_state getOrDefault
     };
     _state set ["supportOperationGeneration",_operation get "generation"];
     if (_attackAllowed) then {
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
         _state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]];
     } else {
         if (!_directCoordinationPending) then {

@@ -8,6 +8,7 @@
  * bounded route replan; a second stall ends the role so gameplay roadblocks remain meaningful.
  * Locality/authority: runs only where the vehicle group is local after a server-authenticated role.
  * Repeat/JIP: the public role token rejects stale jobs; locality replay queues one replacement job.
+ * Cleanup requires the matching operation generation, so a late role cannot delete a newer route.
  * Arguments: 0: job state <HASHMAP> containing group, asset, target, token, expiry and destination.
  * Return Value: Number of seconds before the next scheduler step, or -1 when complete.
  * Current callers: WAIT_fnc_CortexCombinedArmsLocal through WAIT_fnc_CortexQueueJob.
@@ -31,7 +32,7 @@ private _finish={
                 [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
             };
         };
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
+        if (_operationGeneration >= 0) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
         if ((_lease param [0,""]) == "COMBINED_GROUND") then {

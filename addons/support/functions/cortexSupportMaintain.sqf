@@ -28,6 +28,7 @@
  * Releasing support also restores the responder's pre-existing COMPAT group-AI setting. The scoped
  * lease prevents COMPAT and Cortex from issuing movement to the same group during rally or assault.
  * Repeat/JIP: unique tokens, shared deadlines and owner acknowledgements retire stale assignments.
+ * Route cleanup requires a matching generation and never touches a replacement operation.
  * Arguments: 0: group <GROUP>; 1: local state <HASHMAP>.
  * Return Value: Nothing.
  * Current callers: GroupTick.
@@ -99,9 +100,10 @@ private _releaseSupport={
     };
     // Delete only this support assignment's route. A later withdrawal, vehicle
     // manoeuvre, artillery scoot or tactical drill survives stale support cleanup.
-    if ((_supportOwnsMovement || {!_movementLeaseActive})
+    if (_operationGeneration >= 0
+        && {(_supportOwnsMovement || {!_movementLeaseActive})}
         && {_state getOrDefault ["responding",false] || {_state getOrDefault ["assaulting",false]}}) then {
-        [_group] call WAIT_fnc_CortexGroupMoveClear;
+        [_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;
     };
     if (_supportOwnsMovement) then {_state deleteAt "movementLease"};
     ["CANCELLED",_reason] call _finishOperation;
