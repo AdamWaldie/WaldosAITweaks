@@ -3,6 +3,7 @@
  * Purpose: Assess current danger, publish one finite response context and wake the existing group tactics FSM without creating a second tactical owner.
  * Locality / Authority: owner-local; never reveals targets or sends movement commands.
  * Repeat/JIP: generation-checked response context is public for diagnostics; a new owner rebuilds it from fresh observations.
+ * Lower-priority observations cannot shorten the surviving response or its prompt scheduler cadence.
  * Arguments: 0: group <GROUP>, grpNull; 1: owner epoch <NUMBER>, -1; 2: generation <NUMBER>, -1.
  * Return Value: Number - next assessment delay, or -1 to finish.
  * Current callers: WAIT dangerAssessment FSM.
@@ -92,6 +93,18 @@ if (_replace) then {
     _group setVariable ["WAIT_Danger_Response",_response,true];
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
 };
+// The response that survived priority selection owns the prompt scheduler window. Using the newest
+// candidate lifetime here allowed a one-second gunfire sample to shorten a still-live three-second
+// HIT response even though the sample was correctly rejected above. Preserve the authoritative
+// lease expiry so mixed danger cannot make the group brain fall back to its slower distance cadence.
+private _effectiveResponse=_group getVariable ["WAIT_Danger_Response",[]];
+private _responsiveUntil=if (count _effectiveResponse == 5
+    && {(_effectiveResponse select 4) == _generation}
+    && {time < (_effectiveResponse select 3)}) then {
+    _effectiveResponse select 3
+} else {
+    time+_responseLifetime
+};
 // A group retains one movement/decision owner. Events only shorten its existing deadline.
 private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
 if (count _brain == 0) then {
@@ -101,7 +114,7 @@ if (count _brain == 0) then {
 if (count _brain > 0 && {(_brain getOrDefault ["ownerEpoch",-1]) == _epoch}
     && {time >= (_group getVariable ["WAIT_Danger_WakeAfter",0])}) then {
     _group setVariable ["WAIT_Danger_WakeAfter",time+0.5];
-    _brain set ["responsiveUntil",time+_responseLifetime];
+    _brain set ["responsiveUntil",_responsiveUntil max (_brain getOrDefault ["responsiveUntil",0])];
     _brain set ["wakeAt",time];
     _brain set ["nextAt",time];
     missionNamespace setVariable ["WAIT_AIPass_NextJobDue",time];
