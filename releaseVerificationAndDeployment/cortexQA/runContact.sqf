@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests a real targetless explosion reflex, exact release and danger during committed movement, then
+ * Tests a real targetless explosion reflex with physical cover, exact release and danger during committed movement, then
  * real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without injected
  * knowledge, including live contact interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
@@ -32,8 +32,14 @@ _reflexUnit setUnitPos "AUTO";
 _reflexUnit setVariable ["acex_headless_blacklist",true,true];
 _reflexUnit setVariable ["WAIT_CortexQA_Label","TARGETLESS EXPLOSION REFLEX",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
-["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. The soldier must physically duck, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
+// A real solid wall sits on the far side of the actor from the grenade. This turns the cover response
+// into a physical test instead of treating an accepted danger record or generated destination as success.
+private _dangerCoverWall=createVehicle ["Land_CncWall4_F",[2296,1350,0],[],0,"CAN_COLLIDE"];
+_dangerCoverWall setDir 90;
+private _reflexStart=getPosATL _reflexUnit;
+["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _coverMovesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
 private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
 private _nativeStimulus=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
@@ -42,6 +48,10 @@ private _physicalReflex=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _reflexUnit in ["CROUCH","PRONE"]}
 },8] call _wait;
+private _physicalCover=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
+        && {_reflexUnit distance2D _reflexStart >= 2}
+},16] call _wait;
 private _released=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
         && {toUpperANSI (unitPos _reflexUnit) == "AUTO"}
@@ -51,6 +61,7 @@ private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0
 private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]];
 ["DANGER-native-targetless-explosion",_nativeStimulus,str (_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
 ["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
+["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
     str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
@@ -86,6 +97,7 @@ private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] 
 ["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
 deleteVehicle _movementGrenade;
 [_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
+deleteVehicle _dangerCoverWall;
 deleteVehicle _reflexUnit;
 deleteGroup _reflexGroup;
 

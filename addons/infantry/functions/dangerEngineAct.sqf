@@ -43,7 +43,9 @@ if (_mode == "IMMEDIATE") then {
     _desiredStance=["MIDDLE","DOWN"] select (_hardCover && {!_committedMover});
 };
 if (_mode == "HIDE") then {
-    _desiredStance=["MIDDLE","DOWN"] select (!_committedMover && {getSuppression _actor > 0.25 || {_cause in [5,6]}});
+    // Seeing a casualty or hearing a scream is alerting evidence, not proof of rounds arriving at
+    // this actor. Keep a mobile crouch unless native suppression itself justifies going prone.
+    _desiredStance=["MIDDLE","DOWN"] select (!_committedMover && {getSuppression _actor > 0.45});
 };
 if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
     _desiredStance="MIDDLE";

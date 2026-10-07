@@ -214,7 +214,11 @@ private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
 private _dangerActionName=if (count _dangerAction == 5
     && {(_dangerAction select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
     && {time < (_dangerAction select 3)}) then {_dangerAction select 0} else {""};
-if (_dangerActive && {_dangerActionName == "HIDE"}) then {
+// Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
+// their reported position as a physical threat sent soldiers away from bodies or voices and made
+// harmless evidence look like suppression. Only immediate hazards may own this cover reflex.
+private _physicalCoverCause=(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED"];
+if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
     [_group,_dangerCoverActor,_dangerResponse select 1,_dangerResponse select 4] call WAIT_fnc_DangerCoverStep;
 } else {
     private _coverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
