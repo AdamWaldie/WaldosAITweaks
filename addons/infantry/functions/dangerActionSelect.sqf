@@ -21,10 +21,11 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
 private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _actor) then {_actor=leader _group};
 if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
-// A native forced command remains authoritative through the group handoff as well as the immediate
-// engine branch. Without this second check, the queued assessment could change group posture after
-// the unit-level FSM had deliberately yielded to ATTACK, boarding, healing or another forced task.
-if (fleeing _actor || {currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+// A concrete native task remains authoritative through the group handoff as well as the immediate
+// engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous
+// combat, and WAIT's response changes only a finite posture while native targeting and movement stay
+// authoritative. Zeus, players and declared external owners have already yielded above.
+if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.

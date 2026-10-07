@@ -20,7 +20,11 @@ if (isNull _group || {!local _group}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {behaviour _actor == "CARELESS"}
     || {!(_actor checkAIFeature "MOVE")}) exitWith {"RELEASE"};
-if (fleeing _actor || {currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+// ATTACK is also the engine's ordinary autonomous combat command. Treating it as authored
+// ownership made the danger FSM observation-only for the exact actors already fighting. Zeus,
+// players and declared external owners have already yielded above; retain only commands which
+// represent a concrete boarding, action, treatment, supply or group-transfer task here.
+if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 private _cause=_record select 0;
 if (_cause in [1,2,4,9]) exitWith {"IMMEDIATE"};

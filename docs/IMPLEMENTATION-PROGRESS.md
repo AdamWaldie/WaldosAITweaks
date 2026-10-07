@@ -158,8 +158,9 @@ physical first-contact latency, Zeus replacement and headless migration remain p
 
 Forced-command and mounted checks now repeat at the queued group-assessment boundary. This closes a delayed race
 where the immediate FSM yielded correctly but the later cause-only classification still changed group behaviour or
-ROE. On-foot hide/engage responses raise BLUE or GREEN groups to a finite YELLOW response, while native ATTACK,
-boarding, action, healing, rearm, join, fleeing and vehicle owners remain observation-only.
+ROE. On-foot hide/engage responses raise BLUE or GREEN groups to a finite YELLOW response. Boarding, action,
+healing, rearm, join, fleeing and vehicle owners remain observation-only. Native `ATTACK` stays eligible because
+it is also Arma's ordinary autonomous combat command; the response does not replace its target or destination.
 
 Each live response now also carries a finite action classification: `HIDE` after a hit, explosion or suppression,
 `ENGAGE` after an engine-confirmed contact or nearby gunfire, `VEHICLE` for a mounted leader, and

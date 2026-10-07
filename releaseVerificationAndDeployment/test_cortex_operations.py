@@ -349,7 +349,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_records select [0,12]',engine_select)
         self.assertIn('private _priorities=[2,1,9,4,3,6,3,5,8,7,0]',engine_select)
         self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
-        self.assertIn('currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
+        self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
+        self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
         self.assertIn('(side _group) getFriend (side group _source) < 0.6',engine_mode)
         self.assertIn('else {"ASSESS"}',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:
@@ -397,7 +398,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Immediate stances are weak, finite and exact-owned',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('["ERROR","ACTIVE"] select _dangerFsmOwned',diagnostics)
-        self.assertIn('Forced orders and vehicle crews receive no posture or movement command.',diagnostics)
+        self.assertIn('Native ATTACK remains eligible',diagnostics)
         self.assertIn('private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply',diagnostics)
         self.assertIn('WAIT must own all west, east and independent soldier danger slots',diagnostics)
         lifecycle=(ROOT/'docs/ADDON-LIFECYCLE.md').read_text(encoding='utf-8')
@@ -432,7 +433,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_Action',fsm)
         for contract in ['"RELEASE"','"FORCED"','"MAINTAIN"','"VEHICLE"','"HIDE"','"ENGAGE"']:
             self.assertIn(contract,action)
-        self.assertIn('currentCommand _actor in ["ATTACK","GET IN","ACTION","HEAL","REARM","JOIN"]',action)
+        self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',action)
+        self.assertNotIn('currentCommand _actor in ["ATTACK"',action)
         self.assertIn('!isNull objectParent _actor',action)
         self.assertLess(action.index('currentCommand _actor in'),action.index('WAIT_Operation'))
         self.assertLess(action.index('!isNull objectParent _actor'),action.index('WAIT_Operation'))
@@ -2504,6 +2506,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_shipped_profiles_retain_legacy_movement_keys_for_configuration_compatibility(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
+        defaults=(ROOT/'cortex_defaults.md').read_text(encoding='utf-8')
         for profile,flank,advance in [
             ('MILITIA','0.3','0.7'),
             ('LINE','0.5','0.6'),
@@ -2513,6 +2516,9 @@ class CortexOperations(unittest.TestCase):
             row=config.split(f'["{profile}", createHashMapFromArray ',1)[1].split(']]]',1)[0]
             self.assertIn(f'["flankChance", {flank}]',row)
             self.assertIn(f'["advanceChance", {advance}]',row)
+            documented=defaults.split(f'["{profile}", createHashMapFromArray ',1)[1].split(']]]',1)[0]
+            self.assertIn(f'["flankChance", {flank}]',documented)
+            self.assertIn(f'["advanceChance", {advance}]',documented)
 
     def test_coordinated_selection_uses_bounded_server_responder_index(self):
         coordinated=source('cortexCoordinatedAssault')

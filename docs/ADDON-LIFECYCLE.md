@@ -156,15 +156,16 @@ Its responsibility map is deliberately narrow:
 | `HIDE` | Treat casualty and scream evidence as mobile awareness. It may use a finite crouch but cannot request cover movement from those causes. |
 | `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. |
 | `VEHICLE` | Record and wake only. The finite vehicle layer owns safe stopping, eligible passenger exit, withdrawal and gunnery under their separate gates. |
-| `FORCED` | Yield to the current native command, flee state or external owner; WAIT records the observation but issues no posture or movement command. |
+| `FORCED` | Yield to fleeing or a concrete boarding, action, healing, rearm or join task; WAIT records the observation but issues no posture or movement command. Native `ATTACK` remains eligible because Arma also uses it for autonomous combat. |
 | release | Restore only the exact stance or cover lease still owned by this FSM generation. A newer order is never overwritten. |
 
 The engine states themselves never issue a destination, target or firing command. Forced commands, player/Zeus control,
 external specialist ownership, disabled movement and CARELESS behaviour terminate or bypass WAIT action. This keeps
 the engine response finite while the group brain owns tactics. The optional cover move runs inside that already-budgeted
 group tick, refuses an active operation or native command and cannot create a second movement scheduler.
-The queued group assessment repeats the forced-command and mounted checks before changing behaviour or ROE, so
-the delayed handoff cannot undo the immediate FSM's decision to yield.
+The queued group assessment repeats the concrete-task and mounted checks before changing behaviour or ROE, so
+the delayed handoff cannot undo the immediate FSM's decision to yield. Native `ATTACK` is intentionally not a
+yield condition: WAIT changes only finite posture here and leaves native targeting, firing and movement intact.
 An eligible first engine event starts that same generation-owned group brain immediately when the periodic discovery
 sweep has not reached the group yet. It does not create a second worker. Diagnostics count these first-contact
 bootstraps, accepted records and finite response modes without publishing target identity.
