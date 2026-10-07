@@ -57,6 +57,21 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_BuildingBrain',locality)
         self.assertIn('WAIT_BuildingBrain',stop)
         self.assertIn('wait-building-fsm-',source('aiGetDiagnostics'))
+    def test_convoy_operation_fsm_replaces_persistent_scheduler_job(self):
+        sync=source('convoySync');adopt=source('convoyHeadlessAdoptLocal');start=source('convoyOperationStart');queue=source('convoyOperationQueue');step=source('convoyOperationStep');release=source('convoyReleaseLocal')
+        fsm=(ROOT/'addons/main/fsm/convoyOperation.fsm').read_text(encoding='utf-8')
+        self.assertIn('WAIT_fnc_ConvoyOperationStart',sync+adopt)
+        self.assertNotIn('WAIT_fnc_ConvoyJobStep',sync+adopt)
+        self.assertIn('convoyOperation.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_fnc_ConvoyOperationStep',queue)
+        self.assertIn('WAIT_fnc_ConvoyTick',step)
+        self.assertIn('WAIT_Convoy_ReceivedRevision',step)
+        for state in ['Cruise','Spacing','Recovery','ContactHold','OrderedHold','Obstruction','Arrived']: self.assertIn('class '+state,fsm)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',fsm)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',fsm)
+        self.assertIn('WAIT_Convoy_Brain',release)
+
     def test_scheduler_diagnostics_clear_transient_skip_state_after_resumption(self):
         scheduler=source('cortexSchedulerTick')
         self.assertIn('_state set ["skippedReason","PAUSED"]',scheduler)
@@ -3450,15 +3465,17 @@ class CortexOperations(unittest.TestCase):
 
     def test_convoy_uses_the_shared_budgeted_scheduler(self):
         sync=source('convoySync')
-        step=source('convoyJobStep')
+        queue=source('convoyOperationQueue')
+        step=source('convoyOperationStep')
         scheduler=source('cortexSchedulerTick')
         reconcile=source('schedulerReconcile')
         self.assertNotIn('CBA_fnc_addPerFrameHandler',sync)
-        self.assertIn('WAIT_fnc_CortexQueueJob',sync)
+        self.assertIn('WAIT_fnc_ConvoyOperationStart',sync)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
         self.assertIn('WAIT_Convoy_SchedulerActive',sync)
         self.assertIn('WAIT_fnc_ConvoyTick',step)
         self.assertIn('registryRevision',step)
-        self.assertRegex(step, r'(?m)^1\s*$')
+        self.assertRegex(step, r'(?m)^-1\s*$')
         self.assertIn('case "CONVOY"',scheduler)
         self.assertIn('case "CONVOY"',reconcile)
 

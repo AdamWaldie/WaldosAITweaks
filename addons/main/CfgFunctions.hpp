@@ -33,7 +33,9 @@ class CfgFunctions {
             class ConvoyCrewLocal {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyCrewLocal.sqf";};
             class ConvoyHeadlessAdoptLocal {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyHeadlessAdoptLocal.sqf";};
             class ConvoySync {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoySync.sqf";};
-            class ConvoyJobStep {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyJobStep.sqf";};
+            class ConvoyOperationStart {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyOperationStart.sqf";};
+            class ConvoyOperationQueue {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyOperationQueue.sqf";};
+            class ConvoyOperationStep {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyOperationStep.sqf";};
             class ConvoyReleaseLocal {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyReleaseLocal.sqf";};
             class ConvoyTick {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\convoyTick.sqf";};
             class DrivingAssistStart {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\drivingAssistStart.sqf";};

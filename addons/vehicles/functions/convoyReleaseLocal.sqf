@@ -12,6 +12,15 @@
  */
 params [["_group", grpNull, [grpNull]], ["_forget", true, [true]], ["_restore", [], [[]]], ["_keepCrew", [], [[]]], ["_reason", "RELEASED", [""]]];
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
+private _brain=_group getVariable ["WAIT_Convoy_Brain",createHashMap];
+if (count _brain > 0 && {_forget || {toUpperANSI _reason in ["ZEUS","PLAYER","EXTERNAL","EXTERNAL_OWNER","OWNERSHIP_LOST"]}}) then {
+    _brain set ["cancelled",true];
+    _brain set ["cancelReason",toUpperANSI _reason];
+};
+if (_forget) then {
+    _group setVariable ["WAIT_Convoy_Brain",nil];
+    _group setVariable ["WAIT_Convoy_Brain_FSM",nil];
+};
 if (local _group) then {
     private _state = _group getVariable ["WAIT_Convoy_LocalState",createHashMap];
     private _generation = _state getOrDefault ["operationGeneration",-1];

@@ -25,6 +25,8 @@ jobs:
       - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
       - run: hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
       - run: hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+      - run: hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
+      - run: hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
       - run: python releaseVerificationAndDeployment/mod_pipeline.py seal .hemttout/release
       - run: cd .hemttout/release && zip -r ../../wait-candidate.zip .
       - uses: actions/upload-artifact@v4

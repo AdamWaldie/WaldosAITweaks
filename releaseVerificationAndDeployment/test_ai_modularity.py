@@ -350,7 +350,7 @@ class HeadlessOwnershipContracts(unittest.TestCase):
     def test_convoy_restarts_only_its_destination_local_scheduler_after_hc_handoff(self):
         sync = src('convoySync')
         adopt = src('convoyHeadlessAdoptLocal')
-        step = src('convoyJobStep')
+        step = src('convoyOperationStep')
         functions = (ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         self.assertIn('"ace_headless_groupTransferPost"', sync)
         self.assertIn('"WAIT_Compatibility_HeadlessMigrated"', sync)
@@ -361,7 +361,7 @@ class HeadlessOwnershipContracts(unittest.TestCase):
         self.assertIn('WAIT_fnc_CompatibilityHeadlessRevision', adopt)
         self.assertIn('WAIT_Convoy_LocalState",nil', adopt)
         self.assertIn('WAIT_fnc_ConvoyCrewLocal', adopt)
-        self.assertIn('WAIT_fnc_CortexQueueJob', adopt)
+        self.assertIn('WAIT_fnc_ConvoyOperationStart', adopt)
         self.assertIn('WAIT_Convoy_LocalJobToken', adopt)
         self.assertIn('WAIT_Convoy_LocalJobToken', step)
         self.assertNotIn('setGroupOwner', adopt)

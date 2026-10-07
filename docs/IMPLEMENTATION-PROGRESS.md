@@ -1,3 +1,5 @@
+- Convoy coordination now runs under one registry-revision-owned convoy FSM with explicit CRUISE, SPACING, CONTACT_HOLD, RECOVERY, ORDERED_HOLD, OBSTRUCTION and ARRIVED states. The former indefinitely re-queued convoy worker is removed. Each travel phase submits one coalesced physical step to the shared scheduler; stable holds sleep and are replaced by the next ordered registry snapshot. Existing predecessor trails, size-aware gap damping, contact policy, route recovery, passenger generation ownership and meaningful-roadblock handling remain the physical controller. Zeus, external ownership, registry replacement and locality migration invalidate the brain before another vehicle command. Diagnostics expose phase, revisions, pending state, spacing corrections and recovery actors. Physical mixed-column acceptance remains pending.
+
 # Standalone conversion progress
 
 The [delivery goal](DELIVERY-GOAL.md) defines the required release outcome and the exact difference between implemented, statically checked and physically accepted work. This progress record does not promote a subsystem beyond its evidence.

@@ -737,7 +737,9 @@
         "addons/vehicles/functions/simpleAiConvoy.sqf",
         "addons/vehicles/functions/convoySync.sqf",
         "addons/vehicles/functions/convoyTick.sqf",
-        "addons/vehicles/functions/convoyJobStep.sqf",
+        "addons/vehicles/functions/convoyOperationStart.sqf",
+        "addons/vehicles/functions/convoyOperationQueue.sqf",
+        "addons/vehicles/functions/convoyOperationStep.sqf",
         "addons/vehicles/functions/convoyHeadlessAdoptLocal.sqf"
       ]
     },

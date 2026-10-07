@@ -1,0 +1,33 @@
+class FSM {
+ fsmName="WAIT owner-local convoy operation";
+ class States {
+  class Start {name="Start";init="_group=_this param [0,grpNull]; _registryRevision=_this param [1,-1]; _configuration=_this param [2,[]]; _brain=_this param [3,createHashMap]; _phase=_brain getOrDefault [""phase"",""CRUISE""]; _reason="""";";precondition="";class Links {class Invalid {priority=5;to="Finished";condition="isNull _group || {!local _group} || {count _brain == 0}";action="_reason=""INVALID_START"";";};class Route {priority=0;to="Router";condition="true";action="";};};};
+  class Router {name="Router";init="_phase=toUpperANSI (_brain getOrDefault [""phase"",""CRUISE""]);";precondition="";class Links {
+   class FinishedJob {priority=12;to="Finished";condition="_brain getOrDefault [""finished"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""FINISHED""];";};
+   class Cancelled {priority=11;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};
+   class OwnershipLost {priority=10;to="Finished";condition="isNull _group || {!local _group}";action="_reason=""OWNERSHIP_LOST"";";};
+   class Replaced {priority=9;to="Finished";condition="_registryRevision != (missionNamespace getVariable [""WAIT_Convoy_ReceivedRevision"",-2]) || {(_brain getOrDefault [""jobToken"",""""]) isNotEqualTo (_group getVariable [""WAIT_Convoy_LocalJobToken"",""""])}";action="_reason=""REPLACED"";";};
+   class Zeus {priority=8;to="Finished";condition="[_group] call WAIT_fnc_CortexZeusHeld";action="_reason=""ZEUS"";";};
+   class External {priority=7;to="Finished";condition="[_group] call WAIT_fnc_CortexExternalTakeover";action="_reason=""EXTERNAL_OWNER"";";};
+   class Delay {priority=6;to="Delay";condition="time < (_brain getOrDefault [""nextAt"",time])";action="";};
+   class OrderedHold {priority=5;to="OrderedHold";condition="_phase == ""ORDERED_HOLD""";action="";};
+   class ContactHold {priority=5;to="ContactHold";condition="_phase == ""CONTACT_HOLD""";action="";};
+   class Obstruction {priority=5;to="Obstruction";condition="_phase == ""OBSTRUCTION""";action="";};
+   class Recovery {priority=5;to="Recovery";condition="_phase == ""RECOVERY""";action="";};
+   class Spacing {priority=5;to="Spacing";condition="_phase == ""SPACING""";action="";};
+   class Arrived {priority=5;to="Arrived";condition="_phase == ""ARRIVED""";action="";};
+   class Cruise {priority=0;to="Cruise";condition="true";action="";};
+  };};
+  class Delay {name="Delay";init="";precondition="";class Links {class Interrupt {priority=5;to="Router";condition="_brain getOrDefault [""cancelled"",false] || {_brain getOrDefault [""finished"",false]} || {isNull _group} || {!local _group} || {_registryRevision != (missionNamespace getVariable [""WAIT_Convoy_ReceivedRevision"",-2])} || {[_group] call WAIT_fnc_CortexZeusHeld} || {[_group] call WAIT_fnc_CortexExternalTakeover}";action="";};class Due {priority=0;to="Router";condition="time >= (_brain getOrDefault [""nextAt"",time])";action="";};};};
+  class Cruise {name="Cruise";init="[_group,_registryRevision,_configuration,_brain,""CRUISE""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Spacing {name="Spacing";init="[_group,_registryRevision,_configuration,_brain,""SPACING""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Recovery {name="Recovery";init="[_group,_registryRevision,_configuration,_brain,""RECOVERY""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class ContactHold {name="ContactHold";init="[_group,_registryRevision,_configuration,_brain,""CONTACT_HOLD""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class OrderedHold {name="OrderedHold";init="[_group,_registryRevision,_configuration,_brain,""ORDERED_HOLD""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Obstruction {name="Obstruction";init="[_group,_registryRevision,_configuration,_brain,""OBSTRUCTION""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Arrived {name="Arrived";init="[_group,_registryRevision,_configuration,_brain,""ARRIVED""] call WAIT_fnc_ConvoyOperationQueue;";precondition="";class Links {class Wait {priority=0;to="Waiting";condition="true";action="";};};};
+  class Waiting {name="Waiting";init="";precondition="";class Links {class Cancelled {priority=5;to="Finished";condition="_brain getOrDefault [""cancelled"",false]";action="_reason=_brain getOrDefault [""cancelReason"",""CANCELLED""];";};class Completed {priority=0;to="Router";condition="_brain getOrDefault [""completed"",false]";action="";};};};
+  class Finished {name="Finished";init="_brain set [""cancelled"",true]; _brain set [""cancelReason"",_reason]; if (!isNull _group && {local _group} && {(_group getVariable [""WAIT_Convoy_Brain"",createHashMap]) isEqualTo _brain}) then {_group setVariable [""WAIT_Convoy_Brain_State"",[_phase,_configuration param [0,-1],_registryRevision,serverTime,_reason],true]; if (_reason in [""ZEUS"",""EXTERNAL_OWNER""]) then {[_group,false,_configuration param [7,[]],[],_reason] call WAIT_fnc_ConvoyReleaseLocal;}; _group setVariable [""WAIT_Convoy_Brain"",nil]; _group setVariable [""WAIT_Convoy_Brain_FSM"",nil];};";precondition="";class Links {};};
+ };
+ initState="Start";finalStates[]={"Finished"};
+};
