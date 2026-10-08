@@ -149,6 +149,17 @@ the vehicle or combined-arms layer saw it. This correction adds no target scan o
 the existing native-knowledge requirement. Static/package validation is required; physical infantry
 against hostile manned and unmanned vehicle acceptance remains pending.
 
+A live native `CANFIRE` response now reaches the existing rotating suppression primitive when its
+engine-known contact is beyond assault distance. It uses only `CortexKnowledge`'s believed position,
+the current danger generation, existing ammunition thresholds and friendly-fire check. It creates no
+target reveal, firing worker or movement owner, closing the previous gap where WAIT visibly adopted a
+combat posture but contributed no immediate fire. Packaged physical firing evidence remains queued.
+
+The same direct-object allegiance boundary now protects adjacent observation paths: artillery spotters,
+FiredNear hearing and convoy damage intake retain hostile vehicle, aircraft and static-weapon identity
+instead of evaluating a possibly empty object group. Static regressions pass; mixed-platform physical
+acceptance remains queued.
+
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
 Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the

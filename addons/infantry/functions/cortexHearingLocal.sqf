@@ -24,7 +24,9 @@ private _handler = _leader addEventHandler ["FiredNear",{
     if (!local _observer || {isNull _firer} || {!alive _observer} || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
         || {[] call WAIT_fnc_CortexIsPaused} || {!([_group] call WAIT_fnc_CortexIsEligible)}
         || {!([_group,"WAIT_AIPass_Hearing_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-        || {(side _group) getFriend (side group _firer) >= 0.6}
+        // FiredNear may report a vehicle weapon source. Compare the source object's actual side so
+        // hostile platform fire is neither discarded nor treated as an infantry-only event.
+        || {(side _group) getFriend (side _firer) >= 0.6}
         || {serverTime < (_group getVariable ["WAIT_AIPass_HearingDue",0])}) exitWith {};
     private _items = weaponsItems _firer;
     private _index = _items findIf {(_x select 0) == _weapon};

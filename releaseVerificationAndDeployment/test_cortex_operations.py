@@ -2341,6 +2341,32 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_x doTarget objNull; _x doWatch objNull',qa)
         self.assertNotIn('call WAIT_fnc_CortexFireControl',qa)
 
+    def test_native_canfire_gets_immediate_safe_suppression_parity(self):
+        fire = source("cortexFireControl")
+        suppression = fire.split('// Disciplined suppression', 1)[1]
+        for token in ['getOrDefault ["dangerResponse",[]]',
+                      '(_dangerResponse select 0) == "CANFIRE"',
+                      'WAIT_Danger_Generation',
+                      '(_x select 3) > _assaultRange',
+                      '(_x select 3) <= 500']:
+            self.assertIn(token,suppression)
+        # The parity handoff must still use the existing bounded safety path rather than
+        # manufacture target knowledge, direct fire, or a second worker.
+        self.assertIn('call WAIT_fnc_CortexLineOfFireClear',suppression)
+        self.assertIn('_unit doSuppressiveFire _targetASL',suppression)
+        self.assertNotIn('doTarget',suppression)
+        self.assertNotIn('spawn',suppression)
+
+    def test_non_infantry_sources_keep_identity_at_observation_boundaries(self):
+        for name, expected, rejected in [
+            ("cortexSpotterFix", "getFriend (side _enemy)", "getFriend (side group _enemy)"),
+            ("cortexHearingLocal", "getFriend (side _firer)", "getFriend (side group _firer)"),
+            ("convoyCrewLocal", "getFriend (side _instigator)", "getFriend (side group _instigator)"),
+        ]:
+            text=source(name)
+            self.assertIn(expected,text)
+            self.assertNotIn(rejected,text)
+
     def test_group_ticks_use_low_cost_zero_mean_jitter(self):
         tick=source("cortexGroupTick")
         self.assertIn('private _cadence = _delay / _reaction;',tick)
