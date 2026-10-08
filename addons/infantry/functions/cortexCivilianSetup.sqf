@@ -1,8 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
  * Installs the event-driven WAIT civilian danger response on one owner-local unarmed civilian.
- * external civilian controller is detected and left completely untouched. No per-frame or periodic
- * civilian scan is created; only FiredNear and Hit events can request a reaction.
+ * Player, Zeus, specialist and neutral external-control ownership is left completely untouched.
+ * No per-frame or periodic civilian scan is created; only FiredNear and Hit events can request a reaction.
  *
  * Locality / Authority: call where the unit is local. A Local handler repeats setup after migration.
  * Repeat/JIP: versioned handler IDs are removed before replacement; repeat calls are harmless.

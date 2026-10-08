@@ -65,8 +65,18 @@ class FSM {
             precondition = "";
             class Links {
                 class Interrupted {priority = 4; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
-                class Drain {priority = 2; to = "Queued"; condition = "count _queue > 0"; action = "";};
-                class Done {priority = 0; to = "Finished"; condition = "time >= _deadline"; action = "";};
+                class Saturated {priority = 2; to = "Queued"; condition = "count _queue > 3"; action = "";};
+                class Done {priority = 0; to = "Recycle"; condition = "time >= _deadline"; action = "";};
+            };
+        };
+        class Recycle {
+            name = "Recycle";
+            init = "_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};";
+            precondition = "";
+            class Links {
+                class Interrupted {priority = 3; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
+                class Drain {priority = 1; to = "Queued"; condition = "count _queue > 0"; action = "";};
+                class Done {priority = 0; to = "Finished"; condition = "true"; action = "";};
             };
         };
         class Queued {

@@ -238,6 +238,7 @@ class CortexOperations(unittest.TestCase):
         engine_act=source('dangerEngineAct')
         engine_continue=source('dangerEngineCanContinue')
         engine_release=source('dangerEngineRelease')
+        engine_recycle=source('dangerEngineRecycle')
         engine_mode=source('dangerEngineMode')
         engine_select=source('dangerEngineSelect')
         danger_cover=source('dangerCoverStep')
@@ -402,6 +403,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineCanContinue',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRelease',engine_fsm)
+        self.assertIn('WAIT_fnc_DangerEngineRecycle',engine_fsm)
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
         self.assertIn('class Interrupted',engine_fsm)
@@ -418,8 +420,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_AIPass_Active',mode_preflight)
         self.assertIn('WAIT_AIPass_Danger_Enable',mode_preflight)
         self.assertIn('CortexIsPaused',mode_preflight)
-        for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Queued','Finished']:
+        for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Recycle','Queued','Finished']:
             self.assertIn('class '+state,engine_fsm)
+        waiting=engine_fsm.split('class Waiting {',1)[1].split('class Recycle {',1)[0]
+        self.assertIn('count _queue > 3',waiting)
+        self.assertNotIn('condition = "count _queue > 0"',waiting)
+        self.assertIn('effectiveCommander (vehicle _actor) == _actor',engine_recycle)
+        self.assertIn('_actor distance2D _source < 35',engine_recycle)
+        self.assertIn('(side _group) getFriend (side _sourceGroup) >= 0.6',engine_recycle)
+        for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
+            self.assertNotIn(forbidden,engine_recycle)
         self.assertIn('first-contactBootstraps=',diagnostics)
         self.assertIn('reflexOnlyRecords=',diagnostics)
         self.assertIn('WAIT_Danger_EngineStanceLease',diagnostics)
@@ -642,7 +652,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_AIPass_MedicalAssist_Enable',medical)
         self.assertIn('WAIT_fnc_CortexZeusHeld',medical)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',medical)
-        self.assertIn('["medicalBackend"] call WAIT_fnc_CompatibilityAvailable',medical)
+        self.assertNotIn('medicalBackend',medical)
         self.assertIn('_medic action ["HealSoldier",_casualty]',medical)
         self.assertIn('_medic doMove getPosATL _casualty',medical)
         self.assertIn('_medic setDestination [getPosATL _casualty,"LEADER PLANNED",true]',medical)
@@ -2737,8 +2747,8 @@ class CortexOperations(unittest.TestCase):
     def test_external_ai_owners_are_detected_without_blanket_mod_exclusion(self):
         owner=source('cortexExternalOwner')
         eligible=source('cortexIsEligible')
-        for marker in ['WBK_AI_ISZombie','Droid_Health','WBK_Droids_VoiceType',
-                       'IMS_IsUnitInvicibleScripted','IMS_ISAI','WBK_VariableScared']:
+        for marker in ['WBK_AI_ISZombie','Droid_Health','WBK_Droids_VoiceType','WBK_AI_ZombieMoveSet',
+                       'IMS_IsUnitInvicibleScripted','IMS_ISAI','IMS_EventHandler_Hit']:
             self.assertIn(marker,owner)
         self.assertIn('_class find "WBK_" == 0',owner)
         self.assertNotIn('_moves != ""',owner)
@@ -2746,17 +2756,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_unit] call WAIT_fnc_CortexExternalOwner != ""',eligible)
         self.assertNotIn('isClass (configFile >> "CfgPatches"',eligible)
 
-    def test_alternative_backend_receives_finite_exact_state_movement_leases(self):
+    def test_wait_movement_lease_does_not_mutate_broad_external_ai_state(self):
         lease=source('cortexOwnershipLease')
         compat=(ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
-        for text in ['WAIT_AIPass_AlternativeBackendLoaded','WAIT_Cortex_AlternativeLease','Vcm_Disable',
-                     'VCM_MOVE2SUP','VCM_MBUSY']:
-            self.assertIn(text,lease)
-        self.assertIn('_group setVariable ["Vcm_Disable",_baseline,true]',lease)
-        self.assertIn('"VCOM_AI" call _patch',compat)
-        self.assertNotIn('VCM_NOFLANK',lease)
-        self.assertNotIn('VCM_DisableForm',lease)
-        self.assertNotIn('VCM_Skilldisable',lease)
+        self.assertIn('WAIT_Cortex_MovementLease',lease)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',lease)
+        self.assertIn('_live && {(_lease select 0) != _owner}',lease)
+        for forbidden in ['AlternativeBackend','Vcm_Disable','VCM_MOVE2SUP','VCM_MBUSY','VCOM_AI']:
+            self.assertNotIn(forbidden,lease+compat)
+        for capability in ['"meleeBackend"','"specialistBackend"']:
+            self.assertIn(capability,compat)
 
     def test_civilian_reactions_are_event_driven_and_yield_to_wbk_and_zeus(self):
         setup=source('cortexCivilianSetup')
@@ -3280,9 +3289,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]]',apply)
         self.assertIn('case "SUPPORT_RALLY"',maintain)
 
-    def test_every_finite_group_move_holds_one_external_controller_lease(self):
+    def test_every_finite_group_move_holds_one_wait_movement_lease(self):
         lease=source('cortexOwnershipLease')
-        self.assertIn('independent alternative AI controller',lease)
+        self.assertIn("WAIT_Cortex_MovementLease",lease)
+        self.assertIn("exclusive ownership of the group's WAIT movement domain",lease)
         for name in ['cortexFlankStart','cortexAdvanceStart']:
             code=source(name)
             self.assertIn('[_group,"TACTICAL_DRILL",true,serverTime+90]',code)
@@ -3962,18 +3972,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"OBSTRUCTION"',registration)
         self.assertIn('_reason in ["STALLED", "OBSTRUCTION"]',registration)
 
-    def test_convoy_temporarily_yields_driving_vehicle_workers_and_restores_exact_state(self):
+    def test_convoy_owns_eligible_driving_and_releases_for_real_takeover(self):
         start=(ROOT/'addons/vehicles/functions/simpleAiConvoy.sqf').read_text(encoding='utf-8')
         release=(ROOT/'addons/vehicles/functions/convoyReleaseLocal.sqf').read_text(encoding='utf-8')
         diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
-        adapter=source('compatibilityState')
-        self.assertIn('["drivingBackend"] call WAIT_fnc_CompatibilityAvailable',start)
-        for field,variable in [('drivingPause','HBQAD_Pause'),('drivingCrewReturn','HBQAD_PreventDisembark')]:
-            self.assertIn('"'+variable+'"',adapter)
-            self.assertIn('isNil {[_vehicle,"'+field+'"] call WAIT_fnc_CompatibilityState}',start)
-            self.assertIn('[_vehicle,"'+field+'",nil,true,true] call WAIT_fnc_CompatibilityState',release)
+        for forbidden in ['drivingBackend','HBQAD_Pause','HBQAD_PreventDisembark','CompatibilityState']:
+            self.assertNotIn(forbidden,start+release+diagnostics)
+        self.assertIn('General Driving and Convoy are separate WAIT use cases',start)
         self.assertIn('drivingAssist=%3 routeRecoveryEnabled=%4',diagnostics)
-        self.assertIn('drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7',diagnostics)
+        self.assertIn('WAIT owns eligible convoy movement',diagnostics)
         self.assertIn('never teleports, repairs or ignores a physical roadblock',diagnostics)
         self.assertIn('private _externalCrew',release)
         self.assertIn('[_crewGroup] call WAIT_fnc_CortexExternalTakeover',release)
@@ -5320,9 +5327,9 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         vehicles=source('cortexVehicles')
         compat=(ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
-        for marker in ['WAIT_AIPass_NavalAssault_Enable','PROTOCOL_AI_NAVY_SEAL',
-                       'WAIT_AIPass_NavalBackendLoaded']:
-            self.assertIn(marker,compat + naval)
+        self.assertIn('WAIT_AIPass_NavalAssault_Enable',naval)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',naval)
+        self.assertNotIn('navalBackend',compat)
         self.assertIn('WAIT_Cortex_NavalOperation',naval)
         self.assertIn('WAIT_Cortex_NavalOperation',source('cortexLocality'))
         for marker in ['surfaceIsWater _landing','surfaceIsWater _approach',

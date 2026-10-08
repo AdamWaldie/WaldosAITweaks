@@ -1,6 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests a real targetless explosion reflex with physical cover, exact release and danger during committed movement, then
+ * Tests a real targetless explosion reflex with physical cover, exact release, danger during committed movement and
+ * close-contact persistence, then
  * real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without injected
  * knowledge, including live contact interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
@@ -97,6 +98,43 @@ private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] 
 ["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
 deleteVehicle _movementGrenade;
 [_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
+
+// Prove the engine FSM sustains a real close hostile contact rather than ending after its first
+// short posture. No target, reveal, doFire or synthetic danger is injected: the opponents must
+// acquire and engage through the engine, and the finite recycle counter must advance while the
+// hostile remains alive and known.
+private _closeGroup=createGroup [west,true];
+_closeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_closeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_closeGroup setVariable ["acex_headless_blacklist",true,true];
+private _closeTarget=_closeGroup createUnit ["B_Soldier_F",(getPosATL _reflexUnit) getPos [25,90],[],0,"NONE"];
+_closeTarget allowDamage false;
+_closeTarget disableAI "PATH";
+_closeTarget setVariable ["acex_headless_blacklist",true,true];
+_closeTarget setVariable ["WAIT_CortexQA_Label","CLOSE HOSTILE CONTACT",true];
+_reflexUnit allowDamage false;
+_reflexUnit setDir (_reflexUnit getDir _closeTarget);
+_closeTarget setDir (_closeTarget getDir _reflexUnit);
+_reflexGroup setCombatMode "RED";
+private _closeShots=0;
+private _closeShotHandler=_reflexUnit addEventHandler ["FiredMan",{missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0])+1]}];
+missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",0];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit,_closeTarget],true];
+private _recyclesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["recycles",0];
+["Danger FSM: close hostile persistence","The two invulnerable opponents face each other at 25 metres. WAIT must retain the native contact across finite response cycles while native AI fires; no target or fire command is injected by the audit.",getPosATL _closeTarget] call _phase;
+private _closePersistent=[{
+    private _stats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    (_stats getOrDefault ["recycles",0]) > _recyclesBefore
+        && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
+        && {_reflexUnit knowsAbout _closeTarget > 0}
+},25] call _wait;
+_closeShots=missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0];
+["DANGER-close-contact-physical-persistence",_closePersistent,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+_reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
+missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
+deleteVehicle _closeTarget;
+deleteGroup _closeGroup;
+
 deleteVehicle _dangerCoverWall;
 deleteVehicle _reflexUnit;
 deleteGroup _reflexGroup;

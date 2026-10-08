@@ -288,13 +288,13 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_NavalAssault_Enable` | Naval infantry landing | CHECKBOX | true | [] | NEXT_OPERATION | AI boat crews make one finite shallow-water approach and deliver embarked infantry onto dry ground. An installed external naval provider takes priority. |
+| `WAIT_AIPass_NavalAssault_Enable` | Naval infantry landing | CHECKBOX | true | [] | NEXT_OPERATION | AI boat crews make one finite shallow-water approach and deliver embarked infantry onto dry ground. Player, Zeus and neutral external-control ownership take priority. |
 
 ### 04 Civilian reactions
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire or a hit using event handlers and one finite move. WAIT yields completely when an external civilian controller owns the actor. |
+| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire or a hit using event handlers and one finite move. Player, Zeus and neutral external-control ownership still take precedence. |
 | `WAIT_AIPass_CivilianReaction_Radius` | Civilian gunfire radius (m) | SLIDER | 45 | [10, 150, 0] | NEXT_OPERATION | FiredNear events inside this distance may trigger an escape response. |
 | `WAIT_AIPass_CivilianReaction_Distance` | Civilian escape distance (m) | SLIDER | 180 | [50, 500, 0] | NEXT_OPERATION | Approximate length of the safe escape leg away from the threat. |
 | `WAIT_AIPass_CivilianReaction_Cooldown` | Civilian reaction cooldown (s) | SLIDER | 20 | [2, 120, 0] | NEXT_OPERATION | Minimum delay before another danger event can replace the current escape order. |

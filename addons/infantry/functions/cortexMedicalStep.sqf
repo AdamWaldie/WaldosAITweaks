@@ -23,8 +23,7 @@ params [
 if (isNull _group || {!local _group}
     || {!([_group,"WAIT_AIPass_MedicalAssist_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
-    || {(["medicalBackend"] call WAIT_fnc_CompatibilityAvailable)}) exitWith {false};
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 
 private _finish = {
     params ["_result","_reason"];

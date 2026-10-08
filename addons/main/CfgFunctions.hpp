@@ -15,7 +15,6 @@ class CfgFunctions {
             class AITweaksNotifyLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksNotifyLocal.sqf";};
             class AITweaksDiagnosticReport {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksDiagnosticReport.sqf";};
             class CompatibilityAvailable {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityAvailable.sqf";};
-            class CompatibilityState {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityState.sqf";};
             class CompatibilityExternalControl {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityExternalControl.sqf";};
             class CompatibilityPrecisionExcluded {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityPrecisionExcluded.sqf";};
             class CompatibilityHeadlessRevision {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityHeadlessRevision.sqf";};
@@ -71,6 +70,7 @@ class CfgFunctions {
             class DangerEngineCanContinue {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineCanContinue.sqf";};
             class DangerEngineAct {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineAct.sqf";};
             class DangerEngineRelease {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRelease.sqf";};
+            class DangerEngineRecycle {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRecycle.sqf";};
             class DangerEngineMode {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineMode.sqf";};
             class DangerEngineSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSelect.sqf";};
             class DangerEngineSubmit {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSubmit.sqf";};

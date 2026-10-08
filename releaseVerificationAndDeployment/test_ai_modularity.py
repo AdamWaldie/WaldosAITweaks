@@ -16,7 +16,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertNotIn('WAIT_AIPass_InfantryOwnership',spec)
         self.assertNotIn('DangerBackend',discovery)
         self.assertNotIn('lambs_',lease.lower())
-        self.assertIn('WAIT_AIPass_AlternativeBackendLoaded',lease)
+        self.assertIn('WAIT_Cortex_MovementLease',lease)
         init=src('cortexInit')
         self.assertIn('WAIT_AIPass_DangerOwnershipConflict',init)
         self.assertIn('if (!_dangerFsmOwned) exitWith {',init)
@@ -173,11 +173,13 @@ class AIModularityContracts(unittest.TestCase):
             self.assertIn('magazinesAllTurrets',src(name))
             self.assertIn('(_x select 2) > 0',src(name))
         self.assertIn('WAIT_fnc_CortexFeatureEnabled',src('cortexArtilleryShot'))
-    def test_alternative_controller_handover_is_scoped_and_restores_prior_state(self):
+    def test_wait_movement_lease_is_exclusive_and_owner_scoped(self):
         lease = src('cortexOwnershipLease')
-        for contract in ['WAIT_Cortex_AlternativeLease','Vcm_Disable','VCM_MOVE2SUP','VCM_MBUSY',
-                         '_baseline','serverTime','WAIT_Cortex_OwnershipBusyRefusals']:
+        for contract in ['WAIT_Cortex_MovementLease','WAIT_Cortex_OwnershipBusyRefusals',
+                         'serverTime','WAIT_fnc_CortexExternalTakeover']:
             self.assertIn(contract,lease)
+        for forbidden in ['WAIT_Cortex_AlternativeLease','Vcm_Disable','VCM_MOVE2SUP','VCM_MBUSY']:
+            self.assertNotIn(forbidden,lease)
         self.assertIn('CortexOwnershipLease',(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8'))
         apply = src('cortexSupportApply')
         maintain = src('cortexSupportMaintain')
@@ -188,9 +190,7 @@ class AIModularityContracts(unittest.TestCase):
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexRetreat'))
         self.assertIn('[_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease',src('cortexGroupTick'))
         self.assertIn('[_group,"",false] call WAIT_fnc_CortexOwnershipLease',src('cortexReleaseGroup'))
-        self.assertIn('serverTime >= (_alternativeLease select 2)',src('cortexDiscover'))
-        self.assertNotIn('DangerBackend',src('cortexDiscover'))
-        self.assertNotIn('DangerBackend',src('cortexReleaseGroup'))
+        self.assertIn('serverTime >= (_movementLease select 1)',src('cortexDiscover'))
     def test_no_source_specific_danger_or_weapon_companions_are_loaded(self):
         compat = (ROOT/'addons/compatibility/functions/aiTweaksDetectCompatibility.sqf').read_text(encoding='utf-8')
         diagnostics = (ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
@@ -213,13 +213,13 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
             self.assertIn('class '+base+': CAManBase', infantry)
         self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
 
-    def test_active_external_operations_are_read_only_and_bounded(self):
+    def test_specialist_external_ownership_is_read_only_and_actor_scoped(self):
         owner = src('cortexExternalOwner')
-        for marker in ['PDCO_activeLeaseId', 'PDCO_garrisonActive', 'PDCO_garrisonPending',
-                       'PDTB_jobId', 'smai_ownedMove', 'smai_pendingTargetGroup']:
+        for marker in ['WBK_AI_ISZombie','Droid_Health','WBK_Droids_VoiceType',
+                       'IMS_IsUnitInvicibleScripted','IMS_ISAI','IMS_EventHandler_Hit']:
             self.assertIn(marker, owner)
-        self.assertIn('assignedVehicle _unit', owner)
-        self.assertIn('vehicle _unit', owner)
+        for removed in ['PDCO_activeLeaseId','PDTB_jobId','smai_ownedMove','WBK_VariableScared']:
+            self.assertNotIn(removed,owner)
         self.assertNotIn('setVariable', owner)
         self.assertNotIn('allGroups', owner)
         self.assertNotIn('allUnits', owner)
@@ -389,7 +389,7 @@ class HeadlessOwnershipContracts(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CompatibilityHeadlessRecord', diagnostics)
         self.assertNotIn('Waldo_Headless_LastAdoption', diagnostics)
         self.assertIn('private _convoyHandoffMissing=', diagnostics)
-        self.assertIn('missingCompatibilityHandoffRestart=', diagnostics)
+        self.assertIn('missingHeadlessRestart=', diagnostics)
         self.assertIn('activeConvoysMissingCompatibilityRestart=', diagnostics)
         self.assertIn('companionHandoff=%7 waitHandoff=%8', diagnostics)
         self.assertIn('companionHandoff=%10 waitOperation=%11', diagnostics)

@@ -3,8 +3,8 @@
  * Registers mixed land convoys; speed <= 0 holds vehicles and unloads passengers except a STALLED or OBSTRUCTION recovery halt. Release removes the controller.
  * Locality/authority: server validates requests and owns registry/baselines; each owner applies local effects.
  * Repeat/JIP: versioned snapshots include halt cargo and restoration data; reconfigure explicitly resumes travel.
- * If external controller Advanced Driving AI is present, WAIT temporarily pauses its steering/unstuck worker and
- * crew-return option on controlled vehicles, then restores each exact prior variable state on release.
+ * General Driving and Convoy are separate WAIT use cases. A registered convoy owns its eligible vehicles;
+ * player, Zeus, specialist and neutral external-control ownership still cause an immediate release.
  * Accepted halt transitions notify assigned Zeus players once through the shared UI; no historical JIP alerts.
  * Arguments: 0: group <GROUP>, grpNull; 1: maximum km/h <NUMBER>, 30; 2: separation metres <NUMBER>, 30;
  * 3: push through <BOOL>, true; 4: release controller without unloading <BOOL>, false;
@@ -69,16 +69,7 @@ if (!_release) then {
         {
             private _vehicle = _x;
             if (_saved findIf {(_x select 0) == _vehicle} < 0) then {
-                private _drivingPause = if (isNil {[_vehicle,"drivingPause"] call WAIT_fnc_CompatibilityState}) then {[false,false]} else {[true,[_vehicle,"drivingPause",false] call WAIT_fnc_CompatibilityState]};
-                private _drivingCrew = if (isNil {[_vehicle,"drivingCrewReturn"] call WAIT_fnc_CompatibilityState}) then {[false,false]} else {[true,[_vehicle,"drivingCrewReturn",false] call WAIT_fnc_CompatibilityState]};
-                _saved pushBack [_vehicle, getForcedSpeed _vehicle, getUnloadInCombat _vehicle, [_drivingPause,_drivingCrew]];
-            };
-            // external controller's public live pause stops obstacle, traffic and unstuck movement without disabling
-            // its addon. Its separate crew loop does not read Pause, so WAIT also suspends only that
-            // per-vehicle option while WAIT owns seat and dismount semantics.
-            if ((["drivingBackend"] call WAIT_fnc_CompatibilityAvailable)) then {
-                [_vehicle,"drivingPause",true,true,true] call WAIT_fnc_CompatibilityState;
-                [_vehicle,"drivingCrewReturn",false,true,true] call WAIT_fnc_CompatibilityState;
+                _saved pushBack [_vehicle, getForcedSpeed _vehicle, getUnloadInCombat _vehicle];
             };
         } forEach _vehicles;
         _restore set [2, _saved];

@@ -140,7 +140,7 @@
  * - WAIT_AIPass_Regroup_StuckSeconds (ADVANCED): no progress for this long retries once, then aborts without merging at a distance.
  * - WAIT_AIPass_Regroup_TimeoutSeconds (ADVANCED): limit for finding a host and for walking to it.
  * - WAIT_AIPass_Regroup_SettleSeconds (ADVANCED): wait after a kill so simultaneous deaths settle.
- * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. external civilian controller takes priority when loaded.
+ * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. Player, Zeus and neutral external-control ownership take priority.
  * - WAIT_AIPass_CivilianReaction_Radius (ADVANCED): FiredNear distance which may trigger flight.
  * - WAIT_AIPass_CivilianReaction_Distance (ADVANCED): approximate one-shot escape distance.
  * - WAIT_AIPass_CivilianReaction_Cooldown (ADVANCED): minimum seconds before another response.
@@ -177,7 +177,7 @@
  * - WAIT_AIPass_GrenadeEvasion_Enable (MISSION MAKER): AI move away from a live grenade they can see; enabled by default, with live compatibility testing required.
  * - WAIT_AIPass_AntiArmour_Enable (MISSION MAKER): the best anti-tank gunner engages known armour, clear of backblast.
  * - WAIT_AIPass_Vehicles_Enable (MISSION MAKER): infantry dismount under fire and remount afterwards; damaged vehicles smoke and withdraw.
- * - WAIT_AIPass_NavalAssault_Enable (MISSION MAKER): AI boat crews make one finite shallow-water approach and deliver their embarked infantry onto dry ground. Default true; external naval controller takes priority when loaded.
+ * - WAIT_AIPass_NavalAssault_Enable (MISSION MAKER): AI boat crews make one finite shallow-water approach and deliver their embarked infantry onto dry ground. Default true; player, Zeus and neutral external-control ownership take priority.
  * - WAIT_AIPass_ContactReports_Enable (MISSION MAKER): squads share sighted enemies by radio (blocked by jamming) or by voice.
  * - WAIT_AIPass_ContactReports_Radius (ADVANCED): radio report range in metres.
  * - WAIT_AIPass_ContactReports_VoiceRange (ADVANCED): report range in metres when AI transmission is blocked.
@@ -329,7 +329,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Aggression", 1.2], // 0-2: scales manoeuvre preference/participation and optional tactical actions; zero excludes them.
         ["WAIT_AIPass_Cohesion", 1], // 0.5-2: above 1 squads take more before morale breaks, below 1 they break sooner.
         ["WAIT_AIPass_ReactionSpeed", 1], // 0.5-2: above 1 squads re-assess more often (more server time), below 1 less often.
-        ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to an external civilian controller.
+        ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to player, Zeus and neutral external-control ownership.
         ["WAIT_AIPass_CivilianReaction_Radius", 45], // METRES: nearby gunfire trigger range.
         ["WAIT_AIPass_CivilianReaction_Distance", 180], // METRES: approximate finite escape leg.
         ["WAIT_AIPass_CivilianReaction_Cooldown", 20], // SECONDS: minimum time between new flee orders.
@@ -383,7 +383,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Hearing_Enable", true], // Nearby gunfire area reports, never target reveals.
         ["WAIT_AIPass_Vehicles_Enable", true], // BOOL: dismount under fire; damaged vehicles smoke and withdraw.
         ["WAIT_AIPass_DrivingAssist_Enable", true], // Sparse terrain-grade speed cap for ordinary AI ground vehicles; preserves native routes.
-        ["WAIT_AIPass_NavalAssault_Enable", true], // BOOL: finite coastal approach and passenger landing; yields to external naval controller.
+        ["WAIT_AIPass_NavalAssault_Enable", true], // BOOL: finite coastal approach and passenger landing; yields to player, Zeus and neutral external-control ownership.
         ["WAIT_AIPass_ContactReports_Enable", true], // BOOL: share sightings by radio (jammable) or voice.
         ["WAIT_AIPass_ContactReports_Radius", 500], // METRES: radio report range.
         ["WAIT_AIPass_ContactReports_VoiceRange", 35], // METRES: report range when AI transmission is blocked.
