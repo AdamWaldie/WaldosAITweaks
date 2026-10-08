@@ -426,6 +426,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('count _queue > 3',waiting)
         self.assertNotIn('condition = "count _queue > 0"',waiting)
         self.assertIn('effectiveCommander (vehicle _actor) == _actor',engine_recycle)
+        self.assertIn("['lastRecycleActor',_actor]",engine_recycle)
+        self.assertIn("['vehicleRecycleActors',_actors]",engine_recycle)
         self.assertIn('_actor distance2D _source < 35',engine_recycle)
         self.assertIn('(side _group) getFriend (side _sourceGroup) >= 0.6',engine_recycle)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
@@ -5274,10 +5276,17 @@ class CortexOperations(unittest.TestCase):
         for item in ['DANGER-VEHICLE-fixture-moving','DANGER-VEHICLE-native-explosion',
                      'DANGER-VEHICLE-bounded-safety-lease','DANGER-VEHICLE-safe-stop',
                      'DANGER-VEHICLE-passengers-physically-exit','DANGER-VEHICLE-operating-crew-retained',
-                     'DANGER-VEHICLE-no-invented-combat']:
+                     'DANGER-VEHICLE-no-invented-combat','DANGER-VEHICLE-contact-fixture-ready',
+                     'DANGER-VEHICLE-effective-commander-persistence']:
             self.assertIn(item,text)
         self.assertIn('createVehicle ["GrenadeHand"',text)
         self.assertIn('abs speed _dangerTruck > 5',text)
+        self.assertIn('O_APC_Wheeled_02_rcws_v2_F',text)
+        self.assertIn('effectiveCommander _contactVehicle',text)
+        self.assertIn('count _actors == 1',text)
+        mounted=text.split('// A three-person armoured crew',1)[1].split('deleteGroup _contactCrewGroup;',1)[0]
+        for forbidden in [' reveal ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' call WAIT_fnc_DangerEngineSubmit']:
+            self.assertNotIn(forbidden,mounted)
         self.assertNotIn('vehicle _x != _x',text)
 
     def test_stationary_passenger_comparison_is_explicit_and_additive(self):

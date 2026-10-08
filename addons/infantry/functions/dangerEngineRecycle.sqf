@@ -50,5 +50,14 @@ if (count _position != 3) exitWith {[]};
 private _stats=_group getVariable ['WAIT_Danger_EngineStats',createHashMap];
 _stats set ['recycles',((_stats getOrDefault ['recycles',0])+1) min 100000];
 _stats set ['lastRecycleAt',time];
+_stats set ['lastRecycleActor',_actor];
+if (_mode == 'VEHICLE') then {
+    private _actors=_stats getOrDefault ['vehicleRecycleActors',[]];
+    private _actorId=netId _actor;
+    if (_actorId == '') then {_actorId=str _actor};
+    _actors pushBackUnique _actorId;
+    _actors resize ((count _actors) min 4);
+    _stats set ['vehicleRecycleActors',_actors];
+};
 _group setVariable ['WAIT_Danger_EngineStats',_stats];
 [0,+_position,time+1.5,_source]

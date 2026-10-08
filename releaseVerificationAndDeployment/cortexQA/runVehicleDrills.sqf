@@ -1,7 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Checks targetless-danger and contact dismount, calm remount and damaged-armour withdrawal using live
- * vehicles, including an active withdrawal migrating from the server to a real headless owner before Zeus replacement.
+ * Checks targetless danger, effective-commander mounted-contact persistence, contact dismount,
+ * calm remount and damaged-armour withdrawal using live vehicles, including an active withdrawal
+ * migrating from the server to a real headless owner before Zeus replacement.
  * Locality/authority: scheduled server creates disposable fixtures; production Cortex code commands
  * each current owner, and the migration case deliberately transfers its crew group and vehicle.
  * Repeat/JIP: fresh fixtures and public observer state; caller restores tuning, actors are deleted.
@@ -96,6 +97,65 @@ deleteVehicle _dangerProjectile;
 {deleteVehicle _x} forEach (_dangerPassengers+_dangerCrew+[_dangerTruck]);
 deleteGroup _dangerPassengerGroup;
 deleteGroup _dangerCrewGroup;
+
+// A three-person armoured crew proves that mounted danger persistence belongs only to the effective
+// commander. The audit supplies a real visible hostile and reads native knowledge; it does not reveal,
+// assign a target, issue fire or inject a danger record. Other crew may receive engine callbacks, but
+// they must finish their reflex instead of multiplying the vehicle response.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleDismount_Enable",false],
+    ["WAIT_AIPass_VehicleRemount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false],
+    ["WAIT_AIPass_VehicleGunnery_Enable",false]
+]] call WAIT_fnc_CortexTuning;
+private _contactVehicle=createVehicle ["O_APC_Wheeled_02_rcws_v2_F",[1650,1050,0],[],0,"NONE"];
+createVehicleCrew _contactVehicle;
+_contactVehicle allowDamage false;
+_contactVehicle setDir 0;
+private _contactCrewGroup=group effectiveCommander _contactVehicle;
+[_contactCrewGroup] call _pin;
+_contactCrewGroup setCombatMode "RED";
+private _contactEnemyGroup=createGroup [west,true];
+[_contactEnemyGroup] call _pin;
+_contactEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_contactEnemyGroup setCombatMode "BLUE";
+private _contactEnemy=_contactEnemyGroup createUnit ["B_Soldier_F",[1650,1075,0],[],0,"NONE"];
+_contactEnemy allowDamage false;
+_contactEnemy disableAI "PATH";
+_contactEnemy setDir 180;
+_contactEnemy setVariable ["WAIT_CortexQA_Label","MOUNTED DANGER HOSTILE",true];
+private _contactCrew=crew _contactVehicle;
+{_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["MOUNTED CREW %1",_forEachIndex+1],true]} forEach _contactCrew;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactCrew+[_contactEnemy],true];
+["Danger FSM: mounted hostile persistence","A three-person APC crew faces a real hostile at 25 metres. Native danger may persist only through the effective commander, without WAIT vehicle gunnery, target assignment or injected danger.",getPosATL _contactEnemy] call _phase;
+private _contactReady=[{
+    missionNamespace getVariable ["WAIT_AIPass_Active",false]
+        && {_contactCrewGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {count _contactCrew >= 2}
+        && {!isNull (effectiveCommander _contactVehicle)}
+},30] call _wait;
+["DANGER-VEHICLE-contact-fixture-ready",_contactReady,str [_contactCrew,effectiveCommander _contactVehicle]] call _check;
+private _contactStatsBefore=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _contactRecyclesBefore=_contactStatsBefore getOrDefault ["recycles",0];
+private _mountedPersistent=[{
+    private _stats=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    private _actors=_stats getOrDefault ["vehicleRecycleActors",[]];
+    private _commander=effectiveCommander _contactVehicle;
+    private _commanderId=if (isNull _commander) then {""} else {netId _commander};
+    if (_commanderId == "" && {!isNull _commander}) then {_commanderId=str _commander};
+    (_stats getOrDefault ["recycles",0]) > _contactRecyclesBefore
+        && {(_stats getOrDefault ["lastMode",""]) == "VEHICLE"}
+        && {(_stats getOrDefault ["lastRecycleActor",objNull]) == _commander}
+        && {count _actors == 1}
+        && {_actors param [0,""] == _commanderId}
+        && {!isNull _commander}
+        && {_commander knowsAbout _contactEnemy > 0}
+},30] call _wait;
+["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
+    str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
+{deleteVehicle _x} forEach (_contactCrew+[_contactEnemy,_contactVehicle]);
+deleteGroup _contactEnemyGroup;
+deleteGroup _contactCrewGroup;
 
 {
 _x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false]];
