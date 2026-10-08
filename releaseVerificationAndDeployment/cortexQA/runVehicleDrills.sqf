@@ -75,7 +75,7 @@ private _dangerExited=[{
     private _stats=_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     _dangerSubmitted=_dangerSubmitted || {(_stats getOrDefault ["acceptedRecords",0]) > 0 && {"EXPLOSION" in (_stats getOrDefault ["lastCauses",[]])}};
     private _crewState=_dangerCrewGroup getVariable ["WAIT_AIPass_State",createHashMap];
-    _dangerLease=_dangerLease || {count (_crewState getOrDefault ["dangerDismount",[]]) in [2,6]}
+    _dangerLease=_dangerLease || {count (_crewState getOrDefault ["dangerDismount",[]]) == 7}
         || {count (_dangerTruck getVariable ["WAIT_Cortex_OnboardDanger",[]]) == 4};
     _dangerStopped=_dangerStopped || {abs speed _dangerTruck < 1};
     _dangerPassengers findIf {!alive _x || {vehicle _x == _dangerTruck}} < 0
