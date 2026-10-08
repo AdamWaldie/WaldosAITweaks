@@ -1,7 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
- * Starts a direct close assault when a fresh known hostile is already too near for an advance or
- * flank approach. The function forms a small assault element and a covering element, selects a
+ * Starts a direct close assault when a fresh known dismounted infantry hostile is already too near
+ * for an advance or flank approach. Vehicles, mounted crew and static weapons are refused at this
+ * operation boundary so a direct caller cannot bypass the tactical selector and make infantry clear
+ * through armour. The function forms a small assault element and a covering element, selects a
  * safe approach and clear-through axis, and hands the committed route to the existing finite
  * tactical-drill FSM. It does not create another scheduler, waypoint or per-unit loop.
  *
@@ -55,6 +57,9 @@ _contact params ["_target","_enemyPos","_age","_distance"];
 private _closeRange=(missionNamespace getVariable ["WAIT_AIPass_Assault_Range",80]) min 60;
 if (isNull _target || {_age > 10} || {_distance > _closeRange} || {_distance < 12}) exitWith {
     ["NO_FRESH_CLOSE_TARGET",[_age,_distance,_closeRange]] call _refuse
+};
+if (!(_target isKindOf "CAManBase") || {!isNull objectParent _target}) exitWith {
+    ["UNSUITABLE_ASSAULT_TARGET",[typeOf _target,typeOf vehicle _target]] call _refuse
 };
 
 // Do not replace an explicit hold or security task merely because danger was reported nearby.

@@ -7,8 +7,10 @@
  * contact. The other enabled manoeuvre is tried immediately when the preferred one cannot satisfy
  * its actor, range, avenue, cooldown or safety gates. Behaviour profiles do not assign squads a
  * fixed movement pattern and no random permission roll can leave a capable squad idle. A fresh
- * hostile inside the flank/advance minimum range first enters the direct assault path, closing the
- * former dead zone where every ordinary manoeuvre rejected the same contact. Each action selects
+ * dismounted infantry hostile inside the flank/advance minimum range first enters the direct
+ * assault path, closing the former dead zone where every ordinary manoeuvre rejected the same
+ * contact. Vehicles, mounted crew and static weapons remain with anti-armour, fire-control,
+ * standoff, flank or withdrawal logic instead of becoming infantry clear-through objectives. Each action selects
  * its first viable contact from the existing bounded knowledge result instead of allowing an
  * unsuitable nearest contact to veto a second known threat. The selected record is moved to the
  * front only for the delegated start call; WAIT does not reveal, retarget or rescan anything. Feature
@@ -69,6 +71,7 @@ private _assaultIndex=_enemies findIf {
     private _age=_x param [2,1e9,[0]];
     private _distance=_x param [3,1e9,[0]];
     !isNull _target && {alive _target} && {_age <= 10}
+        && {_target isKindOf "CAManBase"} && {isNull objectParent _target}
         && {_distance >= 12} && {_distance <= _closeRange}
 };
 if (_assaultEnabled && {_assaultIndex >= 0}) then {

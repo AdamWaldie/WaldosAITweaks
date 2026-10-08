@@ -863,6 +863,17 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_outcome == "RETREAT" && {!_authoredStationary})',tick)
         self.assertIn('if (!_holdFire && {["WAIT_AIPass_FireControl_Enable", true] call _get})',tick)
 
+    def test_direct_assault_refuses_vehicle_mounted_and_static_targets(self):
+        """Close vehicle contacts must remain with weapon and standoff logic, never infantry clear-through."""
+        selector=source('cortexTacticalStart')
+        assault=source('cortexAssaultStart')
+        for text in [selector,assault]:
+            self.assertIn('_target isKindOf "CAManBase"',text)
+            self.assertIn('isNull objectParent _target',text)
+        self.assertIn('"UNSUITABLE_ASSAULT_TARGET"',assault)
+        self.assertLess(selector.index('_target isKindOf "CAManBase"'),
+                        selector.index('WAIT_fnc_CortexAssaultStart'))
+
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
         medical=source('cortexMedicalStep')
