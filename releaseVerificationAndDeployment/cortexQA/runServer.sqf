@@ -557,6 +557,7 @@ if (_focus in ["all","features","cover"]) then {[_check,_phase,_wait] call compi
 if (_focus in ["all","features","landing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQALanding.sqf"};
 if (_focus in ["all","features","gates","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGates.sqf"};
 if (_focus in ["all","features","gunnery","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGunnery.sqf"};
+if (_focus in ["all","features","combat","tacticalassessment"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATacticalAssessment.sqf"};
 if (_focus in ["all","features","combat"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACombat.sqf"};
 if (_focus in ["all","features","mechanics","airskills"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAMechanics.sqf"};
 if (_focus in ["all","features","mechanics","reactions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAReactions.sqf"};

@@ -2958,6 +2958,23 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('case "ASSAULT": {"WAIT_AIPass_Assault_Cooldown"}',end)
         self.assertIn('case "ASSAULT": {"WAIT_AIPass_AssaultsCompleted"}',end)
 
+    def test_tactical_assessment_audit_uses_real_contacts_and_physical_outcomes(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runTacticalAssessment.sqf').read_text(encoding='utf-8')
+        server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        self.assertIn('cortexQATacticalAssessment.sqf',server)
+        self.assertIn('"tacticalassessment"',server)
+        self.assertIn('createVehicle ["B_APC_Wheeled_01_cannon_F"',qa)
+        self.assertIn('createVehicle ["Land_Cargo_Tower_V1_F"',qa)
+        self.assertIn('call WAIT_fnc_CortexKnowledge',qa)
+        self.assertIn('WAIT_Cortex_TacticalAssessment',qa)
+        self.assertIn('"ARMOUR_OVERMATCH"',qa)
+        self.assertIn('"AUTHORED_FORWARD_ORDER"',qa)
+        self.assertIn('"ELEVATED_FIRE_POSITION"',qa)
+        self.assertIn('TACTICAL-authored-order-physical-progress',qa)
+        self.assertNotIn('call WAIT_fnc_CortexTacticalAssess',qa)
+        self.assertNotIn(' reveal ',qa)
+        self.assertNotIn('setPos',qa)
+
     def test_shipped_profiles_retain_legacy_movement_keys_for_configuration_compatibility(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
         defaults=(ROOT/'cortex_defaults.md').read_text(encoding='utf-8')
