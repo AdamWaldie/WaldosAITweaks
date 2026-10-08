@@ -57,7 +57,7 @@ _unit reveal [_threat,4];
 };
 [
     "DANGERLOAD-configured-fsm",
-    toLowerANSI _configuredFSM == "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm",
+    toLowerANSI _configuredFSM == "\z\wait\danger\danger.fsm",
     _configuredFSM
 ] call _check;
 private _accepted=[{

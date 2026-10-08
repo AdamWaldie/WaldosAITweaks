@@ -16,9 +16,9 @@ private _configuredDanger=[];
 {
     private _configured=toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger");
     _configuredDanger pushBack [_x,_configured];
-    ["COMPAT-exclusive-danger-fsm-"+toLowerANSI _x,_configured find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" >= 0,_configured] call _check;
+    ["COMPAT-exclusive-danger-fsm-"+toLowerANSI _x,_configured find "\z\wait\danger\danger.fsm" >= 0,_configured] call _check;
 } forEach ["SoldierWB","SoldierEB","SoldierGB"];
-["COMPAT-exclusive-danger-fsm",_configuredDanger findIf {(_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0} < 0,str _configuredDanger] call _check;
+["COMPAT-exclusive-danger-fsm",_configuredDanger findIf {(_x select 1) find "\z\wait\danger\danger.fsm" < 0} < 0,str _configuredDanger] call _check;
 
 private _group=createGroup [east,true];
 _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];

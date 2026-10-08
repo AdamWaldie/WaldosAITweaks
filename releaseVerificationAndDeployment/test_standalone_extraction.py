@@ -25,7 +25,7 @@ class StandaloneExtractionContracts(unittest.TestCase):
         config = (ROOT / "addons/main/config.cpp").read_text(encoding="utf-8")
         pre = (ROOT / "addons/main/XEH_preInit.sqf").read_text(encoding="utf-8")
         post = (ROOT / "addons/main/XEH_postInit.sqf").read_text(encoding="utf-8")
-        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertIn("Extended_PreInit_EventHandlers", config)
         self.assertIn("Extended_PostInit_EventHandlers", config)
         self.assertIn("addons\\main\\settings\\aiConfig.sqf", pre)

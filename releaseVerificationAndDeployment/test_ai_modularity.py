@@ -11,8 +11,8 @@ class AIModularityContracts(unittest.TestCase):
         discovery=src('cortexDiscover')
         lease=src('cortexOwnershipLease')
         spec=src('cortexTuningSpec')
-        infantry=(ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
-        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
+        danger=(ROOT/'addons/danger/config.cpp').read_text(encoding='utf-8')
+        self.assertEqual(danger.count('fsmDanger = "\\z\\wait\\danger\\danger.fsm"'),3)
         self.assertNotIn('WAIT_AIPass_InfantryOwnership',spec)
         self.assertNotIn('DangerBackend',discovery)
         self.assertNotIn('lambs_',lease.lower())
@@ -204,14 +204,17 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
     def test_standalone_foundation_requires_only_infrastructure(self):
         config = (ROOT/'addons/main/config.cpp').read_text(encoding='utf-8')
         infantry = (ROOT/'addons/infantry/config.cpp').read_text(encoding='utf-8')
+        danger = (ROOT/'addons/danger/config.cpp').read_text(encoding='utf-8')
         launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text(encoding='utf-8')
-        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
+        self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
         self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', infantry)
+        self.assertNotIn('fsmDanger =', infantry)
+        self.assertIn('requiredAddons[] = {"A3_Characters_F"}', danger)
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
-            self.assertIn('class '+base+': CAManBase', infantry)
-        self.assertEqual(infantry.count('fsmDanger = "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"'),3)
+            self.assertIn('class '+base+': CAManBase', danger)
+        self.assertEqual(danger.count('fsmDanger = "\\z\\wait\\danger\\danger.fsm"'),3)
 
     def test_specialist_external_ownership_is_read_only_and_actor_scoped(self):
         owner = src('cortexExternalOwner')

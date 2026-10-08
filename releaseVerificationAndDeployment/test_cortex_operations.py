@@ -244,7 +244,7 @@ class CortexOperations(unittest.TestCase):
         engine_select=source('dangerEngineSelect')
         danger_cover=source('dangerCoverStep')
         danger_smoke=source('dangerSmokeStep')
-        engine_fsm=(ROOT/'addons/infantry/fsm/danger.fsm').read_text()
+        engine_fsm=(ROOT/'addons/danger/danger.fsm').read_text()
         # fsmDanger is loaded directly by the engine rather than through execFSM. The Arma FSM
         # compiler requires the named scripted-FSM envelope; a bare class parses as config text
         # during packaging but produces "FSM ... cannot be loaded" at runtime.
@@ -265,7 +265,7 @@ class CortexOperations(unittest.TestCase):
         editor_links=[tuple(map(int,values)) for values in re.findall(r'link\d+\[\]\s*=\s*\{(\d+),(\d+)\}',engine_fsm.split('class FSM',1)[0])]
         self.assertTrue(editor_links)
         self.assertTrue(all(source_id in editor_items and target_id in editor_items for source_id,target_id in editor_links))
-        engine_source=(ROOT/'addons/infantry/fsm/danger.bifsm').read_text()
+        engine_source=(ROOT/'tools/fsm/danger.bifsm').read_text()
         self.assertIn('InitCode=',engine_source)
         self.assertIn('Condition=',engine_source)
         request=source('dangerRequest')
@@ -711,7 +711,7 @@ class CortexOperations(unittest.TestCase):
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
             self.assertIn(base,compatibility_audit)
         self.assertIn('COMPAT-exclusive-danger-fsm-',compatibility_audit)
-        self.assertIn('find "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"',compatibility_audit)
+        self.assertIn('find "\\z\\wait\\danger\\danger.fsm"',compatibility_audit)
         self.assertNotIn('find "\\\\z\\\\waldo_ai_tweaks',compatibility_audit)
 
     def test_danger_static_support_is_one_actor_and_one_attempt_per_contact(self):

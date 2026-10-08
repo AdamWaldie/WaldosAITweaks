@@ -8,16 +8,3 @@ class CfgPatches {
         weapons[] = {};
     };
 };
-
-class CfgVehicles {
-    class CAManBase;
-    class SoldierWB: CAManBase {
-        fsmDanger = "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm";
-    };
-    class SoldierEB: CAManBase {
-        fsmDanger = "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm";
-    };
-    class SoldierGB: CAManBase {
-        fsmDanger = "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm";
-    };
-};
