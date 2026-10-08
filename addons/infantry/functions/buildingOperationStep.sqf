@@ -4,7 +4,9 @@
  * Locality / Authority: Runs through WAIT's shared scheduler where the group is local. It checks the
  * operation generation, Zeus and external ownership before issuing any movement command.
  * Repeat/JIP: One-shot callback. Durable room progress is public; owner-local actor assignments are
- * generation scoped and reconstructed after locality migration.
+ * generation scoped and reconstructed after locality migration. Each room, entrance and egress
+ * leg has one native doMove owner. WAIT never pairs it with setDestination, which can create a
+ * second low-level route owner and leave an actor oscillating or stationary at a threshold.
  * Arguments: 0: building brain <HASHMAP> created by WAIT_fnc_BuildingOperationStart.
  * Return Value: Number - always -1 because the FSM schedules each later step separately.
  * Current caller: WAIT_fnc_BuildingOperationQueue through WAIT_fnc_CortexQueueJob.
@@ -116,7 +118,6 @@ private _delay=call {
                     private _openedDoor=[_unit,_job get "building"] call WAIT_fnc_CortexBuildingDoor;
                     if ((_openedDoor || {currentCommand _unit in ["","STOP"]} || {time >= (_job get "egressReissue")}) && {call _mayIssueMovement}) then {
                         _unit doMove _target;
-                        _unit setDestination [_target,"LEADER PLANNED",true];
                     };
                 } forEach _assignments;
             };
@@ -323,7 +324,6 @@ private _delay=call {
                             };
                             private _unitTarget=if (_unit == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
                             _unit doMove _unitTarget;
-                            _unit setDestination [_unitTarget,"LEADER PLANNED",true];
                         };
                         _assigned set [(_job get "team") find _unit,[_positionIndex,_lastProgress,getPosATL _unit,_retries,_approachingEntry]];
                     } forEach _pair;
@@ -368,7 +368,6 @@ private _delay=call {
                                     private _unitTarget=if (_x == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
                                     if (call _mayIssueMovement) then {
                                         _x doMove _unitTarget;
-                                        _x setDestination [_unitTarget,"LEADER PLANNED",true];
                                     };
                                 } forEach _pair;
                                 _retries=_retries+1;
@@ -480,7 +479,6 @@ private _delay=call {
                 _x params ["_unit","_target"];
                 if (call _mayIssueMovement) then {
                     _unit doMove _target;
-                    _unit setDestination [_target,"LEADER PLANNED",true];
                 };
             } forEach _egressAssignments;
         };

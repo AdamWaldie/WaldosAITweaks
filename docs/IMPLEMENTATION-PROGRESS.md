@@ -1,3 +1,10 @@
+- Building clearance, traversal and garrison movement now follow the same single-owner command contract as
+  tactical bounds. Every entrance, interior, retry, reassignment and egress leg uses one native `doMove`; the
+  paired `setDestination` replans that could compete at doors and thresholds are removed. Garrison disables
+  `PATH` only after a soldier physically reaches the assigned post, because holding that post is the requested
+  terminal state, and the existing exact-owned release restores it on replacement, Zeus or external takeover.
+  Static validation and exact-candidate packaging pass; multi-model physical CQB and garrison acceptance remain
+  pending.
 - Tactical bounds now retain one movement owner per actor. WAIT issues one committed native `doMove`, leaves
   `PATH`, `TARGET`, `AUTOTARGET`, `AUTOCOMBAT` and native combat behaviour available, and never pairs that
   destination with a competing `setDestination` or clears an engine target. Covering and newly arrived actors

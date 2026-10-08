@@ -9,8 +9,9 @@
  * position are sent there. Only three-dimensional arrival locks PATH; a fixed safety deadline records
  * failure and leaves movement enabled rather than renewing forever around an unreachable doorway.
  * Routes stage at a real entrance when approaching from more than 30 m, then commit directly to the
- * interior destination. This avoids the long idle planning pause seen when the engine receives a
- * distant interior destination. A machine-local, damage-aware building topology cache shares that
+ * interior destination. Each leg uses one native doMove destination; pairing it with
+ * setDestination previously created a second route owner and could leave an actor oscillating or
+ * stationary at a threshold. A machine-local, damage-aware building topology cache shares that
  * entrance-anchor lookup between soldiers while refreshing a materially changed structure. Units move
  * upright at assault pace until they reach their post.
  * Nearby units try the interior destination directly, matching the engine path that works on viable
@@ -142,7 +143,6 @@ private _buildingAnchor = {
             // while this lease is still intact, so a later controller's forced speed survives.
             _unit setVariable ["WAIT_Cortex_GarrisonAppliedSpeed",4];
             _unit doMove _target;
-            _unit setDestination [_target,"LEADER PLANNED",true];
         };
     };
 } forEach units _group;
@@ -193,12 +193,11 @@ private _buildingAnchor = {
                     _route params ["_target","_approach","_lastPosition","_lastProgress","_retries","_attempted","_reassignments","_entries","_entryIndex","_anchor","_crossing"];
                     // Door requests can repeat on multi-door buildings. Reissue the current move, but
                     // only measured travel renews progress so an actor at a threshold cannot wait forever.
-                    if (_openedDoor && {call _mayIssueMovement}) then {_x doMove _target; _x setDestination [_target,"LEADER PLANNED",true]};
+                    if (_openedDoor && {call _mayIssueMovement}) then {_x doMove _target};
                     if (_approach && {_x distance2D _target <= 5} && {call _mayIssueMovement}) then {
-                        // setDestination requires a real PositionAGL triplet. Some building models
-                        // expose an exterior entry but no usable interior crossing anchor; proceed
-                        // toward the assigned building position instead of issuing [] and aborting
-                        // the entire owner-local garrison callback.
+                        // Some building models expose an exterior entry but no usable interior
+                        // crossing anchor. Proceed toward the assigned building position instead of
+                        // issuing an empty target and aborting the owner-local garrison callback.
                         private _crossTarget=if (count _anchor >= 3) then {_anchor} else {_assignment select 0};
                         _route set [0,_crossTarget];
                         _route set [1,false];
@@ -206,13 +205,11 @@ private _buildingAnchor = {
                         _route set [2,getPosATL _x];
                         _route set [3,time];
                         _x doMove _crossTarget;
-                        _x setDestination [_crossTarget,"LEADER PLANNED",true];
                     } else {
                         if (_crossing && {count _anchor >= 3} && {_x distance _anchor <= 2} && {call _mayIssueMovement}) then {
                             _route set [0,_assignment select 0]; _route set [2,getPosATL _x];
                             _route set [3,time]; _route set [4,0]; _route set [10,false];
                             _x doMove (_assignment select 0);
-                            _x setDestination [_assignment select 0,"LEADER PLANNED",true];
                         } else {
                         if (_x distance2D _lastPosition >= 2) then {
                             _route set [2,getPosATL _x]; _route set [3,time];
@@ -220,7 +217,6 @@ private _buildingAnchor = {
                             if (time-_lastProgress >= 12) then {
                                 if (_retries < 2 && {call _mayIssueMovement}) then {
                                     doStop _x; _x doMove _target;
-                                    _x setDestination [_target,"LEADER PLANNED",true];
                                     _route set [3,time]; _route set [4,_retries+1];
                                 } else {
                                     // Alternate exterior entrances recover a failed approach. Once an
@@ -238,7 +234,6 @@ private _buildingAnchor = {
                                         _route set [9,[_assignment param [2,objNull],_nextTarget,_assignment select 0] call (_job get "buildingAnchor")];
                                         _route set [10,false];
                                         doStop _x; _x doMove _nextTarget;
-                                        _x setDestination [_nextTarget,"LEADER PLANNED",true];
                                         diag_log format ["[WAIT] Garrison trying alternate entrance unit=%1 entrance=%2/%3 remaining=%4",_x,_nextEntry+1,count _entries,_x distance (_assignment select 0)];
                                     } else {
                                     private _occupied=(units _group) apply {
@@ -266,7 +261,6 @@ private _buildingAnchor = {
                                         _x setVariable ["WAIT_AIPass_GarrisonPos",_replacement,true];
                                         _route=[_replacementTarget,_replacementApproach,getPosATL _x,time,0,_attempted,_reassignments+1,_replacementEntries,_replacementEntryIndex,_replacementAnchor,false];
                                         doStop _x; _x doMove _replacementTarget;
-                                        _x setDestination [_replacementTarget,"LEADER PLANNED",true];
                                         diag_log format ["[WAIT] Garrison reassigned unit=%1 remaining=%2 alternative=%3",_x,_x distance (_assignment select 0),_replacementDestination];
                                     } else {
                                         _x setVariable ["WAIT_AIPass_GarrisonFailed",true,true];
