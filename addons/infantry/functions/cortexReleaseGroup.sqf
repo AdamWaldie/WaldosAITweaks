@@ -89,6 +89,7 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _dangerCoverLease >= 2) then {
         [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;

@@ -500,6 +500,17 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('CortexQueueJob',danger_cover)
         self.assertIn('count _threat >= 2',danger_cover)
         self.assertIn('WAIT_Danger_CoverLease',source('cortexReleaseGroup'))
+        group_hide=source('dangerGroupHideStep')
+        for marker in ['WAIT_Danger_GroupHideLeases','WAIT_Danger_Generation','WAIT_Operation',
+                       'currentCommand _x == ""','WAIT_Cortex_ActorMove','setUnitPosWeak',
+                       'groupHideResponses','lastGroupHideActors']:
+            self.assertIn(marker,group_hide)
+        for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', 'forceWeaponFire',
+                          'allUnits', 'allGroups', 'spawn ', 'waitUntil']:
+            self.assertNotIn(forbidden,group_hide)
+        self.assertIn('call WAIT_fnc_DangerGroupHideStep',source('cortexGroupTick'))
+        self.assertIn('call WAIT_fnc_DangerGroupHideStep',source('cortexReleaseGroup'))
+        self.assertIn('call WAIT_fnc_DangerGroupHideStep',source('dangerSetup'))
         self.assertIn('call WAIT_fnc_DangerCoverStep',source('cortexReleaseGroup'))
         self.assertIn('WAIT_fnc_CortexZeusHeld',engine_act)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
@@ -552,6 +563,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('reflexOnlyRecords=',diagnostics)
         self.assertIn('boundedRecycleEnds=%18',diagnostics)
         self.assertIn('lastRecycleCycles=%19',diagnostics)
+        self.assertIn('groupHideResponses=%20',diagnostics)
+        self.assertIn('activeGroupHideActors=%21',diagnostics)
         self.assertIn('_dangerEngineBoundedEnds',diagnostics)
 
         contact_audit=(ROOT/'releaseVerificationAndDeployment'/'cortexQA'/'runContact.sqf').read_text(encoding='utf-8')
@@ -593,6 +606,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('DANGER-committed-route-physical-continuity',reflex_fixture)
         self.assertIn('DANGER-idle-physical-cover',reflex_fixture)
         self.assertIn('DANGER-exact-observer-physical-cover',reflex_fixture)
+        self.assertIn('DANGER-finite-group-hide',reflex_fixture)
+        self.assertIn('WAIT_Danger_GroupHideLeases',reflex_fixture)
+        self.assertIn('toUpperANSI (unitPos _observerSupportOne) == "AUTO"',reflex_fixture)
         self.assertIn('(_assessment select 5) == _observerWingman',reflex_fixture)
         self.assertIn('(_action select 5) == _observerWingman',reflex_fixture)
         self.assertIn('(_lease select 0) == _observerWingman',reflex_fixture)

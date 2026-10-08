@@ -78,6 +78,7 @@ class CfgFunctions {
             class CortexStaticSupport {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexStaticSupport.sqf";};
             class CortexStaticDeployStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexStaticDeployStep.sqf";};
             class DangerCoverStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerCoverStep.sqf";};
+            class DangerGroupHideStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerGroupHideStep.sqf";};
             class DangerSmokeStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSmokeStep.sqf";};
             class DangerRequest {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerRequest.sqf";};
             class DangerStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerStep.sqf";};

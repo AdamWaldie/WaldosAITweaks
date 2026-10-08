@@ -37,6 +37,7 @@ if (!_enabled && {_groupHandlers isNotEqualTo []}) then {
     _groupHandlers=[];
 };
 if (!_enabled) exitWith {
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
     // Retire the finite cover lease before invalidating its generation. The helper removes only
     // WAIT's exact actor move; on Zeus or specialist takeover it deliberately does not issue a
     // follow command or restore movement over the new owner.

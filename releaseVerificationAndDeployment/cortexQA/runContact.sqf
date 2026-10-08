@@ -359,22 +359,30 @@ _observerGroup setVariable ["acex_headless_blacklist",true,true];
 _observerGroup setCombatMode "BLUE";
 private _observerLeader=_observerGroup createUnit ["O_Soldier_F",[2450,1250,0],[],0,"NONE"];
 private _observerWingman=_observerGroup createUnit ["O_Soldier_F",[2530,1250,0],[],0,"NONE"];
+private _observerSupportOne=_observerGroup createUnit ["O_Soldier_F",[2529,1246,0],[],0,"NONE"];
+private _observerSupportTwo=_observerGroup createUnit ["O_Soldier_F",[2529,1254,0],[],0,"NONE"];
 {
     _x allowDamage false;
     _x setUnitPos "AUTO";
     _x setVariable ["acex_headless_blacklist",true,true];
-} forEach [_observerLeader,_observerWingman];
+} forEach [_observerLeader,_observerWingman,_observerSupportOne,_observerSupportTwo];
 _observerLeader disableAI "PATH";
 _observerLeader setVariable ["WAIT_CortexQA_Label","DISTANT GROUP LEADER",true];
 _observerWingman setVariable ["WAIT_CortexQA_Label","NATIVE DANGER OBSERVER",true];
+_observerSupportOne setVariable ["WAIT_CortexQA_Label","FINITE GROUP HIDE 1",true];
+_observerSupportTwo setVariable ["WAIT_CortexQA_Label","FINITE GROUP HIDE 2",true];
 private _observerWall=createVehicle ["Land_CncWall4_F",[2526,1250,0],[],0,"CAN_COLLIDE"];
 _observerWall setDir 90;
 private _observerStart=getPosATL _observerWingman;
-missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerWingman],true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerWingman,_observerSupportOne,_observerSupportTwo],true];
 ["Danger FSM: exact observer cover","A real explosion occurs beside the separated wingman. The native danger record must retain him as its observer, and the one bounded cover move must move that same soldier rather than the distant group leader.",getPosATL _observerWingman] call _phase;
 sleep 2;
 private _observerCoverBefore=(_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
 private _observerGrenade=createVehicle ["GrenadeHand",(getPosATL _observerWingman) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _observerGroupHide=[{
+    private _leases=_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]];
+    count _leases >= 2 && {_leases findIf {(_x param [0,objNull]) in [_observerSupportOne,_observerSupportTwo]} >= 0}
+},8] call _wait;
 private _observerCover=[{
     private _assessment=_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]];
     private _action=_observerGroup getVariable ["WAIT_Danger_Action",[]];
@@ -388,6 +396,7 @@ private _observerCover=[{
         && {((_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _observerCoverBefore}
         && {_observerWingman distance2D _observerStart >= 2}
 },18] call _wait;
+["DANGER-finite-group-hide",_observerGroupHide,str [_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]],unitPos _observerSupportOne,unitPos _observerSupportTwo]] call _check;
 ["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
 private _observerGenerationClosed=[{
     (_observerGroup getVariable ["WAIT_Danger_FSM",[]]) isEqualTo []
@@ -395,6 +404,9 @@ private _observerGenerationClosed=[{
         && {(_observerGroup getVariable ["WAIT_Danger_VehicleContext",[]]) isEqualTo []}
         && {(_observerGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
         && {(_observerGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+        && {(_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]]) isEqualTo []}
+        && {toUpperANSI (unitPos _observerSupportOne) == "AUTO"}
+        && {toUpperANSI (unitPos _observerSupportTwo) == "AUTO"}
 },12] call _wait;
 ["DANGER-natural-finish-identity-cleared",_observerCover && {_observerGenerationClosed},str [
     _observerGroup getVariable ["WAIT_Danger_FSM",[]],
@@ -405,7 +417,7 @@ private _observerGenerationClosed=[{
 ]] call _check;
 deleteVehicle _observerGrenade;
 deleteVehicle _observerWall;
-{deleteVehicle _x} forEach [_observerLeader,_observerWingman];
+{deleteVehicle _x} forEach [_observerLeader,_observerWingman,_observerSupportOne,_observerSupportTwo];
 deleteGroup _observerGroup;
 
 // A severe danger response may add one carried smoke screen, but the operation never waits for it.
