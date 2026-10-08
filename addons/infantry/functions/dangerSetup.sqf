@@ -37,16 +37,35 @@ if (!_enabled && {_groupHandlers isNotEqualTo []}) then {
     _groupHandlers=[];
 };
 if (!_enabled) exitWith {
+    // Retire the finite cover lease before invalidating its generation. The helper removes only
+    // WAIT's exact actor move; on Zeus or specialist takeover it deliberately does not issue a
+    // follow command or restore movement over the new owner.
+    private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
+    if (local _group && {count _dangerCoverLease >= 2}) then {
+        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;
+    } else {
+        _group setVariable ["WAIT_Danger_CoverLease",nil];
+    };
     if (local _group && {!_yieldToOwner}) then {
         private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
         if (isNull _dangerActor) then {_dangerActor=leader _group};
         [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
+    } else {
+        // A new owner has authority over posture. Discard the old proof of ownership without
+        // writing behaviour or combat mode on this machine.
+        _group setVariable ["WAIT_Danger_ReactionLease",nil,true];
     };
     _group setVariable ["WAIT_Danger_Generation",(_group getVariable ["WAIT_Danger_Generation",0])+1];
+    // The invalidated FSM will observe its generation mismatch and finish. Unpublish its handle
+    // immediately so a fresh owner-local observation can start the replacement generation rather
+    // than coalescing into a brain that has already lost authority.
+    _group setVariable ["WAIT_Danger_FSM",nil];
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_EventCadence",nil];
     _group setVariable ["WAIT_Danger_EngineStats",nil];
     _group setVariable ["WAIT_Danger_ObservedContacts",nil];
+    _group setVariable ["WAIT_Danger_LastAssessment",nil];
+    _group setVariable ["WAIT_Danger_WakeAfter",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];

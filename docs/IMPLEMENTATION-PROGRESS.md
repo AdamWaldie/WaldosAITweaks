@@ -134,6 +134,14 @@ The first standalone combat batch exposed an audit prerequisite defect: camera t
 - Cross-squad reinforcement and coordinated-assault requests now persist through one server-owned `supportRequest.fsm` with `DISCOVER`, `RESERVE` and `COORDINATE` phases. It replaces the self-rescheduling server callback while retaining the bounded nearby candidate set, separated rally areas, immediate contact-to-avenue handoff, current-owner acknowledgement and expiring responder roles. The FSM never moves a responder itself; each current group owner continues to reject Zeus, player, specialist or newer-order conflicts before issuing a local command. Static and package validation are required; live multi-owner, casualty, no-responder and interruption acceptance remains pending.
 ## Danger framework foundation
 
+Danger observer cleanup now invalidates and unpublishes the exact assessment generation in the same
+owner-local step. A disable, locality handover or external takeover first retires WAIT's finite cover
+lease, discards posture ownership without restoring over the new controller, and clears stale assessment
+timing. `DangerRequest` reuses an assessment FSM only when both owner epoch and danger generation still
+match. An old FSM may finish naturally after invalidation, but it cannot absorb the first observation for
+the replacement owner and create a silent response gap. Static and package validation are required;
+physical disable/re-enable, locality migration and Zeus replacement acceptance remain pending.
+
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
 Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the

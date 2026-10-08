@@ -57,6 +57,7 @@ if (_index >= 0) then {_events set [_index,_event]} else {_events pushBack _even
 _group setVariable ["WAIT_Danger_Events",_events select [0,16]];
 private _running=_group getVariable ["WAIT_Danger_FSM",[]];
 if (count _running == 3 && {(_running select 0) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_running select 1) == (_group getVariable ["WAIT_Danger_Generation",0])}
     && {!completedFSM (_running select 2)}) exitWith {true};
 private _generation=(_group getVariable ["WAIT_Danger_Generation",0])+1;
 _group setVariable ["WAIT_Danger_Generation",_generation];

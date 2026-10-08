@@ -903,6 +903,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;',tick)
         self.assertIn('[_dangerActor,"RESTORE"] call WAIT_fnc_DangerReact',tick)
 
+    def test_danger_generation_cleanup_cannot_reuse_an_invalidated_fsm(self):
+        request=source('dangerRequest')
+        setup=source('dangerSetup')
+        self.assertIn('(_running select 1) == (_group getVariable ["WAIT_Danger_Generation",0])',request)
+        self.assertIn('private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];',setup)
+        self.assertIn('call WAIT_fnc_DangerCoverStep',setup)
+        self.assertIn('_group setVariable ["WAIT_Danger_Generation",(_group getVariable ["WAIT_Danger_Generation",0])+1];',setup)
+        generation=setup.index('_group setVariable ["WAIT_Danger_Generation"')
+        self.assertGreater(setup.index('_group setVariable ["WAIT_Danger_FSM",nil];'),generation)
+        for marker in ['WAIT_Danger_LastAssessment','WAIT_Danger_WakeAfter']:
+            self.assertIn(f'_group setVariable ["{marker}",nil];',setup)
+
     def test_live_danger_setting_reconfigures_owner_local_observers_without_a_second_worker(self):
         callback=source('aiTweaksSettingChanged')
         self.assertIn('if (_name == "WAIT_AIPass_Danger_Enable"',callback)
