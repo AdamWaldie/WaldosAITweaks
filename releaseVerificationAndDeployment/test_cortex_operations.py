@@ -505,6 +505,10 @@ class CortexOperations(unittest.TestCase):
                        'currentCommand _x == ""','WAIT_Cortex_ActorMove','setUnitPosWeak',
                        'groupHideResponses','lastGroupHideActors']:
             self.assertIn(marker,group_hide)
+        self.assertIn('call WAIT_fnc_CortexCapabilities',group_hide)
+        self.assertIn('case (_capabilities isNotEqualTo []): {30}',group_hide)
+        self.assertIn('case (_role == "LEADER"): {20}',group_hide)
+        self.assertIn('_ranked sort true',group_hide)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', 'forceWeaponFire',
                           'allUnits', 'allGroups', 'spawn ', 'waitUntil']:
             self.assertNotIn(forbidden,group_hide)
@@ -934,6 +938,21 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"UNSUITABLE_ASSAULT_TARGET"',assault)
         self.assertLess(selector.index('_target isKindOf "CAManBase"'),
                         selector.index('WAIT_fnc_CortexAssaultStart'))
+
+    def test_autonomous_foot_manoeuvre_rejects_mobile_platform_contacts(self):
+        """Vehicle fire and anti-armour work must not also become a generic infantry route."""
+        selector=source('cortexTacticalStart')
+        for marker in [
+            'private _manoeuvreEnemies=_enemies select {',
+            '_target isKindOf "CAManBase" && {isNull objectParent _target}',
+            '_platform isKindOf "StaticWeapon"',
+            'if (!_hasForwardOrder && {_manoeuvreEnemies isEqualTo []}) exitWith {',
+            '"FIRE_SUPPORT_ONLY"',
+            '[_group, _state, _manoeuvreEnemies] call WAIT_fnc_CortexFlankStart'
+        ]:
+            self.assertIn(marker,selector)
+        self.assertLess(selector.index('if (!_hasForwardOrder && {_manoeuvreEnemies isEqualTo []})'),
+                        selector.index('private _preferFlank'))
 
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
@@ -2885,12 +2904,12 @@ class CortexOperations(unittest.TestCase):
         assault=source('cortexAssaultStart')
         coordinated=source('cortexCoordinatedAssault')
         self.assertIn('call WAIT_fnc_CortexAssaultStart',selector)
-        self.assertIn('private _assaultIndex=_enemies findIf',selector)
+        self.assertIn('private _assaultIndex=_manoeuvreEnemies findIf',selector)
         self.assertIn('_distance >= 12',selector)
         self.assertIn('_distance <= _closeRange',selector)
         self.assertIn('private _advanceIndex=_enemies findIf',selector)
         self.assertIn('_distance >= 60',selector)
-        self.assertIn('[_enemies,_assaultIndex] call _prioritiseContact',selector)
+        self.assertIn('[_manoeuvreEnemies,_assaultIndex] call _prioritiseContact',selector)
         self.assertIn('[_enemies,_advanceIndex] call _prioritiseContact',selector)
         self.assertIn('[_group,_state,_assaultEnemies] call WAIT_fnc_CortexAssaultStart',selector)
         self.assertEqual(2,selector.count('[_group, _state, _advanceEnemies] call WAIT_fnc_CortexAdvanceStart'))

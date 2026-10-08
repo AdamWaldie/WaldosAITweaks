@@ -65,6 +65,26 @@ private _candidates=(units _group) select {
         && {currentCommand _x == ""}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
+// Preserve the squad's immediate anti-armour and anti-air answer. A low-profile danger response
+// must not select the only launcher-capable actor merely because that actor appears early in group
+// order. Rank ordinary riflemen first, then medics and automatic riflemen, and keep leaders plus
+// loaded AT/AA gunners as the final fallback. The fallback still matters for very small specialist
+// teams, where a finite weak stance is safer than manufacturing a movement response.
+private _ranked=[];
+{
+    private _role=[_x] call WAIT_fnc_CortexUnitRole;
+    private _capabilities=[_x] call WAIT_fnc_CortexCapabilities;
+    private _readinessCost=switch (true) do {
+        case (_capabilities isNotEqualTo []): {30};
+        case (_role == "LEADER"): {20};
+        case (_role == "MG"): {10};
+        case (_role == "MEDIC"): {5};
+        default {0};
+    };
+    _ranked pushBack [_readinessCost,_forEachIndex,_x];
+} forEach _candidates;
+_ranked sort true;
+_candidates=_ranked apply {_x select 2};
 // Bound work and avoid turning a whole platoon prone on one callback. Up to four idle actors lower
 // their profile; active movers, native tasks and operation participants continue uninterrupted.
 _candidates resize ((count _candidates) min 4);
