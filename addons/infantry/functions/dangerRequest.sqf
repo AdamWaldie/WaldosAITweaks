@@ -32,16 +32,27 @@ private _index=_events findIf {(_x select 0) == _cause};
 // The group layer revalidates the object against its native knowledge before using it. This is not
 // reveal or target assignment; objNull remains the normal value for approximate hazards and reports.
 private _hostileSource=objNull;
+private _sourceObserver=_actor;
 if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}
     && {_actor knowsAbout _source > 0}) then {_hostileSource=_source};
 if (isNull _hostileSource && {_index >= 0}) then {
     private _prior=_events select _index;
     private _priorSource=_prior param [4,objNull,[objNull]];
+    private _priorObserver=_prior param [6,_prior param [5,objNull,[objNull]],[objNull]];
     if ((_prior param [3,-1,[0]]) > time && {!isNull _priorSource} && {alive _priorSource}
+        && {!isNull _priorObserver} && {alive _priorObserver} && {local _priorObserver} && {group _priorObserver == _group}
         && {(side _group) getFriend (side group _priorSource) < 0.6}
-        && {_actor knowsAbout _priorSource > 0}) then {_hostileSource=_priorSource};
+        && {_priorObserver knowsAbout _priorSource > 0}) then {
+        _hostileSource=_priorSource;
+        _sourceObserver=_priorObserver;
+    };
 };
-private _event=[_cause,+_position,time,time+2,_hostileSource];
+// Retain the exact local observer which received the native danger event. A mixed crew/passenger
+// or mounted/foot group cannot be classified from an arbitrary group anchor later: doing so turns
+// vehicle danger into a foot response (or the reverse) whenever the selected anchor occupies a
+// different domain. A separate source observer preserves the native witness when a newer
+// approximate event inherits a still-live hostile identity from the previous coalesced record.
+private _event=[_cause,+_position,time,time+2,_hostileSource,_actor,_sourceObserver];
 if (_index >= 0) then {_events set [_index,_event]} else {_events pushBack _event};
 _group setVariable ["WAIT_Danger_Events",_events select [0,16]];
 private _running=_group getVariable ["WAIT_Danger_FSM",[]];

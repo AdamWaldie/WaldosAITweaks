@@ -77,8 +77,13 @@ if (_selected isEqualTo []) exitWith {
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _source=_selected param [4,objNull,[objNull]];
+private _observer=_selected param [5,objNull,[objNull]];
+if (isNull _observer || {!alive _observer} || {!local _observer} || {group _observer != _group}) then {_observer=_actor};
+private _sourceObserver=_selected param [6,_observer,[objNull]];
+if (isNull _sourceObserver || {!alive _sourceObserver} || {!local _sourceObserver}
+    || {group _sourceObserver != _group}) then {_sourceObserver=_observer};
 if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}
-    && {_actor knowsAbout _source > 0}) then {
+    && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
 };
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
@@ -112,7 +117,7 @@ if (_replace) then {
     // must not turn a still-live HIDE response into ENGAGE while diagnostics continue to report
     // the hit/explosion that caused it. Equal priority updates deliberately refresh the short
     // lease from the newest observation.
-    [_actor,_cause,_position,_action] call WAIT_fnc_DangerReact;
+    [_observer,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
 };

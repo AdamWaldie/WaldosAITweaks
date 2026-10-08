@@ -1,6 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
- * Checks targetless danger, effective-commander mounted-contact persistence, contact dismount,
+ * Checks targetless danger, mixed mounted/foot observer classification, effective-commander
+ * mounted-contact persistence, contact dismount,
  * calm remount and damaged-armour withdrawal using live vehicles, including an active withdrawal
  * migrating from the server to a real headless owner before Zeus replacement.
  * Locality/authority: scheduled server creates disposable fixtures; production Cortex code commands
@@ -115,6 +116,16 @@ _contactVehicle setDir 0;
 private _contactCrewGroup=group effectiveCommander _contactVehicle;
 [_contactCrewGroup] call _pin;
 _contactCrewGroup setCombatMode "RED";
+// Keep one foot soldier in the crew group and make him leader. The native vehicle event must still
+// be classified from the mounted observer; using an arbitrary group anchor would misclassify this
+// as a foot reaction and suppress the mounted combat handoff.
+private _contactFootLeader=_contactCrewGroup createUnit ["O_Soldier_F",[1635,1050,0],[],0,"NONE"];
+_contactFootLeader allowDamage false;
+_contactFootLeader disableAI "PATH";
+_contactFootLeader disableAI "TARGET";
+_contactFootLeader disableAI "AUTOTARGET";
+_contactFootLeader setVariable ["WAIT_CortexQA_Label","MIXED GROUP FOOT LEADER",true];
+_contactCrewGroup selectLeader _contactFootLeader;
 private _contactEnemyGroup=createGroup [west,true];
 [_contactEnemyGroup] call _pin;
 _contactEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -131,8 +142,8 @@ private _contactFiredHandler=_contactVehicle addEventHandler ["Fired",{
     params ["_vehicle"];
     _vehicle setVariable ["WAIT_CortexQA_DangerShots",(_vehicle getVariable ["WAIT_CortexQA_DangerShots",0])+1];
 }];
-missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactCrew+[_contactEnemy],true];
-["Danger FSM: mounted hostile persistence","A three-person APC crew faces a real hostile at 25 metres. Native danger may persist only through the effective commander, without WAIT vehicle gunnery, target assignment or injected danger.",getPosATL _contactEnemy] call _phase;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactCrew+[_contactFootLeader,_contactEnemy],true];
+["Danger FSM: mixed-group mounted persistence","A three-person APC crew and separate foot leader face a real hostile at 25 metres. The mounted event must remain a vehicle response owned only by the effective commander, without WAIT vehicle gunnery, target assignment or injected danger.",getPosATL _contactEnemy] call _phase;
 private _contactReady=[{
     missionNamespace getVariable ["WAIT_AIPass_Active",false]
         && {_contactCrewGroup getVariable ["WAIT_AIPass_Managed",false]}
@@ -156,6 +167,13 @@ private _mountedPersistent=[{
         && {!isNull _commander}
         && {_commander knowsAbout _contactEnemy > 0}
 },30] call _wait;
+["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {
+        private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
+        private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
+        count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
+            && {_action param [0,""] == "VEHICLE"}
+    },str [_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]],
+        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]],leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
 // Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally
@@ -173,7 +191,7 @@ private _mountedCombat=[{
     str [_contactCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""],_contactVehicle getVariable ["WAIT_CortexQA_DangerShots",0],
         _contactCrew apply {[_x,_x getVariable ["WAIT_AIPass_VehicleTarget",objNull],assignedTarget _x]}]] call _check;
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
-{deleteVehicle _x} forEach (_contactCrew+[_contactEnemy,_contactVehicle]);
+{deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;
 deleteGroup _contactCrewGroup;
 

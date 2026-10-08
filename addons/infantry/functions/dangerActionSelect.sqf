@@ -7,20 +7,26 @@
  * Repeat/JIP: Pure selection with no side effects. The caller publishes the finite result with its
  * generation, so a new owner reconstructs it from a fresh local observation.
  * Arguments: 0: group <GROUP>; 1: selected event <ARRAY>
- * [cause, position, observedAt, expires, optional hostile source].
+ * [cause, position, observedAt, expires, optional hostile source, optional response observer,
+ * optional source observer].
  * Return Value: STRING - RELEASE, FORCED, MAINTAIN, VEHICLE, HIDE or ENGAGE.
  * Current callers: WAIT_fnc_DangerStep, WAIT_fnc_OperationCancel and WAIT_fnc_OperationRelease.
  * Example: [group player,["SUPPRESSED",getPosATL player,time,time + 2]] call WAIT_fnc_DangerActionSelect;
  */
 
 params [["_group",grpNull,[grpNull]], ["_event",[],[[]]]];
-if (isNull _group || {!local _group} || {!(count _event in [4,5])}) exitWith {"RELEASE"};
+if (isNull _group || {!local _group} || {!(count _event in [4,5,6,7])}) exitWith {"RELEASE"};
 // This is intentionally the same handover boundary used by the danger FSM, operation cleanup and
 // vehicle helpers. Keeping local copies here allowed a newly-recognised owner (for example a player
 // in the group) to receive a reaction after the other danger paths had already yielded.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
-private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
-if (isNull _actor) then {_actor=leader _group};
+private _actor=_event param [5,objNull,[objNull]];
+// The event observer is authoritative only while it remains a living local member. Older scripted
+// callers and events surviving a casualty fall back to the current combat-effective anchor.
+if (isNull _actor || {!alive _actor} || {!local _actor} || {group _actor != _group}) then {
+    _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
+    if (isNull _actor) then {_actor=leader _group};
+};
 if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
 // A concrete native task remains authoritative through the group handoff as well as the immediate
 // engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous

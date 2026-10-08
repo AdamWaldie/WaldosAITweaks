@@ -6,7 +6,7 @@
       "capability": "Infantry danger and contact",
       "purpose": "Immediate observation, threat response and combat handover",
       "decision": "repair",
-      "mechanism": "Bounded owner-local danger FSM with freshness-based cause coalescing, finite posture and one shared decision-job wake; confirmed hostile identity is retained independently and revalidated against native knowledge before mounted combat, while targetless events remain safety-only and explicit fire discipline blocks offensive WAIT operations",
+      "mechanism": "Bounded owner-local danger FSM with freshness-based cause coalescing, finite posture and one shared decision-job wake; the current response actor and hostile-identity witness are retained independently so mixed mounted/foot groups keep the correct domain and native-knowledge authority, while targetless events remain safety-only and explicit fire discipline blocks offensive WAIT operations",
       "implementation_status": "implemented_partial",
       "controls": "shared tuning specification; additional gaps remain",
       "ownership": "current AI owner; server coordinates cross-group requests",
