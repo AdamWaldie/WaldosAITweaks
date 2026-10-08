@@ -936,6 +936,7 @@ class CortexOperations(unittest.TestCase):
     def test_danger_generation_cleanup_cannot_reuse_an_invalidated_fsm(self):
         request=source('dangerRequest')
         setup=source('dangerSetup')
+        fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text(encoding='utf-8')
         self.assertIn('(_running select 1) == (_group getVariable ["WAIT_Danger_Generation",0])',request)
         self.assertIn('private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];',setup)
         self.assertIn('call WAIT_fnc_DangerCoverStep',setup)
@@ -944,6 +945,11 @@ class CortexOperations(unittest.TestCase):
         self.assertGreater(setup.index('_group setVariable ["WAIT_Danger_FSM",nil];'),generation)
         for marker in ['WAIT_Danger_LastAssessment','WAIT_Danger_WakeAfter']:
             self.assertIn(f'_group setVariable ["{marker}",nil];',setup)
+        # Natural finite completion must also close generation-scoped identity. Otherwise the next
+        # generation can inspect the former observer's native task before selecting its own event.
+        self.assertIn('_group setVariable [""WAIT_Danger_LastAssessment"",nil]',fsm)
+        self.assertIn('_group setVariable [""WAIT_Danger_VehicleContext"",nil,true]',fsm)
+        self.assertLess(fsm.index('WAIT_Danger_LastAssessment'),fsm.index('WAIT_Danger_Response'))
 
     def test_live_danger_setting_reconfigures_owner_local_observers_without_a_second_worker(self):
         callback=source('aiTweaksSettingChanged')
