@@ -5,7 +5,7 @@ class CfgPatches {
         name = "Waldos AI Tweaks";
         author = "WaldoTheWarfighter";
         requiredVersion = 2.18;
-        requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"};
+        requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"};
         units[] = {"WAIT_ModuleConvoyStart", "WAIT_ModuleConvoyHold", "WAIT_ModuleConvoyRelease"};
         weapons[] = {};
         version = "0.1.0";

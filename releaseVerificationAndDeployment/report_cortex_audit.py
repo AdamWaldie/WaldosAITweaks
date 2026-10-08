@@ -12,12 +12,18 @@ FATAL_RUNTIME_ERROR = re.compile(
     r"DX11 - device removed - reason:|ErrorMessage:\s*DX11|Exception code:\s*[0-9A-F]+",
     re.I,
 )
+LOAD_ERROR = re.compile(
+    r"Warning Message:\s*FSM\s+['\"].+?['\"]\s+cannot be loaded|"
+    r"dependent on downloadable content that has been deleted",
+    re.I,
+)
 
 def summarize(logs):
     cases = []
     completed = {}
     errors = []
     runtime_errors = []
+    load_errors = []
     runtime_error_kinds = set()
     source_fingerprints = {}
     evidence_logs = set()
@@ -44,6 +50,8 @@ def summarize(logs):
                 if kind not in runtime_error_kinds:
                     runtime_error_kinds.add(kind)
                     runtime_errors.append(dict(log=name, line=number, message=line))
+            if LOAD_ERROR.search(line):
+                load_errors.append(dict(log=name, line=number, message=line))
     observed_fingerprints = sorted({value for values in source_fingerprints.values() for value in values})
     provenance_issues = []
     missing_source_logs = sorted(evidence_logs - set(source_fingerprints))
@@ -55,6 +63,7 @@ def summarize(logs):
         any(case['result'] == 'FAIL' for case in cases)
         or bool(errors)
         or bool(runtime_errors)
+        or bool(load_errors)
         or bool(provenance_issues)
         or any(completed.values())
     )
@@ -67,6 +76,7 @@ def summarize(logs):
         cases=cases,
         errors=errors,
         runtime_errors=runtime_errors,
+        load_errors=load_errors,
         source_fingerprint=observed_fingerprints[0] if len(observed_fingerprints) == 1 else None,
         source_fingerprints=source_fingerprints,
         provenance_issues=provenance_issues,
@@ -134,6 +144,11 @@ def render_markdown(report):
             f"- {error['log']}:{error['line']}: {error['message']}"
             for error in report['runtime_errors']
         ]
+    if report.get('load_errors'):
+        lines += ['', 'Addon or FSM load failures:', ''] + [
+            f"- {error['log']}:{error['line']}: {error['message']}"
+            for error in report['load_errors']
+        ]
     if report.get('provenance_issues'):
         lines += ['', 'Source provenance failures:', ''] + [
             f"- {issue}" for issue in report['provenance_issues']
@@ -173,6 +188,7 @@ def main():
         f"Cortex audit: {report['status']}; {len(report['cases'])} checks, "
         f"{len(report['errors'])} SQF error lines, "
         f"{len(report['runtime_errors'])} fatal runtime failures; "
+        f"{len(report['load_errors'])} load failures; "
         f"run complete={report['complete']}. Report: {root/'cortex-results.md'}"
     )
     return 0 if report['status'] == 'PASS' else 1

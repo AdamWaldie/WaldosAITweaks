@@ -44,10 +44,11 @@
  * A squad riding as cargo in an AI-flown aircraft is handled by airborne insertion instead
  * (WAIT_fnc_CortexAirborneCheck) until it has parachuted and landed.
  *
- * Cadence (distance tiers measured to the nearest player): WAIT_AIPass_TickContact in
- * contact near players; WAIT_AIPass_TickNear within WAIT_AIPass_NearRange; WAIT_AIPass_TickMid
- * within WAIT_AIPass_FarRange; WAIT_AIPass_TickFar beyond. Beyond FarRange only the state ladder
- * and morale run; drills, fire control and support calls are skipped.
+ * Cadence (distance tiers measured to the nearest player): WAIT_AIPass_TickContact for a group with
+ * fresh native hostile knowledge or a finite danger response; WAIT_AIPass_TickNear within
+ * WAIT_AIPass_NearRange; WAIT_AIPass_TickMid within WAIT_AIPass_FarRange; WAIT_AIPass_TickFar
+ * beyond. A distant calm group remains cheap, while a distant group actually seeing an enemy uses
+ * the same bounded group decision path as nearby combat instead of pausing between 20-second scans.
  * In CONTACT near players, immediate posture, morale, stance and vehicle safety remain available
  * after a validated danger event. Target-dependent work (anti-armour, artillery, reinforcement,
  * coordination, flanking and advance) starts only after native knowledge contains an enemy. A hit
@@ -63,8 +64,10 @@
  * tactics and expensive planning through the shared scheduler; it does not wait on another danger
  * controller or start a second movement worker.
  * Zeus always wins: a group Zeus is commanding is ineligible (WAIT_fnc_CortexZeusHeld), so it is
- * released, including WAIT garrison, defence and clear orders. Stance cleanup preserves a later
- * different externally assigned posture instead of unconditionally resetting it.
+ * released, including WAIT garrison, defence and clear orders. An authored HOLD or SENTRY waypoint
+ * also blocks every autonomous WAIT movement owner while leaving native observation, stance and
+ * fire control available. Stance cleanup preserves a later different externally assigned posture
+ * instead of unconditionally resetting it.
  * Locality and authority: runs as a scheduler job on the group owner. When the group stops being
  * local the job retires and the new owner's discovery sweep starts a fresh one.
  * A running tactical drill has a separate scheduler heartbeat. If it stays silent for 30 seconds,
@@ -194,38 +197,91 @@ if (count _dangerResponse == 5) then {
         // A mounted group may know that its vehicle has been hit before the engine identifies a
         // shooter. Preserve that distinction: this lease permits only the existing stop-and-exit
         // handshake. Target selection, withdrawal and manoeuvre still require native knowledge.
-        if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]
-            && {(units _group) findIf {alive _x && {!isNull objectParent _x}} >= 0}) then {
-            _state set ["dangerDismount",[+_dangerPosition,time+30]];
+        private _vehicleContext=_group getVariable ["WAIT_Danger_VehicleContext",[]];
+        private _vehicleProfile=if (count _vehicleContext in [7,8]
+            && {(_vehicleContext select 6) == _dangerGeneration}
+            && {time < (_vehicleContext select 5)}) then {_vehicleContext select 0} else {""};
+        _state set ["dangerVehicleProfile",_vehicleProfile];
+        // A transport or fighting vehicle can move its passengers into the fight without ejecting
+        // operating crew. Aircraft, batteries and static weapons remain with their dedicated owner;
+        // a generic danger callback cannot turn them into an infantry dismount operation.
+        if (_vehicleProfile != "") then {
+            private _dangerVehicle=_vehicleContext param [1,objNull,[objNull]];
+            private _dangerSource=_vehicleContext param [7,objNull,[objNull]];
+            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource,_dangerGeneration]];
         };
     } else {
         _state deleteAt "dangerResponse";
+        _state deleteAt "dangerVehicleProfile";
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
+        _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     };
 } else {
     _state deleteAt "dangerResponse";
+    _state deleteAt "dangerVehicleProfile";
 };
 // The engine FSM owns the immediate posture. This already-budgeted group step may additionally
 // move one idle exposed actor into nearby physical cover. The helper refuses every active operation,
 // native command and external owner, so contact reaction cannot interrupt a committed route.
-private _dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor;
-if (isNull _dangerCoverActor) then {_dangerCoverActor=_leader};
+// Preserve the actor selected by the native danger FSM. Falling back to the group anchor made a
+// wingman's hit or near-round response move the leader instead, disconnecting the visible reaction
+// from the physical event. The observation timestamp binds this identity to the live response; a
+// stale, dead or migrated observer still falls back safely to the current combat-effective anchor.
 private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
-private _dangerActionName=if (count _dangerAction == 5
+private _dangerCoverActor=objNull;
+if (count _dangerAction >= 6
+    && {(_dangerAction param [1,"",[""]]) == (_dangerResponse param [0,"",[""]])}
+    && {(_dangerAction param [2,-1,[0]]) == (_dangerResponse param [2,-2,[0]])}
+    && {(_dangerAction param [4,-1,[0]]) == (_dangerResponse param [4,-2,[0]])}) then {
+    private _observedActor=_dangerAction param [5,objNull,[objNull]];
+    if (!isNull _observedActor && {alive _observedActor} && {local _observedActor}
+        && {group _observedActor == _group}) then {_dangerCoverActor=_observedActor};
+};
+if (isNull _dangerCoverActor) then {_dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor};
+if (isNull _dangerCoverActor) then {_dangerCoverActor=_leader};
+private _dangerActionName=if (count _dangerAction >= 5
     && {(_dangerAction select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
     && {time < (_dangerAction select 3)}) then {_dangerAction select 0} else {""};
+// Observation, mounted safety and infantry tactical authority are separate. A vehicle hit can stop
+// for its passengers without authorising an on-foot CONTACT operation; a concrete native FORCED task
+// receives neither. This defensive FORCED exclusion also protects an older packaged response during
+// a same-frame task handover even though DangerStep normally clears it before this tick.
+// A casualty or scream is useful alerting evidence, but it does not identify an attacker. Keep the
+// response available to morale, remount cancellation and diagnostics without promoting the group
+// into CONTACT or the expensive tactical tier. Immediate hazards and validated hostile observations
+// retain that authority.
+private _dangerTactical=_dangerActive
+    && {!(_dangerActionName in ["FORCED","VEHICLE"])}
+    && {!(combatMode _group in ["BLUE","GREEN"])}
+    && {private _responseCause=_dangerResponse param [0,"",[""]];
+        _responseCause in ["HIT","EXPLOSION","SUPPRESSED"]
+            || {_responseCause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName != "HIDE"}}};
+private _dangerAlert=_dangerActive && {
+    combatMode _group in ["BLUE","GREEN"]
+    || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","BODY_FOUND","SCREAM"]}
+    || {(_dangerResponse param [0,"",[""]]) in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName == "HIDE"}}
+};
+private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
 // their reported position as a physical threat sent soldiers away from bodies or voices and made
 // harmless evidence look like suppression. Only immediate hazards may own this cover reflex.
-private _physicalCoverCause=(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED"];
+private _physicalCoverCause=(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"];
 if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
     [_group,_dangerCoverActor,_dangerResponse select 1,_dangerResponse select 4] call WAIT_fnc_DangerCoverStep;
+    [_group,_dangerResponse select 4,true,_dangerResponse select 0] call WAIT_fnc_DangerGroupHideStep;
 } else {
     private _coverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _coverLease >= 2) then {
         [_group,_coverLease select 0,[],_coverLease select 1] call WAIT_fnc_DangerCoverStep;
     };
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
+};
+// Smoke is a supporting reflex, never another movement phase. One unreserved local actor may throw
+// while cover selection and the current operation continue; the helper's generation context cancels
+// the queued release if Zeus, a specialist owner or a newer danger response takes over next frame.
+if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
+    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
 };
 [_group,_state] call WAIT_fnc_CortexSupportMaintain;
 // The drill controller is a separate scheduled job. If it is lost or starved, leaving the
@@ -263,6 +319,8 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
     private _operationKey = switch (_movementOwner) do {
         case "VEHICLE_WITHDRAW": {"vehicleOperationGeneration"};
         case "VEHICLE_STANDOFF": {"vehicleOperationGeneration"};
+        case "VEHICLE_JINK": {"vehicleOperationGeneration"};
+        case "VEHICLE_ORIENT": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
         case "SUPPORT_RALLY": {"supportOperationGeneration"};
         default {""};
@@ -271,6 +329,30 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         private _generation=_state getOrDefault [_operationKey,-1];
         if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
         _state deleteAt _operationKey;
+    };
+    if (_movementOwner == "VEHICLE_JINK") then {
+        private _jinkState=_state getOrDefault ["vehicleDangerJink",[]];
+        private _jinkVehicle=_jinkState param [1,objNull,[objNull]];
+        if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+            private _marker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+            if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+            };
+        };
+    };
+    if (_movementOwner == "VEHICLE_ORIENT") then {
+        private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+        private _orientVehicle=_orientState param [1,objNull,[objNull]];
+        if (!isNull _orientVehicle && {local _orientVehicle}) then {
+            private _marker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+            if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                    _orientVehicle sendSimpleCommand "STOPTURNING";
+                };
+                _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+            };
+        };
+        _state deleteAt "vehicleDangerOrient";
     };
     if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
     _state deleteAt "movementLease";
@@ -304,7 +386,7 @@ private _nearTier = _nearest <= _farRange;
 // only this already-scheduled group decision while the finite response lease is live, so combat
 // logic can use existing engine knowledge immediately without adding a global combat scan or a
 // second route/movement owner.
-private _tacticalTier=_nearTier || _dangerActive;
+private _tacticalTier=_nearTier || _dangerTactical;
 private _delay = switch (true) do {
     case (_nearest <= (["WAIT_AIPass_NearRange", 1000] call _get)): {["WAIT_AIPass_TickNear", 4] call _get};
     case (_nearTier): {["WAIT_AIPass_TickMid", 8] call _get};
@@ -313,6 +395,18 @@ private _delay = switch (true) do {
 if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {[_group,false] call WAIT_fnc_CortexReleaseGroup; _delay};
 
 ([_group] call WAIT_fnc_CortexKnowledge) params ["_enemies", "_seenCount"];
+// Native hostile knowledge is the durable continuation of a short engine danger callback. The
+// danger FSM wakes the shared group brain immediately; once that finite record expires, a group
+// which is still seeing an enemy must retain combat cadence from its own engine knowledge. Without
+// this handoff a distant firefight fell back to the ordinary 20-second discovery cadence, producing
+// visible pauses between otherwise valid fire, manoeuvre and casualty decisions. This promotes only
+// the already-scheduled bounded group job, adds no scan or worker, and stops as soon as the engine's
+// five-second fresh-sighting window ends.
+private _nativeCombatResponsive=_seenCount > 0;
+_tacticalTier=_tacticalTier || {_nativeCombatResponsive};
+if (_nativeCombatResponsive) then {
+    _delay=_delay min (["WAIT_AIPass_TickContact",2] call _get);
+};
 // Naval delivery is a composable movement layer inside this existing group job. It runs before
 // state selection so an embarked passenger group waits for the crew's finite approach and a boat
 // crew cannot be given an infantry flank, retreat or investigation destination on land.
@@ -323,9 +417,48 @@ private _visible = _enemies select {(_x select 2) <= 10};
 // immediate finite response and local safety layers, but it is never sufficient authority for a
 // route, support request, artillery request or target-specific weapon order.
 private _hasTargetKnowledge = _enemies isNotEqualTo [];
+// The engine danger FSM preserves a hostile object only when the native callback supplied it and
+// the observer already knew it. Revalidate that short lease against current group knowledge before
+// allowing mounted danger to become combat. This keeps a targetless blast, stale unrelated contact
+// or friendly event in the passenger-safety path while restoring prompt effective-commander response.
+private _dangerContact=_group getVariable ["WAIT_Danger_Contact",[]];
+private _dangerContactSource=objNull;
+if (count _dangerContact == 4
+    && {(_dangerContact select 3) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerContact select 2)}) then {
+    _dangerContactSource=_dangerContact select 0;
+};
+private _dangerConfirmed=!isNull _dangerContactSource && {alive _dangerContactSource}
+    && {(side _group) getFriend (side _dangerContactSource) < 0.6}
+    && {_enemies findIf {(_x select 0) == _dangerContactSource} >= 0};
+if (!_dangerConfirmed && {_dangerContact isNotEqualTo []}) then {
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
+};
+private _dangerVehicleContact=_dangerVehicleSafety && {_dangerConfirmed}
+    && {(_dangerResponse param [0,"",[""]]) in ["HIT","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]};
+_tacticalTier=_tacticalTier || {_dangerVehicleContact};
+private _holdFire=combatMode _group in ["BLUE","GREEN"];
+// Run only the bounded vehicle/passenger safety slice for a targetless mounted danger event. With an
+// empty enemy list CortexVehicles exits immediately after its safe-stop/dismount handshake, so this
+// cannot select a target, withdrawal, standoff or infantry phase.
+if (_dangerVehicleSafety && {["WAIT_AIPass_Vehicles_Enable",true] call _get}) then {
+    [_group,_state,[]] call WAIT_fnc_CortexVehicles;
+};
 private _garrisoned = (_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo [];
 private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo [];
-private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
+// HOLD and SENTRY are concrete mission intent even when they were authored before Zeus connected
+// or created by a script rather than a curator. They may continue to observe and fire, but WAIT must
+// not replace them with investigation, reinforcement, coordinated movement, CQB entry, flank,
+// advance, assault, remount or post-contact search. WAIT-generated waypoints use distinct types and
+// descriptions, so this gate does not mistake its own finite route for external ownership.
+private _waypointIndex=currentWaypoint _group;
+private _waypointCount=count waypoints _group;
+private _authoredStationary=_waypointIndex < _waypointCount
+    && {waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]}
+    && {waypointDescription [_group,_waypointIndex] != "WAIT AI PASS"};
+private _ordered = _garrisoned || {_defending}
+    || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}
+    || {_authoredStationary};
 // Passenger squads can hear their own vehicle crew without acquiring exact target knowledge.
 // Run this lightweight own-vehicle check at every distance tier: the far cadence is already
 // bounded, and suppressing it outside FarRange made separate passenger squads unable to react.
@@ -372,7 +505,7 @@ if (_remount isNotEqualTo []) then {
 private _contactDelay = if (_tacticalTier) then {["WAIT_AIPass_TickContact", 2] call _get} else {_delay};
 // A local danger event wakes this existing job. Do not wait for the distance-tier cadence before
 // it re-evaluates native knowledge, but do not create an additional job or issue movement here.
-if (_dangerActive) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
+if (_dangerTactical || {_dangerVehicleSafety} || {_dangerAlert}) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
 
 private _areaMode = _state getOrDefault ["areaInvestigation",""];
 if (_areaMode != "" && {(!([_group,"WAIT_AIPass_Investigate_Enable",true] call WAIT_fnc_CortexFeatureEnabled))
@@ -413,7 +546,7 @@ if (_holders isNotEqualTo [] && {!(_state getOrDefault ["assaulting",false])}) t
 
 // A reported coordinated objective permits safe covering fire before personal contact.
 // Use the existing group tick; CONTACT already invokes this pass below.
-if (_tacticalTier && {(_state getOrDefault ["phase",""]) != "CONTACT"}
+if (_tacticalTier && {!_holdFire} && {(_state getOrDefault ["phase",""]) != "CONTACT"}
     && {_state getOrDefault ["assaulting",false]}) then {
     [_group,_state,_enemies] call WAIT_fnc_CortexFireControl;
 };
@@ -475,14 +608,14 @@ private _beginContact = {
     // The first fresh contact may occur outside the player-proximity cadence. Publish one bounded
     // combined-arms opportunity here so distant AI can cooperate naturally; ongoing refreshes remain
     // in the near CONTACT tier below and the request cooldown rejects a duplicate in this tick.
-    if (_visible isNotEqualTo []
+    if (!_holdFire && {_visible isNotEqualTo []}
         && {["WAIT_AIPass_ContactReports_Enable",true] call _get}) then {
         [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
     };
     // Shared support discovery is needed by either ordinary reinforcement or coordinated assault.
     // It is a bounded once-per-engagement request, so first contact may publish it outside the
     // player-detail tier without enabling the expensive near-tier combat loop.
-    if (_visible isNotEqualTo [] && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
+    if (!_holdFire && {_visible isNotEqualTo []} && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
         || {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}}) then {
         [_group, _state] call WAIT_fnc_CortexReinforce;
     };
@@ -529,7 +662,7 @@ switch (_state get "phase") do {
         // suppression or hostile near-fire response delayed withdrawal, support and cleanup until a
         // separate visual contact arrived. Enter the same finite CONTACT state now; native knowledge
         // remains the only source of enemies and target positions.
-        if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};
+        if (_dangerTactical || {_dangerVehicleContact} || {_visible isNotEqualTo []}) exitWith {call _beginContact};
         private _area = _group getVariable ["WAIT_AIPass_AreaReport",[]];
         if (_area isNotEqualTo [] && {serverTime >= (_area select 2)}) then {_group setVariable ["WAIT_AIPass_AreaReport",nil,true]; _area = []};
         private _investigationPreference=[_group, "investigateChance"] call WAIT_fnc_CortexProfile;
@@ -640,7 +773,10 @@ switch (_state get "phase") do {
             };
         };
         private _retreatStarted=false;
-        if (_outcome == "RETREAT") then {
+        // Surrender remains an immediate survival outcome, but an automatic morale withdrawal is
+        // still movement ownership. Preserve the authored stationary order and let its native fire,
+        // suppression and posture continue instead of replacing it with a WAIT fallback route.
+        if (_outcome == "RETREAT" && {!_authoredStationary}) then {
             if (_now >= (_state getOrDefault ["retreatRetryAt",0])) then {
                 switch (true) do {
                     case (_garrisoned): {[_group] call WAIT_fnc_CortexGarrisonRelease};
@@ -660,6 +796,14 @@ switch (_state get "phase") do {
             };
         };
         if (_retreatStarted) exitWith {};
+        // A useful empty emplacement is an actor-level support opportunity, not a competing group
+        // operation. One nonleader may take its real gunner seat while the remaining squad retains
+        // fire, manoeuvre and casualty decisions. The helper samples only once per contact episode.
+        if (_hasTargetKnowledge && {!_holdFire}) then {
+            [_group,_state,_enemies] call WAIT_fnc_CortexStaticSupport;
+        } else {
+            [_group,_state,[]] call WAIT_fnc_CortexStaticSupport;
+        };
         _state set ["armourSeen", (_state getOrDefault ["armourSeen", false]) || {_enemies findIf {
             private _enemy = vehicle (_x select 0);
             (_enemy isKindOf "Tank" || {_enemy isKindOf "Wheeled_APC_F"}) && {(_x select 2) <= 60} && {(_x select 3) <= 800}
@@ -671,9 +815,9 @@ switch (_state get "phase") do {
                     _x selectWeapon (primaryWeapon _x);
                 };
             } forEach _alive;
-            if (["WAIT_AIPass_FireControl_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexFireControl};
+            if (!_holdFire && {["WAIT_AIPass_FireControl_Enable", true] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexFireControl};
             if (["WAIT_AIPass_Stance_Enable", true] call _get) then {[_group, _state, _enemies] call WAIT_fnc_CortexStance};
-            if (_hasTargetKnowledge && {["WAIT_AIPass_AntiArmour_Enable", true] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
+            if (!_holdFire && {_hasTargetKnowledge} && {["WAIT_AIPass_AntiArmour_Enable", true] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexAntiArmour};
             if (["WAIT_AIPass_Vehicles_Enable", true] call _get) then {
                 _vehicleOwnsMovement = [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
             };
@@ -683,23 +827,33 @@ switch (_state get "phase") do {
             // A fresh observed contact is also a short-lived combined-arms opportunity. This
             // only shares the target with a bounded number of independently capable assets;
             // it creates no rally, readiness barrier or replacement infantry movement order.
-            if (["WAIT_AIPass_ContactReports_Enable",true] call _get) then {
+            if (!_holdFire && {["WAIT_AIPass_ContactReports_Enable",true] call _get}) then {
                 [_group,_state,_visible] call WAIT_fnc_CortexCombinedArmsRequest;
             };
-            if (_hasTargetKnowledge && {["WAIT_AIPass_Artillery_Enable", false] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexArtilleryRequest};
-            if (_hasTargetKnowledge && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
+            if (!_holdFire && {_hasTargetKnowledge} && {["WAIT_AIPass_Artillery_Enable", false] call _get}) then {[_group, _state, _enemies] call WAIT_fnc_CortexArtilleryRequest};
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {(["WAIT_AIPass_Reinforce_Enable",true] call _get)
                 || {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}}) then {[_group, _state] call WAIT_fnc_CortexReinforce};
             // Select one movement owner. A coordinated assault keeps this requester as the
             // base of fire while its responders manoeuvre; it must be decided before a local
             // flank or advance can acquire the same group's movement state.
             private _coordinatedOwnsMovement = _vehicleOwnsMovement;
-            if (_hasTargetKnowledge && {!_ordered} && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
                 _coordinatedOwnsMovement = [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
             };
-            if (_hasTargetKnowledge && {!_ordered} && {!_coordinatedOwnsMovement}) then {
+            // A fresh, confirmed hostile physically inside a usable building changes the next
+            // manoeuvre from open-ground flank/advance into the same finite clearance controller
+            // used by explicit orders. Cross-squad support gets first refusal; the building entry
+            // never replaces an accepted support/manoeuvre role or an authored Zeus order.
+            private _buildingOwnsMovement=false;
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement}) then {
+                _buildingOwnsMovement=[_group,_state,_enemies] call WAIT_fnc_CortexBuildingContact;
+                if (_buildingOwnsMovement) then {_ordered=true};
+            };
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement} && {!_buildingOwnsMovement}) then {
                 [_group, _state, _enemies,
                     ["WAIT_AIPass_Flank_Enable", true] call _get,
-                    ["WAIT_AIPass_Advance_Enable", true] call _get
+                    ["WAIT_AIPass_Advance_Enable", true] call _get,
+                    ["WAIT_AIPass_Assault_Enable", true] call _get
                 ] call WAIT_fnc_CortexTacticalStart;
             };
             if (["WAIT_AIPass_AmmoShare_Enable", true] call _get) then {[_group, _state] call WAIT_fnc_CortexAmmoShare};
@@ -708,7 +862,7 @@ switch (_state get "phase") do {
         // response is active. Once the server has
         // published a bounded responder list, however, the lightweight asynchronous handoff must
         // still complete for distant AI or the valid operation remains permanently half-created.
-        if (!_nearTier && {!_ordered} && {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}
+        if (!_holdFire && {!_nearTier} && {!_ordered} && {["WAIT_AIPass_CoordinatedAssault_Enable",true] call _get}
             && {(_group getVariable ["WAIT_Cortex_SupportResponders",[]]) isNotEqualTo []}) then {
             [_group,_state] call WAIT_fnc_CortexCoordinatedAssault;
         };
@@ -738,11 +892,16 @@ switch (_state get "phase") do {
     };
     case "SECURITY": {
         if (_visible isNotEqualTo []) exitWith {call _beginContact};
+        // A carried emplacement deployed by this group may be recovered during the finite security
+        // pause. Only its original pair is reserved; the rest of the squad keeps native security.
+        // Authored movement cancels packing instead of being delayed or replaced.
+        private _staticPack=[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
+        if (_staticPack in ["PACK_MOVING","PACKING","TAKING"]) exitWith {_delay=1};
         // Responders may finish rallying just as smoke, terrain or a building hides the target.
         // Preserve the prepared action across CONTACT -> SECURITY, then resume the normal search
         // chain as soon as every matching responder has released its finite assault lease.
         private _coordinatedOwnsSecurity = false;
-        if (!_ordered && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
+        if (!_holdFire && {!_ordered} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
             _coordinatedOwnsSecurity = [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
         };
         if (_coordinatedOwnsSecurity) exitWith {_delay = 2};
@@ -788,7 +947,7 @@ switch (_state get "phase") do {
     };
     case "REGROUP": {
         if (_visible isNotEqualTo []) exitWith {
-            _state deleteAt "consolidateIssued";
+            _state deleteAt "consolidationRoutes";
             _group setVariable ["WAIT_Cortex_Consolidation", ["CONTACT", 0, 0, 0], true];
             call _beginContact;
         };
@@ -802,21 +961,59 @@ switch (_state get "phase") do {
                 && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
         };
         private _reserved = _members select {_x call _hasLiveActorMove};
-        // Preserve authored waypoints and combat targets. Give only separated members a nearby,
-        // finite destination around the living leader. doFollow does not reliably cancel an earlier
-        // doStop (including a casualty, cover or Zeus-interrupted order), which left otherwise healthy
-        // soldiers standing at their old positions until this state timed out. Individual destinations
-        // avoid replacing the group's authored route and avoid collapsing everyone onto one point.
-        if (_now - (_state getOrDefault ["consolidateIssued", -1e6]) >= 8 && {[] call _mayIssueMovement}) then {
-            {
-                if (_x != _leader && {_x distance2D _leader > 8}) then {
-                    private _slot=4+((_forEachIndex mod 3)*2);
-                    _x doMove ((getPosATL _leader) getPos [_slot,(_forEachIndex*137) mod 360]);
-                };
-            } forEach (_members - _reserved);
-            _state set ["consolidateIssued", _now];
-            _state set ["holders", []];
+        // Preserve authored waypoints and combat targets. Each separated member receives one committed
+        // local destination. Progress updates the record without issuing another command; the same
+        // destination is retried once only after measured no-progress. Reaching that destination while
+        // the living leader has moved is the meaningful event that permits a new short destination.
+        // This avoids the old eight-second destination churn that repeatedly restarted engine planning.
+        private _routes = _state getOrDefault ["consolidationRoutes", createHashMap];
+        private _eligible = (_members - _reserved) select {_x != _leader};
+        private _eligibleKeys = _eligible apply {
+            private _key = netId _x;
+            if (_key == "") then {_key = str _x};
+            _key
         };
+        {
+            if !(_x in _eligibleKeys) then {_routes deleteAt _x};
+        } forEach keys _routes;
+        {
+            private _unit = _x;
+            private _key = netId _unit;
+            if (_key == "") then {_key = str _unit};
+            private _record = _routes getOrDefault [_key, []];
+            if (_unit distance2D _leader <= 8) then {
+                _routes deleteAt _key;
+            } else {
+                if (_record isEqualTo []) then {
+                    private _slot = 4 + ((_forEachIndex mod 3) * 2);
+                    private _target = (getPosATL _leader) getPos [_slot, (_forEachIndex * 137) mod 360];
+                    if ([] call _mayIssueMovement) then {
+                        _unit doMove _target;
+                        _routes set [_key, [_target, getPosATL _unit, _now, 0]];
+                        _state set ["holders", []];
+                    };
+                } else {
+                    _record params ["_target", "_lastPos", "_lastProgressAt", "_retries"];
+                    if (_unit distance2D _lastPos >= 2) then {
+                        _record set [1, getPosATL _unit];
+                        _record set [2, _now];
+                        _routes set [_key, _record];
+                    } else {
+                        if (_unit distance2D _target <= 4) then {
+                            _routes deleteAt _key;
+                        } else {
+                            if (_now - _lastProgressAt >= 10 && {_retries < 1} && {[] call _mayIssueMovement}) then {
+                                _unit doMove _target;
+                                _record set [2, _now];
+                                _record set [3, _retries + 1];
+                                _routes set [_key, _record];
+                            };
+                        };
+                    };
+                };
+            };
+        } forEach _eligible;
+        _state set ["consolidationRoutes", _routes];
         private _radius = (12 + 2 * count _members) min 30;
         private _gathered = {_x distance2D _leader <= _radius} count _members;
         private _furthest = 0;
@@ -940,4 +1137,3 @@ switch (_state get "phase") do {
 private _reaction = (missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1]) max 0.25;
 private _cadence = _delay / _reaction;
 (_cadence + random 0.7 - 0.35) max 0.5
-

@@ -18,7 +18,10 @@ if (!([_spotter] call WAIT_fnc_CortexCanTransmit)) exitWith {[]};
 private _knowledge = _spotter targetKnowledge _enemy;
 if (!(_knowledge select 1) || {_spotter knowsAbout _enemy < 1.5}
     || {time - (_knowledge select 2) > 5}
-    || {(side group _spotter) getFriend (side group _enemy) >= 0.6}) exitWith {[]};
+    // The observed object may be a vehicle, aircraft or static weapon. Its direct side is the
+    // stable identity boundary; `group _enemy` is meaningful only for infantry and previously
+    // rejected or misclassified combined-arms contacts before the observer could report them.
+    || {(side group _spotter) getFriend (side _enemy) >= 0.6}) exitWith {[]};
 private _eye = eyePos _spotter;
 if ([_spotter, "VIEW", _enemy] checkVisibility [_eye, aimPos _enemy] < 0.5) exitWith {[]};
 if (_impact isNotEqualTo [] && {[_spotter, "VIEW"] checkVisibility [_eye, (ATLToASL _impact) vectorAdd [0, 0, 1]] < 0.5}) exitWith {[]};

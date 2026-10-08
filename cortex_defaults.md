@@ -127,6 +127,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_VehicleDismount_Enable` | `true` | Unloads capable passengers only when safely stopped on dry ground. |
 | `WAIT_AIPass_VehicleRemount_Enable` | `true` | Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | `true` | Allows damaged vehicles to withdraw and use existing smoke. |
+| `WAIT_AIPass_VehicleJink_Enable` | `true` | Allows one short terrain-checked escape by an eligible intact fighting vehicle under close or severe danger. |
 | `WAIT_AIPass_DrivingAssist_Enable` | `true` | Applies a sparse terrain-grade speed cap to ordinary AI ground vehicles while preserving their native waypoint and route. Convoys use separate driving controls. |
 | `WAIT_AIPass_CoverValidation_Enable` | `true` | Adds bounded slope and body clearance checks to shared cover selection. |
 | `WAIT_Convoy_MountedFire_Enable` | `true` | WAIT assigns targets to weapon crew under existing ROE. Disable to leave targeting to another AI mod. |
@@ -137,6 +138,9 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_Convoy_ContactHalt_Enable` | `true` | Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available. |
 | `WAIT_Convoy_Unload_Enable` | `true` | Allows WAIT passenger unloading on halt. Operating crews remain aboard. |
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |
+| `WAIT_AIPass_DangerSmoke_Enable` | `true` | One available soldier may throw carried smoke during severe finite danger. The current operation continues without waiting for it. |
+| `WAIT_AIPass_StaticSupport_Enable` | `true` | During confirmed contact, one uncommitted nonleader may physically occupy a nearby empty friendly static weapon. The squad does not wait for the mount. |
+| `WAIT_AIPass_StaticDeploy_Enable` | `true` | When no suitable emplacement exists, a compatible two-person bag team may physically assemble its carried weapon and occupy the real gunner seat without holding squad movement. |
 | `WAIT_AIPass_Hearing_Enable` | `true` | Nearby gunfire creates throttled approximate investigation reports, never target reveals. |
 | `WAIT_AIPass_Vehicles_Enable` | `true` | BOOL: dismount under fire; damaged vehicles smoke and withdraw. |
 | `WAIT_AIPass_NavalAssault_Enable` | `true` | BOOL: finite coastal boat approach and infantry landing; yields to external naval controller. |
@@ -187,8 +191,10 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Investigate_Enable` | `true` | BOOL: squads check out enemies they know about but have not seen. |
 | `WAIT_AIPass_Investigate_Range` | `300` | METRES: how far away a known enemy may be to be investigated. |
 | `WAIT_AIPass_Investigate_Seconds` | `60` | SECONDS: investigation time limit. |
-| `WAIT_AIPass_Assault_Enable` | `true` | BOOL: a flank can finish with a grenade and a rush on the enemy position. |
-| `WAIT_AIPass_Assault_Range` | `80` | METRES: the enemy must be this close to the flanking element to assault. |
+| `WAIT_AIPass_Assault_Enable` | `true` | BOOL: paired-element clear-through after manoeuvre or directly against a fresh close threat. |
+| `WAIT_AIPass_BuildingCombat_Enable` | `true` | BOOL: a capable squad may enter a usable building containing a recent native-known hostile. |
+| `WAIT_AIPass_BuildingCombat_Range` | `100` | METRES: maximum range for natural hostile-building entry; explicit clearance orders are unaffected. |
+| `WAIT_AIPass_Assault_Range` | `80` | METRES: maximum transition range for a final assault; fresh known contacts inside 60 m may enter the same paired-element assault directly. |
 | `WAIT_AIPass_Advance_Enable` | `true` | BOOL: pinned squads with somewhere to go push a team forward in bounds. |
 | `WAIT_AIPass_Advance_MinContactSeconds` | `0` | SECONDS: optional confirmed-contact delay before an advance is considered. |
 | `WAIT_AIPass_Advance_Cooldown` | `20` | SECONDS: after an advance ends before the squad may start another. |

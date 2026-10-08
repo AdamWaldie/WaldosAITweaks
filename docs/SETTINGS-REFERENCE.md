@@ -61,6 +61,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_PostContact_Enable` | Post-contact search | CHECKBOX | true | [] | NEXT_OPERATION | After contact is lost: hold, send two soldiers to check the last known position, regroup. |
 | `WAIT_AIPass_Investigate_Enable` | Investigation | CHECKBOX | true | [] | NEXT_OPERATION | Squads send two riflemen to check enemies they know about but have not seen. |
 | `WAIT_AIPass_Danger_Enable` | Danger response | CHECKBOX | true | [] | LIVE | Enables WAIT's bounded local danger reflex and tactical group handoff. When disabled, the configured FSM exits without issuing WAIT stance, movement, targeting or planning commands. |
+| `WAIT_AIPass_DangerSmoke_Enable` | Danger smoke screen | CHECKBOX | true | [] | LIVE | Allows one available soldier to throw carried smoke during severe incoming danger. The operation continues without waiting for the throw. |
 | `WAIT_AIPass_Hearing_Enable` | Nearby gunfire investigation | CHECKBOX | true | [] | NEXT_OPERATION | Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal. |
 | `WAIT_AIPass_PostContact_LostSeconds` | Contact lost delay (s) | SLIDER | 30 | [3, 120, 0] | NEXT_OPERATION | Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover. |
 | `WAIT_AIPass_PostContact_SecuritySeconds` | Security hold (s) | SLIDER | 10 | [0, 60, 0] | NEXT_OPERATION | Seconds spent securing the last contact before a search team moves. |
@@ -73,6 +74,8 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_FireControl_Enable` | Fire control | CHECKBOX | true | [] | NEXT_OPERATION | Close threats first, spread fire across visible enemies, and alternate suppression inside each squad. A short random delay keeps separate squads from firing in lockstep; every ordered burst checks for friendlies. |
 | `WAIT_AIPass_GrenadeEvasion_Enable` | Grenade evasion | CHECKBOX | true | [] | LIVE | AI move away from a live grenade they can see. Test before live use. |
 | `WAIT_AIPass_AntiArmour_Enable` | Anti-armour | CHECKBOX | true | [] | NEXT_OPERATION | The best anti-tank gunner engages known armour, clear of backblast. |
+| `WAIT_AIPass_StaticSupport_Enable` | Use nearby static weapons | CHECKBOX | true | [] | NEXT_OPERATION | During confirmed contact, one uncommitted nonleader may physically occupy a nearby empty friendly static weapon. The squad does not wait for the mount and a failed attempt is not retried during the same contact. |
+| `WAIT_AIPass_StaticDeploy_Enable` | Deploy carried static weapons | CHECKBOX | true | [] | NEXT_OPERATION | When no suitable emplacement exists, a compatible two-person weapon team may physically assemble its carried weapon and occupy the real gunner seat. The squad never waits for assembly. |
 | `WAIT_AIPass_FireControl_MaxShootersPerTarget` | Shooters per target | SLIDER | 2 | [1, 12, 0] | NEXT_OPERATION | Extra shooters prefer another visible enemy once this many soldiers are assigned to one target. Immediate close threats still take priority. |
 | `WAIT_AIPass_FireControl_MaxSuppressors` | Simultaneous suppressors | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum soldiers assigned suppression simultaneously. |
 
@@ -82,7 +85,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Flank_Enable` | Flanking | CHECKBOX | true | [] | NEXT_OPERATION | Half the squad flanks in covered bounds while the rest suppresses. |
 | `WAIT_AIPass_StreetCrossing_Enable` | Street crossing | CHECKBOX | true | [] | NEXT_OPERATION | Flanking squads stop at roads, throw smoke and cross in one bound. |
-| `WAIT_AIPass_Assault_Enable` | Final assault | CHECKBOX | true | [] | NEXT_OPERATION | A flank can finish with a grenade and a rush on the enemy position. |
+| `WAIT_AIPass_Assault_Enable` | Final assault | CHECKBOX | true | [] | NEXT_OPERATION | An eligible manoeuvre finishes with a paired-element clear-through; a fresh known threat already inside ordinary manoeuvre range can start it directly. |
 | `WAIT_AIPass_Advance_Enable` | Bounding advance | CHECKBOX | true | [] | NEXT_OPERATION | Squads in a long firefight push a fire team towards their waypoint in covered bounds. |
 | `WAIT_AIPass_Advance_MinContactSeconds` | Advance contact delay | SLIDER | 0 | [0, 300, 0] | NEXT_OPERATION | Optional seconds of confirmed contact before a bounding advance may begin. The default is zero because knowledge, morale, range, actor and avenue checks already decide whether the manoeuvre is viable. |
 | `WAIT_AIPass_Advance_Cooldown` | Advance repeat delay | SLIDER | 20 | [0, 180, 0] | NEXT_OPERATION | Seconds after an advance ends before the same squad may start another. This is shorter than the flank delay so a squad can continue progressing in successive tactical bounds without immediately restarting a finished drill. |
@@ -128,6 +131,13 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Regroup_TimeoutSeconds` | Recovery time limit (s) | SLIDER | 120 | [30, 300, 0] | NEXT_OPERATION | Maximum recovery attempt duration before explicit abandonment. |
 | `WAIT_AIPass_Regroup_SettleSeconds` | Casualty assessment delay (s) | SLIDER | 5 | [0, 15, 1] | NEXT_OPERATION | Brief delay to assess simultaneous casualties before survivor recovery. |
 
+### 07 Buildings and CQB
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
+| `WAIT_AIPass_BuildingCombat_Enable` | Enter hostile buildings | CHECKBOX | true | [] | NEXT_OPERATION | A squad of at least four may turn a recent, engine-confirmed hostile physically inside a usable building into a clearance operation. Approximate danger and outdoor contacts never trigger entry. |
+| `WAIT_AIPass_BuildingCombat_Range` | Hostile building entry range (m) | SLIDER | 100 | [25, 200, 0] | NEXT_OPERATION | Maximum distance for natural entry against a recently seen hostile inside a building. Explicit Clear Building orders are unaffected. |
+
 ## 04 Coordination
 
 ### 01 Communication
@@ -166,8 +176,9 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Vehicles_Enable` | Enable Cortex vehicle tactics | CHECKBOX | true | [] | NEXT_OPERATION | Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent. |
-| `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Gunners engage AT soldiers first, then armour; armour backs away from AT teams. |
+| `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Armed crews make one safe immediate suppression response to a known danger source, then engage AT soldiers first, armour second and preserve distance from AT teams. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | Damage: withdraw mobile vehicle | CHECKBOX | true | [] | NEXT_OPERATION | Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke. |
+| `WAIT_AIPass_VehicleJink_Enable` | Danger: short vehicle escape | CHECKBOX | true | [] | NEXT_OPERATION | Allows one intact crewed fighting vehicle to make a short terrain-checked escape from a close hostile, hit or explosion. Convoys, passenger loads and existing movement owners are excluded. |
 
 ### 03 Passengers
 
@@ -288,13 +299,13 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_NavalAssault_Enable` | Naval infantry landing | CHECKBOX | true | [] | NEXT_OPERATION | AI boat crews make one finite shallow-water approach and deliver embarked infantry onto dry ground. An installed external naval provider takes priority. |
+| `WAIT_AIPass_NavalAssault_Enable` | Naval infantry landing | CHECKBOX | true | [] | NEXT_OPERATION | AI boat crews make one finite shallow-water approach and deliver embarked infantry onto dry ground. Player, Zeus and neutral external-control ownership take priority. |
 
 ### 04 Civilian reactions
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire or a hit using event handlers and one finite move. WAIT yields completely when an external civilian controller owns the actor. |
+| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire, explosions or a hit through one priority-aware finite response. Stronger danger can replace weaker noise; player, Zeus and neutral external-control ownership still take precedence. |
 | `WAIT_AIPass_CivilianReaction_Radius` | Civilian gunfire radius (m) | SLIDER | 45 | [10, 150, 0] | NEXT_OPERATION | FiredNear events inside this distance may trigger an escape response. |
 | `WAIT_AIPass_CivilianReaction_Distance` | Civilian escape distance (m) | SLIDER | 180 | [50, 500, 0] | NEXT_OPERATION | Approximate length of the safe escape leg away from the threat. |
-| `WAIT_AIPass_CivilianReaction_Cooldown` | Civilian reaction cooldown (s) | SLIDER | 20 | [2, 120, 0] | NEXT_OPERATION | Minimum delay before another danger event can replace the current escape order. |
+| `WAIT_AIPass_CivilianReaction_Cooldown` | Civilian reaction cooldown (s) | SLIDER | 20 | [2, 120, 0] | NEXT_OPERATION | Minimum delay before an equal or weaker danger event can replace the current escape order. A stronger event may replace it immediately. |

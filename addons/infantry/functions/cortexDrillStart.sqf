@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Starts the finite scripted FSM which executes one accepted flank, advance or coordinated
+ * Purpose: Starts the finite scripted FSM which executes one accepted flank, advance, direct assault or coordinated
  * support bound. The FSM observes lifecycle completion; the shared scheduler owns tactical cadence; bounded tactical calculations and actor
  * commands remain in CortexFlankStep so one implementation serves every manoeuvre type.
  * Locality / Authority: Runs on the current group owner. It refuses remote groups and the FSM exits
@@ -12,7 +12,7 @@
  * 0: group <GROUP> - locally owned group with an accepted drill.
  * 1: drill token <STRING> - token stored in the group's Cortex state.
  * Return Value: Boolean - true when the matching FSM is already running or was started.
- * Current callers: CortexFlankStart, CortexAdvanceStart and CortexSupportBoundStart.
+ * Current callers: CortexFlankStart, CortexAdvanceStart, CortexAssaultStart and CortexSupportBoundStart.
  * Example: [_group,_drill get "token"] call WAIT_fnc_CortexDrillStart;
  */
 

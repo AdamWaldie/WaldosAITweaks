@@ -15,7 +15,6 @@ class CfgFunctions {
             class AITweaksNotifyLocal {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksNotifyLocal.sqf";};
             class AITweaksDiagnosticReport {file = "\z\waldo_ai_tweaks\addons\core\functions\aiTweaksDiagnosticReport.sqf";};
             class CompatibilityAvailable {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityAvailable.sqf";};
-            class CompatibilityState {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityState.sqf";};
             class CompatibilityExternalControl {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityExternalControl.sqf";};
             class CompatibilityPrecisionExcluded {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityPrecisionExcluded.sqf";};
             class CompatibilityHeadlessRevision {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\compatibilityHeadlessRevision.sqf";};
@@ -71,10 +70,16 @@ class CfgFunctions {
             class DangerEngineCanContinue {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineCanContinue.sqf";};
             class DangerEngineAct {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineAct.sqf";};
             class DangerEngineRelease {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRelease.sqf";};
+            class DangerEngineRecycle {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineRecycle.sqf";};
+            class DangerVehicleProfile {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerVehicleProfile.sqf";};
             class DangerEngineMode {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineMode.sqf";};
             class DangerEngineSelect {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSelect.sqf";};
             class DangerEngineSubmit {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerEngineSubmit.sqf";};
+            class CortexStaticSupport {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexStaticSupport.sqf";};
+            class CortexStaticDeployStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexStaticDeployStep.sqf";};
             class DangerCoverStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerCoverStep.sqf";};
+            class DangerGroupHideStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerGroupHideStep.sqf";};
+            class DangerSmokeStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSmokeStep.sqf";};
             class DangerRequest {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerRequest.sqf";};
             class DangerStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerStep.sqf";};
             class DangerSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\dangerSetup.sqf";};
@@ -97,6 +102,7 @@ class CfgFunctions {
             class CortexExternalTakeover {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexExternalTakeover.sqf";};
             class CortexCivilianReact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianReact.sqf";};
             class CortexCivilianSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianSetup.sqf";};
+            class CortexCivilianStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianStep.sqf";};
             class CortexIsPaused {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexIsPaused.sqf";};
             class CortexQueueJob {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexQueueJob.sqf";};
             class SchedulerReconcile {file = "\z\waldo_ai_tweaks\addons\core\functions\schedulerReconcile.sqf";};
@@ -142,6 +148,7 @@ class CfgFunctions {
             class CortexGroupAnchor {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupAnchor.sqf";};
             class CortexGroupTransmitter {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTransmitter.sqf";};
             class CortexBuildingDoor {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexBuildingDoor.sqf";};
+            class CortexBuildingContact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexBuildingContact.sqf";};
             class CortexClearBuilding {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexClearBuilding.sqf";};
             class CortexReportServer {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexReportServer.sqf";};
             class CortexReportLocal {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexReportLocal.sqf";};
@@ -185,6 +192,7 @@ class CfgFunctions {
             class CortexGroupState {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupState.sqf";};
             class CortexGroupTick {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTick.sqf";};
             class CortexKnowledge {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexKnowledge.sqf";};
+            class CortexTacticalAssess {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalAssess.sqf";};
             class CortexLineOfFireClear {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexLineOfFireClear.sqf";};
             class CortexMorale {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMorale.sqf";};
             class CortexMedicalStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMedicalStep.sqf";};
@@ -211,6 +219,10 @@ class CfgFunctions {
             class CortexCombatEffective {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCombatEffective.sqf";};
             class CortexCapabilities {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCapabilities.sqf";};
             class CortexPassengerReady {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexPassengerReady.sqf";};
+            class CortexVehicleUnloadPolicy {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleUnloadPolicy.sqf";};
+            class CortexVehicleCrewRecover {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleCrewRecover.sqf";};
+              class CortexVehicleJink {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleJink.sqf";};
+              class CortexVehicleOrient {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleOrient.sqf";};
             class CortexInfantrySpeed {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexInfantrySpeed.sqf";};
             class CortexUnitRole {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexUnitRole.sqf";};
             class CortexOnboardContact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexOnboardContact.sqf";};
@@ -218,6 +230,7 @@ class CfgFunctions {
             class CortexNavalAssault {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexNavalAssault.sqf";};
             class CortexNavalRelease {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexNavalRelease.sqf";};
             class CortexTacticalStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalStart.sqf";};
+            class CortexAssaultStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAssaultStart.sqf";};
             class CortexAdvanceStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAdvanceStart.sqf";};
             class CortexAmmoShare {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAmmoShare.sqf";};
             class CortexCoordinatedAssault {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexCoordinatedAssault.sqf";};

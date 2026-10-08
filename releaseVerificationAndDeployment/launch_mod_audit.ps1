@@ -7,20 +7,24 @@ param(
     [int]$Port=24142,
     [int]$ResolutionWidth=3840,
     [int]$ResolutionHeight=2160,
+    [ValidateRange(30,600)][int]$ClientReadyTimeoutSeconds=180,
     [ValidateRange(0,2)][int]$HeadlessClients=2,
     [switch]$WithZen,
+    [switch]$ServerOnly,
     [switch]$StageOnly
 )
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 if (!$Package) { $Package=Join-Path $repo '.hemttout/build' }
+if ($ServerOnly -and $Focus -ne 'dangerload') {throw 'ServerOnly is restricted to the dangerload loader diagnostic.'}
 if (!$ArmaPath) {
     $ArmaPath=(Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\bohemia interactive\arma 3').main
 }
 if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyContinue)) {
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
-if (!$Mods.Count) {
+$stageDefaultDependencies=!$Mods.Count
+if ($stageDefaultDependencies) {
     $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')
     if ($WithZen) {$Mods+=Join-Path $ArmaPath '!Workshop/@Zeus Enhanced'}
 }
@@ -28,8 +32,20 @@ foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency 
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
+$launchMods=$Mods
+if ($stageDefaultDependencies) {
+    $launchMods=@()
+    foreach ($mod in $Mods) {
+        $stagedMod=Join-Path $runtime (Split-Path $mod -Leaf)
+        Copy-Item -LiteralPath $mod -Destination $stagedMod -Recurse
+        $workshopMetadata=Join-Path $stagedMod 'meta.cpp'
+        if (Test-Path -LiteralPath $workshopMetadata) {Remove-Item -LiteralPath $workshopMetadata -Force}
+        $launchMods+=$stagedMod
+    }
+}
 $manifest=Get-Content -Raw (Join-Path $runtime 'audit-manifest.json') | ConvertFrom-Json
-$manifest | Add-Member dependencies ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+$manifest | Add-Member dependencySources ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+$manifest | Add-Member dependencies ($launchMods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member resolution @($ResolutionWidth,$ResolutionHeight)
 $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $runtime 'audit-manifest.json')
 if ($StageOnly) {Write-Output "Staged packaged audit: $runtime"; return}
@@ -52,7 +68,7 @@ localClient[]={"127.0.0.1"};
 persistent=1;
 class Missions {class Audit {template="$missionName.VR"; difficulty="Regular";};};
 "@ | Set-Content $config
-$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$Mods -join ';')
+$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
 function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interactive) {
     $quoted=$arguments | ForEach-Object {'"'+$_+'"'}
     # Background server/HC helpers stay hidden. The observer is an interactive game client:
@@ -74,8 +90,13 @@ while ((Get-Date) -lt $deadline -and !$server.HasExited) {
 }
 if (!$ready) {throw "Server did not reach WAIT audit readiness. Inspect $runtime; processes have been left available for inspection."}
 $processes=@($server.Id)
+if ($ServerOnly) {
+    @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
+    Write-Output "WAIT danger loader diagnostic entered WAIT_Audit.VR server-side. Runtime: $runtime"
+    return
+}
 for ($i=1; $i -le $HeadlessClients; $i++) {
-    $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),$modArg)
+    $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),"-name=WAIT_HC$i",$modArg)
     $processes+=$hc.Id
 }
 $clientProfile=Join-Path $runtime 'client'
@@ -93,4 +114,17 @@ $clientConfig=Join-Path $clientProfile 'Arma3.cfg'
 $client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
 $processes+=$client.Id
 @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
-Write-Output "WAIT batch launched. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Confirm VR entry and addon initialization in RPT. Runtime: $runtime"
+$clientDeadline=(Get-Date).AddSeconds($ClientReadyTimeoutSeconds)
+$observerReady=$false
+while ((Get-Date) -lt $clientDeadline -and !$client.HasExited -and !$server.HasExited) {
+    $logs=Get-ChildItem $serverProfile -Filter '*.rpt' -Recurse -ErrorAction SilentlyContinue
+    foreach ($log in $logs) {
+        if (Select-String -LiteralPath $log.FullName -SimpleMatch 'WAIT AUDIT OBSERVER ZEUS READY' -Quiet) {$observerReady=$true; break}
+    }
+    if ($observerReady) {break}
+    Start-Sleep -Seconds 1
+}
+if (!$observerReady) {
+    throw "Client did not enter WAIT_Audit.VR with observer Zeus within $ClientReadyTimeoutSeconds seconds. Inspect $runtime; this batch is not valid and its processes have been left available for inspection."
+}
+Write-Output "WAIT batch entered WAIT_Audit.VR. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"

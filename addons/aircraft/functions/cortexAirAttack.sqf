@@ -9,7 +9,10 @@
  * It flies physical route legs, presents the live target only to the retained weapon operator, records real
  * non-countermeasure shots and requests finite approach/departure countermeasures. Every pattern
  * uses a compatible loaded weapon and opens fire only inside a live range and alignment envelope.
- * On attack entry the selected living operator receives one native reveal/target instruction.
+ * On attack entry an independently aimed turret, helicopter pilot weapon or air-to-air operator
+ * receives one native target instruction using only knowledge the aircraft group already possessed
+ * when the finite plan was selected. A fixed-wing pilot surface station relies on the attached
+ * native DESTROY order so WAIT does not create a second ATTACK movement owner.
  * Fixed-wing pilots prosecute the object-attached native attack order. Once the live delivery basket
  * is valid, Cortex issues one bounded native doFire request to the selected pilot; independently
  * aimed turrets use fireAtTarget. This joins route geometry to the engine's weapon FSM instead of
@@ -94,16 +97,11 @@ private _finish={
         if (!isNull _finishPilot && {alive _finishPilot}) then {
             {_finishPilot enableAI _x} forEach (_job getOrDefault ["lateralPilotFeatures",[]]);
         };
-        // Direct Zeus input owns the aircraft immediately. Retire only Cortex target commands,
-        // restore the native attack policy, reselect the authenticated waypoint and leave. A timed
+        // Direct Zeus input owns the aircraft immediately. Do not clear target or watch state here:
+        // the curator or external controller may have replaced it before this scheduled cleanup ran.
+        // Restore the native attack policy, reselect the authenticated waypoint and leave. A timed
         // guard was observed to suppress the new route for 90 seconds and violated this boundary.
         if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {
-            {if (alive _x && {!isPlayer _x}) then {_x doTarget objNull; _x doWatch objNull}}
-                forEach crew _aircraft;
-            // commandTarget and doFollow are unit commands. Applying either to the crew array
-            // silently fails, leaving a native attack target or post-run formation command behind
-            // after Zeus has taken ownership.
-            {if (alive _x && {!isPlayer _x}) then {_x commandTarget objNull}} forEach crew _aircraft;
             private _handoverPilot=driver _aircraft;
             private _handoverGroup=group _handoverPilot;
             private _snapshot=_handoverGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
@@ -160,6 +158,21 @@ private _finish={
                 behaviour _handoverPilot,unitCombatMode _handoverPilot,currentCommand _handoverPilot,
                 "ZEUS_IMMEDIATE_HANDOVER",expectedDestination _handoverPilot
             ],true];
+        };
+        // On an ordinary finite end, retire only the exact hostile WAIT assigned and only while no
+        // player, curator or specialist has claimed the group. A newer target survives cleanup.
+        if (!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"])) then {
+            private _ownedTarget=_job getOrDefault ["fireTarget",objNull];
+            private _cleanupExternal=[_finishGroup] call WAIT_fnc_CortexExternalTakeover
+                || {[_finishGroup] call WAIT_fnc_CortexZeusHeld};
+            if (!_cleanupExternal && {!isNull _ownedTarget}) then {
+                {
+                    if (alive _x && {!isPlayer _x} && {assignedTarget _x isEqualTo _ownedTarget}) then {
+                        _x doTarget objNull;
+                        _x doWatch objNull;
+                    };
+                } forEach crew _aircraft;
+            };
         };
         if (_resume) then {
             private _resumePosition=_job getOrDefault ["resumePosition",[]];
@@ -610,18 +623,23 @@ if (_stage == "ATTACK") then {
     private _operator=if (_turret isEqualTo [-1]) then {_pilot} else {_aircraft turretUnit _turret};
     private _fireTarget=_job getOrDefault ["fireTarget",_target];
     if (isNull _fireTarget) then {_fireTarget=_target};
-    // Select and acquire once at attack entry. Targeting lets the native FSM begin aligning, but
-    // weapon release remains behind the live delivery basket below.
-    if (_weapon != "") then {_aircraft selectWeaponTurret [_weapon,_turret]};
+    private _pilotSurfaceStation=_isPlane && {!_airContact} && {_turret isEqualTo [-1]};
+    // Select the retained station once for this attack phase. Re-selecting it on every scheduler
+    // callback restarts native weapon handling while the pilot or gunner is still acquiring the
+    // same target, producing the observed pause/fire/pause cycle and refused releases.
+    if (_weapon != "" && {!(_job getOrDefault ["weaponSelected",false])}) then {
+        _aircraft selectWeaponTurret [_weapon,_turret];
+        _job set ["weaponSelected",true];
+    };
     if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {
-        // A MOVE leg alone never asks the engine weapon FSM to prosecute the contact. Reveal only
-        // the already selected hostile at attack entry, then let the retained operator and native
-        // flight model solve the shot. This runs once and is cleared during every handover path.
-        _group reveal [_fireTarget,4];
-        _aircraft doWatch _fireTarget;
-        _aircraft doTarget _fireTarget;
-        _operator doWatch _fireTarget;
-        _operator doTarget _fireTarget;
+        // The object-attached DESTROY waypoint is already the fixed-wing pilot's native attack
+        // owner. A duplicate doTarget on that pilot can replace the committed run with ATTACK pursuit
+        // and produce a circle before release. Turrets, helicopters and air-to-air engagements do
+        // not have that surface-run association, so their actual operator receives one target order.
+        if (!_pilotSurfaceStation) then {
+            _operator doWatch _fireTarget;
+            _operator doTarget _fireTarget;
+        };
         _job set ["targetCommanded",true];
     };
     private _range=_aircraft distance _target;
@@ -764,10 +782,21 @@ if (_stage == "ATTACK") then {
     // path; no projectile is created, steered or corrected here.
     private _requestAt=_job getOrDefault ["fireRequestAt",-1];
     private _requestShotBaseline=_job getOrDefault ["fireRequestShotBaseline",-1];
-    private _requestPending=_requestAt >= 0 && {_shots <= _requestShotBaseline}
-        && {serverTime < _requestAt+0.35};
-    private _pilotSurfaceRelease=_isPlane && {!_airContact} && {_turret isEqualTo [-1]};
-    if (_validSolution && {_pilotSurfaceRelease} && {!_requestPending}
+    private _requestProducedShot=_requestAt >= 0 && {_shots > _requestShotBaseline};
+    if (_requestProducedShot) then {
+        _job set ["fireRequestAttempts",0];
+    };
+    // A native doFire/fireAtTarget request is asynchronous. Give the operator three seconds to
+    // accept or refuse it instead of submitting the same command every scheduler pass. Permit at
+    // most one no-shot retry during this delivery; real Fired events reset the counter so a finite
+    // rocket ripple or gun burst can continue without command spam.
+    private _requestAttempts=_job getOrDefault ["fireRequestAttempts",0];
+    private _requestPending=_requestAt >= 0 && {!_requestProducedShot}
+        && {serverTime < _requestAt+3};
+    private _requestAvailable=_requestProducedShot || {_requestAt < 0}
+        || {!_requestPending && {_requestAttempts < 2}};
+    private _pilotSurfaceRelease=_pilotSurfaceStation;
+    if (_validSolution && {_pilotSurfaceRelease} && {_requestAvailable}
         && {serverTime >= (_job getOrDefault ["nextWeaponFire",0])}) then {
         // The attached DESTROY waypoint establishes the run but does not consistently ask a
         // pilot-operated fixed station to release. Request native fire once; a Fired event remains
@@ -777,6 +806,7 @@ if (_stage == "ATTACK") then {
             _deliveryAlong,_deliveryTerrainClear,waypointType [_group,currentWaypoint _group]]];
         _job set ["fireRequestAt",serverTime];
         _job set ["fireRequestShotBaseline",_shots];
+        _job set ["fireRequestAttempts",[1,_requestAttempts+1] select !_requestProducedShot];
         private _pilotFireDelay=switch _weaponClass do {
             case "GUN": {0.18+random 0.22};
             case "ROCKET": {0.5+random 0.5};
@@ -785,7 +815,7 @@ if (_stage == "ATTACK") then {
         };
         _job set ["nextWeaponFire",serverTime+_pilotFireDelay];
     };
-    if (_validSolution && {!_pilotSurfaceRelease} && {!_requestPending}
+    if (_validSolution && {!_pilotSurfaceRelease} && {_requestAvailable}
         && {serverTime >= (_job getOrDefault ["nextWeaponFire",0])}) then {
         // One native request at a time for an independently aimed turret. Fixed-wing pilots are
         // already controlled by the native attached DESTROY order above.
@@ -796,6 +826,7 @@ if (_stage == "ATTACK") then {
         if (_fired) then {
             _job set ["fireRequestAt",serverTime];
             _job set ["fireRequestShotBaseline",_shots];
+            _job set ["fireRequestAttempts",[1,_requestAttempts+1] select !_requestProducedShot];
         };
         private _fireDelay=if (!_fired) then {0.7+random 0.8} else {
             switch _weaponClass do {
@@ -897,6 +928,10 @@ switch _stage do {
             _stage="ATTACK";
             ["ATTACK"] call _setOperationPhase;
             _job set ["commandedStage",""];
+            _job set ["weaponSelected",false];
+            _job set ["fireRequestAt",-1];
+            _job set ["fireRequestShotBaseline",-1];
+            _job set ["fireRequestAttempts",0];
             _job set ["deadline",serverTime+50];
             _job set ["attackStartedAt",serverTime];
             _job set ["attackShotBaseline",_shots];

@@ -33,7 +33,7 @@ try {
     if ($LASTEXITCODE) { throw 'FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
     if ($LASTEXITCODE) { throw 'Danger FSM configuration validation failed' }
-    & $Hemtt utils config inspect addons/infantry/fsm/danger.fsm
+    & $Hemtt utils config inspect addons/danger/danger.fsm
     if ($LASTEXITCODE) { throw 'Engine danger FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/groupTactics.fsm
     if ($LASTEXITCODE) { throw 'Group tactics FSM configuration validation failed' }

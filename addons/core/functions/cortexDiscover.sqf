@@ -101,12 +101,12 @@ private _spotters = [];
         // They may remain generally Cortex-eligible for those systems, but must never acquire the
         // generic ground-group loop as a second movement/behaviour owner.
         private _eligible = _groundEligible;
-        private _alternativeLease = _group getVariable ["WAIT_Cortex_AlternativeLease", []];
-        if (_alternativeLease isNotEqualTo []) then {
-            if (serverTime >= (_alternativeLease select 2)) then {
+        private _movementLease = _group getVariable ["WAIT_Cortex_MovementLease", []];
+        if (_movementLease isNotEqualTo []) then {
+            if (count _movementLease != 2 || {serverTime >= (_movementLease select 1)}) then {
                 [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
             } else {
-                [_group,_alternativeLease select 0,true,_alternativeLease select 2] call WAIT_fnc_CortexOwnershipLease;
+                [_group,_movementLease select 0,true,_movementLease select 1] call WAIT_fnc_CortexOwnershipLease;
             };
         };
         if (_eligible) then {

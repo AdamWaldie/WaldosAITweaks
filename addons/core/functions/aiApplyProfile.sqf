@@ -193,17 +193,13 @@ if (_operatingCrew && {!_precisionExcluded}) then {
     {
         _unit setSkill [_x, ((_unit skill _x) * _crewMultiplier) max 0 min 1];
     } forEach ["aimingAccuracy", "aimingShake", "aimingSpeed"];
-    if !((["turretPolicy"] call WAIT_fnc_CompatibilityAvailable)) then {
-        private _dispersionSetting=["WAIT_AI_VehicleCrewDispersion","WAIT_AI_AirCrewDispersion"] select (_vehicle isKindOf "Air");
-        private _dispersionDefault=[3.5,4.25] select (_vehicle isKindOf "Air");
-        private _dispersion = ((missionNamespace getVariable [_dispersionSetting, _dispersionDefault]) max 1) min 7;
-        // Better profiles still matter: general skill trims up to 25 percent from the configured
-        // coefficient while never making a crew more precise than the mission's original baseline.
-        private _profileFactor = 1 - (0.25 * (_unit skill "general"));
-        _unit setCustomAimCoef ((_dispersion * _profileFactor) max (_unit getVariable ["WAIT_AI_OriginalAimCoef", 1]));
-    } else {
-        _unit setCustomAimCoef (_unit getVariable ["WAIT_AI_OriginalAimCoef", 1]);
-    };
+    private _dispersionSetting=["WAIT_AI_VehicleCrewDispersion","WAIT_AI_AirCrewDispersion"] select (_vehicle isKindOf "Air");
+    private _dispersionDefault=[3.5,4.25] select (_vehicle isKindOf "Air");
+    private _dispersion = ((missionNamespace getVariable [_dispersionSetting, _dispersionDefault]) max 1) min 7;
+    // Better profiles still matter: general skill trims up to 25 percent from the configured
+    // coefficient while never making a crew more precise than the mission's original baseline.
+    private _profileFactor = 1 - (0.25 * (_unit skill "general"));
+    _unit setCustomAimCoef ((_dispersion * _profileFactor) max (_unit getVariable ["WAIT_AI_OriginalAimCoef", 1]));
 } else {if (!_precisionExcluded) then {
     private _infantryDispersion=((missionNamespace getVariable ["WAIT_AI_InfantryDispersion",1.35]) max 1) min 3;
     _unit setCustomAimCoef ((_infantryDispersion * (1-(0.15*(_unit skill "general")))) max (_unit getVariable ["WAIT_AI_OriginalAimCoef",1]));

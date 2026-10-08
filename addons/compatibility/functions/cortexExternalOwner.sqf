@@ -1,9 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
  * Identifies AI whose movement, animation or combat state belongs to a supported external system.
- * Cortex uses this one read-only gate before any tactic so external controller custom skeletons, zombies,
- * droids, active external controller melee actors and external civilian controller never receive competing commands.
- * Active external controller coordination/transport and external controller movement also reserve their actors.
+ * WAIT uses this one read-only gate before any tactic so specialist skeletons, creatures, droids and
+ * active melee actors never receive competing movement, animation or damage commands.
  * Ordinary infantry remains eligible when those addons are merely loaded.
  *
  * Locality / Authority: read-only and callable anywhere. No public state or addon variable is changed.
@@ -19,22 +18,11 @@
  *
  * Example:
  * private _owner = [_unit] call WAIT_fnc_CortexExternalOwner;
- * Result: "SPECIALIST" for a external controller droid and "" for an ordinary NATO rifleman.
+ * Result: "SPECIALIST" for a specialist droid and "" for an ordinary NATO rifleman.
  */
 
 params [["_unit",objNull,[objNull]]];
 if (isNull _unit) exitWith {""};
-
-// Active-operation markers observed in installed source; owners clear them on release.
-// WAIT never edits or invokes private external state. Presence alone does not veto ordinary AI.
-private _group = group _unit;
-if ((_group getVariable ["PDCO_activeLeaseId", ""]) isNotEqualTo ""
-    || {_group getVariable ["PDCO_garrisonActive", false]}
-    || {_group getVariable ["PDCO_garrisonPending", false]}) exitWith {"PD_CONDUCTOR"};
-private _transports = [vehicle _unit, assignedVehicle _unit] select {!isNull _x && {_x != _unit}};
-if (_transports findIf {(_x getVariable ["PDTB_jobId", ""]) isNotEqualTo ""} >= 0) exitWith {"PD_TRANSPORT"};
-if (_unit getVariable ["smai_ownedMove", false]
-    && {!isNull (_unit getVariable ["smai_pendingTargetGroup", grpNull])}) exitWith {"SMART_MERGE"};
 
 private _config=configOf _unit;
 private _class=typeOf _unit;
@@ -66,8 +54,4 @@ private _meleeBackendActive=!(isNil {_unit getVariable "IMS_IsUnitInvicibleScrip
     || {_animation find "star_wars_fight" == 0};
 if (_meleeBackendActive) exitWith {"MELEE"};
 
-// The installed civilian addon owns all unarmed civilians, including before its scared marker is set.
-if (side group _unit == civilian && {primaryWeapon _unit == ""}
-    && {secondaryWeapon _unit == ""} && {handgunWeapon _unit == ""}
-    && {!(isNil "WBK_CivilianFlee") || {!(isNil {_unit getVariable "WBK_VariableScared"})}}) exitWith {"CIVILIAN_BACKEND"};
 ""

@@ -12,6 +12,10 @@
  * but only while the zero-speed lease remains current and no newer controller has replaced it.
  * Separate passenger groups handle only their own local cargo. Only the operating
  * crew group may order vehicle withdrawal or gunnery; convoy ownership remains excluded.
+ * The operating crew also leases the engine unload-in-combat policy for an ordinary occupied
+ * ground vehicle. This prevents native autonomous unloading from bypassing WAIT's passenger task,
+ * safety and Zeus checks. The exact previous value is restored only while WAIT's applied value is
+ * still current; convoy, external ownership and a newer policy change always win.
  * Dismount: infantry riding as cargo in a ground vehicle get out once an enemy is
  * believed within 400 m, instead of dying inside a truck. They are recorded and ordered back in when
  * the squad returns to CALM (WAIT_fnc_CortexRestoreCalm).
@@ -20,7 +24,16 @@
  * within 800 m, fires its smoke launcher (WAIT_fnc_CortexFireCountermeasure). If the whole squad is
  * mounted, it withdraws towards one of five terrain-checked points roughly 300 m away from the enemy
  * (RETREAT phase, through an inserted waypoint). Each vehicle withdraws once per engagement.
- * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): the AI gunner is pointed at the most dangerous
+ * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): a fresh mounted danger event may orient the exact
+ * affected armed platform and request one safe suppression response against an already known hostile.
+ * A stopped or slow armed vehicle whose primary gunner has been lost may ask an existing dedicated
+ * AI commander to change to that seat once for the exact DETECTED generation. The driver never moves.
+ * An intact armed or armoured platform may also request its own smoke countermeasure once for a
+ * hit, explosion or suppression generation. A slow, crew-only fighting vehicle may make one short,
+ * terrain-checked jink away from a close hostile or severe impact. A stopped tracked fighting vehicle
+ * may instead make one generation-owned chassis turn toward a real known hostile. Convoy, passengers
+ * and any existing movement owner remain authoritative.
+ * During sustained contact the AI gunner is pointed at the most dangerous
  * enemy seen in the last 15 s within 600 m: anti-tank infantry first, then armour, then anything
  * else, nearest first, held for 8 s. A fully mounted tank or APC that knows of an anti-tank soldier
  * within 60% of WAIT_AIPass_Vehicles_StandoffDistance backs off to that distance, at most once a
@@ -42,7 +55,7 @@
  * 2: enemies <ARRAY> - from WAIT_fnc_CortexKnowledge
  *
  * Return Value:
- * Boolean - true while vehicle withdrawal or standoff owns group movement
+ * Boolean - true while vehicle withdrawal, standoff, danger jink or tracked orientation owns group movement
  *
  * Example:
  * [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
@@ -55,18 +68,79 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 private _vehicleMove = _state getOrDefault ["movementLease",[]];
 private _activeVehicleMove = false;
 if (_vehicleMove isNotEqualTo []) then {
-    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF"];
+    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","VEHICLE_ORIENT"];
     if (_vehicleOwnsLease) then {
-        _activeVehicleMove = ((waypoints _group) findIf {
-            (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
-        } >= 0) && {time < (_vehicleMove select 1)};
+        private _movementOwner=_vehicleMove param [0,""];
+        if (_movementOwner == "VEHICLE_ORIENT") then {
+            private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+            private _orientVehicle=_orientState param [1,objNull,[objNull]];
+            private _marker=if (!isNull _orientVehicle) then {
+                _orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]
+            } else {[]};
+            private _targetPosition=_marker param [2,[],[[]]];
+            _activeVehicleMove=count _marker == 5
+                && {_marker param [1,grpNull,[grpNull]] == _group}
+                && {serverTime < (_marker param [3,0,[0]])}
+                && {count _targetPosition >= 2}
+                && {!isNull _orientVehicle} && {alive _orientVehicle} && {canMove _orientVehicle}
+                && {private _relative=_orientVehicle getRelDir _targetPosition; _relative > 20 && {_relative < 340}}
+                && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
+        } else {
+            _activeVehicleMove = ((waypoints _group) findIf {
+                (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
+            } >= 0) && {time < (_vehicleMove select 1)};
+        };
         if (!_activeVehicleMove) then {
+            private _finishedOwner=_vehicleMove param [0,""];
             private _generation=_state getOrDefault ["vehicleOperationGeneration",-1];
             if (_generation >= 0) then {
-                [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                if (_finishedOwner == "VEHICLE_ORIENT") then {
+                    private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+                    private _orientVehicle=_orientState param [1,objNull,[objNull]];
+                    private _orientMarker=if (!isNull _orientVehicle) then {
+                        _orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]
+                    } else {[]};
+                    private _targetPosition=_orientMarker param [2,[],[[]]];
+                    private _aligned=!isNull _orientVehicle && {count _targetPosition >= 2}
+                        && {private _relative=_orientVehicle getRelDir _targetPosition;
+                            _relative <= 20 || {_relative >= 340}};
+                    if ([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                        [_group,_generation,"EXTERNAL_OWNER"] call WAIT_fnc_OperationCancel;
+                    } else {
+                        [_group,_generation,["INCOMPLETE","COMPLETE"] select _aligned,
+                            ["VEHICLE_ORIENT_TIMEOUT","VEHICLE_ORIENT_ALIGNED"] select _aligned]
+                            call WAIT_fnc_OperationRelease;
+                    };
+                } else {
+                    [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                };
                 _state deleteAt "vehicleOperationGeneration";
             };
-            [_group,_vehicleMove param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
+            if (_finishedOwner == "VEHICLE_JINK") then {
+                private _jinkState=_state getOrDefault ["vehicleDangerJink",[]];
+                private _jinkVehicle=_jinkState param [1,objNull,[objNull]];
+                if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+                    private _marker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+                    if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                        _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+                    };
+                };
+            };
+            if (_finishedOwner == "VEHICLE_ORIENT") then {
+                private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+                private _orientVehicle=_orientState param [1,objNull,[objNull]];
+                if (!isNull _orientVehicle && {local _orientVehicle}) then {
+                    private _marker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+                    if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                        if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                            _orientVehicle sendSimpleCommand "STOPTURNING";
+                        };
+                        _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+                    };
+                };
+                _state deleteAt "vehicleDangerOrient";
+            };
+            [_group,_finishedOwner,false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };
     } else {
@@ -83,6 +157,35 @@ private _vehicles = [];
     private _vehicle = vehicle _x;
     if (_vehicle != _x && {alive _x} && {!(_vehicle in _vehicles)} ) then {_vehicles pushBack _vehicle};
 } forEach units _group;
+private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;
+private _unloadPolicyVehicles=[];
+if (!_externalTakeover
+    && {[_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+    && {[_group,"WAIT_AIPass_VehicleDismount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
+    _unloadPolicyVehicles=_vehicles select {
+        private _vehicle=_x;
+        local _vehicle && {_vehicle isKindOf "LandVehicle"} && {!(_vehicle isKindOf "StaticWeapon")}
+            && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+            && {effectiveCommander _vehicle in units _group}
+            && {(fullCrew [_vehicle,"",false]) findIf {
+                private _unit=_x select 0;
+                private _role=_x select 1;
+                alive _unit && {!isPlayer _unit}
+                    && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
+            } >= 0}
+    };
+};
+// Reconcile the public tracked set before any early return. This also releases a vehicle whose
+// commander dismounted, whose passengers left, which entered convoy control, or whose feature gate
+// closed. External takeover clears proof without restoring a value into the new owner's task.
+{
+    if (local _x && {!(_x in _unloadPolicyVehicles)}) then {
+        [_x,_group,"RELEASE",!_externalTakeover] call WAIT_fnc_CortexVehicleUnloadPolicy;
+    };
+} forEach +(_group getVariable ["WAIT_Cortex_UnloadPolicyVehicles",[]]);
+{
+    [_x,_group,"ACQUIRE"] call WAIT_fnc_CortexVehicleUnloadPolicy;
+} forEach _unloadPolicyVehicles;
 if (_vehicles isEqualTo []) exitWith {_movementOwned};
 // Vehicle contact work can select an escape route or rank targets before it reaches the local
 // crew command. A newer curator, player or specialist owner must win at that point rather than
@@ -90,6 +193,7 @@ if (_vehicles isEqualTo []) exitWith {_movementOwned};
 private _mayIssueVehicle = {
     !([_group] call WAIT_fnc_CortexExternalTakeover)
 };
+if (_externalTakeover) exitWith {_movementOwned};
 if !([] call _mayIssueVehicle) exitWith {_movementOwned};
 // Shared dismount path for identified contact and a bounded targetless danger lease. It owns only
 // the stop request and local passenger exit. It never creates target knowledge or vehicle movement.
@@ -188,10 +292,158 @@ private _dismountAtThreat = {
     };
 } forEach _vehicles;
 private _dangerDismount=_state getOrDefault ["dangerDismount",[]];
-if (count _dangerDismount == 2) then {
-    _dangerDismount params ["_dangerPosition","_dangerExpiry"];
-    if (time < _dangerExpiry) then {
-        {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _vehicles;
+if (_dangerDismount isNotEqualTo []) then {
+    if (count _dangerDismount == 7) then {
+        _dangerDismount params ["_dangerPosition","_dangerExpiry","_dangerProfile","_dangerCause",
+            "_dangerVehicle","_dangerSource","_dangerGeneration"];
+        // The current danger producer always carries the exact occupied platform. Never recover a
+        // stale or malformed record by widening it to every vehicle in the group: one engine event
+        // must not stop, unload, abandon or turn unrelated platforms in a mixed vehicle element.
+        if (time < _dangerExpiry && {!isNull _dangerVehicle} && {_dangerVehicle in _vehicles}) then {
+            private _affectedVehicles=[_dangerVehicle];
+            private _dangerHostile=!isNull _dangerSource && {alive _dangerSource}
+                && {(side _group) getFriend (side _dangerSource) < 0.6}
+                && {(units _group) findIf {_x knowsAbout _dangerSource > 0} >= 0};
+            // Targetless damage and incoming rounds justify passenger safety. Other vehicle danger
+            // causes may unload only when they retain a real hostile already known by this group.
+            // Merely classifying a mounted callback never fabricates a contact or empties a carrier.
+            if (_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]
+                && {_dangerCause in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"] || {_dangerHostile}}) then {
+                {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _affectedVehicles;
+            };
+            {
+                private _vehicle=_x;
+                private _knownCloseThreat=_dangerHostile
+                    && {_vehicle distance2D _dangerSource < 25};
+                private _emplacementUnsafe=_dangerProfile in ["STATIC","ARTILLERY"]
+                    && {!someAmmo _vehicle || {_knownCloseThreat}}
+                    && {!(_vehicle isKindOf "Tank" && {count (allTurrets [_vehicle,false]) > 1})};
+                private _disabledUnsafe=!(_vehicle isKindOf "StaticWeapon")
+                    && {_dangerCause in ["HIT","EXPLOSION"]}
+                    && {!canMove _vehicle || {damage _vehicle >= 0.85}};
+                if ((_emplacementUnsafe || {_disabledUnsafe}) && {local _vehicle} && {[] call _mayIssueVehicle}) then {
+                    // Abandon only the exact locally owned platform which generated the response. This
+                    // is a terminal crew-safety action, not the ordinary passenger contact dismount:
+                    // a mobile useful gun retains its route and crew, while an empty emplacement, a
+                    // close overrun or a disabled wreck releases its own living AI occupants.
+                    {
+                        if (alive _x && {local _x} && {!isPlayer _x} && {group _x == _group}) then {
+                            [_x] orderGetIn false;
+                            unassignVehicle _x;
+                            doGetOut _x;
+                        };
+                    } forEach crew _vehicle;
+                    _vehicle setVariable ["WAIT_Danger_AbandonReason",
+                        [["DISABLED","EMPLACEMENT"] select _emplacementUnsafe,_dangerCause,serverTime],true];
+                };
+                // An intact armed platform should not sit inert while its effective commander already
+                // knows the hostile which caused this exact native danger response. Orient and request
+                // one bounded suppression action, but retain the current route, speed and waypoint.
+                // The generation record prevents the shared scheduler from repeating the command every
+                // contact tick; ordinary native/WAIT gunnery owns subsequent target decisions.
+                private _reaction=_state getOrDefault ["vehicleDangerReaction",[]];
+                private _gunner=gunner _vehicle;
+                private _crewRecovery=_state getOrDefault ["vehicleDangerCrewRecovery",[]];
+                private _freshCrewRecovery=_dangerGeneration >= 0
+                    && {_crewRecovery param [0,-2,[0]] != _dangerGeneration};
+                if (_freshCrewRecovery && {_dangerHostile}
+                    && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}) then {
+                    private _crewRecoveryIssued=[_group,_vehicle,_dangerSource,_dangerCause,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleCrewRecover;
+                    // Record both acceptance and refusal for this generation. An impossible seat
+                    // change must not be reconsidered every scheduler tick during the same danger.
+                    _state set ["vehicleDangerCrewRecovery",
+                        [_dangerGeneration,_vehicle,_crewRecoveryIssued,serverTime]];
+                    if (_crewRecoveryIssued) then {_gunner=gunner _vehicle};
+                };
+                private _knownHostile=_dangerHostile
+                    && {!isNull _gunner} && {alive _gunner} && {local _gunner} && {!isPlayer _gunner}
+                    && {(effectiveCommander _vehicle) in units _group}
+                    && {(effectiveCommander _vehicle) knowsAbout _dangerSource > 0}
+                    && {_dangerProfile in ["STATIC","ARMED","ARMOURED"]};
+                private _freshGeneration=_dangerGeneration >= 0
+                    && {_reaction param [0,-2,[0]] != _dangerGeneration};
+                // Defensive smoke is independent from the gunner response: consuming one must not
+                // suppress the other. Record the generation even when no compatible loaded launcher
+                // exists, so a two-second danger lease cannot repeat the same inventory/config scan.
+                // BLUE/GREEN, convoy, player, Zeus and specialist ownership remain authoritative.
+                private _countermeasureReaction=_state getOrDefault ["vehicleDangerCountermeasure",[]];
+                private _freshCountermeasureGeneration=_dangerGeneration >= 0
+                    && {_countermeasureReaction param [0,-2,[0]] != _dangerGeneration};
+                if (_freshCountermeasureGeneration
+                    && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {combatMode _group in ["YELLOW","RED"]}
+                    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                    && {[] call _mayIssueVehicle}) then {
+                    private _countermeasureFired=[_vehicle] call WAIT_fnc_CortexFireCountermeasure;
+                    _state set ["vehicleDangerCountermeasure",[_dangerGeneration,_vehicle,_countermeasureFired,serverTime]];
+                    _vehicle setVariable ["WAIT_Danger_VehicleCountermeasure",
+                        [_dangerGeneration,effectiveCommander _vehicle,_dangerSource,serverTime,_countermeasureFired],true];
+                };
+                // A close hostile or severe incoming danger may justify one short escape by an
+                // otherwise intact fighting vehicle. The helper owns one 25-second operation and
+                // refuses convoys, passengers, foot elements and any existing movement owner.
+                private _jink=_state getOrDefault ["vehicleDangerJink",[]];
+                private _freshJinkGeneration=_dangerGeneration >= 0
+                    && {_jink param [0,-2,[0]] != _dangerGeneration};
+                if (_freshJinkGeneration && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {_dangerCause in ["HIT","EXPLOSION"] || {_knownCloseThreat}}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}) then {
+                    private _jinkStarted=[_group,_state,_vehicle,_dangerPosition,_dangerSource,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleJink;
+                    _state set ["vehicleDangerJink",[_dangerGeneration,_vehicle,_jinkStarted,serverTime]];
+                    if (_jinkStarted) then {_movementOwned=true};
+                };
+                // A stopped tracked fighting vehicle can turn its hull toward the exact known
+                // hostile without receiving a destination. This runs after the more urgent escape
+                // decision: a jink or any other movement owner refuses the orientation operation.
+                private _orient=_state getOrDefault ["vehicleDangerOrient",[]];
+                private _freshOrientGeneration=_dangerGeneration >= 0
+                    && {_orient param [0,-2,[0]] != _dangerGeneration};
+                if (_freshOrientGeneration && {_knownHostile} && {_dangerProfile == "ARMOURED"}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {_dangerCause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE","SUPPRESSED"]}) then {
+                    private _orientStarted=[_group,_state,_vehicle,_dangerPosition,_dangerSource,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleOrient;
+                    _state set ["vehicleDangerOrient",[_dangerGeneration,_vehicle,_orientStarted,serverTime]];
+                    if (_orientStarted) then {_movementOwned=true};
+                };
+                // A useful static mortar answers the same real, known hostile through the finite
+                // artillery mission owner. The server revalidates locality, knowledge, allegiance,
+                // ammunition, range and friendly safety; this call never fires a shell directly.
+                // Recording the generation before dispatch prevents one danger event from queuing
+                // repeatedly while the server accepts or rejects the request.
+                if (_dangerProfile == "ARTILLERY" && {_dangerHostile} && {_freshGeneration}
+                    && {_vehicle isKindOf "StaticMortar"} && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {[_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {combatMode _group in ["YELLOW","RED"]}
+                    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                    && {[] call _mayIssueVehicle}) then {
+                    _state set ["vehicleDangerReaction",[_dangerGeneration,_vehicle,_dangerSource,serverTime]];
+                    _vehicle setVariable ["WAIT_Danger_VehicleReaction",[_dangerGeneration,_gunner,_dangerSource,serverTime],true];
+                    [_vehicle,+_dangerPosition,25,"HE",1,false,"DANGER",objNull,_dangerSource] call WAIT_fnc_CortexArtilleryFire;
+                };
+                if (_knownHostile && {_freshGeneration} && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {[_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {combatMode _group in ["YELLOW","RED"]}
+                    && {unitCombatMode _gunner in ["YELLOW","RED"]}
+                    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                    && {[] call _mayIssueVehicle}) then {
+                    private _aimPosition=aimPos _dangerSource;
+                    if ([_gunner,_aimPosition] call WAIT_fnc_CortexLineOfFireClear) then {
+                        _gunner doWatch _dangerSource;
+                        _gunner doSuppressiveFire _aimPosition;
+                        _state set ["vehicleDangerReaction",[_dangerGeneration,_vehicle,_dangerSource,serverTime]];
+                        _vehicle setVariable ["WAIT_Danger_VehicleReaction",[_dangerGeneration,_gunner,_dangerSource,serverTime],true];
+                    };
+                };
+            } forEach _affectedVehicles;
+        } else {
+            _state deleteAt "dangerDismount";
+        };
     } else {
         _state deleteAt "dangerDismount";
     };

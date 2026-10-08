@@ -4,7 +4,8 @@
  * Locality / Authority: Runs only on the group owner and commands only local on-foot AI. It yields to Zeus,
  * player control, active combat movement and any detected specialist medical owner.
  * Repeat / JIP: The public operation generation and small aid record are rechecked every group tick. A new owner
- * cancels the old operation rather than resuming a stale treatment command.
+ * cancels the old operation rather than resuming a stale treatment command. Approach movement has
+ * one native doMove owner and is refreshed only after measured no-progress or an empty command.
  * Arguments:
  * 0: group <GROUP>
  * 1: state <HASHMAP> - current Cortex group state.
@@ -23,8 +24,7 @@ params [
 if (isNull _group || {!local _group}
     || {!([_group,"WAIT_AIPass_MedicalAssist_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {[_group] call WAIT_fnc_CortexZeusHeld}
-    || {[_group] call WAIT_fnc_CompatibilityExternalControl}
-    || {(["medicalBackend"] call WAIT_fnc_CompatibilityAvailable)}) exitWith {false};
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 
 private _finish = {
     params ["_result","_reason"];
@@ -96,12 +96,14 @@ if (_aid isNotEqualTo []) exitWith {
     };
     if (time-_lastOrderAt >= 8 && {call _mayIssueMedical}) then {
         if (_distance > 4) then {
-            _medic doMove getPosATL _casualty;
-            _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
+            if (currentCommand _medic in ["","STOP"] || {time-_lastProgressAt >= 8}) then {
+                _medic doMove getPosATL _casualty;
+                _aid set [4,time];
+            };
         } else {
             _medic action ["HealSoldier",_casualty];
+            _aid set [4,time];
         };
-        _aid set [4,time];
         _aid set [5,_bestDistance];
         _aid set [6,_lastProgressAt];
         _group setVariable ["WAIT_Cortex_MedicalAid",_aid,true];
@@ -154,7 +156,6 @@ if !(call _mayIssueMedical) exitWith {
 };
 if (_best > 4) then {
     _medic doMove getPosATL _casualty;
-    _medic setDestination [getPosATL _casualty,"LEADER PLANNED",true];
 } else {
     _medic action ["HealSoldier",_casualty];
 };

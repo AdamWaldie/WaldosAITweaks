@@ -1,7 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Restores recorded formation, attack permission, vehicle speed, unload settings and exact external controller
- * per-vehicle baselines; cancels only follower paths. A speed baseline is restored only when the
+ * Restores recorded formation, attack permission, vehicle speed and unload settings; cancels only follower paths. A speed baseline is restored only when the
  * vehicle is leaving WAIT control, WAIT still owns the current cap and no newer controller owns it.
  * Locality/authority: server owns registration; driving commands execute only on current owners.
  * Repeat/JIP: ordered registry snapshots replace old settings; owner-local paths rebuild on migration.
@@ -42,7 +41,7 @@ if (_restore isNotEqualTo []) then {
         _group enableAttack _attack;
     };
     {
-        _x params ["_vehicle", "_speed", "_unload", ["_drivingRestore",[],[[]]]];
+        _x params ["_vehicle", "_speed", "_unload"];
         if (_forget && {isServer} && {!(_vehicle in _keepCrew)} && {(_vehicle getVariable ["WAIT_Convoy_Group", grpNull]) == _group}) then {
             _vehicle setVariable ["WAIT_Convoy_Group", nil, true];
             _vehicle setVariable ["WAIT_Convoy_Active", nil, true];
@@ -62,12 +61,6 @@ if (_restore isNotEqualTo []) then {
             private _hitEH = _vehicle getVariable ["WAIT_Convoy_HitEH", -1];
             if (_hitEH >= 0) then {_vehicle removeEventHandler ["Hit", _hitEH]};
             _vehicle setVariable ["WAIT_Convoy_HitEH", nil];
-            if (_forget && {isServer} && {_drivingRestore isNotEqualTo []}) then {
-                (_drivingRestore select 0) params ["_hadPause","_pause"];
-                (_drivingRestore select 1) params ["_hadCrew","_crew"];
-                if (_hadPause) then {[_vehicle,"drivingPause",_pause,true,true] call WAIT_fnc_CompatibilityState} else {[_vehicle,"drivingPause",nil,true,true] call WAIT_fnc_CompatibilityState};
-                if (_hadCrew) then {[_vehicle,"drivingCrewReturn",_crew,true,true] call WAIT_fnc_CompatibilityState} else {[_vehicle,"drivingCrewReturn",nil,true,true] call WAIT_fnc_CompatibilityState};
-            };
         };
         if (local _vehicle) then {
             private _driver = driver _vehicle;

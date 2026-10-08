@@ -68,7 +68,7 @@ private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
     [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
 };
 private _dangerFsmOwned=_dangerFsmPaths findIf {
-    (_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0
+    (_x select 1) find "z\wait\danger\danger.fsm" < 0
 } < 0;
 missionNamespace setVariable ["WAIT_AIPass_DangerOwnershipConflict",[[],_dangerFsmPaths] select !_dangerFsmOwned];
 if (!_dangerFsmOwned) exitWith {
@@ -174,14 +174,13 @@ if !(missionNamespace getVariable ["WAIT_AIPass_DiscoveryQueued", false]) then {
     [WAIT_fnc_CortexDiscover, createHashMap, 1] call WAIT_fnc_CortexQueueJob;
 };
 
-diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 dangerFSM=WAIT alternativeBackend=%7 meleeBackend=%8 specialistBackend=%9).",
+diag_log format ["[WAIT] Started on %1 (contact=%2 flank=%3 regroup=%4 artillery=%5 airborne=%6 dangerFSM=WAIT meleeBackend=%7 specialistBackend=%8).",
     ["headless client", "server"] select isServer,
     missionNamespace getVariable ["WAIT_AIPass_Contact_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Flank_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true],
     missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false],
     missionNamespace getVariable ["WAIT_AIPass_Airborne_Enable", false],
-    missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],
     missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],
     missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false]
 ];

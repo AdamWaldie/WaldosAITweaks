@@ -6,8 +6,10 @@
  * Phase changes place only the protected human observer near the fixture on its owner; AI is never relocated.
  * Arguments: None. WAIT_CortexQA_Focus selects the staged batch; airskills runs aircraft and
  * AI-profile/vehicle-crew mechanics together, while supportflows runs coordinated manoeuvre plus
- * combined-arms composition in one process without unrelated feature suites. terrain runs a
- * measured-relief prerequisite and physical infantry, vehicle and defence traversal batch.
+ * combined-arms composition in one process without unrelated feature suites. dangerload is the short
+ * packaged engine-FSM gate; dangerparity batches immediate contact, tactical selection and vehicle
+ * danger responses. terrain runs a measured-relief prerequisite and physical infantry, vehicle and
+ * defence traversal batch.
  * Return: Nothing (scheduled script).
  * Current callers: staged audit continuation. Example: [] execVM "cortexQAServer.sqf";
  */
@@ -31,7 +33,7 @@ private _phase = {
     missionNamespace setVariable ["WAIT_CortexQA_Phase",[_title,_expected,_position,serverTime],true];
     sleep 8;
 };
-private _readyUntil = diag_tickTime + 120;
+private _readyUntil = diag_tickTime + ([120,5] select (_focus == "dangerload"));
 waitUntil {sleep 0.5; missionNamespace getVariable ["WAIT_CortexQA_GuideReady",false] || {diag_tickTime > _readyUntil}};
 private _check = {params ["_id","_ok",["_detail",""]]; diag_log format ["WAIT CORTEX QA|%1|%2|%3",_id,["FAIL","PASS"] select _ok,_detail]; if (!_ok) then {_failures pushBack _id}; private _results = missionNamespace getVariable ["WAIT_CortexQA_Results",[]]; _results pushBack [_id,["FAIL","PASS"] select _ok]; missionNamespace setVariable ["WAIT_CortexQA_Results",_results,true]};
 [_check] call compile preprocessFileLineNumbers "cortexQAAddon.sqf";
@@ -45,6 +47,7 @@ if (_failures isNotEqualTo []) exitWith {
 };
 private _wait = {params ["_condition",["_seconds",15]]; private _until = diag_tickTime + _seconds; waitUntil {sleep 0.2; call _condition || {diag_tickTime >= _until}}; call _condition};
 private _saved = createHashMapFromArray (([] call WAIT_fnc_CortexTuningSpec) apply {[_x select 0,missionNamespace getVariable [_x select 0,_x select 5]]});
+if (_focus == "dangerload") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQADangerLoad.sqf"};
 if (_focus == "terrain") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATerrain.sqf"};
 private _group = grpNull;
 private _house = objNull;
@@ -415,6 +418,76 @@ missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",nil];
 [_spotter,false] call WAIT_fnc_CortexSetSpotter;
 deleteVehicle _spotter;
 deleteGroup _spotterGroup;
+// A useful static mortar must react through the same finite mission FSM even while optional
+// squad-requested artillery is disabled. The hostile fires real rounds and must be acquired
+// naturally; no reveal, target assignment or direct fire request is injected by the fixture.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleGunnery_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+private _dangerEnemyGroup=createGroup [west,true];
+_dangerEnemyGroup setCombatMode "RED";
+private _dangerEnemy=_dangerEnemyGroup createUnit ["B_Soldier_F",[6900,6000,0],[],0,"NONE"];
+_dangerEnemy allowDamage false;
+{_x allowDamage false} forEach crew _gun;
+_dangerEnemy setDir 270;
+_dangerEnemy setSkill ["aimingAccuracy",0.05];
+_dangerEnemy setSkill ["aimingShake",0.05];
+_dangerEnemy setVariable ["WAIT_CortexQA_Shots",0,true];
+_dangerEnemy addEventHandler ["Fired",{
+    params ["_unit"];
+    _unit setVariable ["WAIT_CortexQA_Shots",(_unit getVariable ["WAIT_CortexQA_Shots",0])+1,true];
+}];
+_gun setVariable ["WAIT_CortexQA_Shots",0];
+_gun setVariable ["WAIT_AIPass_NextDangerFire",nil,true];
+missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",[]];
+private _dangerRedHandler=addMissionEventHandler ["ProjectileCreated",{
+    params ["_projectile"];
+    if (typeOf _projectile == "SmokeShellRed") then {
+        private _events=missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]];
+        _events pushBack [time,_projectile];
+        missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",_events];
+    };
+}];
+private _dangerFirstShot=-1;
+private _dangerShotHandler=_gun addEventHandler ["Fired",{
+    params ["_gun"];
+    if ((_gun getVariable ["WAIT_CortexQA_DangerFirstShot",-1]) < 0) then {
+        _gun setVariable ["WAIT_CortexQA_DangerFirstShot",time,true];
+    };
+}];
+_gun setVariable ["WAIT_CortexQA_DangerFirstShot",-1,true];
+["Danger mortar: finite self-defence","The hostile fires naturally at the useful mortar. The crew must retain the emplacement, acquire the attacker, enter one finite DANGER mission, receive the lethal-burst red warning, fire one real HE round and release without enabling optional artillery support.",[6500,6000,0]] call _phase;
+private _dangerFireUntil=time+12;
+while {time < _dangerFireUntil && {alive _dangerEnemy}} do {
+    _dangerEnemy doWatch gunner _gun;
+    _dangerEnemy doTarget gunner _gun;
+    _dangerEnemy doFire gunner _gun;
+    sleep 1;
+};
+private _dangerEnemyFired=(_dangerEnemy getVariable ["WAIT_CortexQA_Shots",0]) > 0;
+["DANGER-MORTAR-real-hostile-fire",_dangerEnemyFired,str (_dangerEnemy getVariable ["WAIT_CortexQA_Shots",0])] call _check;
+private _dangerKnown=[{effectiveCommander _gun knowsAbout _dangerEnemy > 0},20] call _wait;
+["DANGER-MORTAR-natural-knowledge",_dangerKnown,str (effectiveCommander _gun knowsAbout _dangerEnemy)] call _check;
+private _dangerMission=[{
+    private _mission=(missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]) getOrDefault [netId _gun,createHashMap];
+    count _mission > 0 && {(_mission getOrDefault ["purpose",""]) == "DANGER"}
+},30] call _wait;
+["DANGER-MORTAR-finite-owner",_dangerMission,str ((missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]) getOrDefault [netId _gun,createHashMap])] call _check;
+private _dangerWarned=[{count (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]]) == 4},20] call _wait;
+["DANGER-MORTAR-lethal-warning",_dangerWarned,str (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]])] call _check;
+private _dangerFired=[{(_gun getVariable ["WAIT_CortexQA_Shots",0]) == 1},90] call _wait;
+["DANGER-MORTAR-one-real-round",_dangerFired,str (_gun getVariable ["WAIT_CortexQA_Shots",0])] call _check;
+private _dangerReleased=[{!((netId _gun) in (missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]))},45] call _wait;
+["DANGER-MORTAR-finite-release",_dangerFired && {_dangerReleased} && {(_gun getVariable ["WAIT_CortexQA_Shots",0]) == 1},str [_gun getVariable ["WAIT_CortexQA_Shots",0],_gun getVariable ["WAIT_AIPass_FireToken",""]]] call _check;
+["DANGER-MORTAR-crew-retained",alive gunner _gun && {vehicle (gunner _gun) == _gun},str [gunner _gun,vehicle (gunner _gun)]] call _check;
+["DANGER-MORTAR-support-remained-disabled",!(missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable",true])] call _check;
+removeMissionEventHandler ["ProjectileCreated",_dangerRedHandler];
+_gun removeEventHandler ["Fired",_dangerShotHandler];
+{if (!isNull _x) then {deleteVehicle _x}} forEach (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]] apply {_x select 1});
+missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",nil];
+deleteVehicle _dangerEnemy;
+deleteGroup _dangerEnemyGroup;
 // Real enemy artillery events exercise acquisition with and without a radar.
 [_gun,"SUPPORT"] call WAIT_fnc_CortexSetArtilleryRole;
 [createHashMapFromArray [["WAIT_AIPass_CounterBattery_Enable",true],["WAIT_AIPass_CounterBattery_Delay",8],["WAIT_AIPass_CounterBattery_RadarDelay",2],["WAIT_AIPass_CounterBattery_Rounds",2],["WAIT_AIPass_CounterBattery_ShootAndScoot",false]]] call WAIT_fnc_CortexTuning;
@@ -477,7 +550,7 @@ if (_focus in ["all","features","lighting"]) then {[_check,_phase,_wait] call co
 if (_focus in ["all","features","scheduler"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAScheduler.sqf"};
 if (_focus in ["all","features","artillerysmoke"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAArtillerySmoke.sqf"};
 if (_focus in ["all","features","crossing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACrossing.sqf"};
-if (_focus in ["all","features","contact"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
+if (_focus in ["all","features","contact","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
 if (_focus == "buildings") then {
     [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
     [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
@@ -487,6 +560,7 @@ if (_focus in ["all","features","cover"]) then {[_check,_phase,_wait] call compi
 if (_focus in ["all","features","landing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQALanding.sqf"};
 if (_focus in ["all","features","gates","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGates.sqf"};
 if (_focus in ["all","features","gunnery","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGunnery.sqf"};
+if (_focus in ["all","features","combat","tacticalassessment","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATacticalAssessment.sqf"};
 if (_focus in ["all","features","combat"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACombat.sqf"};
 if (_focus in ["all","features","mechanics","airskills"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAMechanics.sqf"};
 if (_focus in ["all","features","mechanics","reactions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAReactions.sqf"};
@@ -505,7 +579,7 @@ if (_focus in ["all","features","mechanics","airborne"]) then {
     private _fallbackPhase={params ["_title","_instructions","_position"]; ["Invalid chute fallback: "+_title,"Configured B_Parachute is a backpack. Cortex must select a real parachute vehicle. "+_instructions,_position] call _airborneBasePhase};
     [_fallbackCheck,_fallbackPhase,_wait,"B_Parachute"] call compile preprocessFileLineNumbers "cortexQAAirborne.sqf";
 };
-if (_focus in ["all","features","mechanics","vehicles","stateflows"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf"};
+if (_focus in ["all","features","mechanics","vehicles","stateflows","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf"};
 if (_focus in ["all","features","mechanics","vehicles","naval"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQANaval.sqf"};
 if (_focus in ["all","features","mechanics","fire"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAFire.sqf"};
 // Long multi-squad comparisons run last so they cannot delay unrelated feature coverage.

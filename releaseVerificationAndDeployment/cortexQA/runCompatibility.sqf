@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Verify WAIT's standalone danger-FSM ownership, finite alternative-controller lease and
+ * Purpose: Verify WAIT's standalone danger-FSM ownership, exclusive finite movement lease and
  * clean Zeus replacement using physical group movement.
  * Locality / Authority: Dedicated server creates and owns the fixture. Movement and lease changes
  * run only on the current group owner; public audit labels are observer diagnostics.
@@ -16,9 +16,9 @@ private _configuredDanger=[];
 {
     private _configured=toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger");
     _configuredDanger pushBack [_x,_configured];
-    ["COMPAT-exclusive-danger-fsm-"+toLowerANSI _x,_configured find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" >= 0,_configured] call _check;
+    ["COMPAT-exclusive-danger-fsm-"+toLowerANSI _x,_configured find "z\wait\danger\danger.fsm" >= 0,_configured] call _check;
 } forEach ["SoldierWB","SoldierEB","SoldierGB"];
-["COMPAT-exclusive-danger-fsm",_configuredDanger findIf {(_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0} < 0,str _configuredDanger] call _check;
+["COMPAT-exclusive-danger-fsm",_configuredDanger findIf {(_x select 1) find "z\wait\danger\danger.fsm" < 0} < 0,str _configuredDanger] call _check;
 
 private _group=createGroup [east,true];
 _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
@@ -56,21 +56,16 @@ private _travelled=true;
 ["COMPAT-standalone-physical-arrival",_accepted && {_arrived} && {_travelled},str (_units apply {getPosATL _x})] call _check;
 [_group] call WAIT_fnc_CortexDefendRelease;
 
-private _alternative=missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false];
-if (_alternative) then {
-    _group setVariable ["WAIT_Cortex_AlternativeLease",nil,true];
-    _group setVariable ["Vcm_Disable",false,true];
-    _group setVariable ["VCM_MOVE2SUP",true,true];
-    private _refused=!([_group,"QA",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease);
-    ["COMPAT-alternative-busy-refused",_refused && {(_group getVariable ["WAIT_Cortex_AlternativeLease",[]]) isEqualTo []}] call _check;
-    _group setVariable ["VCM_MOVE2SUP",false,true];
-    private _leased=[_group,"QA",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease;
-    private _released=[_group,"QA",false] call WAIT_fnc_CortexOwnershipLease;
-    ["COMPAT-alternative-baseline-restored",_leased && {_released}
-        && {!(_group getVariable ["Vcm_Disable",true])}] call _check;
-} else {
-    ["COMPAT-alternative-absent",true] call _check;
-};
+_group setVariable ["WAIT_Cortex_MovementLease",nil,true];
+private _leased=[_group,"QA-PRIMARY",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease;
+private _competingRefused=!([_group,"QA-COMPETING",true,serverTime+60] call WAIT_fnc_CortexOwnershipLease);
+private _lease=_group getVariable ["WAIT_Cortex_MovementLease",[]];
+["COMPAT-movement-lease-exclusive",_leased && {_competingRefused}
+    && {count _lease == 2} && {(_lease select 0) == "QA-PRIMARY"}] call _check;
+private _wrongReleaseRefused=!([_group,"QA-COMPETING",false] call WAIT_fnc_CortexOwnershipLease);
+private _released=[_group,"QA-PRIMARY",false] call WAIT_fnc_CortexOwnershipLease;
+["COMPAT-movement-lease-release",_wrongReleaseRefused && {_released}
+    && {(_group getVariable ["WAIT_Cortex_MovementLease",[]]) isEqualTo []}] call _check;
 
 private _handoverStart=_units apply {getPosATL _x};
 private _waitDestination=[2670,2470,0];

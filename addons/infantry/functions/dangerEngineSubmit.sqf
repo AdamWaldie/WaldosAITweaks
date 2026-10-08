@@ -3,19 +3,21 @@
  * Purpose: Convert one bounded engine danger queue into WAIT group danger observations.
  * Locality / Authority: Runs unscheduled on the machine local to the affected AI soldier. It records
  * causes and approximate positions only; it never reveals, targets, moves or changes the actor.
- * Repeat/JIP: Safe to repeat. A valid first observation may bootstrap the group's single tactical
- * brain before the periodic discovery sweep reaches it. DangerRequest then coalesces each cause and
- * generation on the current group owner. A locality change ends the old engine FSM and fresh engine
- * danger starts on the new owner.
+ * Repeat/JIP: Safe to repeat. A valid first observation may install the group's bounded contact
+ * observer and bootstrap its single tactical brain before the periodic discovery sweep reaches it.
+ * DangerRequest then coalesces each cause and generation on the current group owner. A locality
+ * change ends the old engine FSM and fresh engine danger starts on the new owner.
  * Arguments: 0: affected soldier <OBJECT>, objNull; 1: engine records <ARRAY>, each
- * [cause number, ATL/ASL position, expiry number, source object], [].
+ * [cause number, ATL/ASL position, expiry number, source object], []; 2: selected response mode
+ * <STRING>, ASSESS. FORCED records remain local observations and RELEASE records are discarded
+ * before group planning.
  * Return Value: Boolean - true when at least one valid record was processed for a local reflex or
  * group handoff. Reflex-only records do not start the group brain.
  * Current callers: Engine-loaded infantry danger FSM.
- * Example: [cursorObject,[[2,getPosATL cursorObject,time + 1,objNull]]] call WAIT_fnc_DangerEngineSubmit;
+ * Example: [cursorObject,[[2,getPosATL cursorObject,time + 1,objNull]],"IMMEDIATE"] call WAIT_fnc_DangerEngineSubmit;
  */
 
-params [['_actor',objNull,[objNull]],['_records',[],[[]]]];
+params [['_actor',objNull,[objNull]],['_records',[],[[]]],['_mode','ASSESS',['']]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
@@ -24,8 +26,13 @@ if (isNull _group || {!local _group}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
-private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED','ASSESS'];
+// Preserve the engine distinction between losing a member of this group and finding another body.
+// Both are bounded alerts, but only the former may carry squad-casualty priority downstream.
+private _causeNames=['DETECTED','GUNFIRE','HIT','PROXIMITY','EXPLOSION','CASUALTY','BODY_FOUND','SCREAM','CANFIRE','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
+private _latestSource=createHashMap;
+private _latestExpiry=createHashMap;
+private _latestSourceExpiry=createHashMap;
 private _processed=false;
 private _reflexOnly=0;
 {
@@ -37,17 +44,35 @@ private _reflexOnly=0;
             _processed=true;
             if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
             private _source=_x param [3,objNull,[objNull]];
-            private _knownFriendly=!isNull _source && {(side _group) getFriend (side group _source) >= 0.6};
-            private _hostileEngage=_cause in [0,3,8]
-                && {!isNull _source} && {alive _source}
-                && {(side _group) getFriend (side group _source) < 0.6};
+            private _knownFriendly=!isNull _source && {(side _group) getFriend (side _source) >= 0.6};
+            private _hostileSource=!isNull _source && {alive _source}
+                && {(side _group) getFriend (side _source) < 0.6};
+            private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
-            private _groupRelevant=if (_cause == 10) then {false} else {
+            // The engine FSM has already classified concrete boarding, treatment, supply, action
+            // and join tasks as FORCED. Keep their danger evidence actor-local: publishing even a
+            // transient group record can wake CONTACT before the later group step clears it.
+            private _groupRelevant=if (_mode in ['FORCED','RELEASE'] || {_cause == 10}) then {false} else {
                 if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
             };
             if (count _position == 3 && {_groupRelevant}) then {
-                _latest set [_causeNames select _cause,+_position];
+                private _causeName=_causeNames select _cause;
+                // The engine supplies the current record before its queued records. Select by
+                // expiry rather than iteration order so an older queued duplicate cannot replace
+                // the freshest geometry or erase a valid hostile identity during dense contact.
+                if (_expires >= (_latestExpiry getOrDefault [_causeName,-1])) then {
+                    _latest set [_causeName,+_position];
+                    _latestExpiry set [_causeName,_expires];
+                    if (!(_causeName in _latestSource)) then {_latestSource set [_causeName,objNull]};
+                };
+                // Identity and geometry have independent freshness. A newer approximate record
+                // may have no source, while a slightly older record in the same bounded queue has
+                // a live hostile already known by the observer. Retain the freshest valid source.
+                if (_hostileSource && {_expires >= (_latestSourceExpiry getOrDefault [_causeName,-1])}) then {
+                    _latestSource set [_causeName,_source];
+                    _latestSourceExpiry set [_causeName,_expires];
+                };
             } else {
                 _reflexOnly=_reflexOnly+1;
             };
@@ -60,6 +85,11 @@ private _reflexOnly=0;
 private _bootstrapped=false;
 if (count _latest > 0 && {!(_group getVariable ['WAIT_AIPass_Managed',false])}
     && {[_group,false,true] call WAIT_fnc_CortexIsEligible}) then {
+    // A native danger callback can be the group's first WAIT contact before the sparse discovery
+    // sweep reaches it. Install the same repeat-safe group observer before publishing the brain so
+    // later native EnemyDetected transitions retain their real witness and cannot fall into the
+    // discovery interval. DangerSetup adds one group handler and never starts a second worker.
+    [_group] call WAIT_fnc_DangerSetup;
     _bootstrapped=[_group,true] call WAIT_fnc_GroupBrainStart;
 };
 private _groupReady=_group getVariable ['WAIT_AIPass_Managed',false];
@@ -67,7 +97,7 @@ private _accepted=false;
 private _acceptedCauses=[];
 if (_groupReady) then {
     {
-        if ([_actor,_x,_latest get _x] call WAIT_fnc_DangerRequest) then {
+        if ([_actor,_x,_latest get _x,_latestSource getOrDefault [_x,objNull]] call WAIT_fnc_DangerRequest) then {
             _accepted=true;
             _acceptedCauses pushBack _x;
         };

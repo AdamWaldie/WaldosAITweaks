@@ -6,11 +6,11 @@
  * are public for Zeus/JIP observers; no scheduled work or per-unit handler is installed.
  * Arguments:
  * 0: group <GROUP, default grpNull>
- * 1: drill <HASHMAP, default empty HashMap> - active flank, advance or coordinated-bound state
+ * 1: drill <HASHMAP, default empty HashMap> - active flank, advance, assault or coordinated-bound state
  * 2: next stage <STRING, default ""> - START, MOVE, PAUSE, HOLD or ENDED
  * 3: reason <STRING, default ""> - concrete trigger or final outcome
  * Return Value: Boolean - true when the stage changed and was published
- * Current callers: CortexFlankStart, CortexAdvanceStart, CortexSupportBoundStart,
+ * Current callers: CortexFlankStart, CortexAdvanceStart, CortexAssaultStart, CortexSupportBoundStart,
  * CortexFlankStep and CortexFlankEnd.
  * Example:
  * [_group, _drill, "MOVE", "BOUND_ISSUED"] call WAIT_fnc_CortexDrillSetStage;

@@ -67,6 +67,37 @@ expensive work there can evade the shared budget. WAIT's finite tactical FSM que
 step through the budgeted scheduler and observes completion/locality. It never runs route scans
 directly from a per-frame condition. This change needs a live A/B measurement.
 
+### Engine feasibility boundary
+
+The design is viable, but WAIT must cooperate with Arma's planners instead of continuously replacing
+their work. The engine supports a configured soldier danger FSM, finite scripted FSMs, owner-local
+movement, suppression, building positions, land-vehicle paths, artillery orders and vehicle weapon
+release. Those are sufficient for event-driven danger response and finite operations.
+
+The engine also defines strict boundaries which WAIT treats as acceptance rules:
+
+- A danger FSM interrupts the formation FSM. It must finish regularly and cannot become a second
+  persistent movement brain.
+- `setDestination` forces a replan. A healthy operation therefore issues one committed movement
+  command and retries only after measured physical no-progress.
+- Disabling `PATH` or `MOVE` stops navigation and has locality-sensitive effects. WAIT uses no such
+  lease for ordinary manoeuvre; a terminal garrison hold may use exact-owned `PATH` state and must
+  release it on interruption or ownership change.
+- `setDriveOnPath` applies only to compatible land vehicles and any other move command or `doStop`
+  cancels it. Convoy phases must have one movement owner and aircraft cannot use this controller.
+- Building positions are destinations, not a supplied room-connectivity graph. Clearance must prove
+  physical visits, retry another entrance or actor, and report unreachable rooms as `INCOMPLETE`.
+- Vehicle fire commands do not supply aiming by themselves. Aircraft and turret operations must first
+  prove a compatible loaded weapon, native target/aim solution and valid release geometry; elapsed
+  time or an issued fire command is not a hit.
+- Path calculation is advisory, segmented and may report duplicate callbacks. It can score a bounded
+  route candidate but cannot be treated as proof that an actor will traverse it.
+
+This makes perfect navigation and guaranteed weapon impact invalid product promises. WAIT's contract
+is prompt finite intent, bounded recovery, clean handover and measured physical outcomes. Native
+failure remains visible rather than being hidden by teleportation, forced projectiles or fabricated
+completion.
+
 | Domain | Preferred method | Conversion and acceptance decision |
 | --- | --- | --- |
 | Immediate danger and contact | Engine danger FSM with small owner-local decisions | Bounded intake is configured for base soldiers; promote behaviour only after movement, disable, locality, external-owner and Zeus handover tests |
@@ -88,6 +119,10 @@ An isolated fast showcase is insufficient evidence for scale.
 
 - [Bohemia: creating an addon](https://community.bohemia.net/wiki/Arma_3%3A_Creating_an_Addon): mod folders, PBOs, config, keys and addon tools.
 - [Bohemia: FSM](https://community.bohemia.net/wiki/FSM) and [execFSM](https://community.bohemia.net/wiki/execFSM): state execution and scripted lifecycle semantics.
+- [Bohemia: doMove](https://community.bohemia.net/wiki/doMove), [expectedDestination](https://community.bohemia.net/wiki/expectedDestination) and [disableAI](https://community.bohemia.net/wiki/disableAI): native movement planning, forced replans and movement-feature ownership.
+- [Bohemia: setDriveOnPath](https://community.bohemia.net/wiki/setDriveOnPath) and [AI car steering](https://community.bohemia.net/wiki/Arma_3%3A_AICarSteeringComponent): compatible land-vehicle path control and cancellation semantics.
+- [Bohemia: buildingPos](https://community.bohemia.net/wiki/buildingPos) and [calculatePath](https://community.bohemia.net/wiki/calculatePath): building destinations and advisory path calculation limits.
+- [Bohemia: fireAtTarget](https://community.bohemia.net/wiki/fireAtTarget), [forceWeaponFire](https://community.bohemia.net/wiki/forceWeaponFire) and [targeting configuration](https://community.bohemia.net/wiki/A3_Targeting_config_reference): weapon ownership, aiming and release constraints.
 - [HEMTT configuration](https://hemtt.dev/configuration/index.html), [version](https://hemtt.dev/configuration/version.html), [build](https://hemtt.dev/commands/build.html) and [release](https://hemtt.dev/commands/release.html): project layout, package outputs and signing.
 - [CBA settings implementation](https://github.com/CBATeam/CBA_A3/blob/master/addons/settings/fnc_addSetting.sqf): global settings and callback contract.
 - WAIT local `releaseVerificationAndDeployment/launch_pr_review_audit.ps1`, `testing.yml` and `deploy.yml`: fresh staging, readiness, dedicated/client operation and published-release flow examined for this pipeline.

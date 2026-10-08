@@ -16,8 +16,8 @@
  *   suppressive fire);
  * - a member fails the shared AI filters: WAIT_AI_IncludedFactions, WAIT_AI_ExcludedFactions or
  *   WAIT_AI_ExcludedClasses.
- * - external controller custom AI owns the actor, an external melee controller owns its state, or an external civilian controller
- *   Behaviour owns an unarmed civilian. Addon presence alone never excludes ordinary infantry.
+ * - a specialist controller owns the actor, an external melee controller owns its state, or neutral external control
+ *   owns the group, actor or occupied vehicle. Addon presence alone never excludes ordinary infantry.
  * A locality pin alone is not behavioural ownership and does not exclude a group.
  *
  * Locality and authority: read-only and callable anywhere; it changes and broadcasts nothing.

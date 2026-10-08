@@ -104,8 +104,12 @@
  * - WAIT_AIPass_VehicleDismount_Enable (MISSION MAKER): Routine passenger dismounting during vehicle contact drills. Default true.
  * - WAIT_AIPass_VehicleRemount_Enable (MISSION MAKER): Reboard recorded passengers on a normal return to CALM. Default true.
  * - WAIT_AIPass_VehicleWithdraw_Enable (MISSION MAKER): Damaged vehicle smoke and withdrawal. Default true.
+ * - WAIT_AIPass_VehicleJink_Enable (MISSION MAKER): One short terrain-checked escape for an intact crewed fighting vehicle under close or severe danger. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
+ * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
+ * - WAIT_AIPass_StaticSupport_Enable (MISSION MAKER): Allows one uncommitted soldier to physically occupy a nearby useful empty static weapon during confirmed contact. Default true.
+ * - WAIT_AIPass_StaticDeploy_Enable (MISSION MAKER): Allows a compatible two-person bag team to physically assemble and occupy its carried static weapon. Default true.
  * - WAIT_AIPass_Hearing_Enable (MISSION MAKER): Coarse nearby-gunfire reports for eligible squad leaders; requires investigation. Default true.
  * - WAIT_Convoy_MountedFire_Enable (MISSION MAKER): Mounted crew targeting under existing ROE. Default true.
  * - WAIT_Convoy_Cover_Enable (MISSION MAKER): Short passenger movement clear of vehicles after a halt, using cover during contact. Default true.
@@ -140,7 +144,7 @@
  * - WAIT_AIPass_Regroup_StuckSeconds (ADVANCED): no progress for this long retries once, then aborts without merging at a distance.
  * - WAIT_AIPass_Regroup_TimeoutSeconds (ADVANCED): limit for finding a host and for walking to it.
  * - WAIT_AIPass_Regroup_SettleSeconds (ADVANCED): wait after a kill so simultaneous deaths settle.
- * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. external civilian controller takes priority when loaded.
+ * - WAIT_AIPass_CivilianReaction_Enable (MISSION MAKER): event-driven unarmed civilian flight from nearby danger. Player, Zeus and neutral external-control ownership take priority.
  * - WAIT_AIPass_CivilianReaction_Radius (ADVANCED): FiredNear distance which may trigger flight.
  * - WAIT_AIPass_CivilianReaction_Distance (ADVANCED): approximate one-shot escape distance.
  * - WAIT_AIPass_CivilianReaction_Cooldown (ADVANCED): minimum seconds before another response.
@@ -177,7 +181,7 @@
  * - WAIT_AIPass_GrenadeEvasion_Enable (MISSION MAKER): AI move away from a live grenade they can see; enabled by default, with live compatibility testing required.
  * - WAIT_AIPass_AntiArmour_Enable (MISSION MAKER): the best anti-tank gunner engages known armour, clear of backblast.
  * - WAIT_AIPass_Vehicles_Enable (MISSION MAKER): infantry dismount under fire and remount afterwards; damaged vehicles smoke and withdraw.
- * - WAIT_AIPass_NavalAssault_Enable (MISSION MAKER): AI boat crews make one finite shallow-water approach and deliver their embarked infantry onto dry ground. Default true; external naval controller takes priority when loaded.
+ * - WAIT_AIPass_NavalAssault_Enable (MISSION MAKER): AI boat crews make one finite shallow-water approach and deliver their embarked infantry onto dry ground. Default true; player, Zeus and neutral external-control ownership take priority.
  * - WAIT_AIPass_ContactReports_Enable (MISSION MAKER): squads share sighted enemies by radio (blocked by jamming) or by voice.
  * - WAIT_AIPass_ContactReports_Radius (ADVANCED): radio report range in metres.
  * - WAIT_AIPass_ContactReports_VoiceRange (ADVANCED): report range in metres when AI transmission is blocked.
@@ -237,8 +241,10 @@
  * - WAIT_AIPass_Investigate_Enable (MISSION MAKER): squads send two riflemen (the whole squad beyond 150 m) to check enemies they know about but have not seen (reported, or heard firing).
  * - WAIT_AIPass_Investigate_Range (ADVANCED): how far away a known but unseen enemy may be to be investigated.
  * - WAIT_AIPass_Investigate_Seconds (ADVANCED): time limit for an investigation.
- * - WAIT_AIPass_Assault_Enable (MISSION MAKER): a flank can finish with a grenade and a rush on the enemy position while the base of fire suppresses.
- * - WAIT_AIPass_Assault_Range (ADVANCED): the enemy must be believed this close to the flanking element before an assault.
+ * - WAIT_AIPass_Assault_Enable (MISSION MAKER): an eligible manoeuvre finishes with a paired-element clear-through; a fresh known threat already inside ordinary manoeuvre range can start it directly.
+ * - WAIT_AIPass_Assault_Range (ADVANCED): maximum transition range for a final assault; direct close assault remains capped at 60 metres.
+ * - WAIT_AIPass_BuildingCombat_Enable (MISSION MAKER): a capable squad may enter a usable building containing a recent, engine-confirmed hostile.
+ * - WAIT_AIPass_BuildingCombat_Range (ADVANCED): maximum range for natural hostile-building entry; explicit clearance orders are unaffected.
  * - WAIT_AIPass_Advance_Enable (MISSION MAKER): squads in a long firefight that still have a waypoint to reach push a fire team forward in covered bounds.
  * - WAIT_AIPass_Advance_MinContactSeconds (ADVANCED): seconds in contact before a bounding advance is considered.
  * - WAIT_AIPass_Advance_Cooldown (ADVANCED): seconds before a squad may begin another bounding advance.
@@ -329,7 +335,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Aggression", 1.2], // 0-2: scales manoeuvre preference/participation and optional tactical actions; zero excludes them.
         ["WAIT_AIPass_Cohesion", 1], // 0.5-2: above 1 squads take more before morale breaks, below 1 they break sooner.
         ["WAIT_AIPass_ReactionSpeed", 1], // 0.5-2: above 1 squads re-assess more often (more server time), below 1 less often.
-        ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to an external civilian controller.
+        ["WAIT_AIPass_CivilianReaction_Enable", true], // BOOL: event-driven unarmed civilian flight; yields to player, Zeus and neutral external-control ownership.
         ["WAIT_AIPass_CivilianReaction_Radius", 45], // METRES: nearby gunfire trigger range.
         ["WAIT_AIPass_CivilianReaction_Distance", 180], // METRES: approximate finite escape leg.
         ["WAIT_AIPass_CivilianReaction_Cooldown", 20], // SECONDS: minimum time between new flee orders.
@@ -368,6 +374,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_VehicleDismount_Enable", true], // Unloads capable passengers only when safely stopped on dry ground.
         ["WAIT_AIPass_VehicleRemount_Enable", true], // Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit.
         ["WAIT_AIPass_VehicleWithdraw_Enable", true], // Allows damaged vehicles to withdraw and use existing smoke.
+        ["WAIT_AIPass_VehicleJink_Enable", true], // One bounded escape by an eligible intact fighting vehicle.
         ["WAIT_AIPass_CoverValidation_Enable", true], // Adds bounded slope and body clearance checks to shared cover selection.
         ["WAIT_Convoy_DefaultSpeed", 30], // New convoy order speed; existing registrations retain selected values.
         ["WAIT_Convoy_DefaultSeparation", 30], // New convoy order centre spacing.
@@ -380,10 +387,13 @@ createHashMapFromArray [
         ["WAIT_Convoy_ContactHalt_Enable", true], // Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.
         ["WAIT_Convoy_Unload_Enable", true], // Allows WAIT passenger unloading on halt. Operating crews remain aboard.
         ["WAIT_AIPass_Danger_Enable", true], // Bounded danger events; one shared decision owner.
+        ["WAIT_AIPass_DangerSmoke_Enable", true], // One generation-scoped carried smoke response; movement does not wait.
+        ["WAIT_AIPass_StaticSupport_Enable", true], // One actor may occupy a nearby empty friendly static without holding squad movement.
+        ["WAIT_AIPass_StaticDeploy_Enable", true], // A compatible pair may physically assemble a carried static without holding squad movement.
         ["WAIT_AIPass_Hearing_Enable", true], // Nearby gunfire area reports, never target reveals.
         ["WAIT_AIPass_Vehicles_Enable", true], // BOOL: dismount under fire; damaged vehicles smoke and withdraw.
         ["WAIT_AIPass_DrivingAssist_Enable", true], // Sparse terrain-grade speed cap for ordinary AI ground vehicles; preserves native routes.
-        ["WAIT_AIPass_NavalAssault_Enable", true], // BOOL: finite coastal approach and passenger landing; yields to external naval controller.
+        ["WAIT_AIPass_NavalAssault_Enable", true], // BOOL: finite coastal approach and passenger landing; yields to player, Zeus and neutral external-control ownership.
         ["WAIT_AIPass_ContactReports_Enable", true], // BOOL: share sightings by radio (jammable) or voice.
         ["WAIT_AIPass_ContactReports_Radius", 500], // METRES: radio report range.
         ["WAIT_AIPass_ContactReports_VoiceRange", 35], // METRES: report range when AI transmission is blocked.
@@ -437,8 +447,10 @@ createHashMapFromArray [
         ["WAIT_AIPass_Investigate_Enable", true], // BOOL: squads check out enemies they know about but have not seen.
         ["WAIT_AIPass_Investigate_Range", 300], // METRES: how far away a known enemy may be to be investigated.
         ["WAIT_AIPass_Investigate_Seconds", 60], // SECONDS: investigation time limit.
-        ["WAIT_AIPass_Assault_Enable", true], // BOOL: a flank can finish with a grenade and a rush on the enemy position.
-        ["WAIT_AIPass_Assault_Range", 80], // METRES: the enemy must be this close to the flanking element to assault.
+        ["WAIT_AIPass_Assault_Enable", true], // BOOL: paired-element clear-through after manoeuvre or directly against a fresh close threat.
+        ["WAIT_AIPass_Assault_Range", 80], // METRES: final-assault transition range; direct close assault is capped at 60 m.
+        ["WAIT_AIPass_BuildingCombat_Enable", true], // BOOL: enter a usable building containing a recent native-known hostile.
+        ["WAIT_AIPass_BuildingCombat_Range", 100], // METRES: maximum range for natural hostile-building entry.
         ["WAIT_AIPass_Advance_Enable", true], // BOOL: pinned squads with somewhere to go push a team forward in bounds.
         ["WAIT_AIPass_Advance_MinContactSeconds", 0], // SECONDS: optional confirmed-contact delay before an advance is considered.
         ["WAIT_AIPass_Advance_Cooldown", 20], // SECONDS: after an advance ends before the squad may start another.

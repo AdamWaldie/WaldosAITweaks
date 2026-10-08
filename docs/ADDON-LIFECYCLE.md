@@ -17,7 +17,9 @@ specialist actor ownership still yields through explicit finite compatibility ma
 Each server or headless owner verifies the final configured west, east and independent base-soldier
 paths before starting infantry tactics. A mismatch fails that tactical runtime closed and reports the
 three resolved paths, preventing WAIT group operations from competing with a foreign danger brain.
-Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
+Repeated engine observations are coalesced by expiry, so an older queued duplicate cannot replace the
+current cause geometry. Hostile identity is retained on its own freshness track and must remain alive,
+hostile and natively known before use. Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
 scripted stance, applies one short scripted stance, and restores it only while that exact observable value remains owned by WAIT.
 Any newer engine, Zeus or specialist stance wins and invalidates the lease without restoration.
 
@@ -135,7 +137,7 @@ that actor unavailable. A stalled main element produces an explicit terminal res
 release as NO_PROGRESS, and withdrawal selects another eligible straggler instead of retrying the same
 exhausted actor. These checks do not add a per-unit worker or recurring scan.
 
-The engine danger FSM is a short intake and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. Its waiting state rechecks only cheap live gates and explicit ownership markers, so runtime disable, pause, direct curator control, new Zeus orders and declared external ownership terminate the response without a squad scan or delayed command. WAIT's cause assessment, finite response handoff and one bounded idle-actor cover move are implemented; physical transition, interruption and 50 mixed-group performance acceptance remain outstanding. Live acceptance must cover Zeus replacement while the tactical scheduler is delayed, disable/re-enable, replaced tokens, ownership migration and preservation of specialist animation control.
+The engine danger FSM is a finite response and interruption layer, not a second manoeuvre brain. It separates local physical reflexes from group combat planning: known-friendly near fire may change a finite scripted stance briefly, but cannot create CONTACT, while engage causes require a live hostile source. Casualty and scream causes are local alert/hide evidence only; actual losses still reach morale and role replacement, but the danger record cannot change group behaviour or ROE or invent an attacker. Explicit BLUE/GREEN fire discipline remains authoritative: real-contact awareness and defensive posture remain available, and an idle authored STEALTH element may take one weak finite low-profile stance without receiving a movement or target command. WAIT fire control, artillery, reinforcement, combined-arms requests, coordinated assault, flank and advance remain blocked. Direct commander stance orders retain higher engine priority, and a newer scripted stance invalidates WAIT's exact lease. New native causes accumulate through the current response and are reconsidered early only when the bounded queue exceeds three records. At group handoff, one strongest event is consumed per finite step and other still-live causes remain queued; an immediate hit therefore cannot erase a simultaneous confirmed contact. The surviving higher-priority physical-response lease still cannot be shortened by those later weaker causes, and native-order interruption remains bound to that surviving lease's actor rather than whichever weaker record was assessed last. Coalesced events retain the actor that received the current response separately from the actor whose native knowledge supports an inherited hostile identity. This prevents an arbitrary group anchor from turning a mixed mounted/foot event into the wrong response domain while still requiring a living local witness for target identity. At the response deadline, a close living hostile may add at most two short follow-up records and an effective vehicle commander may add at most three; every follow-up repeats ownership and interruption checks. Reaching that fixed budget ends the immediate actor chain and hands continuing combat back to native AI and the persistent group brain even while target knowledge remains valid. An engine-confirmed hostile identity is retained only when already known and is checked again against current group knowledge before a mounted response may enter vehicle combat; targetless vehicle danger remains safety-only. Other vehicle crew finish instead of multiplying the response. The waiting state otherwise checks only cheap live gates and explicit ownership markers, so runtime disable, pause, direct curator control, new Zeus orders and declared external ownership terminate the response without a squad scan or delayed command. WAIT's cause assessment, finite persistence handoff and one bounded idle-actor cover move are implemented. Immediate incoming danger also gives up to four otherwise idle squad members a generation-owned weak low-profile stance; operation participants, native tasks and actor-level moves remain untouched. Release restores only stance values still matching WAIT's exact application, while external handover discards the leases without writing over the new owner. Physical transition, interruption and 50 mixed-group performance acceptance remain outstanding. Queued acceptance covers the multi-actor hide response, known-contact hold-fire, mounted combat, mixed-domain observation, active Zeus replacement and leader-loss continuity; ownership migration and specialist animation preservation remain open.
 
 The group assessment FSM likewise keeps its per-evaluation wait condition to locality, generation,
 runtime and Zeus-token comparisons. Full player and specialist ownership checks occur in the bounded
@@ -152,6 +154,36 @@ The configured engine slot cannot be swapped at runtime. Disabling `WAIT_AIPass_
 ## Danger assessment
 
 `WAIT_AIPass_Danger_Enable` is a server-enforced, live CBA option under Infantry / Contact, default true.
+`WAIT_AIPass_DangerSmoke_Enable` is a separate live control, also default true. During a severe hit,
+explosion or suppression response, one eligible local soldier may queue one carried-smoke throw. A
+generation lease and 45-second group cooldown prevent a burst from consuming the squad's smoke.
+The operation does not wait for the throw, and the next-frame weapon release rechecks the setting,
+danger generation, Zeus state and specialist ownership.
+`WAIT_AIPass_StaticSupport_Enable` is a next-operation control, default true. On confirmed contact,
+the existing group brain samples at most 75 metres once per contact episode for a live, armed,
+simulation-enabled, empty friendly static weapon. One uncommitted nonleader receives a real gunner
+assignment and a twenty-second physical boarding window. The group does not wait: its remaining
+actors retain fire, manoeuvre, casualty replacement and withdrawal. Failure is recorded without a
+retry during that contact. CONTACT cleanup cancels only the exact WAIT assignment; Zeus or another
+external owner causes a command-free handover. WAIT never teleports an actor into the seat.
+WAIT_AIPass_StaticDeploy_Enable is a separate next-operation control, default true. If no
+usable emplacement exists, the same finite support opportunity may select one compatible primary
+weapon bag and base bag from uncommitted local AI. The pair physically moves to one of two bounded,
+dry, low-slope positions with a clear firing sector, uses the engine assembly action and gives the
+original carrier a real gunner assignment. The squad does not wait. Failure is recorded once for
+the contact episode; WAIT does not create a weapon, consume bags directly or force-seat the gunner.
+During the ordinary post-contact security phase, the same pair receives one bounded recovery attempt:
+the gunner exits normally, both actors approach the exact WAIT-deployed weapon, native disassembly
+creates the two bags and the engine's bag actions return them to their original carriers. A renewed
+contact before disassembly remounts the gunner; one arriving during disassembly lets the finite pack
+finish before the recovered team may deploy again. Authored movement, Zeus, specialist control,
+locality loss, casualties or timeout release WAIT ownership without deleting the weapon or loose bags.
+`WAIT_AIPass_VehicleJink_Enable` is a next-operation control, default true. A slow, intact, crew-only
+armed ground vehicle may make one 25-second terrain-checked escape from a close hostile, hit or
+explosion generation. The response uses the shared operation and movement lease, covers 35-45 metres
+and ends before ordinary route control resumes. It refuses convoy vehicles, passenger loads, foot
+elements, active movement, players, Zeus and specialist ownership. It never changes collision,
+velocity, damage or physical position directly.
 Arma loads WAIT's bounded danger FSM for the three soldier base classes. The engine supplies immediate cause,
 position, expiry, source and queued records; WAIT maps those into detected enemy, gunfire, hit, explosion,
 suppression, casualty and scream observations. One owner-local EnemyDetected observer separately retains only
@@ -163,12 +195,12 @@ Its responsibility map is deliberately narrow:
 | State | WAIT responsibility |
 |---|---|
 | `ASSESS` | Record bounded geometry and expiry only. It never moves, reveals, targets or fires. |
-| `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move one genuinely idle exposed actor to nearby physical cover; it does not start another worker. |
-| `HIDE` | Treat casualty and scream evidence as mobile awareness. It may use a finite crouch but cannot request cover movement from those causes. |
-| `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. |
-| `VEHICLE` | Record and wake only. The finite vehicle layer owns safe stopping, eligible passenger exit, withdrawal and gunnery under their separate gates. |
-| `FORCED` | Yield to fleeing or a concrete boarding, action, healing, rearm or join task; WAIT records the observation but issues no posture or movement command. Native `ATTACK` remains eligible because Arma also uses it for autonomous combat. |
-| release | Restore only the exact stance or cover lease still owned by this FSM generation. A newer order is never overwritten. |
+| `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move the genuinely idle exposed soldier who received the native event to nearby physical cover; a stale or unavailable observer falls back to the current combat-effective anchor. It does not start another worker. |
+| `HIDE` | Treat casualty and scream evidence as mobile awareness. Immediate hit, explosion, suppression and gunfire geometry may give up to four idle, unreserved squad members an exactly-owned weak crouch/prone lease while the observed actor receives the existing single physical cover attempt. Casualty and scream cannot request cover movement from those causes. |
+| `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. Explicit BLUE/GREEN fire discipline remains unchanged and blocks danger-only tactical promotion. |
+| `VEHICLE` | Record a bounded vehicle-safety wake only. The finite vehicle layer may stop for eligible passenger exit. An intact armed or armoured platform may request one route-neutral smoke countermeasure for a severe generation, while suppression still requires a native-known hostile. Infantry CONTACT, withdrawal, gunnery and manoeuvre retain their own gates. |
+| `FORCED` | Yield to fleeing or a concrete boarding, action, healing, rearm or join task. The local engine FSM records the observation but filters it before group submission; group assessment also clears any older WAIT response. No transient tactical wake, posture or movement command is possible. Native `ATTACK` remains eligible because Arma also uses it for autonomous combat. |
+| release | Filter the observation before group submission, then restore only the exact stance or cover lease still owned by this FSM generation. Authored CARELESS, disabled movement and other release conditions cannot create a transient CONTACT; a newer order is never overwritten. |
 
 The engine states themselves never issue a destination, target or firing command. Forced commands, player/Zeus control,
 external specialist ownership, disabled movement and CARELESS behaviour terminate or bypass WAIT action. This keeps

@@ -13,7 +13,8 @@
  */
 
 params [["_actor",objNull,[objNull]],["_mode","ASSESS",[""]],["_record",[],[[]]]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {0};
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _actor}) exitWith {0};
 private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
@@ -44,7 +45,10 @@ private _committedMover=count _operation > 0
 // short scripted stance. Direct commander stance orders have higher engine priority, while another
 // script or controller changing the scripted stance invalidates WAIT's exact lease on release.
 if (_mode == "IMMEDIATE") then {
-    private _hardCover=(getSuppression _actor > 0.55) || {_cause in [2,4]} || {currentCommand _actor == "STOP"};
+    // Visible fire, a direct hit, an explosion and a near round are immediate physical hazards.
+    // The group layer may grant one idle actor a bounded cover move; this actor-local reflex also
+    // lowers the profile immediately while that scheduled cover selection is pending.
+    private _hardCover=(getSuppression _actor > 0.55) || {_cause in [1,2,4,9]} || {currentCommand _actor == "STOP"};
     _desiredStance=["MIDDLE","DOWN"] select (_hardCover && {!_committedMover});
 };
 if (_mode == "HIDE") then {
@@ -52,8 +56,21 @@ if (_mode == "HIDE") then {
     // this actor. Keep a mobile crouch unless native suppression itself justifies going prone.
     _desiredStance=["MIDDLE","DOWN"] select (!_committedMover && {getSuppression _actor > 0.45});
 };
-if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
-    _desiredStance="MIDDLE";
+if (_mode == "ENGAGE") then {
+    // An authored stealth/hold-fire element should reduce its silhouette when it detects a real
+    // hostile instead of WAIT converting awareness into fire or movement authority. This remains a
+    // weak, expiring stance and is never applied to a committed mover.
+    private _stealthHold=behaviour _actor == "STEALTH"
+        && {combatMode _group in ["BLUE","GREEN"]}
+        && {abs (speed _actor) < 1}
+        && {!_committedMover};
+    if (_stealthHold) then {
+        _desiredStance="DOWN";
+    } else {
+        if (getSuppression _actor > 0.2 && {stance _actor == "STAND"}) then {
+            _desiredStance="MIDDLE";
+        };
+    };
 };
 
 if (_desiredStance != "") then {
@@ -85,6 +102,11 @@ _stats set ["modes",_modes];
 _stats set ["lastMode",_mode];
 _stats set ["lastActor",_actor];
 _stats set ["lastActionAt",time];
+if (_mode == "VEHICLE") then {
+    // Preserve the domain distinction at the engine boundary. The FSM still owns no movement:
+    // group, vehicle, aircraft and support controllers consume the matching bounded handoff.
+    _stats set ["lastVehicleProfile",[_actor] call WAIT_fnc_DangerVehicleProfile];
+};
 _group setVariable ["WAIT_Danger_EngineStats",_stats];
 _actor setVariable ["WAIT_Danger_EngineResponse",[_mode,_cause,time,time+_delay]];
 _delay

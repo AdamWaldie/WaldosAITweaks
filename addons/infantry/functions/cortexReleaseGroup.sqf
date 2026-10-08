@@ -21,6 +21,8 @@
  * A crew owner restores a forced speed borrowed for an onboard dismount safe stop only while the
  * exact zero-speed lease remains current and no newer controller owns the group. The crew also
  * retracts its targetless onboard danger report so another passenger owner cannot consume stale work.
+ * Ordinary vehicle unload-in-combat leases are released for the tracked exact vehicles. The previous
+ * value is restored only without external takeover and only while WAIT's applied value is unchanged.
  * Naval cleanup restores the exact boat forced speed and removes only the token-matched WAIT plan.
  * Arguments:
  * 0: group <GROUP>
@@ -87,6 +89,7 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _dangerCoverLease >= 2) then {
         [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;
@@ -94,11 +97,19 @@ if (local _group) then {
     private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
+    // The engine FSM may have applied a separate weak stance to any local member, including an
+    // observer which is not the current group anchor. Retire every exact actor lease now so a
+    // feature shutdown restores WAIT-owned posture and an external takeover simply discards it.
+    {
+        if (local _x) then {[_x] call WAIT_fnc_DangerEngineRelease};
+    } forEach units _group;
     [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
     // A release or Zeus takeover invalidates any still-published danger handoff before another
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _currentBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _currentBrain > 0) then {_currentBrain deleteAt "responsiveUntil"};
 };
@@ -108,6 +119,11 @@ if (local _group) then {
 if (local _group) then {
     {[_x] call WAIT_fnc_DrivingAssistRelease} forEach (_group getVariable ["WAIT_DrivingAssist_Vehicles",[]]);
     _group setVariable ["WAIT_DrivingAssist_Vehicles",nil];
+    {
+        if (local _x) then {
+            [_x,_group,"RELEASE",!_externalTakeover] call WAIT_fnc_CortexVehicleUnloadPolicy;
+        };
+    } forEach +(_group getVariable ["WAIT_Cortex_UnloadPolicyVehicles",[]]);
 };
 // Release an interrupted cross-group dismount without stranding the vehicle at forced speed zero.
 private _releasedVehicles=[];

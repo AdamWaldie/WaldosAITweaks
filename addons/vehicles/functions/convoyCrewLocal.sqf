@@ -29,7 +29,9 @@ private _seats = createHashMap;
                     params ["_vehicle", "_source", "_damage", "_instigator"];
                     if (!local _vehicle || {!(_vehicle getVariable ["WAIT_Convoy_Active", false])}) exitWith {};
                     if (isNull _instigator) exitWith {};
-                    if ((side group driver _vehicle) getFriend (side group _instigator) >= 0.6) exitWith {};
+                    // Instigators can be vehicles, aircraft or static weapons. The object's direct
+                    // side preserves that hostile identity where `group _instigator` is grpNull.
+                    if ((side group driver _vehicle) getFriend (side _instigator) >= 0.6) exitWith {};
                     if (serverTime - (_vehicle getVariable ["WAIT_Convoy_HitAt", -1e9]) >= 5) then {
                         _vehicle setVariable ["WAIT_Convoy_HitAt", serverTime, true];
                     };

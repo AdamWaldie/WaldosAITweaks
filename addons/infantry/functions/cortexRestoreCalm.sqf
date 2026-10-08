@@ -121,6 +121,67 @@ if (!_yieldToExternal && {count _retreatModeLease == 2} && {combatMode _group ==
         _x setVariable ["WAIT_Cortex_ActorMove",nil];
     };
 } forEach units _group;
+private _staticSupport=_group getVariable ["WAIT_Danger_StaticSupport",[]];
+if (count _staticSupport >= 7) then {
+    private _staticActor=_staticSupport param [1,objNull,[objNull]];
+    private _staticWeapon=_staticSupport param [2,objNull,[objNull]];
+    if (!_yieldToExternal && {!isNull _staticActor} && {alive _staticActor} && {local _staticActor}
+        && {!isNull _staticWeapon} && {assignedVehicle _staticActor == _staticWeapon}) then {
+        [_staticActor] orderGetIn false;
+        unassignVehicle _staticActor;
+        if (vehicle _staticActor == _staticWeapon) then {_staticActor action ["GetOut",_staticWeapon]};
+    };
+};
+_group setVariable ["WAIT_Danger_StaticSupport",nil,true];
+_group setVariable ["WAIT_Danger_StaticAttempt",nil,true];
+private _staticDeployment=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
+if (count _staticDeployment >= 10) then {
+    private _deployGunner=_staticDeployment param [2,objNull,[objNull]];
+    private _deployedWeapon=_staticDeployment param [7,objNull,[objNull]];
+    private _packHandler=_staticDeployment param [10,-1,[0]];
+    if (!isNull _deployGunner && {local _deployGunner}) then {
+        if (_packHandler >= 0) then {_deployGunner removeEventHandler ["WeaponDisassembled",_packHandler]};
+        _deployGunner setVariable ["WAIT_Danger_StaticPackContext",nil];
+        private _deployMove=_deployGunner getVariable ["WAIT_Cortex_ActorMove",[]];
+        if ((_deployMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {
+            _deployGunner setVariable ["WAIT_Cortex_ActorMove",nil];
+        };
+        if (!_yieldToExternal && {!isNull _deployedWeapon}
+            && {assignedVehicle _deployGunner == _deployedWeapon}) then {
+            [_deployGunner] orderGetIn false;
+            unassignVehicle _deployGunner;
+            if (vehicle _deployGunner == _deployedWeapon) then {
+                _deployGunner action ["GetOut",_deployedWeapon];
+            };
+        };
+    };
+    private _deployAssistant=_staticDeployment param [3,objNull,[objNull]];
+    if (!isNull _deployAssistant && {local _deployAssistant}) then {
+        private _assistantMove=_deployAssistant getVariable ["WAIT_Cortex_ActorMove",[]];
+        if ((_assistantMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {
+            _deployAssistant setVariable ["WAIT_Cortex_ActorMove",nil];
+        };
+    };
+};
+_group setVariable ["WAIT_Danger_StaticDeployment",nil,true];
+_group setVariable ["WAIT_Danger_StaticDeployAttempt",nil,true];
+private _vehicleJink=_state getOrDefault ["vehicleDangerJink",[]];
+private _jinkVehicle=_vehicleJink param [1,objNull,[objNull]];
+if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+    private _jinkMarker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+    if (_jinkMarker param [1,grpNull,[grpNull]] == _group) then {
+        _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+    };
+};
+private _vehicleOrient=_state getOrDefault ["vehicleDangerOrient",[]];
+private _orientVehicle=_vehicleOrient param [1,objNull,[objNull]];
+if (!isNull _orientVehicle && {local _orientVehicle}) then {
+    private _orientMarker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+    if (_orientMarker param [1,grpNull,[grpNull]] == _group) then {
+        if (!_yieldToExternal) then {_orientVehicle sendSimpleCommand "STOPTURNING"};
+        _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+    };
+};
 if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {behaviour _leader in ["COMBAT", "AWARE"]}) then {
     private _base = _state getOrDefault ["baseBehaviour", "AWARE"];
     // After a real firefight a squad stays alert rather than slinging weapons, as the engine does.
@@ -148,9 +209,9 @@ if (!_allowRemount) then {
     _group setVariable ["WAIT_Cortex_Remount",nil,true];
 };
 {_state deleteAt _x} forEach [
-    "consolidateIssued", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
+    "consolidationRoutes", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
     "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];

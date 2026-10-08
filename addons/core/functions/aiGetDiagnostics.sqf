@@ -121,7 +121,7 @@ private _schedulerStaleProgress=0;
 } forEach _schedulerQueue;
 private _externalActors=(allUnits select {alive _x}) apply {[_x,[_x] call WAIT_fnc_CortexExternalOwner]};
 _externalActors=_externalActors select {(_x select 1) != ""};
-private _alternativeBackendMovementLeases={_x getVariable ["WAIT_Cortex_AlternativeLease",[]] isNotEqualTo []} count _groups;
+private _movementLeases={_x getVariable ["WAIT_Cortex_MovementLease",[]] isNotEqualTo []} count _groups;
 private _civilianActors=allUnits select {alive _x && {side group _x == civilian}
     && {primaryWeapon _x == ""} && {secondaryWeapon _x == ""} && {handgunWeapon _x == ""}};
 private _civilianReactions={serverTime < (_x getVariable ["WAIT_Cortex_CivilianReactionUntil",0])} count _civilianActors;
@@ -129,16 +129,12 @@ private _passState = if (!_passEnabled) then {"DISABLED"} else {if (_passActive 
 private _passHint = if (_passState == "ERROR") then {"WAIT_AIPass_Enable is true but the server scheduler is not running; check RPT for [WAIT] and that CBA is loaded."} else {""};
 private _regroupEnabled = missionNamespace getVariable ["WAIT_AIPass_Regroup_Enable", true];
 private _medicalEnabled = missionNamespace getVariable ["WAIT_AIPass_MedicalAssist_Enable", true];
-private _medicalBackend = (["medicalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _medicalAidGroups = _groups select {(_x getVariable ["WAIT_Cortex_MedicalAid",[]]) isNotEqualTo []};
-private _turretPolicy = (["turretPolicy"] call WAIT_fnc_CompatibilityAvailable);
-private _suppressionPolicy = (["suppressionPolicy"] call WAIT_fnc_CompatibilityAvailable);
-private _launcherPolicy = (["launcherPolicy"] call WAIT_fnc_CompatibilityAvailable);
 private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
     [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
 };
 private _dangerFsmOwned=_dangerFsmPaths findIf {
-    (_x select 1) find "\z\waldo_ai_tweaks\addons\infantry\fsm\danger.fsm" < 0
+    (_x select 1) find "z\wait\danger\danger.fsm" < 0
 } < 0;
 // Danger response contexts are public, bounded and short-lived. This on-demand diagnostic reads
 // the existing group list only; it installs no handlers and adds no scheduler work.
@@ -149,7 +145,7 @@ private _dangerResponses=_groups select {
 private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
     private _response=_x getVariable ["WAIT_Danger_Response",[]];
     private _action=_x getVariable ["WAIT_Danger_Action",[]];
-    private _actionName=if (count _action == 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
+    private _actionName=if (count _action >= 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
     format ["%1:%2/%3/%4s",groupId _x,_actionName,_response select 0,(((_response select 3)-time) max 0) toFixed 1]
 };
 private _dangerEngineEvents=0;
@@ -159,7 +155,14 @@ private _dangerEngineRecords=0;
 private _dangerEngineReflexOnly=0;
 private _dangerEngineBootstraps=0;
 private _dangerEngineCoverMoves=0;
+private _dangerGroupHideResponses=0;
+private _dangerGroupHideActors=0;
+private _dangerEngineSmokeResponses=0;
+private _dangerEngineRecycles=0;
+private _dangerEngineBoundedEnds=0;
+private _dangerEngineLastRecycleCycles=0;
 private _dangerEngineModes=createHashMap;
+private _dangerVehicleProfiles=createHashMap;
 {
     private _stats=_x getVariable ["WAIT_Danger_EngineStats",createHashMap];
     _dangerEngineSubmissions=_dangerEngineSubmissions+(_stats getOrDefault ["submissions",0]);
@@ -167,13 +170,26 @@ private _dangerEngineModes=createHashMap;
     _dangerEngineReflexOnly=_dangerEngineReflexOnly+(_stats getOrDefault ["reflexOnlyRecords",0]);
     _dangerEngineBootstraps=_dangerEngineBootstraps+(_stats getOrDefault ["bootstraps",0]);
     _dangerEngineCoverMoves=_dangerEngineCoverMoves+(_stats getOrDefault ["coverMoves",0]);
+    _dangerGroupHideResponses=_dangerGroupHideResponses+(_stats getOrDefault ["groupHideResponses",0]);
+    _dangerGroupHideActors=_dangerGroupHideActors+count (_x getVariable ["WAIT_Danger_GroupHideLeases",[]]);
+    _dangerEngineSmokeResponses=_dangerEngineSmokeResponses+(_stats getOrDefault ["smokeResponses",0]);
+    _dangerEngineRecycles=_dangerEngineRecycles+(_stats getOrDefault ["recycles",0]);
+    _dangerEngineBoundedEnds=_dangerEngineBoundedEnds+(_stats getOrDefault ["boundedRecycleEnds",0]);
+    _dangerEngineLastRecycleCycles=_dangerEngineLastRecycleCycles max (_stats getOrDefault ["lastRecycleCycles",0]);
     private _modes=_stats getOrDefault ["modes",createHashMap];
     {
         _dangerEngineModes set [_x,(_dangerEngineModes getOrDefault [_x,0])+(_modes getOrDefault [_x,0])];
     } forEach (keys _modes);
+    private _vehicleProfile=_stats getOrDefault ["lastVehicleProfile",""];
+    if (_vehicleProfile != "") then {
+        _dangerVehicleProfiles set [_vehicleProfile,(_dangerVehicleProfiles getOrDefault [_vehicleProfile,0])+1];
+    };
 } forEach _groups;
 private _dangerEngineModeSummary=(keys _dangerEngineModes) apply {
     format ["%1=%2",_x,_dangerEngineModes getOrDefault [_x,0]]
+};
+private _dangerVehicleProfileSummary=(keys _dangerVehicleProfiles) apply {
+    format ["%1=%2",_x,_dangerVehicleProfiles getOrDefault [_x,0]]
 };
 // Immediate stance leases are machine-local by design. Count only server-local actors during this
 // requested snapshot; headless owners report their equivalent state through their own runtime log.
@@ -189,17 +205,29 @@ private _dangerStanceLeases={
 private _dangerObservedGroups=_groups select {
     private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
     _contacts findIf {
-        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
             && {alive (_x select 0)} && {(_x select 1) > time}
     } >= 0
 };
 private _dangerObservedSummary=(_dangerObservedGroups select [0,20]) apply {
     private _contacts=_x getVariable ["WAIT_Danger_ObservedContacts",[]];
     private _live={
-        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
             && {alive (_x select 0)} && {(_x select 1) > time}
     } count _contacts;
     format ["%1:%2",groupId _x,_live]
+};
+private _dangerConfirmedGroups=_groups select {
+    private _contact=_x getVariable ["WAIT_Danger_Contact",[]];
+    count _contact == 4
+        && {(_contact select 0) isEqualType objNull}
+        && {alive (_contact select 0)}
+        && {(_contact select 2) > time}
+        && {(_contact select 3) == (_x getVariable ["WAIT_Danger_Generation",-1])}
+};
+private _dangerConfirmedSummary=(_dangerConfirmedGroups select [0,20]) apply {
+    private _contact=_x getVariable ["WAIT_Danger_Contact",[]];
+    format ["%1/%2s",groupId _x,(((_contact select 2)-time) max 0) toFixed 1]
 };
 private _operatingCrew=allUnits select {
     !isPlayer _x && {vehicle _x != _x}
@@ -213,6 +241,10 @@ private _crewAimAdjusted={
         && {abs (getCustomAimCoef _x - (_x getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _x])) > 0.01}
 } count _operatingCrew;
 private _activeAirAttacks=vehicles select {(_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []};
+private _fireMissions=missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap];
+private _dangerMortarMissions=values _fireMissions select {
+    (_x getOrDefault ["purpose",""]) == "DANGER"
+};
 // Standalone driving and convoy driving deliberately have different owners. Keep this snapshot
 // bounded and on-demand so diagnostics do not turn routine vehicle safety into a global worker.
 private _drivingAssistVehicles=(vehicles select {
@@ -226,7 +258,18 @@ private _drivingAssistSnapshot=_drivingAssistVehicles apply {
     private _capKmh=if (_capMps < 0) then {-1} else {_capMps*3.6};
     format ["%1 capKmh=%2 grade=%3 owner=%4 age=%5 recovery=%6",typeOf _x,_capKmh toFixed 1,(_state param [1,0]) toFixed 2,[groupId _owner,"unknown"] select (isNull _owner),(time-(_state param [2,time])) max 0 toFixed 1,_state param [8,"IDLE"]]
 };
-private _drivingLoaded=(["drivingBackend"] call WAIT_fnc_CompatibilityAvailable);
+private _unloadPolicyVehicles=vehicles select {count (_x getVariable ["WAIT_Cortex_UnloadPolicyLease",[]]) == 5};
+private _unloadPolicyBlocked=vehicles select {count (_x getVariable ["WAIT_Cortex_UnloadPolicyBlocked",[]]) == 2};
+private _unloadPolicyInvalid=_unloadPolicyVehicles select {
+    private _lease=_x getVariable ["WAIT_Cortex_UnloadPolicyLease",[]];
+    private _ownerGroup=_lease select 0;
+    isNull _ownerGroup || {_x getVariable ["WAIT_Convoy_Active",false]}
+        || {!((effectiveCommander _x) in units _ownerGroup)}
+};
+private _unloadPolicySnapshot=(_unloadPolicyVehicles select [0,20]) apply {
+    private _lease=_x getVariable ["WAIT_Cortex_UnloadPolicyLease",[]];
+    format ["%1 owner=%2 epoch=%3 locality=%4",typeOf _x,groupId (_lease select 0),_lease select 1,owner _x]
+};
 private _convoyRegistry=missionNamespace getVariable ["WAIT_Convoy_Registry",[]];
 private _convoyGroups=_convoyRegistry apply {_x select 0};
 private _convoyVehicles=[];
@@ -253,13 +296,12 @@ private _convoyHandoffMissing=_convoyGroups select {
     && {_companion select 2}
     && {(count _wait < 2) || {(_wait select 1) != groupOwner _x}}
 };
-private _navalBackend=(["navalBackend"] call WAIT_fnc_CompatibilityAvailable);
 private _navalGroups=_groups select {(_x getVariable ["WAIT_Cortex_NavalStatus",[]]) isNotEqualTo []};
 private _checks = [
     ["ai", "cortex", _passState, format ["enabled=%1 serverActive=%2 serverJobs=%3 paused=%4 includedSides=%5. %6", _passEnabled, _passActive, _passJobs, [] call WAIT_fnc_CortexIsPaused, missionNamespace getVariable ["WAIT_AIPass_IncludedSides", []], _passHint]],
     ["ai", "cortex-scheduler", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["sampledJobs=%1 callbackMs=%2 maxQueueLatency=%3 staleProgress=%4",count _schedulerQueue,_schedulerCallbackMs toFixed 3,_schedulerLatency toFixed 2,_schedulerStaleProgress]],
     ["ai", "cortex-regroup", if (_passEnabled && {_regroupEnabled}) then {"LOADED"} else {"DISABLED"}, format ["enabled=%1 serverRegroupsCompleted=%2 serverUnitsJoined=%3", _regroupEnabled, missionNamespace getVariable ["WAIT_AIPass_RegroupsCompleted", 0], missionNamespace getVariable ["WAIT_AIPass_RegroupJoined", 0]]],
-    ["ai", "cortex-medical", if (!_passEnabled || {!_medicalEnabled}) then {"DISABLED"} else {if (_medicalBackend) then {"EXTERNAL"} else {if (_medicalAidGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}}, format ["enabled=%1 externalMedicalOwner=%2 activeAidGroups=%3 completed=%4. WAIT only issues one bounded native treatment command during CALM or SECURITY; combat, Zeus, a direct order or an external owner cancels it without changing health.",_medicalEnabled,_medicalBackend,count _medicalAidGroups,missionNamespace getVariable ["WAIT_AIPass_MedicalAssists",0]]],
+    ["ai", "cortex-medical", if (!_passEnabled || {!_medicalEnabled}) then {"DISABLED"} else {if (_medicalAidGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}, format ["enabled=%1 activeAidGroups=%2 completed=%3. WAIT owns ordinary medical assistance and issues one bounded native treatment command during CALM or SECURITY; combat, Zeus, a direct order or specialist ownership cancels it without changing health.",_medicalEnabled,count _medicalAidGroups,missionNamespace getVariable ["WAIT_AIPass_MedicalAssists",0]]],
     ["ai", "cortex-groups", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["serverManaged=%1 inContact=%2 retreating=%3 garrisons=%4 flanksCompleted=%5 retreats=%6 surrenders=%7 reinforcementsSent=%8 grenadeReactions=%9",
         {local _x && {_x getVariable ["WAIT_AIPass_Managed", false]}} count _groups,
         {local _x && {((_x getVariable ["WAIT_AIPass_State", createHashMap]) getOrDefault ["phase", ""]) == "CONTACT"}} count _groups,
@@ -278,28 +320,29 @@ private _checks = [
         {_x getVariable ["WAIT_AIPass_ZeusWaypoints", false]} count _groups,
         {_x getVariable ["WAIT_AIPass_Exclude", false]} count _groups,
         missionNamespace getVariable ["WAIT_AIPass_ZeusHoldSeconds", 120]]],
-    ["ai", "cortex-support", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["artillery=%1 counterBattery=%2 serverBatteries=%3 missions=%4 radars=%5 airborne=%6 drops=%7 reactiveFlares=%8 attackRunFlares=%9 adaptiveAirAttacks=%10 activeAirAttacks=%11",
+    ["ai", "cortex-support", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["artillery=%1 counterBattery=%2 serverBatteries=%3 missions=%4 dangerMortarMissions=%12 radars=%5 airborne=%6 drops=%7 reactiveFlares=%8 attackRunFlares=%9 adaptiveAirAttacks=%10 activeAirAttacks=%11",
         missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false], missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Enable", false],
         count (missionNamespace getVariable ["WAIT_AIPass_LocalArtillery", []]), missionNamespace getVariable ["WAIT_AIPass_ArtilleryMissions", 0],
         count (missionNamespace getVariable ["WAIT_AIPass_CounterBatteryRadars", []]), missionNamespace getVariable ["WAIT_AIPass_Airborne_Enable", false],
         missionNamespace getVariable ["WAIT_AIPass_AirborneDrops", 0],
         missionNamespace getVariable ["WAIT_AIPass_AircraftFlares_Enable", true],
         missionNamespace getVariable ["WAIT_Cortex_AttackRunFlares_Enable", true],
-        missionNamespace getVariable ["WAIT_Cortex_AirAttack_Enable", true],count _activeAirAttacks]],
+        missionNamespace getVariable ["WAIT_Cortex_AirAttack_Enable", true],count _activeAirAttacks,count _dangerMortarMissions]],
     ["ai", "cortex-tuning", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["profile=%1 aggression=%2 cohesion=%3 reaction=%4 artilleryRole=%5 counterBatteryMode=%6",
         [missionNamespace getVariable ["WAIT_AIPass_BehaviourProfile", ""], "FOLLOW"] select ((missionNamespace getVariable ["WAIT_AIPass_BehaviourProfile", ""]) == ""),
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
         missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1], missionNamespace getVariable ["WAIT_AIPass_Artillery_DefaultRole", "BOTH"],
         missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Mode", "AUTO"]]],
-    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The configured engine danger FSM exits without issuing WAIT commands while the runtime or danger feature is disabled. When enabled, tactical handoff drains at most 12 native records per step and maps relevant observations into a 16-record expiring group queue; same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Engine events=%1 submissions=%2 acceptedRecords=%3 reflexOnlyRecords=%4 first-contactBootstraps=%5 finiteCoverMoves=%6 modes=[%7]; published responses=%8 [action/cause/remaining: %9]; local observed contacts=%10 [group/count: %11]; server-local stance leases=%12. Friendly near-fire can produce a short local reflex but cannot create group CONTACT; engage causes require a live hostile source. Boarding, action, healing, rearm, join, fleeing and vehicle owners receive no posture or movement command. Native ATTACK remains eligible because it is also Arma's ordinary autonomous combat command; WAIT leaves native targeting and movement intact. Immediate stances are weak, finite and exact-owned; committed operation movers are never forced prone. Casualty and scream evidence remains a mobile alert and cannot authorise a cover move. One idle actor may take a bounded physical cover move after hit, explosion or suppression through the existing group-brain budget; any current command, operation or newer owner blocks it. No target reveal or second persistent movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,_dangerEngineSubmissions,_dangerEngineRecords,_dangerEngineReflexOnly,_dangerEngineBootstraps,_dangerEngineCoverMoves,_dangerEngineModeSummary joinString ",",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ",",_dangerStanceLeases]],
+    ["ai","danger-assessment",if (!_passEnabled || {!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])}) then {"DISABLED"} else {"LOADED"},format ["The configured engine danger FSM exits without issuing WAIT commands while the runtime or danger feature is disabled. When enabled, tactical handoff drains at most 12 native records per step and maps relevant observations into a 16-record expiring group queue; new native records accumulate until the finite response ends unless saturation requires early re-evaluation. Close hostile foot contact and effective-command vehicle contact receive bounded, revalidated follow-up samples without movement or target commands. Infantry admits at most two follow-ups and vehicle command at most three before handing continuing contact back to native AI and the group brain. Same-cause callbacks throttle to 0.25 s and wake the existing group job at most twice per second. Fresh native sightings then retain contact cadence after the short callback expires, using the same bounded group job rather than another worker. Engine events=%1 submissions=%2 acceptedRecords=%3 reflexOnlyRecords=%4 first-contactBootstraps=%5 finiteCoverMoves=%6 responseRecycles=%7 boundedRecycleEnds=%18 lastRecycleCycles=%19 groupHideResponses=%20 activeGroupHideActors=%21 modes=[%8]; mounted domains=[%16]; published responses=%9 [action/cause/remaining: %10]; local observed contacts=%11 [group/count: %12]; confirmed handoffs=%13 [group/remaining: %14]; server-local stance leases=%15; finiteSmokeResponses=%17. Mounted danger is classified as air, artillery, static, armoured, armed or transport before handoff; aircraft, batteries and static weapons stay with their dedicated owner, while only eligible transport/fighting-vehicle passengers receive the bounded safe-dismount path. Friendly near-fire can produce a short local reflex but cannot create group CONTACT; engage causes require a live hostile source. Boarding, action, healing, rearm, join, fleeing and vehicle owners receive no posture or movement command. Native ATTACK remains eligible because it is also Arma's ordinary autonomous combat command; WAIT leaves native targeting and movement intact. Immediate stances are weak, finite and exact-owned; committed operation movers are never forced prone. An idle authored STEALTH element under BLUE/GREEN may take one weak finite low-profile stance without gaining movement or fire authority. Casualty and scream evidence remains a mobile local alert: it cannot change group behaviour or ROE, enter CONTACT or authorise a cover move without separate hostile knowledge. The exact living local soldier selected by the native event receives the one bounded physical cover attempt after hit, explosion or suppression; up to four additional idle actors may hold exact generation-owned weak stance leases while operation participants and native tasks continue. Only a stale or unavailable observer falls back safely. Severe incoming danger may queue one carried smoke screen per generation and cooldown; the operation never waits for the throw, and the next-frame release rechecks the feature, generation and external owner. Any current command, operation or newer owner blocks cover movement. No target reveal or second persistent movement owner. Physical/latency and mixed-group performance acceptance pending.",_dangerEngineEvents,_dangerEngineSubmissions,_dangerEngineRecords,_dangerEngineReflexOnly,_dangerEngineBootstraps,_dangerEngineCoverMoves,_dangerEngineRecycles,_dangerEngineModeSummary joinString ",",count _dangerResponses,_dangerResponseSummary joinString ",",count _dangerObservedGroups,_dangerObservedSummary joinString ",",count _dangerConfirmedGroups,_dangerConfirmedSummary joinString ",",_dangerStanceLeases,_dangerVehicleProfileSummary joinString ",",_dangerEngineSmokeResponses,_dangerEngineBoundedEnds,_dangerEngineLastRecycleCycles,_dangerGroupHideResponses,_dangerGroupHideActors]],
     ["ai","cortex-danger-ownership",["ERROR","ACTIVE"] select _dangerFsmOwned,format ["exclusiveEngineFSM=%1 basePaths=%2. WAIT must own all west, east and independent soldier danger slots. It owns immediate danger response and submits expensive group planning to the shared scheduler; another fsmDanger replacement is unsupported.",_dangerFsmOwned,_dangerFsmPaths]],
-    ["ai","cortex-compatibility","LOADED",format ["alternativeBackendLoaded=%1 finiteAlternativeLeases=%2 meleeBackendLoaded=%3 specialistBackendLoaded=%4 civilianBackendLoaded=%5 externallyOwnedActors=%6 reasons=%7. external controller/COMPAT movement is leased only for finite Cortex work; specialist and active melee actors are excluded without changing addon state.",missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false],_alternativeBackendMovementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
+    ["ai","cortex-compatibility","LOADED",format ["movementLeases=%1 meleeBackendLoaded=%2 specialistBackendLoaded=%3 externallyOwnedActors=%4 reasons=%5. WAIT owns ordinary AI domains; specialist and active melee actors are excluded without changing external state.",_movementLeases,missionNamespace getVariable ["WAIT_AIPass_MeleeBackendLoaded",false],missionNamespace getVariable ["WAIT_AIPass_SpecialistBackendLoaded",false],count _externalActors,_externalActors apply {_x select 1}]],
     ["ai","general-driving",if !(missionNamespace getVariable ["WAIT_AIPass_DrivingAssist_Enable",true]) then {"DISABLED"} else {if (_drivingAssistVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["serverLocalOrdinaryVehicles=%1 samples=[%2]. Applies terrain-grade safety only while a native waypoint is active; a non-combat vehicle receives at most one route refresh, clear-rear reverse and final route retry. Registered convoys are excluded and reported separately. Snapshot caps at 20 server-local vehicles; each state includes cap in km/h, grade, owner group, sample age and recovery state. Headless owners retain local state without repeated network publication.",count _drivingAssistVehicles,_drivingAssistSnapshot joinString "; "]],
-    ["ai","convoy-driving",if (_convoyHandoffMissing isNotEqualTo []) then {"ERROR"} else {if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 drivingBackendLoaded=%6 drivingBackendPausedVehicles=%7 missingCompatibilityHandoffRestart=%8 brains=[%9]. One finite owner-local brain exposes cruise, spacing, contact, recovery, ordered hold, obstruction and arrival. Physical control remains one bounded shared-scheduler step; WAIT never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,_drivingLoaded,{[_x,"drivingPause",false] call WAIT_fnc_CompatibilityState} count _convoyVehicles,count _convoyHandoffMissing,_convoyBrainSnapshot joinString "; "]],
-    ["ai","cortex-naval",if !(missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true]) then {"DISABLED"} else {if (_navalBackend) then {"EXTERNAL"} else {if (_navalGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}}},format ["enabled=%1 navalBackendLoaded=%2 activeGroups=%3 statuses=%4. Uses the existing Cortex group scheduler, a bounded shore comparison and one finite native approach; the active specialist naval controller has exclusive ownership when loaded.",missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true],_navalBackend,count _navalGroups,_navalGroups apply {_x getVariable ["WAIT_Cortex_NavalStatus",[]]}]],
-    ["ai","cortex-civilian-reactions",if !(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true]) then {"DISABLED"} else {if (missionNamespace getVariable ["WAIT_AIPass_CivilianBackendLoaded",false]) then {"EXTERNAL"} else {"LOADED"}},format ["eligibleUnarmedCivilians=%1 reactingNow=%2 radius=%3 distance=%4 cooldown=%5. FiredNear/Hit handlers are event-driven; external civilian controller has exclusive ownership when present.",count _civilianActors,_civilianReactions,missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Distance",180],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Cooldown",20]]],
+    ["ai","vehicle-passenger-ownership",if (_unloadPolicyInvalid isNotEqualTo []) then {"ERROR"} else {if (_unloadPolicyVehicles isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["ordinaryUnloadLeases=%1 blockedExternalMutations=%2 invalidLeases=%3 samples=[%4]. Each lease belongs to the exact effective-command group and vehicle epoch, is separate from convoy control and restores only an unchanged WAIT-applied value. The snapshot is on-demand and capped at 20 vehicles.",count _unloadPolicyVehicles,count _unloadPolicyBlocked,count _unloadPolicyInvalid,_unloadPolicySnapshot joinString "; "]],
+    ["ai","convoy-driving",if (_convoyHandoffMissing isNotEqualTo []) then {"ERROR"} else {if (_convoyRegistry isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["controlledGroups=%1 vehicles=%2 drivingAssist=%3 routeRecoveryEnabled=%4 recoveries=%5 missingHeadlessRestart=%6 brains=[%7]. WAIT owns eligible convoy movement through one finite owner-local brain exposing cruise, spacing, contact, recovery, ordered hold, obstruction and arrival. Physical control remains one bounded shared-scheduler step; WAIT never teleports, repairs or ignores a physical roadblock.",count _convoyGroups,count _convoyVehicles,missionNamespace getVariable ["WAIT_Convoy_DrivingAssist_Enable",true],missionNamespace getVariable ["WAIT_Convoy_RouteRecovery_Enable",true],_convoyRecoveries,count _convoyHandoffMissing,_convoyBrainSnapshot joinString "; "]],
+    ["ai","cortex-naval",if !(missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true]) then {"DISABLED"} else {if (_navalGroups isEqualTo []) then {"LOADED"} else {"ACTIVE"}},format ["enabled=%1 activeGroups=%2 statuses=%3. WAIT owns eligible naval delivery through the shared scheduler, a bounded shore comparison and one finite native approach; Zeus, player and neutral external-control ownership still take precedence.",missionNamespace getVariable ["WAIT_AIPass_NavalAssault_Enable",true],count _navalGroups,_navalGroups apply {_x getVariable ["WAIT_Cortex_NavalStatus",[]]}]],
+    ["ai","cortex-civilian-reactions",if !(missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Enable",true]) then {"DISABLED"} else {"LOADED"},format ["eligibleUnarmedCivilians=%1 reactingNow=%2 radius=%3 distance=%4 cooldown=%5. FiredNear, Explosion and Hit events create one priority-aware finite escape on the shared scheduler. Stronger danger may replace a weaker active route; duplicate noise cannot churn it. One stalled route retry is allowed. Player, Zeus and neutral external-control ownership still take precedence.",count _civilianActors,_civilianReactions,missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Distance",180],missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Cooldown",20]]],
     ["ai", "ai-profile", if (_enabled) then {"ACTIVE"} else {"DISABLED"}, format ["profile=%1 mode=%2 serverActive=%3", missionNamespace getVariable ["WAIT_AIRebalance_Profile", "LINE"], missionNamespace getVariable ["WAIT_AIRebalance_Mode", "AUTO"], missionNamespace getVariable ["WAIT_AI_RebalanceActive", false]]],
-    ["ai", "ai-weapon-dispersion", if (!_enabled) then {"DISABLED"} else {"ACTIVE"}, format ["operatingCrew=%1 precisionExcluded=%2 infantry=%3 crewSkillMultiplier=%4 groundVehicle=%5 aircraft=%6 locallyAdjusted=%7 turretPolicy=%8 scriptVehicleLayer=%9. The public precision-exclusion compatibility contract supports independent weapon systems; an active external precision provider prevents a stacked script coefficient.",count _operatingCrew,count _precisionExcludedCrew,missionNamespace getVariable ["WAIT_AI_InfantryDispersion",1.35],missionNamespace getVariable ["WAIT_AI_VehicleCrewAimMultiplier",0.6],missionNamespace getVariable ["WAIT_AI_VehicleCrewDispersion",3.5],missionNamespace getVariable ["WAIT_AI_AirCrewDispersion",4.25],_crewAimAdjusted,_turretPolicy,!_turretPolicy]],
+    ["ai", "ai-weapon-dispersion", if (!_enabled) then {"DISABLED"} else {"ACTIVE"}, format ["operatingCrew=%1 precisionExcluded=%2 infantry=%3 crewSkillMultiplier=%4 groundVehicle=%5 aircraft=%6 locallyAdjusted=%7. WAIT applies the script coefficient only to eligible AI; the neutral precision-exclusion contract prevents stacking with independently owned weapon systems.",count _operatingCrew,count _precisionExcludedCrew,missionNamespace getVariable ["WAIT_AI_InfantryDispersion",1.35],missionNamespace getVariable ["WAIT_AI_VehicleCrewAimMultiplier",0.6],missionNamespace getVariable ["WAIT_AI_VehicleCrewDispersion",3.5],missionNamespace getVariable ["WAIT_AI_AirCrewDispersion",4.25],_crewAimAdjusted]],
     ["ai", "ai-headless-adoption", if (!_enabled) then {"DISABLED"} else {if (_missing isNotEqualTo [] || {_convoyHandoffMissing isNotEqualTo []}) then {"ERROR"} else {if (_hcGroups isNotEqualTo []) then {"ACTIVE"} else {"UNCONFIGURED"}}}, format ["connectedHCs=%1 hcOwnedGroups=%2 missingVerifiedAdoption=%3 activeConvoysMissingCompatibilityRestart=%4", count _hcOwners, count _hcGroups, count _missing, count _convoyHandoffMissing]],
     ["ai", "improved-helicopter-landing", if !(missionNamespace getVariable ["WAIT_ImprovedHelicopterLanding_Enable", true]) then {"DISABLED"} else {if (count _staleLanding > 0 || {count _groupedLanding > 0}) then {"ERROR"} else {if (count _activeLanding > 0) then {"ACTIVE"} else {"LOADED"}}}, format ["helicopters=%1 movementOwned=%2 activeControllers=%3 staleGroundAnchors=%4 groupedControllers=%5", count _helicopters, count _orphanedMovementControl, count _activeLanding, count _staleLanding, count _groupedLanding]],
     ["ai", "helicopter-deceleration", if (!_decelerationEnabled) then {"DISABLED"} else {if (count _decelerationLandingConflict > 0) then {"ERROR"} else {"ACTIVE"}}, format ["enabled=%1 tracked=%2 activelyCorrecting=%3 landingConflicts=%4 includeVTOL=%5", _decelerationEnabled, count _decelerationAircraft, count _decelerationActive, count _decelerationLandingConflict, missionNamespace getVariable ["WAIT_HelicopterDeceleration_IncludeVTOL", false]]]
@@ -327,7 +370,8 @@ private _featureNotes=createHashMapFromArray [
     ["Surrender","Requires broken isolated survivors and surrender enabled; check captive state and real weapon removal. ACE captivity is optional."],
     ["GrenadeEvasion","Requires a qualifying live projectile and eligible observer. Check projectile handler, movement ownership and evasion release."],
     ["AntiArmour","Requires a known armoured threat, capable launcher/ammunition and clear backblast; targeting alone does not prove firing."],
-    ["Vehicles","Inspect crew versus passengers, vehicle mobility and contact. Separate cargo squads retain their own order authority."],
+    ["StaticSupport","Requires confirmed contact, an empty useful friendly emplacement within 75 m and one uncommitted nonleader. Inspect physical gunner-seat occupation, one-attempt status and continued movement by the rest of the squad."],
+    ["Vehicles","Inspect crew versus passengers, vehicle mobility and contact. A danger jink requires a slow crew-only armed vehicle with no convoy or movement owner; separate cargo squads retain their own order authority."],
     ["ContactReports","Requires a deliverable report; jamming/voice range and freshness can prevent delivery. A radio inventory item is not required."],
     ["Reinforce","Requires an eligible idle helper and a report/request; inspect reservation, responding state and physical approach."],
     ["Artillery","Requires an explicitly assigned spotter and eligible same-side battery with range/ammunition. Inspect fire mission phase, warning and confirmed shots."],

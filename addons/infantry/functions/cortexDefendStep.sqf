@@ -6,8 +6,9 @@
  * Called from WAIT_fnc_CortexGroupTick while a defending group is in CONTACT. The reserve moves to
  * the line spot of a fallen soldier when a third of the line is lost, or to the line spot nearest an
  * enemy believed within 60 m of the line. Each lateral reinforcement slot contracts towards that
- * already validated line spot when rough terrain would otherwise strand a reserve soldier.
- * It then holds there, watching the same sector.
+ * already validated line spot when rough terrain would otherwise strand a reserve soldier. Only the
+ * committed reserve is reapplied: the existing line retains its hold, watch sector and route generation.
+ * The reserve then holds at the reinforced line, watching the same sector.
  * Locality and authority: call where the group is local.
  *
  * Arguments:
@@ -56,13 +57,10 @@ _target params ["_spot", "_sector"];
     };
     if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
         _x setVariable ["WAIT_AIPass_DefendPos", [_position, _sector, "LINE"], true];
-        _x setVariable ["WAIT_AIPass_DefendHolding", false];
-        _x doMove _position;
     };
 } forEach _reserve;
 _state set ["reserveCommitted", true];
-_group setVariable ["WAIT_AIPass_DefendApplied", false];
-[_group] call WAIT_fnc_CortexDefendApplyLocal;
+[_group,_reserve] call WAIT_fnc_CortexDefendApplyLocal;
 diag_log format ["[WAIT] %1 committed reserve (%2 soldiers)", _group, count _reserve];
 true
 

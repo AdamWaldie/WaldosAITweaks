@@ -242,3 +242,119 @@ private _launched=[{
 {deleteVehicle _x} forEach ([_gunner]+crew _armour);
 deleteVehicle _armour; deleteGroup _group; deleteGroup _enemyGroup;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+
+// Direct infantry clear-through is valid only against dismounted infantry. A close occupied combat
+// vehicle remains a weapon/support problem even when the squad has a launcher; the tactical selector
+// and the assault operation boundary must both refuse it without moving the squad into the vehicle.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_AntiArmour_Enable",true],
+    ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
+    ["WAIT_AIPass_Assault_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+_group=createGroup [east,true];
+_group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_group setVariable ["acex_headless_blacklist",true,true];
+private _vehicleContactSquad=[];
+for "_i" from 0 to 3 do {
+    private _class=["O_Soldier_LAT_F","O_Soldier_F"] select (_i > 0);
+    private _unit=_group createUnit [_class,[2200+_i*2,1100,0],[],0,"NONE"];
+    _unit allowDamage false;
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["VEHICLE CONTACT %1",_i+1],true];
+    _vehicleContactSquad pushBack _unit;
+};
+_group setCombatMode "YELLOW";
+private _vehicleContactOrigin=getPosATL leader _group;
+_armour=createVehicle ["B_MRAP_01_hmg_F",[2200,1145,0],[],0,"NONE"];
+createVehicleCrew _armour;
+_enemyGroup=group driver _armour;
+_enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_enemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_enemyGroup setVariable ["acex_headless_blacklist",true,true];
+_enemyGroup setCombatMode "BLUE";
+_armour allowDamage false;
+{_x disableAI "PATH"; _x allowDamage false; _x setUnitCombatMode "BLUE"; _x setVariable ["acex_headless_blacklist",true,true]} forEach crew _armour;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_vehicleContactSquad+crew _armour,true];
+["Assault selection: close vehicle is not a clear-through target","A four-person squad with a launcher naturally detects an occupied armed vehicle at 45 metres. WAIT may engage through native fire or anti-armour logic, but must not create an infantry ASSAULT drill or move the squad through the vehicle.",[2200,1122,0]] call _phase;
+private _vehicleContactKnown=[{
+    (_group getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"
+        && {(([_group] call WAIT_fnc_CortexKnowledge) select 0) findIf {vehicle (_x select 0) == _armour} >= 0}
+},30] call _wait;
+sleep 12;
+private _vehicleContactState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+private _vehicleContactDrill=_vehicleContactState getOrDefault ["drill",createHashMap];
+private _vehicleContactOperation=_group getVariable ["WAIT_Operation",createHashMap];
+private _vehicleContactTravel=0;
+{_vehicleContactTravel=_vehicleContactTravel max (_x distance2D _vehicleContactOrigin)} forEach _vehicleContactSquad;
+["ASSAULT-close-vehicle-refused",_vehicleContactKnown
+    && {(_vehicleContactDrill getOrDefault ["type",""]) != "ASSAULT"}
+    && {(_vehicleContactOperation getOrDefault ["intent",""]) != "ASSAULT"}
+    && {_vehicleContactTravel < 20},str [_vehicleContactTravel,_vehicleContactDrill,_vehicleContactOperation,_group getVariable ["WAIT_Cortex_AssaultRefusal",[]]]] call _check;
+[_group] call WAIT_fnc_CortexReleaseGroup;
+{deleteVehicle _x} forEach (_vehicleContactSquad+crew _armour);
+deleteVehicle _armour; deleteGroup _group; deleteGroup _enemyGroup;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+
+// A rifle squad without a launcher must not enter the ordinary manoeuvre selector against close
+// heavy armour. Natural engine knowledge starts the same finite withdrawal used by morale failure;
+// the fixture neither reveals the APC nor calls the production response directly.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Morale_Enable",true],["WAIT_AIPass_Surrender_Enable",false],
+    ["WAIT_AIPass_AntiArmour_Enable",true],["WAIT_AIPass_FireControl_Enable",false],
+    ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
+    ["WAIT_AIPass_Assault_Enable",false],["WAIT_AIPass_Morale_RetreatDistance",120]
+]] call WAIT_fnc_CortexTuning;
+_group=createGroup [east,true];
+_group setGroupIdGlobal ["Cortex QA NO AT"];
+_group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_group setVariable ["acex_headless_blacklist",true,true];
+private _rifleSquad=[];
+for "_i" from 0 to 3 do {
+    private _unit=_group createUnit ["O_Soldier_F",[2280+_i*3,1100,0],[],0,"NONE"];
+    _unit allowDamage false;
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["NO AT RIFLEMAN %1",_i+1],true];
+    _rifleSquad pushBack _unit;
+};
+_group setCombatMode "YELLOW";
+_armour=createVehicle ["B_APC_Tracked_01_rcws_F",[2285,1270,0],[],0,"NONE"];
+createVehicleCrew _armour;
+_enemyGroup=group driver _armour;
+_enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_enemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_enemyGroup setVariable ["acex_headless_blacklist",true,true];
+_enemyGroup setCombatMode "BLUE";
+_armour allowDamage false;
+{
+    _x disableAI "PATH";
+    _x allowDamage false;
+    _x setUnitCombatMode "BLUE";
+    _x setVariable ["acex_headless_blacklist",true,true];
+} forEach crew _armour;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_rifleSquad+crew _armour,true];
+["Anti-armour: overmatched rifle squad","Four riflemen without a usable launcher naturally detect close heavy armour. They must enter a finite HEAVY_ARMOUR_NO_AT withdrawal and physically increase separation instead of starting an assault, advance or flank.",[2285,1185,0]] call _phase;
+private _overmatchOrigin=getPosATL leader _group;
+private _overmatchStartDistance=(leader _group) distance2D _armour;
+private _overmatchStarted=[{
+    private _transition=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
+    count _transition >= 4
+        && {(_transition select 2) == "RETREAT"}
+        && {(_transition select 3) == "HEAVY_ARMOUR_NO_AT"}
+        && {((_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["intent",""]) == "WITHDRAW"}
+},50] call _wait;
+["AT-no-launcher-overmatch-withdrawal",_overmatchStarted,str (_group getVariable ["WAIT_Cortex_PhaseTransition",[]])] call _check;
+private _overmatchMoved=[{
+    (leader _group) distance2D _overmatchOrigin >= 30
+        && {(leader _group) distance2D _armour >= _overmatchStartDistance+20}
+},70] call _wait;
+["AT-no-launcher-physical-separation",_overmatchMoved,str [
+    (leader _group) distance2D _overmatchOrigin,
+    (leader _group) distance2D _armour,
+    _overmatchStartDistance
+]] call _check;
+private _overmatchState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+["AT-no-launcher-no-manoeuvre",count (_overmatchState getOrDefault ["drill",createHashMap]) == 0] call _check;
+[_group] call WAIT_fnc_CortexReleaseGroup;
+{deleteVehicle _x} forEach (_rifleSquad+crew _armour);
+deleteVehicle _armour; deleteGroup _group; deleteGroup _enemyGroup;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];

@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Applies a short, local danger posture selected by the danger FSM without replacing an active WAIT or external movement operation.
- * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned.
+ * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned. Explicit BLUE/GREEN hold-fire discipline remains authoritative.
  * Repeat/JIP: One public lease contains the prior and applied values. Repeated events extend the lease; restore changes only values still matching WAIT's application and discards its lease on external takeover. DangerStep owns the finite response context.
  * Arguments: 0 actor <OBJECT>; 1 cause <STRING, RESTORE or RELEASE>; 2 approximate danger position <ARRAY, []>; 3 classified action <STRING, "">.
  * Return Value: STRING - RESTORED, ASSESS, POSTURE or IGNORED.
@@ -39,7 +39,7 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
         "RESTORED"
     } else {"ASSESS"}
 };
-if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE","CASUALTY","SCREAM"]) exitWith {"IGNORED"};
+if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE","CASUALTY","BODY_FOUND","SCREAM"]) exitWith {"IGNORED"};
 if (_yieldToOwner) exitWith {"IGNORED"};
 // The immediate FSM response is deliberately posture-only. Movement, target assignment and route
 // ownership stay with native AI or the already-running WAIT operation. This makes the classifier
@@ -49,13 +49,21 @@ if (_action == "RELEASE") exitWith {"IGNORED"};
 // dedicated vehicle/native owner receives the group-brain wake, but WAIT does not alter behaviour,
 // ROE, posture or movement while that owner is active.
 if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"};
+// Casualty and scream causes do not identify a hostile. The per-soldier engine FSM may still use a
+// short weak stance, while the group layer preserves its current behaviour and ROE. Morale and
+// survivor-role logic consume actual losses independently on their normal bounded group step.
+if (_cause in ["CASUALTY","BODY_FOUND","SCREAM"]) exitWith {"ASSESS"};
+// BLUE and GREEN are deliberate fire-control orders rather than passive defaults. Preserve them
+// exactly: the actor-local engine FSM may still take a finite weak stance, but a danger callback
+// cannot silently authorise fire or launch group tactics against the mission maker's order.
+if (combatMode _group in ["BLUE","GREEN"]) exitWith {"ASSESS"};
 if !(_action in ["HIDE","ENGAGE","MAINTAIN",""]) then {_action=""};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 // MAINTAIN is valid only while a real operation still owns the committed route. A delayed danger
 // callback can outlive operation cleanup, so reclassify that orphaned label instead of treating it
 // as evidence of movement ownership.
 if (_action == "MAINTAIN" && {count _operation == 0}) then {
-    _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED","CASUALTY","SCREAM"]);
+    _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED","CASUALTY","BODY_FOUND","SCREAM"]);
 };
 private _leaseIntact=count _lease == 5 && {time < (_lease select 4)}
     && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
@@ -73,13 +81,13 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 // the same short combat posture as an idle element without receiving a destination, target or
 // firing command. This closes the gap where an active advance/flank/CQB operation suppressed its
 // own danger response merely because it already owned movement.
-private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}};
+private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]}};
 private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
-if (_priorCombat in ["BLUE","GREEN"] || {_engaging && {_priorCombat != "RED"}}) then {
+if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["BODY_FOUND",1.5],["SCREAM",1.5],["PROXIMITY",1.5],["CANFIRE",1.5],["DETECTED",1.5],["GUNFIRE",1]];
 private _until=(time + (_responseDurations getOrDefault [_cause,1])) max (_lease param [4,-1]);
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until],true];
 "POSTURE"

@@ -37,21 +37,32 @@ if (_range < 0) then {_range = missionNamespace getVariable ["WAIT_AIPass_Engage
 private _leader = leader _group;
 if (isNull _leader || {!alive _leader}) exitWith {[[], 0]};
 
-private _members = (units _group) select {alive _x};
-_members=([_leader]+(_members-[_leader])) arrayIntersect ([_leader]+(_members-[_leader]));
-if (count _members > 8) then {_members resize 8};
 // Native target lists remain the primary candidate source. EnemyDetected may be raised for a
 // wingman while the leader is in cover, so include only those recent engine-confirmed contacts as
 // local candidates. The cache neither shares a target nor bypasses the per-member knowledge check
 // below, and is pruned every normal knowledge pass.
 private _observed=_group getVariable ["WAIT_Danger_ObservedContacts",[]];
 _observed=_observed select {
-    _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+    _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
         && {alive (_x select 0)} && {(_x select 1) > time}
 };
 if (_observed isEqualTo []) then {_group setVariable ["WAIT_Danger_ObservedContacts",nil]} else {
     _group setVariable ["WAIT_Danger_ObservedContacts",_observed]
 };
+// Preserve the actual local native knower recorded by EnemyDetected inside the same eight-member
+// evaluation bound. Large squads otherwise lost immediate contact whenever the detecting wingman
+// fell outside the arbitrary first-eight slice and the leader remained behind cover.
+private _witnesses=[];
+{
+    private _target=_x select 0;
+    private _witness=_x param [2,objNull,[objNull]];
+    if (!isNull _witness && {alive _witness} && {local _witness} && {group _witness == _group}
+        && {_witness knowsAbout _target >= 1}) then {_witnesses pushBackUnique _witness};
+} forEach _observed;
+private _allMembers = (units _group) select {alive _x};
+private _members=([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses))
+    arrayIntersect ([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses));
+if (count _members > 8) then {_members resize 8};
 private _candidateTargets=+(_leader targets [true, _range]);
 {_candidateTargets pushBackUnique (_x select 0)} forEach _observed;
 private _candidates = [];

@@ -10,7 +10,8 @@
  */
 
 params [["_actor",objNull,[objNull]],["_record",[],[[]]]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor} || {count _record < 3}) exitWith {"RELEASE"};
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _actor} || {count _record < 3}) exitWith {"RELEASE"};
 private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
@@ -18,14 +19,17 @@ if (isNull _group || {!local _group}
     || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}
     || {[] call WAIT_fnc_CortexIsPaused}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
-    || {behaviour _actor == "CARELESS"}
-    || {!(_actor checkAIFeature "MOVE")}) exitWith {"RELEASE"};
+    || {behaviour _actor == "CARELESS"}) exitWith {"RELEASE"};
 // ATTACK is also the engine's ordinary autonomous combat command. Treating it as authored
 // ownership made the danger FSM observation-only for the exact actors already fighting. Zeus,
 // players and declared external owners have already yielded above; retain only commands which
 // represent a concrete boarding, action, treatment, supply or group-transfer task here.
 if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+// Vehicle response is a domain handoff, not an infantry path request. Classify it before the
+// on-foot MOVE gate so an intentionally immobile static gunner, artillery crew or stopped vehicle
+// commander still publishes danger to the correct dedicated owner. No movement is issued here.
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
+if !(_actor checkAIFeature "MOVE") exitWith {"RELEASE"};
 private _cause=_record select 0;
 if (_cause in [1,2,4,9]) exitWith {"IMMEDIATE"};
 if (_cause in [5,6,7]) exitWith {"HIDE"};
@@ -34,6 +38,6 @@ if (_cause in [5,6,7]) exitWith {"HIDE"};
 // ambient/friendly danger into CONTACT and RED combat mode without target knowledge.
 if (_cause in [0,3,8]) exitWith {
     private _source=_record param [3,objNull,[objNull]];
-    if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}) then {"ENGAGE"} else {"ASSESS"}
+    if (!isNull _source && {alive _source} && {(side _group) getFriend (side _source) < 0.6}) then {"ENGAGE"} else {"ASSESS"}
 };
 "ASSESS"

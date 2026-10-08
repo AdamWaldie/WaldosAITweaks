@@ -14,13 +14,22 @@ private _reject = {
     [_battery, _token, clientOwner] remoteExecCall ["WAIT_fnc_CortexArtilleryRejected", 2];
     false
 };
+private _danger=_purpose == "DANGER";
+private _crewGroup=if (isNull gunner _battery) then {grpNull} else {group gunner _battery};
 if (!local _battery || {!alive _battery} || {!alive gunner _battery}
     || {combatMode group gunner _battery == "BLUE"} || {unitCombatMode gunner _battery == "BLUE"}
     || {(_battery getVariable ["WAIT_AIPass_FireToken", ""]) != _token}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active", false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {!([group gunner _battery] call WAIT_fnc_CortexIsEligible)}
-    || {!([_battery, _purpose] call WAIT_fnc_CortexArtilleryRole)}
-    || {!([group gunner _battery, ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select (_purpose == "COUNTER"), false] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _reject};
+    || {!_danger && {!([_battery, _purpose] call WAIT_fnc_CortexArtilleryRole)}}
+    || {if (_danger) then {
+        !([_crewGroup,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
+        || {!([_crewGroup,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+        || {!([_crewGroup,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+        || {[_crewGroup] call WAIT_fnc_CortexExternalTakeover}
+    } else {
+        !([_crewGroup, ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select (_purpose == "COUNTER"), false] call WAIT_fnc_CortexFeatureEnabled)
+    }}) exitWith {call _reject};
 private _minimum = if (_mode == "SMOKE") then {50} else {missionNamespace getVariable [["WAIT_AIPass_Artillery_MinFriendlyDistance", "WAIT_AIPass_CounterBattery_MinFriendlyDistance"] select (_purpose == "COUNTER"), 200]};
 private _side = side group gunner _battery;
 if ((_aim nearEntities [["CAManBase", "LandVehicle", "Air", "Ship"], _minimum]) findIf {

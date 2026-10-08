@@ -113,7 +113,7 @@
       "live_evidence": [
         "Historical script-pack evidence is retained separately; the exclusive engine danger FSM and native building ownership require a fresh packaged-mod acceptance batch."
       ],
-      "automation": "runCompatibility.sqf checks the configured WAIT danger FSM, physical standalone movement, finite alternative-controller lease restoration and Zeus handover. runBuildingComparison.sqf tests only WAIT-owned garrison and CQB behaviour. Source regressions cover start, renewal, completion, expiry and locality resume. Packaged physical acceptance, HC distribution, disconnect, JIP and broader terrain/controller combinations remain pending.",
+      "automation": "runCompatibility.sqf checks the configured WAIT danger FSM, physical standalone movement, exclusive finite WAIT movement leases and Zeus handover. runBuildingComparison.sqf tests only WAIT-owned garrison and CQB behaviour. Source regressions cover start, renewal, completion, expiry and locality resume. Packaged physical acceptance, HC distribution, disconnect, JIP and broader terrain/controller combinations remain pending.",
       "executable_sources": [
         "runCompatibility.sqf",
         "runBuildingComparison.sqf"
@@ -122,7 +122,6 @@
         "addons/compatibility/functions/cortexOwnershipLease.sqf",
         "addons/compatibility/functions/cortexExternalTakeover.sqf",
         "addons/compatibility/functions/compatibilityAvailable.sqf",
-        "addons/compatibility/functions/compatibilityState.sqf",
         "addons/compatibility/functions/compatibilityExternalControl.sqf",
         "addons/compatibility/functions/compatibilityPrecisionExcluded.sqf",
         "addons/compatibility/functions/compatibilityHeadlessBridge.sqf",
@@ -362,20 +361,25 @@
     {
       "id": "CONTACT",
       "title": "Contact detection",
-      "setup": "Expose real enemies, then occlude them; compare live engine knowledge and Cortex phase.",
-      "expected": "Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable.",
+      "setup": "Expose real enemies, then occlude them; compare live engine knowledge and Cortex phase. Separately expose a firing-capable squad with an authored HOLD or SENTRY waypoint.",
+      "expected": "Real sightings trigger contact; no omniscient acquisition; contact-off leaves explicit orders usable. Authored HOLD/SENTRY permits native observation and fire but blocks every autonomous WAIT movement owner and replacement waypoint.",
       "settings": [
         "WAIT_AIPass_Contact_Enable",
         "WAIT_AIPass_EngageRange",
-        "WAIT_AIPass_Danger_Enable"
+        "WAIT_AIPass_Danger_Enable",
+        "WAIT_AIPass_DangerSmoke_Enable",
+        "WAIT_AIPass_StaticSupport_Enable",
+        "WAIT_AIPass_StaticDeploy_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runContact.sqf begins with a real targetless grenade detonation beside an isolated invulnerable soldier and a solid wall on the far side from the blast. It requires native engine-FSM submission, an observed physical crouch/prone reflex, an actual bounded move behind cover, exact authored-UP restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. The production group step may issue that cover move only to an idle actor with no native command, active WAIT operation, Zeus hold or specialist owner; casualty and scream evidence cannot authorise it, and exact-generation cleanup runs during ordinary and external handover. It then covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Disable, Zeus takeover, leader replacement, external ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; the real explosion case now covers native engine delivery and finite physical release.",
+      "automation": "runContact.sqf first disables the live danger gate and detonates a real grenade beside an isolated soldier, requiring no WAIT stance, cover, response or CONTACT ownership before re-enabling the feature. It proves a targetless explosion preserves explicit BLUE hold-fire without CONTACT, then exposes the same BLUE/STEALTH group to a naturally known hostile and requires awareness plus a finite weak low-profile stance without WAIT movement, fire, artillery, reinforcement, combined-arms or manoeuvre ownership. A separate four-rifleman fixture holds an ordinary HOLD waypoint while naturally detecting and firing on a real hostile; it requires real shots, continued HOLD ownership, less than 20 metres dispersion and no WAIT operation, drill, support reservation or replacement waypoint. It kills a real same-group actor to require native HIDE delivery while the survivor remains CALM and BLUE with no invented contact. A separate CARELESS soldier receives a real grenade stimulus and must preserve the authored state without an accepted group record or CONTACT transition. A real targetless grenade beside another isolated invulnerable soldier and a solid wall requires native engine-FSM submission, an observed physical crouch/prone reflex, an actual bounded move behind cover, exact authored-AUTO restoration, prompt CALM release, no acquired enemy and no SECURITY/SEARCH transition. A separated-wingman explosion requires exact-observer cover, at least two additional idle group members to receive finite generation-owned low-profile leases, exact stance restoration, and natural FSM completion with observer, mounted context, response and action identities physically gone. The same fixture then commits a real route through another explosion and requires physical progress without a forced-prone stall. A real hostile at 25 metres must produce native fire, end the immediate actor reflex after its fixed two-cycle budget and hand continuing contact back to native AI and the persistent group brain without reveal, target, fire or synthetic-danger injection. A separate soldier receives a native GET IN task before a real grenade and must physically board without an accepted group danger record, WAIT response or CONTACT transition. runTacticalAssessment.sqf adds three real-contact selection cases: riflemen without anti-armour capability must record ARMOUR_OVERMATCH and create no WAIT manoeuvre; the same vehicle contact under an authored forward MOVE must select ADVANCE and make physical progress; exposed infantry on a physical tower must record ELEVATED_FIRE_POSITION without a WAIT-authored uphill rush. runVehicleDrills.sqf adds a three-person armoured crew facing a real hostile, requires mounted persistence to remain exclusive to the effective commander while vehicle gunnery is disabled, then enables the production vehicle layer and requires confirmed CONTACT, one exact-platform generation-scoped safe suppression response and real fire without audit-injected target commands. That immediate response changes no route, speed or waypoint. The production group step may issue cover movement only to an idle actor with no native command, active WAIT operation, Zeus hold or specialist owner; casualty and scream evidence cannot authorise it, and exact-generation cleanup runs during ordinary and external handover. The remainder covers real wall occlusion, no hidden acquisition, enemy physical exposure, natural sighting, re-occlusion, sight ageing, reacquisition and post-contact interruption. Added, not live-verified. Active Zeus replacement now requires immediate danger cleanup plus physical replacement-waypoint arrival with no resurrection; active-response leader loss requires a living successor and ordinary-route continuation. External ownership and HC migration variants remain outstanding; runCombat.sqf is retained. The scheduler diagnostic uses a fresh ordinary MOVE squad and production discovery/listeners to measure wake latency, priority, expiry, no target reveal, route preservation, disabled rejection, listener cleanup and Zeus priority. Synthetic HIT submission remains scheduler-only diagnostics; real explosion and hostile-contact cases cover native engine delivery and finite response lifecycle. A saved static-support fixture places an empty armed friendly emplacement within 75 metres during natural contact and requires one nonleader to physically occupy its gunner seat while other squad members continue the engagement; disabled, failed-mount, contact-cleanup and Zeus-replacement cases must leave no stale assignment. A saved carried-support fixture requires a compatible two-person bag team to physically assemble its weapon, place the original carrier in the real gunner seat, fire the real weapon, natively disassemble it during post-contact security, recover both original bags and release exact ownership. None of the newly added assessment fixtures has been executed against the current package; failed assembly, failed bag recovery, renewed-contact interruption, Zeus interruption and locality migration remain explicit cases.",
       "executable_sources": [
         "runContact.sqf",
         "runCombat.sqf",
-        "runScheduler.sqf"
+        "runTacticalAssessment.sqf",
+        "runScheduler.sqf",
+        "runVehicleDrills.sqf"
       ],
       "production_sources": [
         "addons/support/functions/cortexContactReport.sqf",
@@ -384,15 +388,21 @@
         "addons/infantry/functions/dangerEngineCanContinue.sqf",
         "addons/infantry/functions/dangerEngineAct.sqf",
         "addons/infantry/functions/dangerEngineRelease.sqf",
+        "addons/infantry/functions/dangerEngineRecycle.sqf",
+        "addons/infantry/functions/dangerVehicleProfile.sqf",
         "addons/infantry/functions/dangerEngineMode.sqf",
         "addons/infantry/functions/dangerEngineSelect.sqf",
         "addons/infantry/functions/dangerEngineSubmit.sqf",
         "addons/infantry/functions/dangerCoverStep.sqf",
+        "addons/infantry/functions/dangerGroupHideStep.sqf",
+        "addons/infantry/functions/dangerSmokeStep.sqf",
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",
         "addons/infantry/functions/dangerReact.sqf",
-        "addons/infantry/functions/cortexGroupAnchor.sqf"
+        "addons/infantry/functions/cortexGroupAnchor.sqf",
+        "addons/infantry/functions/cortexStaticSupport.sqf",
+        "addons/infantry/functions/cortexStaticDeployStep.sqf"
       ]
     },
     {
@@ -437,7 +447,7 @@
         "runtime-20260927-133856 complete: whole-group YELLOW comparisons completed only during late observation; original deadlines failed. RED-group comparisons stalled under ATTACK despite individual YELLOW. No general flank acceptance.",
         "runtime-20260927-142945 first FLANK-NATIVE-FIRE ended STALLED; original and late physical consolidation failed. Combat-mode restoration passed with explicit matching expected/actual RED values after checked fixture initialization. Movement remains unaccepted."
       ],
-      "automation": "runCombat.sqf: runtime-20260927-130332 ordinary RED flank ended STALLED and failed moving fire. YELLOW passed physical movement, frontage and moving fire but exceeded the completion deadline. Additive independent fire-control comparisons and late-completion diagnostic saved for retest.",
+      "automation": "runCombat.sqf now requires the production tactical assessment to select FLANK and publish STARTED before applying its existing physical movement, firing, blocked-route, completion and interruption checks. Earlier runtime evidence remains unaccepted; exact-package retest is pending.",
       "executable_sources": [
         "runCombat.sqf"
       ],
@@ -557,7 +567,7 @@
       "id": "CIVILIAN",
       "title": "Civilian danger response and external ownership",
       "setup": "Use an ordinary unarmed civilian near a threat with reactions disabled and enabled, then replace the active flee order with a Zeus movement order. Repeat under supported specialist, specialist and external civilian controller dependencies when installed.",
-      "expected": "Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.",
+      "expected": "Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, allow a real explosion or hit to replace weaker gunfire without destination churn, recover once from a stall, and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no WAIT movement, animation or combat commands.",
       "settings": [
         "WAIT_AIPass_CivilianReaction_Enable",
         "WAIT_AIPass_CivilianReaction_Radius",
@@ -566,28 +576,29 @@
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded specialist/specialist/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.",
+      "automation": "runReactions.sqf adds disabled refusal, enabled physical flight, a real grenade Explosion event that must replace a weaker active generation, cooldown refusal and physical Zeus replacement-order checks. The production endpoint evaluates three separated headings through the bounded terrain selector; one shared-scheduler progress step permits one recovery reissue and then retires. Saved, unexecuted. Dependency-loaded specialist/external-controller ownership, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit delivery remain open.",
       "executable_sources": [
         "runReactions.sqf"
       ],
       "production_sources": [
         "addons/infantry/functions/cortexCivilianReact.sqf",
         "addons/infantry/functions/cortexCivilianSetup.sqf",
+        "addons/infantry/functions/cortexCivilianStep.sqf",
         "addons/compatibility/functions/cortexExternalOwner.sqf"
       ]
     },
     {
       "id": "AT",
       "title": "Anti-armour and ammunition roles",
-      "setup": "Provide AT/AA/dual-role launchers and overrides against real vehicles, with a friendly in the backblast corridor.",
-      "expected": "Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot.",
+      "setup": "Provide AT/AA/dual-role launchers and overrides against real vehicles, with a friendly in the backblast corridor; separately expose a rifle squad with no usable launcher to close heavy armour.",
+      "expected": "Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot. A squad with no AT physically withdraws from fresh close heavy armour instead of starting an assault, advance or flank, while an authored HOLD or SENTRY remains authoritative.",
       "settings": [
         "WAIT_AIPass_AmmoCapabilityOverrides",
         "WAIT_AIPass_AntiArmour_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
-      "automation": "runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. Not executed. Backblast obstruction, owner transfer and cancellation variants remain outstanding.",
+      "automation": "runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. A separate natural-detection fixture now requires a four-rifleman squad with no launcher to publish HEAVY_ARMOUR_NO_AT, acquire the common finite WITHDRAW operation, travel at least 30 m, increase separation from the APC by at least 20 m and create no manoeuvre drill. Saved, not executed. Authored HOLD/SENTRY physical preservation, backblast obstruction, owner transfer and cancellation variants remain outstanding.",
       "executable_sources": [
         "runFireControl.sqf"
       ],
@@ -603,22 +614,27 @@
       "settings": [
         "WAIT_AIPass_NavalAssault_Enable",
         "WAIT_AIPass_Vehicles_Enable",
+        "WAIT_AIPass_VehicleJink_Enable",
         "WAIT_AIPass_Vehicles_StandoffDistance"
       ],
       "status": "implemented_partial",
       "live_evidence": [
         "runtime-20260927-040456: server suite zero findings; natural detection, actual AT-directed shots, hold-fire, disabled stationary control, physical +60 m standoff and crew retention passed. Client completion missing, broader owner/disable variants unverified."
       ],
-      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued.",
+      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued. A fresh DETECTED generation after primary-gunner loss now requires an existing dedicated AI commander to change internally to the gunner seat while the driver remains in place; no crew is spawned or moved directly into a seat. An exact armed or armoured vehicle may accept one short terrain-checked danger jink only when it is slow, fully crew-only, outside convoy control and has no existing movement owner; the saved real-danger physical fixture first proves the disabled state, then requires a generation-owned jink, at least 20 metres of physical travel and complete crew retention. It has not yet been executed against a packaged candidate. A stopped tracked fighting vehicle now has disabled/enabled natural-contact cases requiring a generation-owned hull-orientation operation, physical alignment within 20 degrees, less than 8 metres of travel and full crew retention. Saved, not yet executed.",
       "executable_sources": [
         "runGunnery.sqf",
-        "runNaval.sqf"
+        "runNaval.sqf",
+        "runVehicleDrills.sqf"
       ],
       "production_sources": [
         "addons/aircraft/functions/cortexAircraftEligible.sqf",
         "addons/vehicles/functions/cortexNavalAssault.sqf",
         "addons/vehicles/functions/cortexNavalRelease.sqf",
-        "addons/vehicles/functions/cortexVehicles.sqf"
+        "addons/vehicles/functions/cortexVehicles.sqf",
+        "addons/vehicles/functions/cortexVehicleCrewRecover.sqf",
+        "addons/vehicles/functions/cortexVehicleJink.sqf",
+        "addons/vehicles/functions/cortexVehicleOrient.sqf"
       ]
     },
     {
@@ -636,7 +652,8 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "addons/infantry/functions/cortexOnboardContact.sqf"
+        "addons/infantry/functions/cortexOnboardContact.sqf",
+        "addons/vehicles/functions/cortexVehicleUnloadPolicy.sqf"
       ]
     },
     {
@@ -1071,8 +1088,8 @@
     {
       "id": "ASSAULT",
       "title": "Final assault",
-      "setup": "Complete a real flank into assault range with and without grenades/friendlies near the enemy.",
-      "expected": "After an eligible advance or flank, troops approach the reported objective, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate the covering element. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.",
+      "setup": "Complete a real flank or advance into assault range, and begin from a fresh known dismounted infantry hostile inside the ordinary manoeuvre minimum range, with and without grenades/friendlies near the enemy. Separately present a close occupied combat vehicle to a launcher-capable squad.",
+      "expected": "After an eligible advance or flank, or immediately against an already-close fresh dismounted infantry threat, troops approach the reported objective in paired elements, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate. Vehicles, mounted crew and static weapons are refused as direct infantry clear-through objectives and remain with anti-armour, fire-control, standoff, flank or withdrawal logic. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.",
       "settings": [
         "WAIT_AIPass_Assault_Enable",
         "WAIT_AIPass_Assault_Range"
@@ -1083,11 +1100,13 @@
         "runtime-20260927-142945 stages the new Advance/Flank approach, grenade hold, 20 m clear-through and flank support consolidation. Live outcomes pending; no acceptance from static checks.",
         "Runtime 200043: focused ADVANCE-GRENADE completed 38 checks with zero findings and zero SQF errors, including actual grenade, physical clear-through by both elements and fire while moving. Single server-owner run; wider variants remain pending."
       ],
-      "automation": "runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. All new stages await live acceptance in runtime 142945.",
+      "automation": "runCombat.sqf requires the production tactical assessment to select ASSAULT and publish STARTED before actual approach proximity, physical crossing by each element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. ASSAULT-MULTI-CONTACT requires native knowledge of both a too-close contact and a second viable contact, selects the viable target and then applies the normal physical assault checks. runFireControl.sqf adds an occupied armed-vehicle contact at 45 metres against a four-person launcher-capable squad and requires natural CONTACT with no ASSAULT drill/operation and less than 20 metres movement. New or changed stages await exact-package live acceptance.",
       "executable_sources": [
         "runCombat.sqf"
       ],
-      "production_sources": []
+      "production_sources": [
+        "addons/infantry/functions/cortexAssaultStart.sqf"
+      ]
     },
     {
       "id": "ADVANCE",
@@ -1104,13 +1123,14 @@
         "runtime-20260927-193231: normal combat advance completed 33 checks with four findings and zero SQF errors. Actual covering fire and fire while moving passed. Contact deadline, frontage, clear-through and completion failed; ending GRENADE_UNRESOLVED with a separated leader. A saved explicit queued-throw cancellation transition is not yet live-verified. No acceptance claimed.",
         "Runtime 200043: focused ADVANCE-GRENADE completed 38 checks with zero findings and zero SQF errors, including actual grenade, physical clear-through by both elements and fire while moving. Single server-owner run; wider variants remain pending."
       ],
-      "automation": "runCombat.sqf COMBAT-ADVANCE-*; server completion and proximity-stop passed",
+      "automation": "runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. Changed assessment stage awaits exact-package live acceptance.",
       "executable_sources": [
         "runCombat.sqf"
       ],
       "production_sources": [
         "addons/infantry/functions/cortexAdvanceStart.sqf",
-        "addons/infantry/functions/cortexTacticalStart.sqf"
+        "addons/infantry/functions/cortexTacticalStart.sqf",
+        "addons/infantry/functions/cortexTacticalAssess.sqf"
       ]
     },
     {
@@ -1272,17 +1292,21 @@
       "title": "Building clearance",
       "setup": "Use enterable multi-room buildings with live enemies, blocked rooms and different owners.",
       "expected": "Team physically visits required positions and engages; inaccessible rooms produce INCOMPLETE, never cleared-by-timeout.",
-      "settings": [],
+      "settings": [
+        "WAIT_AIPass_BuildingCombat_Enable",
+        "WAIT_AIPass_BuildingCombat_Range"
+      ],
       "status": "implemented_partial",
       "live_evidence": [
         "20260929-184640: only one of four room positions visited; clearance incomplete. Outside-start prerequisite also failed, so fresh-group cases are required."
       ],
-      "automation": "runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance and ordinary-waypoint physical handover. Live enemies, terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.",
+      "automation": "runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance, ordinary-waypoint physical handover, casualty replacement, door handling and natural native-known indoor-contact entry. Terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.",
       "executable_sources": [
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
         "addons/infantry/functions/cortexBuildingDoor.sqf",
+        "addons/infantry/functions/cortexBuildingContact.sqf",
         "addons/infantry/functions/cortexClearBuilding.sqf",
         "addons/infantry/functions/buildingOperationStart.sqf",
         "addons/infantry/functions/buildingOperationQueue.sqf",

@@ -1,7 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
  * Applies one expiring combined-arms contact role on the selected asset owner.
- * A direct-fire ground vehicle receives target knowledge without losing its authored route. A second
+ * A direct-fire ground vehicle receives target knowledge and one gunner fire request without losing
+ * its authored route. Manoeuvring vehicles and aircraft receive knowledge only: their finite
+ * operation owns later target and weapon commands after movement/release geometry is valid. A second
  * ground vehicle receives a finite safe-side manoeuvre destination selected once from a bounded set
  * which keeps the support fire lane clear and avoids water, cliff-like slopes and unnecessarily rough
  * ground. Engine pathfinding remains responsible for the actual route. Airborne aircraft receive the
@@ -46,12 +48,17 @@ if (_role == "AIR_ATTACK" && {
 // Recheck before assigning targets or starting a finite manoeuvre.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
 _group reveal [_target,2.5];
-{
-    if (alive _x && {local _x} && {!isPlayer _x} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_x doTarget _target};
-} forEach crew _asset;
 if (_role == "GROUND_FIRE") exitWith {
     private _gunner=gunner _asset;
-    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doFire _target};
+    // Knowledge is shared with the whole crew, but only the weapon operator receives an explicit
+    // target. Ordering the driver/commander to attack can replace the vehicle's current route with
+    // native pursuit. GROUND_MANOEUVRE and AIR_ATTACK deliberately skip this block because their
+    // operation controllers own the later target/release boundary.
+    if (!isNull _gunner && {alive _gunner} && {local _gunner} && {combatMode _group in ["YELLOW","RED"]}
+        && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
+        _gunner doTarget _target;
+        _gunner doFire _target;
+    };
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];
     true

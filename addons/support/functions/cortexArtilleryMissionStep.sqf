@@ -19,6 +19,7 @@ private _finish = {
     private _spotter = _mission get "spotter";
     if (!isNull _spotter) then {_spotter setVariable ["WAIT_AIPass_NextFireRequest_" + (_mission get "purpose"), _cooldown]};
     if (_counter && {!isNull (_mission get "enemy")}) then {(_mission get "enemy") setVariable ["WAIT_AIPass_CounterUntil_" + str (_mission get "side"), _cooldown]};
+    if ((_mission get "purpose") == "DANGER") then {_battery setVariable ["WAIT_AIPass_NextDangerFire",time+120,true]};
     (missionNamespace getVariable ["WAIT_AIPass_FireMissions", createHashMap]) deleteAt (_mission get "key");
     _battery setVariable ["WAIT_AIPass_FireToken", nil, true];
     _battery setVariable ["WAIT_AIPass_BusyUntil", nil, true];
@@ -29,13 +30,22 @@ if ((_mission get "phase") in ["PENDING", "UNCERTAIN"] && {alive _battery}) then
     _mission set ["deadline", time + 900];
 };
 private _requester=_mission getOrDefault ["requester",grpNull];
+private _danger=(_mission get "purpose") == "DANGER";
+private _crewGroup=if (isNull gunner _battery) then {grpNull} else {group gunner _battery};
 private _requesterBlocked=!isNull _requester && {!([_requester,"WAIT_AIPass_Artillery_Enable",false] call WAIT_fnc_CortexFeatureEnabled) || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}};
 private _blocked = _requesterBlocked || {!alive _battery} || {!alive gunner _battery}
     || {combatMode group gunner _battery == "BLUE"} || {unitCombatMode gunner _battery == "BLUE"} || {time > (_mission get "deadline")}
     || {side group gunner _battery != (_mission get "side")}
     || {!([group gunner _battery] call WAIT_fnc_CortexIsEligible)}
-    || {!([_battery, _mission get "purpose"] call WAIT_fnc_CortexArtilleryRole)}
-    || {!([group gunner _battery, ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select ((_mission get "purpose") == "COUNTER"), false] call WAIT_fnc_CortexFeatureEnabled)};
+    || {!_danger && {!([_battery, _mission get "purpose"] call WAIT_fnc_CortexArtilleryRole)}}
+    || {if (_danger) then {
+        !([_crewGroup,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
+        || {!([_crewGroup,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+        || {!([_crewGroup,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+        || {[_crewGroup] call WAIT_fnc_CortexExternalTakeover}
+    } else {
+        !([_crewGroup, ["WAIT_AIPass_Artillery_Enable", "WAIT_AIPass_CounterBattery_Enable"] select ((_mission get "purpose") == "COUNTER"), false] call WAIT_fnc_CortexFeatureEnabled)
+    }};
 if (_blocked) exitWith {
     if (alive _battery && {(_mission get "phase") in ["PENDING", "UNCERTAIN"]}) then {
         _mission set ["remaining", 0];

@@ -13,7 +13,8 @@
  */
 
 params [["_actor",objNull,[objNull]]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {false};
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _actor}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
@@ -25,6 +26,13 @@ if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {!isNull (remoteControlled _actor)}
     || {!isNull (_actor getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}) exitWith {false};
+
+// Native task ownership can change after the event was classified and while this finite response
+// is waiting. Recheck only the affected actor here so a fresh boarding, action, treatment, rearm,
+// join or fleeing task interrupts before another WAIT stance or recycle. ATTACK deliberately remains
+// eligible because the engine also uses it for ordinary autonomous combat.
+if (behaviour _actor == "CARELESS" || {fleeing _actor}
+    || {toUpperANSI (currentCommand _actor) in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {false};
 
 // The full Zeus helper may inspect waypoints and update a timing cache. The danger FSM only needs
 // the cheap interruption edge: a new curator token, a known live hold, or curator-owned waypoints.

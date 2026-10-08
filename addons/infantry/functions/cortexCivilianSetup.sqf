@@ -1,8 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
  * Installs the event-driven WAIT civilian danger response on one owner-local unarmed civilian.
- * external civilian controller is detected and left completely untouched. No per-frame or periodic
- * civilian scan is created; only FiredNear and Hit events can request a reaction.
+ * Player, Zeus, specialist and neutral external-control ownership is left completely untouched.
+ * No per-frame or periodic civilian scan is created. FiredNear, Explosion and Hit events request a
+ * priority-aware finite reaction through the shared scheduler.
  *
  * Locality / Authority: call where the unit is local. A Local handler repeats setup after migration.
  * Repeat/JIP: versioned handler IDs are removed before replacement; repeat calls are harmless.
@@ -34,14 +35,19 @@ if (!local _unit || {isPlayer _unit} || {side group _unit != civilian}
 private _fired=_unit addEventHandler ["FiredNear",{
     params ["_unit","_firer","_distance"];
     if (_distance <= (missionNamespace getVariable ["WAIT_AIPass_CivilianReaction_Radius",45])) then {
-        [_unit,_firer] call WAIT_fnc_CortexCivilianReact;
+        [_unit,_firer,"FIRED_NEAR",1] call WAIT_fnc_CortexCivilianReact;
     };
+}];
+private _explosion=_unit addEventHandler ["Explosion",{
+    params ["_unit","_damage","_explosionSource"];
+    private _threat=if (isNull _explosionSource) then {getPosATL _unit} else {getPosATL _explosionSource};
+    [_unit,_threat,"EXPLOSION",2] call WAIT_fnc_CortexCivilianReact;
 }];
 private _hit=_unit addEventHandler ["Hit",{
     params ["_unit","_source"];
-    [_unit,_source] call WAIT_fnc_CortexCivilianReact;
+    [_unit,_source,"HIT",3] call WAIT_fnc_CortexCivilianReact;
 }];
-_unit setVariable ["WAIT_Cortex_CivilianHandlers",[["FiredNear",_fired],["Hit",_hit]]];
+_unit setVariable ["WAIT_Cortex_CivilianHandlers",[["FiredNear",_fired],["Explosion",_explosion],["Hit",_hit]]];
 if (isNil {_unit getVariable "WAIT_Cortex_CivilianLocalHandler"}) then {
     private _local=_unit addEventHandler ["Local",{
         params ["_unit","_isLocal"];

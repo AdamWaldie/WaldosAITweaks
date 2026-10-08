@@ -518,6 +518,17 @@ sleep 8;
 _civilian setVariable ["WAIT_CortexQA_Label","CIVILIAN / FLEE",true];
 ["Civilian reaction enabled","The same civilian receives the production danger response. Watch real movement away from the nearby threat. No FSM, animation or test waypoint is injected.",_civilianOrigin] call _phase;
 private _enabledIssued=[_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact;
+// A real explosion is a stronger event than the active FiredNear-equivalent request. The object
+// handler must replace that generation once, then weaker duplicate noise must leave its route alone.
+private _generationBeforeExplosion=_civilian getVariable ["WAIT_Cortex_CivilianGeneration",0];
+private _explosion=createVehicle ["GrenadeHand",getPosATL _civilian vectorAdd [7,0,0],[],0,"CAN_COLLIDE"];
+_objects pushBack _explosion;
+private _explosionReplaced=[{
+    private _reaction=_civilian getVariable ["WAIT_Cortex_CivilianReaction",[]];
+    count _reaction >= 4 && {(_reaction select 3) == "EXPLOSION"}
+        && {(_civilian getVariable ["WAIT_Cortex_CivilianGeneration",0]) > _generationBeforeExplosion}
+},10] call _wait;
+["CIVILIAN-real-explosion-priority",_explosionReplaced,format ["before=%1 after=%2 reaction=%3",_generationBeforeExplosion,_civilian getVariable ["WAIT_Cortex_CivilianGeneration",0],_civilian getVariable ["WAIT_Cortex_CivilianReaction",[]]]] call _check;
 private _fled=[{_civilian distance2D _civilianOrigin >= 25 && {_civilian distance2D _civilianThreat > (_civilianOrigin distance2D _civilianThreat)+20}},35] call _wait;
 ["CIVILIAN-enabled-physical-flee",_enabledIssued && {_fled},format ["issued=%1 travel=%2 separation=%3",_enabledIssued,_civilian distance2D _civilianOrigin,_civilian distance2D _civilianThreat]] call _check;
 private _cooldownRefused=!([_civilian,_civilianThreat] call WAIT_fnc_CortexCivilianReact);

@@ -11,8 +11,9 @@
  * Target distribution: when two or more enemies are visible, soldiers whose target already has more
  * than WAIT_AIPass_FireControl_MaxShootersPerTarget shooters switch to an enemy nobody is engaging.
  * A switched soldier keeps his target for 6 s, so orders do not flicker.
- * Suppression: at an enemy that is known but not currently seen (last seen 3-30 s ago), or at the
- * drill's enemy while a flank is running, up to WAIT_AIPass_FireControl_MaxSuppressors soldiers
+ * Suppression: at an enemy that is known but not currently seen (last seen 3-30 s ago), at the
+ * drill's enemy while a flank is running, or at a distant native-known contact which has just
+ * produced a finite CANFIRE danger response, up to WAIT_AIPass_FireControl_MaxSuppressors soldiers
  * (machine gunners first) fire suppressively. One eligible suppressor is ordered at a time; the group
  * rotates through its candidates at a 2.5-4 s interval. The first order receives a 0.25-2.25 s
  * short per-group random delay, so separate squads do not produce an uncanny global volley. This models
@@ -151,6 +152,26 @@ private _suppressPos = +_reported;
 private _hiddenIndex = _enemies findIf {(_x select 2) > 3 && {(_x select 2) <= 30} && {(_x select 3) <= 500}};
 if (_hiddenIndex >= 0) then {_suppressPos = (_enemies select _hiddenIndex) select 1};
 if (_suppressPos isEqualTo [] && {count _drill > 0}) then {_suppressPos = _drill getOrDefault ["enemyPos", []]};
+// A native CANFIRE event is an immediate opportunity, not merely a posture change. When the
+// engine already knows a live contact beyond assault distance, feed its believed position into the
+// same bounded, ammunition-aware and friendly-fire-safe suppression rotation. This neither reveals
+// a target nor assigns one: CortexKnowledge supplied the native-known record, while the short
+// danger lease only authorises an early burst before the ordinary hidden/drill cases exist.
+if (_suppressPos isEqualTo []) then {
+    private _dangerResponse=_state getOrDefault ["dangerResponse",[]];
+    private _dangerGeneration=_group getVariable ["WAIT_Danger_Generation",-1];
+    private _assaultRange=(missionNamespace getVariable ["WAIT_AIPass_Assault_Range",80]) min 100;
+    private _canFireWindow=count _dangerResponse == 5
+        && {(_dangerResponse select 0) == "CANFIRE"}
+        && {(_dangerResponse select 4) == _dangerGeneration}
+        && {_now < (_dangerResponse select 3)};
+    if (_canFireWindow) then {
+        private _knownIndex=_enemies findIf {
+            (_x select 2) <= 3 && {(_x select 3) > _assaultRange} && {(_x select 3) <= 500}
+        };
+        if (_knownIndex >= 0) then {_suppressPos=+((_enemies select _knownIndex) select 1)};
+    };
+};
 if (_suppressPos isNotEqualTo []) then {
     private _targetASL = ATLToASL _suppressPos;
     private _limit = missionNamespace getVariable ["WAIT_AIPass_FireControl_MaxSuppressors", 2];

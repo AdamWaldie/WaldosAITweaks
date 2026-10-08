@@ -10,15 +10,15 @@
  * finite dry-ground egress. For a legacy combined crew/passenger group, cargo receives short
  * individual egress moves so the boat group is never assigned a land waypoint.
  *
- * external naval controller has exclusive naval ownership when its patch is loaded. COMPAT/external controller busy
- * movement is also respected through CortexOwnershipLease. Zeus input releases the operation through
+ * Player, Zeus, specialist and neutral external-control ownership is respected through the common takeover
+ * boundary and movement lease. Zeus input releases the operation through
  * normal eligibility cleanup. Casualties simply reduce the surviving landing element; no readiness
  * barrier waits for a missing soldier.
  * Locality/authority: runs only inside the existing machine-local Cortex group job. Boat speed is
  * changed only where the boat is local. The tokenized plan is public so independently owned
  * passenger groups and a replacement owner can continue or release it.
  * Repeat/JIP: one token and deadline bound every approach. Completion, expiry, a closed feature
- * gate, external-mod ownership and Zeus cleanup all restore exact speed and remove only WAIT orders.
+ * gate, external ownership and Zeus cleanup all restore exact speed and remove only WAIT orders.
  *
  * Arguments:
  * 0: group <GROUP>
@@ -42,8 +42,7 @@ params [
 ];
 if (isNull _group || {!local _group}) exitWith {false};
 private _enabled=[_group,"WAIT_AIPass_NavalAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled;
-private _protocol=missionNamespace getVariable ["WAIT_AIPass_NavalBackendLoaded",false];
-if (!_enabled || {_protocol}) exitWith {
+if (!_enabled) exitWith {
     if ((_state getOrDefault ["navalOperation",[]]) isNotEqualTo []
         || {(_group getVariable ["WAIT_Cortex_NavalOperation",[]]) isNotEqualTo []}) then {
         [_group,_state] call WAIT_fnc_CortexNavalRelease

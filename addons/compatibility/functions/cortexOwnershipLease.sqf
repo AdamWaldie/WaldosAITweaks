@@ -1,11 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Give one finite WAIT movement operation exclusive group movement ownership when an
- * independent alternative AI controller is active, then restore that controller's exact setting.
- * Locality / Authority: Call only where the group is local. The public lease follows group locality
- * so a server or headless-client owner can renew or release the same operation.
+ * Purpose: Gives one finite WAIT operation exclusive ownership of the group's WAIT movement domain.
+ * Locality / Authority: Call only where the group is local. The public lease follows group locality so a server or headless-client owner can renew or release it.
  * Repeat/JIP: Reacquiring the same owner renews its deadline without replacing the captured baseline.
- * A competing owner or an active external support/medical move is refused. Repeated release is safe.
+ * A competing unexpired WAIT owner is refused; external ownership is handled before acquisition. Repeated release is safe.
  * Arguments: 0 group <GROUP>; 1 owner <STRING>; 2 acquire <BOOL>, true; 3 expiry <NUMBER>, serverTime + 30.
  * Return Value: Boolean - true when acquired/released, false for invalid locality or competing work.
  * Current callers: Finite WAIT group movement start/end, discovery expiry and group release.
@@ -19,35 +17,23 @@ params [
     ["_expires",serverTime + 30,[0]]
 ];
 if (isNull _group || {!local _group}) exitWith {false};
-if !(missionNamespace getVariable ["WAIT_AIPass_AlternativeBackendLoaded",false]) exitWith {true};
 
-private _lease=_group getVariable ["WAIT_Cortex_AlternativeLease",[]];
+private _lease=_group getVariable ["WAIT_Cortex_MovementLease",[]];
+private _live=count _lease == 2 && {serverTime < (_lease select 1)};
 if (_acquire) exitWith {
-    if (_owner == "") exitWith {false};
-    private _same=count _lease == 3 && {(_lease select 0) == _owner};
-    private _expired=count _lease == 3 && {serverTime >= (_lease select 2)};
-    if (_lease isNotEqualTo [] && {!_same} && {!_expired}) exitWith {false};
-    private _busy=!_same && {
-        _group getVariable ["VCM_MOVE2SUP",false]
-        || {(units _group) findIf {_x getVariable ["VCM_MBUSY",false]} >= 0}
-    };
-    if (_busy) exitWith {
+    if (_owner == "" || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
+    if (_live && {(_lease select 0) != _owner}) exitWith {
         missionNamespace setVariable [
             "WAIT_Cortex_OwnershipBusyRefusals",
             (missionNamespace getVariable ["WAIT_Cortex_OwnershipBusyRefusals",0]) + 1
         ];
         false
     };
-    private _baseline=if (_same || {_expired}) then {_lease select 1} else {_group getVariable ["Vcm_Disable",false]};
-    _group setVariable ["WAIT_Cortex_AlternativeLease",[_owner,_baseline,_expires max (serverTime + 1)],true];
-    _group setVariable ["Vcm_Disable",true,true];
+    _group setVariable ["WAIT_Cortex_MovementLease",[_owner,_expires max (serverTime + 1)],true];
     true
 };
 
-if (_owner != "" && {_lease isNotEqualTo [] && {(_lease select 0) != _owner}}) exitWith {false};
-if (_lease isNotEqualTo []) then {
-    private _baseline=_lease select 1;
-    _group setVariable ["WAIT_Cortex_AlternativeLease",nil,true];
-    _group setVariable ["Vcm_Disable",_baseline,true];
-};
+if (_lease isEqualTo []) exitWith {true};
+if (_owner != "" && {(_lease select 0) != _owner}) exitWith {false};
+_group setVariable ["WAIT_Cortex_MovementLease",nil,true];
 true
