@@ -183,4 +183,3 @@ _record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadli
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];
 "MOVING"
-
