@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
- * Checks targetless danger, mixed mounted/foot observer classification, effective-commander
- * mounted-contact persistence, contact dismount,
+ * Checks targetless danger, static-emplacement crew safety, mixed mounted/foot observer
+ * classification, effective-commander mounted-contact persistence, contact dismount,
  * calm remount and damaged-armour withdrawal using live vehicles, including an active withdrawal
  * migrating from the server to a real headless owner before Zeus replacement.
  * Locality/authority: scheduled server creates disposable fixtures; production Cortex code commands
@@ -75,7 +75,7 @@ private _dangerExited=[{
     private _stats=_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     _dangerSubmitted=_dangerSubmitted || {(_stats getOrDefault ["acceptedRecords",0]) > 0 && {"EXPLOSION" in (_stats getOrDefault ["lastCauses",[]])}};
     private _crewState=_dangerCrewGroup getVariable ["WAIT_AIPass_State",createHashMap];
-    _dangerLease=_dangerLease || {count (_crewState getOrDefault ["dangerDismount",[]]) == 2}
+    _dangerLease=_dangerLease || {count (_crewState getOrDefault ["dangerDismount",[]]) in [2,6]}
         || {count (_dangerTruck getVariable ["WAIT_Cortex_OnboardDanger",[]]) == 4};
     _dangerStopped=_dangerStopped || {abs speed _dangerTruck < 1};
     _dangerPassengers findIf {!alive _x || {vehicle _x == _dangerTruck}} < 0
@@ -98,6 +98,49 @@ deleteVehicle _dangerProjectile;
 {deleteVehicle _x} forEach (_dangerPassengers+_dangerCrew+[_dangerTruck]);
 deleteGroup _dangerPassengerGroup;
 deleteGroup _dangerCrewGroup;
+
+// Empty and useful emplacements share the same real explosion stimulus. Only the empty exact
+// platform may release its crew: the armed emplacement must remain manned, and neither case may
+// manufacture a target or route. This exercises the static domain which ordinary driving cannot.
+private _emptyStatic=createVehicle ["O_HMG_01_F",[1580,1000,0],[],0,"NONE"];
+private _armedStatic=createVehicle ["O_HMG_01_F",[1660,1000,0],[],0,"NONE"];
+createVehicleCrew _emptyStatic;
+createVehicleCrew _armedStatic;
+_emptyStatic allowDamage false;
+_armedStatic allowDamage false;
+_emptyStatic setVehicleAmmo 0;
+private _emptyStaticGroup=group gunner _emptyStatic;
+private _armedStaticGroup=group gunner _armedStatic;
+[_emptyStaticGroup] call _pin;
+[_armedStaticGroup] call _pin;
+_emptyStaticGroup setCombatMode "BLUE";
+_armedStaticGroup setCombatMode "BLUE";
+private _emptyStaticCrew=crew _emptyStatic;
+private _armedStaticCrew=crew _armedStatic;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_emptyStaticCrew+_armedStaticCrew,true];
+["Danger FSM: static emplacement survival","Two static guns receive real nearby explosions without an enemy. The empty gun must release its own crew; the useful armed gun must remain manned. Neither may receive a target or movement route.",getPosATL _emptyStatic] call _phase;
+private _staticReady=[{
+    _emptyStaticGroup getVariable ["WAIT_AIPass_Managed",false]
+        && {_armedStaticGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {!someAmmo _emptyStatic} && {someAmmo _armedStatic}
+},30] call _wait;
+private _emptyBlast=createVehicle ["GrenadeHand",(getPosATL _emptyStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _armedBlast=createVehicle ["GrenadeHand",(getPosATL _armedStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _emptyReleased=[{
+    _emptyStaticCrew findIf {alive _x && {vehicle _x == _emptyStatic}} < 0
+},30] call _wait;
+private _armedRetained=_armedStaticCrew findIf {!alive _x || {vehicle _x != _armedStatic}} < 0;
+private _staticNoTargets=(_emptyStaticCrew+_armedStaticCrew) findIf {
+    !isNull (assignedTarget _x) || {!isNull (attackTarget _x)}
+} < 0;
+["DANGER-STATIC-empty-crew-released",_staticReady && {_emptyReleased},str [_emptyStatic getVariable ["WAIT_Danger_AbandonReason",[]],_emptyStaticCrew apply {vehicle _x}]] call _check;
+["DANGER-STATIC-useful-crew-retained",_staticReady && {_armedRetained},str [_armedStatic getVariable ["WAIT_Danger_AbandonReason",[]],_armedStaticCrew apply {vehicle _x}]] call _check;
+["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget _x,currentCommand _x]})] call _check;
+deleteVehicle _emptyBlast;
+deleteVehicle _armedBlast;
+{deleteVehicle _x} forEach (_emptyStaticCrew+_armedStaticCrew+[_emptyStatic,_armedStatic]);
+deleteGroup _emptyStaticGroup;
+deleteGroup _armedStaticGroup;
 
 // A three-person armoured crew proves that mounted danger persistence belongs only to the effective
 // commander. The audit supplies a real visible hostile and reads native knowledge; it does not reveal,
@@ -173,7 +216,7 @@ private _mountedPersistent=[{
         private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
         count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
             && {_action param [0,""] == "VEHICLE"}
-            && {count _vehicleContext == 7}
+            && {count _vehicleContext == 8}
             && {(_vehicleContext select 0) == "ARMOURED"}
             && {(_vehicleContext select 1) == _contactVehicle}
     },str [_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]],

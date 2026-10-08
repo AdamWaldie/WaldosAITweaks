@@ -12,7 +12,7 @@
 
 params [["_actor",objNull,[objNull]],["_cause","GUNFIRE",[""]],["_position",[],[[]]],["_source",objNull,[objNull]]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}
-    || {!(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE","CASUALTY","SCREAM"])} || {count _position != 3}) exitWith {false};
+    || {!(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE","CASUALTY","SCREAM"])} || {count _position != 3}) exitWith {false};
 private _group=group _actor;
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {!local _group}

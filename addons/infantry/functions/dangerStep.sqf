@@ -108,11 +108,11 @@ if (_action == "FORCED") exitWith {
 };
 // This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
 // respond on its already-owned scheduler cycle while retaining route, operation and external ownership.
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["PROXIMITY",1.5],["CANFIRE",1.5],["DETECTED",1.5],["GUNFIRE",1]];
 private _responseLifetime=_responseDurations getOrDefault [_cause,1];
 private _response=[_cause,+_position,_observedAt,time+_responseLifetime,_generation];
 private _existing=_group getVariable ["WAIT_Danger_Response",[]];
-private _priority=createHashMapFromArray [["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["CASUALTY",4],["SCREAM",3],["DETECTED",2],["GUNFIRE",1]];
+private _priority=createHashMapFromArray [["HIT",9],["CANFIRE",8],["SUPPRESSED",7],["CASUALTY",6],["SCREAM",5],["PROXIMITY",4],["EXPLOSION",3],["DETECTED",2],["GUNFIRE",1]];
 private _replace=_existing isEqualTo [] || {count _existing != 5}
     || {(_existing select 4) != _generation}
     || {time >= (_existing select 3)}
@@ -128,7 +128,10 @@ if (_replace) then {
     if (_action == "VEHICLE") then {
         private _vehicle=vehicle _observer;
         private _profile=[_observer] call WAIT_fnc_DangerVehicleProfile;
-        _group setVariable ["WAIT_Danger_VehicleContext",[_profile,_vehicle,_cause,+_position,_observedAt,time+_responseLifetime,_generation],true];
+        // Retain the exact occupied vehicle and only the already validated native-known hostile.
+        // Dedicated vehicle consumers can therefore distinguish a close threat at an emplacement
+        // from approximate targetless damage without scanning for or manufacturing an enemy.
+        _group setVariable ["WAIT_Danger_VehicleContext",[_profile,_vehicle,_cause,+_position,_observedAt,time+_responseLifetime,_generation,_source],true];
     } else {
         _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     };

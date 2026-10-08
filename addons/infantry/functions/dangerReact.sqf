@@ -39,7 +39,7 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
         "RESTORED"
     } else {"ASSESS"}
 };
-if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE","CASUALTY","SCREAM"]) exitWith {"IGNORED"};
+if !(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE","CASUALTY","SCREAM"]) exitWith {"IGNORED"};
 if (_yieldToOwner) exitWith {"IGNORED"};
 // The immediate FSM response is deliberately posture-only. Movement, target assignment and route
 // ownership stay with native AI or the already-running WAIT operation. This makes the classifier
@@ -81,13 +81,13 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 // the same short combat posture as an idle element without receiving a destination, target or
 // firing command. This closes the gap where an active advance/flank/CQB operation suppressed its
 // own danger response merely because it already owned movement.
-private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}};
+private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]}};
 private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
 if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];
+private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["PROXIMITY",1.5],["CANFIRE",1.5],["DETECTED",1.5],["GUNFIRE",1]];
 private _until=(time + (_responseDurations getOrDefault [_cause,1])) max (_lease param [4,-1]);
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until],true];
 "POSTURE"

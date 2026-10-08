@@ -293,7 +293,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(step.index('if (_action == "FORCED") exitWith {'),step.index('private _responseDurations='))
         tick=source('cortexGroupTick')
         self.assertIn('private _dangerTactical=_dangerActive',tick)
-        self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]',tick)
+        self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]',tick)
         self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"]',tick)
         self.assertIn('_cause in [1,2,4,9]',engine_act)
         self.assertIn('private _dangerAlert=_dangerActive',tick)
@@ -370,7 +370,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"DETECTED"',selection)
         self.assertIn('"EXPLOSION"',request)
         self.assertIn('"EXPLOSION"',selection)
-        self.assertIn('["HIT",7],["EXPLOSION",6],["SUPPRESSED",5],["CASUALTY",4],["SCREAM",3]',selection)
+        self.assertIn('["HIT",9],["CANFIRE",8],["SUPPRESSED",7],["CASUALTY",6],["SCREAM",5],["PROXIMITY",4],["EXPLOSION",3],["DETECTED",2],["GUNFIRE",1]',selection)
         self.assertIn('"SUPPRESSED","SCREAM","CASUALTY"',action)
         self.assertNotIn('getPosATL _target',setup)
         self.assertIn("_records select [0,12]",engine)
@@ -380,6 +380,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("_expires >= (_latestSourceExpiry getOrDefault [_causeName,-1])",engine)
         self.assertIn("'CASUALTY'",engine)
         self.assertIn("'SCREAM'",engine)
+        self.assertIn("'PROXIMITY'",engine)
+        self.assertIn("'CANFIRE'",engine)
         self.assertIn('WAIT_fnc_DangerRequest',engine)
         self.assertIn('_latestSource getOrDefault [_x,objNull]',engine)
         self.assertIn('private _priorSource=_prior param [4,objNull,[objNull]];',request)
@@ -507,7 +509,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_vehicleContext select 0) == "ARMOURED"',vehicle_audit)
         self.assertIn('(_vehicleContext select 1) == _contactVehicle',vehicle_audit)
         self.assertIn('dangerVehicleProfile',source('cortexGroupTick'))
-        self.assertIn('["TRANSPORT","ARMED","ARMOURED"]',source('cortexGroupTick'))
+        self.assertIn('["TRANSPORT","ARMED","ARMOURED"]',source('cortexVehicles'))
         self.assertIn('WAIT_Danger_VehicleContext",nil,true',source('cortexReleaseGroup'))
         self.assertIn('Immediate stances are weak, finite and exact-owned',diagnostics)
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
@@ -569,7 +571,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('if (_action == "MAINTAIN") exitWith',reaction)
         self.assertIn('WAIT_Operation',reaction)
         self.assertIn('_action == "MAINTAIN" && {count _operation == 0}',reaction)
-        self.assertIn('_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}',reaction)
+        self.assertIn('_action == "MAINTAIN" && {_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]}',reaction)
         self.assertIn('MAINTAIN means keep the committed route, not ignore the threat',reaction)
         self.assertIn('_action == "ENGAGE"',reaction)
         self.assertIn('private _desiredCombat',reaction)
@@ -5325,11 +5327,14 @@ class CortexOperations(unittest.TestCase):
         vehicles=source('cortexVehicles')
         restore=source('cortexRestoreCalm')
         self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]',tick)
-        self.assertIn('_state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile]];',tick)
-        self.assertIn('_vehicleProfile in ["TRANSPORT","ARMED","ARMOURED"]',tick)
+        self.assertIn('_state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource]];',tick)
+        self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"] && {_vehicleProfile != ""}',tick)
+        self.assertIn('_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]',vehicles)
         self.assertIn('WAIT_Danger_VehicleContext',tick)
         self.assertLess(vehicles.index('private _dangerDismount='),vehicles.index('if (_enemies isEqualTo []) exitWith'))
         danger_segment=vehicles.split('private _dangerDismount=',1)[1].split('if (_enemies isEqualTo []) exitWith',1)[0]
+        for token in ['_knownCloseThreat','_emplacementUnsafe','_disabledUnsafe','WAIT_Danger_AbandonReason']:
+            self.assertIn(token,danger_segment)
         self.assertIn('call _dismountAtThreat',danger_segment)
         helper=vehicles.split('private _dismountAtThreat = {',1)[1].split('// Cross-group safe-stop handshake',1)[0]
         for marker in ['WAIT_Cortex_DismountStopRequest','WAIT_Cortex_DismountForcedSpeed',
@@ -5379,7 +5384,9 @@ class CortexOperations(unittest.TestCase):
                      'DANGER-VEHICLE-bounded-safety-lease','DANGER-VEHICLE-safe-stop',
                      'DANGER-VEHICLE-passengers-physically-exit','DANGER-VEHICLE-operating-crew-retained',
                      'DANGER-VEHICLE-no-invented-combat','DANGER-VEHICLE-contact-fixture-ready',
-                     'DANGER-VEHICLE-effective-commander-persistence']:
+                     'DANGER-VEHICLE-effective-commander-persistence',
+                     'DANGER-STATIC-empty-crew-released','DANGER-STATIC-useful-crew-retained',
+                     'DANGER-STATIC-no-invented-combat']:
             self.assertIn(item,text)
         self.assertIn('createVehicle ["GrenadeHand"',text)
         self.assertIn('abs speed _dangerTruck > 5',text)

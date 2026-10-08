@@ -26,7 +26,7 @@ if (isNull _group || {!local _group}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
-private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED','ASSESS'];
+private _causeNames=['DETECTED','GUNFIRE','HIT','PROXIMITY','EXPLOSION','CASUALTY','CASUALTY','SCREAM','CANFIRE','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
 private _latestSource=createHashMap;
 private _latestExpiry=createHashMap;

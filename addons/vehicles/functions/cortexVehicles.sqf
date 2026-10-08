@@ -188,12 +188,42 @@ private _dismountAtThreat = {
     };
 } forEach _vehicles;
 private _dangerDismount=_state getOrDefault ["dangerDismount",[]];
-if (count _dangerDismount in [2,3]) then {
-    _dangerDismount params ["_dangerPosition","_dangerExpiry",["_dangerProfile","TRANSPORT",[""]]];
+if (count _dangerDismount in [2,3,4,5,6]) then {
+    _dangerDismount params ["_dangerPosition","_dangerExpiry",["_dangerProfile","TRANSPORT",[""]],
+        ["_dangerCause","",[""]],["_dangerVehicle",objNull,[objNull]],["_dangerSource",objNull,[objNull]]];
     if (time < _dangerExpiry) then {
+        private _affectedVehicles=if (!isNull _dangerVehicle && {_dangerVehicle in _vehicles}) then {[_dangerVehicle]} else {_vehicles};
         if (_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]) then {
-            {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _vehicles;
+            {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _affectedVehicles;
         };
+        {
+            private _vehicle=_x;
+            private _knownCloseThreat=!isNull _dangerSource && {alive _dangerSource}
+                && {(side _group) getFriend (side group _dangerSource) < 0.6}
+                && {_vehicle distance2D _dangerSource < 25}
+                && {(units _group) findIf {_x knowsAbout _dangerSource > 0} >= 0};
+            private _emplacementUnsafe=_dangerProfile in ["STATIC","ARTILLERY"]
+                && {!someAmmo _vehicle || {_knownCloseThreat}}
+                && {!(_vehicle isKindOf "Tank" && {count (allTurrets [_vehicle,false]) > 1})};
+            private _disabledUnsafe=!(_vehicle isKindOf "StaticWeapon")
+                && {_dangerCause in ["HIT","EXPLOSION"]}
+                && {!canMove _vehicle || {damage _vehicle >= 0.85}};
+            if ((_emplacementUnsafe || {_disabledUnsafe}) && {local _vehicle} && {[] call _mayIssueVehicle}) then {
+                // Abandon only the exact locally owned platform which generated the response. This
+                // is a terminal crew-safety action, not the ordinary passenger contact dismount:
+                // a mobile useful gun retains its route and crew, while an empty emplacement, a
+                // close overrun or a disabled wreck releases its own living AI occupants.
+                {
+                    if (alive _x && {local _x} && {!isPlayer _x} && {group _x == _group}) then {
+                        [_x] orderGetIn false;
+                        unassignVehicle _x;
+                        doGetOut _x;
+                    };
+                } forEach crew _vehicle;
+                _vehicle setVariable ["WAIT_Danger_AbandonReason",
+                    [["DISABLED","EMPLACEMENT"] select _emplacementUnsafe,_dangerCause,serverTime],true];
+            };
+        } forEach _affectedVehicles;
     } else {
         _state deleteAt "dangerDismount";
     };

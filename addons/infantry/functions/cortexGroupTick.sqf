@@ -196,16 +196,17 @@ if (count _dangerResponse == 5) then {
         // shooter. Preserve that distinction: this lease permits only the existing stop-and-exit
         // handshake. Target selection, withdrawal and manoeuvre still require native knowledge.
         private _vehicleContext=_group getVariable ["WAIT_Danger_VehicleContext",[]];
-        private _vehicleProfile=if (count _vehicleContext == 7
+        private _vehicleProfile=if (count _vehicleContext in [7,8]
             && {(_vehicleContext select 6) == _dangerGeneration}
             && {time < (_vehicleContext select 5)}) then {_vehicleContext select 0} else {""};
         _state set ["dangerVehicleProfile",_vehicleProfile];
         // A transport or fighting vehicle can move its passengers into the fight without ejecting
         // operating crew. Aircraft, batteries and static weapons remain with their dedicated owner;
         // a generic danger callback cannot turn them into an infantry dismount operation.
-        if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]
-            && {_vehicleProfile in ["TRANSPORT","ARMED","ARMOURED"]}) then {
-            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile]];
+        if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"] && {_vehicleProfile != ""}) then {
+            private _dangerVehicle=_vehicleContext param [1,objNull,[objNull]];
+            private _dangerSource=_vehicleContext param [7,objNull,[objNull]];
+            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource]];
         };
     } else {
         _state deleteAt "dangerResponse";
@@ -238,7 +239,7 @@ private _dangerActionName=if (count _dangerAction == 5
 private _dangerTactical=_dangerActive
     && {!(_dangerActionName in ["FORCED","VEHICLE"])}
     && {!(combatMode _group in ["BLUE","GREEN"])}
-    && {(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]};
+    && {(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]};
 private _dangerAlert=_dangerActive && {
     combatMode _group in ["BLUE","GREEN"]
     || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]}
@@ -382,7 +383,7 @@ if (!_dangerConfirmed && {_dangerContact isNotEqualTo []}) then {
     _group setVariable ["WAIT_Danger_Contact",nil,true];
 };
 private _dangerVehicleContact=_dangerVehicleSafety && {_dangerConfirmed}
-    && {(_dangerResponse param [0,"",[""]]) in ["HIT","SUPPRESSED","DETECTED","GUNFIRE"]};
+    && {(_dangerResponse param [0,"",[""]]) in ["HIT","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]};
 _tacticalTier=_tacticalTier || {_dangerVehicleContact};
 private _holdFire=combatMode _group in ["BLUE","GREEN"];
 // Run only the bounded vehicle/passenger safety slice for a targetless mounted danger event. With an
