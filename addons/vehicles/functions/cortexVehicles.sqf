@@ -12,6 +12,10 @@
  * but only while the zero-speed lease remains current and no newer controller has replaced it.
  * Separate passenger groups handle only their own local cargo. Only the operating
  * crew group may order vehicle withdrawal or gunnery; convoy ownership remains excluded.
+ * The operating crew also leases the engine unload-in-combat policy for an ordinary occupied
+ * ground vehicle. This prevents native autonomous unloading from bypassing WAIT's passenger task,
+ * safety and Zeus checks. The exact previous value is restored only while WAIT's applied value is
+ * still current; convoy, external ownership and a newer policy change always win.
  * Dismount: infantry riding as cargo in a ground vehicle get out once an enemy is
  * believed within 400 m, instead of dying inside a truck. They are recorded and ordered back in when
  * the squad returns to CALM (WAIT_fnc_CortexRestoreCalm).
@@ -86,6 +90,35 @@ private _vehicles = [];
     private _vehicle = vehicle _x;
     if (_vehicle != _x && {alive _x} && {!(_vehicle in _vehicles)} ) then {_vehicles pushBack _vehicle};
 } forEach units _group;
+private _externalTakeover=[_group] call WAIT_fnc_CortexExternalTakeover;
+private _unloadPolicyVehicles=[];
+if (!_externalTakeover
+    && {[_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+    && {[_group,"WAIT_AIPass_VehicleDismount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
+    _unloadPolicyVehicles=_vehicles select {
+        private _vehicle=_x;
+        local _vehicle && {_vehicle isKindOf "LandVehicle"} && {!(_vehicle isKindOf "StaticWeapon")}
+            && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+            && {effectiveCommander _vehicle in units _group}
+            && {(fullCrew [_vehicle,"",false]) findIf {
+                private _unit=_x select 0;
+                private _role=_x select 1;
+                alive _unit && {!isPlayer _unit}
+                    && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
+            } >= 0}
+    };
+};
+// Reconcile the public tracked set before any early return. This also releases a vehicle whose
+// commander dismounted, whose passengers left, which entered convoy control, or whose feature gate
+// closed. External takeover clears proof without restoring a value into the new owner's task.
+{
+    if (local _x && {!(_x in _unloadPolicyVehicles)}) then {
+        [_x,_group,"RELEASE",!_externalTakeover] call WAIT_fnc_CortexVehicleUnloadPolicy;
+    };
+} forEach +(_group getVariable ["WAIT_Cortex_UnloadPolicyVehicles",[]]);
+{
+    [_x,_group,"ACQUIRE"] call WAIT_fnc_CortexVehicleUnloadPolicy;
+} forEach _unloadPolicyVehicles;
 if (_vehicles isEqualTo []) exitWith {_movementOwned};
 // Vehicle contact work can select an escape route or rank targets before it reaches the local
 // crew command. A newer curator, player or specialist owner must win at that point rather than
@@ -93,6 +126,7 @@ if (_vehicles isEqualTo []) exitWith {_movementOwned};
 private _mayIssueVehicle = {
     !([_group] call WAIT_fnc_CortexExternalTakeover)
 };
+if (_externalTakeover) exitWith {_movementOwned};
 if !([] call _mayIssueVehicle) exitWith {_movementOwned};
 // Shared dismount path for identified contact and a bounded targetless danger lease. It owns only
 // the stop request and local passenger exit. It never creates target knowledge or vehicle movement.

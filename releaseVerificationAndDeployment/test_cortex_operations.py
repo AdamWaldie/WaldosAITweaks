@@ -4237,6 +4237,41 @@ class CortexOperations(unittest.TestCase):
                         '[_group,"VEHICLE_WITHDRAW",true,serverTime+120] call WAIT_fnc_CortexOwnershipLease']:
             self.assertLess(vehicles.rindex('[] call _mayIssueVehicle',0,vehicles.index(command)+len(command)),vehicles.index(command))
 
+    def test_ordinary_vehicle_unload_policy_is_exact_owned_and_restorable(self):
+        policy=source('cortexVehicleUnloadPolicy')
+        vehicles=source('cortexVehicles')
+        release=source('cortexReleaseGroup')
+        stop=source('cortexStop')
+        diagnostics=(ROOT/'addons/core/functions/aiGetDiagnostics.sqf').read_text(encoding='utf-8')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        self.assertIn('class CortexVehicleUnloadPolicy',functions)
+        self.assertIn('effectiveCommander _vehicle) in units _group',policy)
+        self.assertIn('WAIT_Convoy_Active',policy)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',policy)
+        self.assertIn('getUnloadInCombat _vehicle isEqualTo _applied',policy)
+        self.assertIn('_vehicle setUnloadInCombat _previous;',policy)
+        self.assertIn('WAIT_Cortex_UnloadPolicyBlocked',policy)
+        self.assertNotIn('while {',policy)
+        self.assertNotIn('spawn',policy)
+        self.assertIn('WAIT_AIPass_VehicleDismount_Enable',vehicles)
+        self.assertIn('fullCrew [_vehicle,"",false]',vehicles)
+        self.assertIn('[_x,_group,"ACQUIRE"] call WAIT_fnc_CortexVehicleUnloadPolicy;',vehicles)
+        self.assertIn('[_x,_group,"RELEASE",!_externalTakeover] call WAIT_fnc_CortexVehicleUnloadPolicy;',vehicles)
+        self.assertIn('WAIT_Cortex_UnloadPolicyVehicles',release)
+        self.assertIn('"RELEASE",!_externalTakeover',release)
+        self.assertIn('WAIT_Cortex_UnloadPolicyLease',stop)
+        self.assertIn('vehicle-passenger-ownership',diagnostics)
+        self.assertIn('blockedExternalMutations=',diagnostics)
+        self.assertIn('invalidLeases=',diagnostics)
+
+    def test_ordinary_vehicle_unload_policy_preserves_external_mutation(self):
+        policy=source('cortexVehicleUnloadPolicy')
+        mutation=policy.split('if (count _lease == 5 && {getUnloadInCombat _vehicle isNotEqualTo (_lease select 3)})',1)[1]
+        mutation=mutation.split('if (count _lease == 5) then {',1)[0]
+        self.assertIn('WAIT_Cortex_UnloadPolicyLease",nil,true',mutation)
+        self.assertIn('WAIT_Cortex_UnloadPolicyBlocked",[_group,_epoch],true',mutation)
+        self.assertNotIn('setUnloadInCombat',mutation)
+
     def test_expired_support_reservation_does_not_restore_attack_over_a_new_owner(self):
         maintain=source('cortexSupportMaintain')
         self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',maintain)

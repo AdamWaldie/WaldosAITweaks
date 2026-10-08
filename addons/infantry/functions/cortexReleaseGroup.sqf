@@ -21,6 +21,8 @@
  * A crew owner restores a forced speed borrowed for an onboard dismount safe stop only while the
  * exact zero-speed lease remains current and no newer controller owns the group. The crew also
  * retracts its targetless onboard danger report so another passenger owner cannot consume stale work.
+ * Ordinary vehicle unload-in-combat leases are released for the tracked exact vehicles. The previous
+ * value is restored only without external takeover and only while WAIT's applied value is unchanged.
  * Naval cleanup restores the exact boat forced speed and removes only the token-matched WAIT plan.
  * Arguments:
  * 0: group <GROUP>
@@ -110,6 +112,11 @@ if (local _group) then {
 if (local _group) then {
     {[_x] call WAIT_fnc_DrivingAssistRelease} forEach (_group getVariable ["WAIT_DrivingAssist_Vehicles",[]]);
     _group setVariable ["WAIT_DrivingAssist_Vehicles",nil];
+    {
+        if (local _x) then {
+            [_x,_group,"RELEASE",!_externalTakeover] call WAIT_fnc_CortexVehicleUnloadPolicy;
+        };
+    } forEach +(_group getVariable ["WAIT_Cortex_UnloadPolicyVehicles",[]]);
 };
 // Release an interrupted cross-group dismount without stranding the vehicle at forced speed zero.
 private _releasedVehicles=[];

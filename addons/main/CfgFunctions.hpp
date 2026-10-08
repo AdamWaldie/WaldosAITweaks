@@ -213,6 +213,7 @@ class CfgFunctions {
             class CortexCombatEffective {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCombatEffective.sqf";};
             class CortexCapabilities {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCapabilities.sqf";};
             class CortexPassengerReady {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexPassengerReady.sqf";};
+            class CortexVehicleUnloadPolicy {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleUnloadPolicy.sqf";};
             class CortexInfantrySpeed {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexInfantrySpeed.sqf";};
             class CortexUnitRole {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexUnitRole.sqf";};
             class CortexOnboardContact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexOnboardContact.sqf";};

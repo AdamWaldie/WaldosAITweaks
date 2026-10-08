@@ -29,7 +29,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | CIVILIAN - Civilian danger response and external ownership | 4 | 0 | 3 | `runReactions.sqf` | 0 | implemented_partial |
 | AT - Anti-armour and ammunition roles | 2 | 0 | 1 | `runFireControl.sqf` | 0 | implemented_partial |
 | VEH - Vehicle engagement | 3 | 0 | 4 | `runGunnery.sqf`, `runNaval.sqf` | 1 | implemented_partial |
-| DISMOUNT - Contact passenger dismount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
+| DISMOUNT - Contact passenger dismount | 1 | 0 | 2 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | REMOUNT - Contact passenger remount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | WITHDRAW - Damaged vehicle withdrawal | 1 | 0 | 1 | `runVehicleDrills.sqf` | 1 | implemented_partial |
 | COVER - Cover selection and clearance | 1 | 0 | 1 | `runCover.sqf` | 1 | implemented_partial |

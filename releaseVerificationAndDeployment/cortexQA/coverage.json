@@ -638,7 +638,8 @@
         "runVehicleDrills.sqf"
       ],
       "production_sources": [
-        "addons/infantry/functions/cortexOnboardContact.sqf"
+        "addons/infantry/functions/cortexOnboardContact.sqf",
+        "addons/vehicles/functions/cortexVehicleUnloadPolicy.sqf"
       ]
     },
     {

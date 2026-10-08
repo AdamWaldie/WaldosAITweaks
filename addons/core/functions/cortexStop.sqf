@@ -22,6 +22,7 @@
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
  * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
  * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
+ * Ordinary unload-in-combat leases likewise restore only their exact unchanged applied value.
  * Targetless onboard danger reports are also retracted before the scheduler is discarded.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
  * old CBA callback cannot become valid again after a quick restart.
@@ -79,6 +80,10 @@ if (isServer) then {
     // shoot-and-scoot callback fail its first identity check, including after Cortex restarts.
     {
         [_x] call WAIT_fnc_DrivingAssistRelease;
+        private _unloadLease=_x getVariable ["WAIT_Cortex_UnloadPolicyLease",[]];
+        if (count _unloadLease == 5 && {local _x}) then {
+            [_x,_unloadLease select 0,"RELEASE",true] call WAIT_fnc_CortexVehicleUnloadPolicy;
+        };
         private _savedStopSpeed=_x getVariable ["WAIT_Cortex_DismountForcedSpeed",[]];
         private _ownedStop=_savedStopSpeed param [1,-2];
         if (_savedStopSpeed isNotEqualTo [] && {local _x} && {_ownedStop >= 0}
