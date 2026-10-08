@@ -1,3 +1,9 @@
+- Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
+  release helper. Disabling the feature or releasing a group therefore restores a still-owned weak
+  stance for each local observer, while Zeus or specialist takeover only discards WAIT's lease and
+  does not write over the new owner. Previously cleanup erased the response marker but could leave
+  a WAIT-applied crouch or prone stance behind. Static validation passes; the packaged disabled-state
+  and interruption cases remain queued for the next batch.
 - Convoy followers now retain their committed native destination and steering path across physical
   progress updates. The former progress-record rebuild discarded both values after every three metres,
   causing the one-second trail sample to issue another movement command. Steering-capable vehicles now

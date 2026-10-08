@@ -452,6 +452,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_act)
         self.assertIn('_actor setVariable ["WAIT_Danger_EngineResponse",nil]',engine_release)
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_release)
+        self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',setup)
+        self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',source('cortexReleaseGroup'))
         for text in [engine_mode,engine_act,engine_continue]:
             self.assertIn('WAIT_fnc_CortexCombatEffective',text)
         self.assertIn('toUpperANSI (unitPos _actor) != _applied',engine_release)

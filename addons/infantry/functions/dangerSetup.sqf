@@ -73,7 +73,14 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
-    {_x setVariable ["WAIT_Danger_EngineResponse",nil]} forEach units _group;
+    // Engine danger reactions are actor-local leases, not group posture. Release every local
+    // actor through the exact-ownership helper before setup state is discarded. Merely erasing
+    // EngineResponse left WAIT's weak crouch/prone in place after a live setting disable because
+    // the interrupted engine FSM no longer had enough published state to restore it reliably.
+    // On Zeus/specialist takeover DangerEngineRelease clears proof without writing the stance.
+    {
+        if (local _x) then {[_x] call WAIT_fnc_DangerEngineRelease};
+    } forEach units _group;
 };
 if (_groupHandlers isNotEqualTo []) exitWith {};
 

@@ -97,6 +97,12 @@ if (local _group) then {
     private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
     [_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact;
+    // The engine FSM may have applied a separate weak stance to any local member, including an
+    // observer which is not the current group anchor. Retire every exact actor lease now so a
+    // feature shutdown restores WAIT-owned posture and an external takeover simply discards it.
+    {
+        if (local _x) then {[_x] call WAIT_fnc_DangerEngineRelease};
+    } forEach units _group;
     [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
     // A release or Zeus takeover invalidates any still-published danger handoff before another
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
