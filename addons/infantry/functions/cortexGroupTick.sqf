@@ -226,19 +226,19 @@ if (count _dangerResponse == 5) then {
 // wingman's hit or near-round response move the leader instead, disconnecting the visible reaction
 // from the physical event. The observation timestamp binds this identity to the live response; a
 // stale, dead or migrated observer still falls back safely to the current combat-effective anchor.
-private _dangerAssessment=_group getVariable ["WAIT_Danger_LastAssessment",[]];
+private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
 private _dangerCoverActor=objNull;
-if (count _dangerAssessment >= 6
-    && {(_dangerAssessment param [0,"",[""]]) == (_dangerResponse param [0,"",[""]])}
-    && {(_dangerAssessment param [2,-1,[0]]) == (_dangerResponse param [2,-2,[0]])}) then {
-    private _observedActor=_dangerAssessment param [5,objNull,[objNull]];
+if (count _dangerAction >= 6
+    && {(_dangerAction param [1,"",[""]]) == (_dangerResponse param [0,"",[""]])}
+    && {(_dangerAction param [2,-1,[0]]) == (_dangerResponse param [2,-2,[0]])}
+    && {(_dangerAction param [4,-1,[0]]) == (_dangerResponse param [4,-2,[0]])}) then {
+    private _observedActor=_dangerAction param [5,objNull,[objNull]];
     if (!isNull _observedActor && {alive _observedActor} && {local _observedActor}
         && {group _observedActor == _group}) then {_dangerCoverActor=_observedActor};
 };
 if (isNull _dangerCoverActor) then {_dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor};
 if (isNull _dangerCoverActor) then {_dangerCoverActor=_leader};
-private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
-private _dangerActionName=if (count _dangerAction == 5
+private _dangerActionName=if (count _dangerAction >= 5
     && {(_dangerAction select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
     && {time < (_dangerAction select 3)}) then {_dangerAction select 0} else {""};
 // Observation, mounted safety and infantry tactical authority are separate. A vehicle hit can stop

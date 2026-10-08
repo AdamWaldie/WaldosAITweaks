@@ -149,7 +149,10 @@ if (_replace) then {
     // lease from the newest observation.
     [_observer,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
-    _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
+    // Keep the responder beside the action lease. WAIT_Danger_LastAssessment is intentionally the
+    // newest evaluated record and may therefore change while this higher-priority response survives;
+    // it cannot be used as durable ownership for the physical reaction.
+    _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation,_observer],true];
     if (_action == "VEHICLE") then {
         private _vehicle=vehicle _observer;
         private _profile=[_observer] call WAIT_fnc_DangerVehicleProfile;

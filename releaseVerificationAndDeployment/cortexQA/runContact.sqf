@@ -270,15 +270,18 @@ private _observerCoverBefore=(_observerGroup getVariable ["WAIT_Danger_EngineSta
 private _observerGrenade=createVehicle ["GrenadeHand",(getPosATL _observerWingman) getPos [7,90],[],0,"CAN_COLLIDE"];
 private _observerCover=[{
     private _assessment=_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]];
+    private _action=_observerGroup getVariable ["WAIT_Danger_Action",[]];
     private _lease=_observerGroup getVariable ["WAIT_Danger_CoverLease",[]];
     count _assessment >= 6
         && {(_assessment select 5) == _observerWingman}
+        && {count _action >= 6}
+        && {(_action select 5) == _observerWingman}
         && {count _lease >= 4}
         && {(_lease select 0) == _observerWingman}
         && {((_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _observerCoverBefore}
         && {_observerWingman distance2D _observerStart >= 2}
 },18] call _wait;
-["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
+["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
 deleteVehicle _observerGrenade;
 deleteVehicle _observerWall;
 {deleteVehicle _x} forEach [_observerLeader,_observerWingman];

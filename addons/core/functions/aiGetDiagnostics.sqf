@@ -145,7 +145,7 @@ private _dangerResponses=_groups select {
 private _dangerResponseSummary=(_dangerResponses select [0,20]) apply {
     private _response=_x getVariable ["WAIT_Danger_Response",[]];
     private _action=_x getVariable ["WAIT_Danger_Action",[]];
-    private _actionName=if (count _action == 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
+    private _actionName=if (count _action >= 5 && {(_action select 4) == (_response select 4)} && {time < (_action select 3)}) then {_action select 0} else {"ASSESS"};
     format ["%1:%2/%3/%4s",groupId _x,_actionName,_response select 0,(((_response select 3)-time) max 0) toFixed 1]
 };
 private _dangerEngineEvents=0;
