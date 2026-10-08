@@ -414,7 +414,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_sourceObserver knowsAbout _source > 0',source('dangerStep'))
         self.assertIn("if (count _latest > 0 && {!(_group getVariable ['WAIT_AIPass_Managed',false])}",engine)
         self.assertIn('[_group,false,true] call WAIT_fnc_CortexIsEligible',engine)
+        self.assertIn('[_group] call WAIT_fnc_DangerSetup;',engine)
         self.assertIn('[_group,true] call WAIT_fnc_GroupBrainStart',engine)
+        self.assertLess(engine.index('[_group] call WAIT_fnc_DangerSetup;'),engine.index('[_group,true] call WAIT_fnc_GroupBrainStart'))
         preflight=engine.split('private _causeNames=',1)[0]
         self.assertNotIn("|| {!(_group getVariable ['WAIT_AIPass_Managed',false])}",preflight)
         self.assertIn('WAIT_Danger_EngineStats',engine)

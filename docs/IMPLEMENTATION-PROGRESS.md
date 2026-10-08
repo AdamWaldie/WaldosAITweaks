@@ -205,6 +205,12 @@ movement command. Immediate and hide reactions remain weak native posture sugges
 bounded counts for first-contact starts, accepted causes and response modes. Static/package validation is required;
 physical first-contact latency, Zeus replacement and headless migration remain pending.
 
+That native first-contact bootstrap now installs the same repeat-safe group `EnemyDetected` observer before it
+publishes the tactical brain. Previously the first engine reflex and group wake could succeed while later native
+contact identity waited for the sparse discovery sweep to install the observer. The bootstrap adds one group event
+handler, no per-unit handlers, no scan and no second worker. Static validation passes; physical consecutive-contact
+and locality-handover acceptance remains pending.
+
 Forced-command and mounted checks now repeat at the queued group-assessment boundary. This closes a delayed race
 where the immediate FSM yielded correctly but the later cause-only classification still changed group behaviour or
 ROE. Explicit BLUE/GREEN hold-fire modes remain unchanged; ordinary WHITE/YELLOW groups may receive a finite YELLOW/RED response. Boarding, action,

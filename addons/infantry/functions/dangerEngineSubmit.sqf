@@ -3,10 +3,10 @@
  * Purpose: Convert one bounded engine danger queue into WAIT group danger observations.
  * Locality / Authority: Runs unscheduled on the machine local to the affected AI soldier. It records
  * causes and approximate positions only; it never reveals, targets, moves or changes the actor.
- * Repeat/JIP: Safe to repeat. A valid first observation may bootstrap the group's single tactical
- * brain before the periodic discovery sweep reaches it. DangerRequest then coalesces each cause and
- * generation on the current group owner. A locality change ends the old engine FSM and fresh engine
- * danger starts on the new owner.
+ * Repeat/JIP: Safe to repeat. A valid first observation may install the group's bounded contact
+ * observer and bootstrap its single tactical brain before the periodic discovery sweep reaches it.
+ * DangerRequest then coalesces each cause and generation on the current group owner. A locality
+ * change ends the old engine FSM and fresh engine danger starts on the new owner.
  * Arguments: 0: affected soldier <OBJECT>, objNull; 1: engine records <ARRAY>, each
  * [cause number, ATL/ASL position, expiry number, source object], []; 2: selected response mode
  * <STRING>, ASSESS. FORCED records remain local observations and RELEASE records are discarded
@@ -83,6 +83,11 @@ private _reflexOnly=0;
 private _bootstrapped=false;
 if (count _latest > 0 && {!(_group getVariable ['WAIT_AIPass_Managed',false])}
     && {[_group,false,true] call WAIT_fnc_CortexIsEligible}) then {
+    // A native danger callback can be the group's first WAIT contact before the sparse discovery
+    // sweep reaches it. Install the same repeat-safe group observer before publishing the brain so
+    // later native EnemyDetected transitions retain their real witness and cannot fall into the
+    // discovery interval. DangerSetup adds one group handler and never starts a second worker.
+    [_group] call WAIT_fnc_DangerSetup;
     _bootstrapped=[_group,true] call WAIT_fnc_GroupBrainStart;
 };
 private _groupReady=_group getVariable ['WAIT_AIPass_Managed',false];
