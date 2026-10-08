@@ -6,8 +6,8 @@
  * tactical controller.
  * Locality / Authority: Runs only for the local AI actor from its engine danger FSM. The existing
  * group brain remains the sole group-level decision owner.
- * Repeat/JIP: Stateless apart from bounded diagnostics. Locality loss or any newer owner makes the
- * caller terminate. A follow-up record remains finite and is revalidated on every cycle.
+ * Repeat/JIP: The follow-up record carries a small cycle count. Locality loss, any newer owner or
+ * the fixed mode budget makes the caller terminate. Every retained cycle is fully revalidated.
  * Arguments: 0: actor <OBJECT>, objNull; 1: response mode <STRING>, ASSESS;
  * 2: selected engine record <ARRAY>, [].
  * Return Value: Array - one follow-up engine record, or [] when the response should drain and end.
@@ -25,6 +25,22 @@ if (isNull _group || {isNull _source} || {!alive _source}) exitWith {[]};
 if ((side _group) getFriend (side _source) >= 0.6) exitWith {[]};
 
 private _cause=_record param [0,-1,[0]];
+private _cycle=_record param [4,0,[0]];
+// Immediate actor response must remain a bridge into the persistent group brain, not become a
+// second permanent controller while Arma retains nonzero knowledge. Close infantry gets two
+// follow-ups; an effective vehicle commander gets three because crew/domain handoff takes longer.
+private _maxCycles=switch (_mode) do {
+    case 'ENGAGE': {2};
+    case 'VEHICLE': {3};
+    default {0};
+};
+if (_cycle >= _maxCycles) exitWith {
+    private _stats=_group getVariable ['WAIT_Danger_EngineStats',createHashMap];
+    _stats set ['boundedRecycleEnds',((_stats getOrDefault ['boundedRecycleEnds',0])+1) min 100000];
+    _stats set ['lastRecycleCycles',_cycle];
+    _group setVariable ['WAIT_Danger_EngineStats',_stats];
+    []
+};
 private _follow=false;
 switch (_mode) do {
     case 'ENGAGE': {
@@ -67,4 +83,4 @@ _group setVariable ['WAIT_Danger_EngineStats',_stats];
 // Retain the cause which justified the response. Collapsing a continuing hit or near-round event
 // into DETECTED made the next group handoff lose its safety priority and could prematurely retire
 // a mounted response even though the same known hostile remained actionable.
-[_cause,+_position,time+1.5,_source]
+[_cause,+_position,time+1.5,_source,_cycle+1]

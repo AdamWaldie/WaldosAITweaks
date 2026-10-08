@@ -541,8 +541,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("['vehicleRecycleActors',_actors]",engine_recycle)
         self.assertIn('_actor distance2D _source < 35',engine_recycle)
         self.assertIn('(side _group) getFriend (side _source) >= 0.6',engine_recycle)
-        self.assertIn('[_cause,+_position,time+1.5,_source]',engine_recycle)
-        self.assertNotIn('[0,+_position,time+1.5,_source]',engine_recycle)
+        self.assertIn('[_cause,+_position,time+1.5,_source,_cycle+1]',engine_recycle)
+        self.assertNotIn('[0,+_position,time+1.5,_source',engine_recycle)
+        self.assertIn("case 'ENGAGE': {2}",engine_recycle)
+        self.assertIn("case 'VEHICLE': {3}",engine_recycle)
+        self.assertIn('boundedRecycleEnds',engine_recycle)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,engine_recycle)
         self.assertIn('first-contactBootstraps=',diagnostics)
@@ -590,6 +593,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_action select 5) == _observerWingman',reflex_fixture)
         self.assertIn('(_lease select 0) == _observerWingman',reflex_fixture)
         self.assertIn('DANGER-natural-finish-identity-cleared',reflex_fixture)
+        self.assertIn('DANGER-close-contact-finite-reflex-handoff',reflex_fixture)
+        self.assertIn('getOrDefault ["boundedRecycleEnds",0]',reflex_fixture)
+        self.assertIn('getOrDefault ["lastRecycleCycles",-1]) == 2',reflex_fixture)
         self.assertIn('WAIT_Danger_LastAssessment',reflex_fixture)
         self.assertIn('WAIT_Danger_VehicleContext',reflex_fixture)
         self.assertIn('Land_CncWall4_F',reflex_fixture)
@@ -2406,6 +2412,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_position isEqualTo [0,0,0]) exitWith {[]}',recycle)
         self.assertNotIn('_position=getPosATL _source',recycle)
         self.assertIn('getPosATL _actor',recycle)
+        self.assertIn('private _cycle=_record param [4,0,[0]]',recycle)
+        self.assertIn('if (_cycle >= _maxCycles) exitWith',recycle)
+        self.assertIn('[_cause,+_position,time+1.5,_source,_cycle+1]',recycle)
 
     def test_group_ticks_use_low_cost_zero_mean_jitter(self):
         tick=source("cortexGroupTick")

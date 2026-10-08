@@ -437,6 +437,7 @@ private _closeShotHandler=_reflexUnit addEventHandler ["FiredMan",{missionNamesp
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",0];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit,_closeTarget],true];
 private _recyclesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["recycles",0];
+private _boundedRecycleEndsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["boundedRecycleEnds",0];
 ["Danger FSM: close hostile persistence","The two invulnerable opponents face each other at 25 metres. WAIT must retain the native contact across finite response cycles while native AI fires; no target or fire command is injected by the audit.",getPosATL _closeTarget] call _phase;
 private _closePersistent=[{
     private _stats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
@@ -446,6 +447,14 @@ private _closePersistent=[{
 },25] call _wait;
 _closeShots=missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0];
 ["DANGER-close-contact-physical-persistence",_closePersistent,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+private _finiteReflexHandoff=[{
+    private _stats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    (_stats getOrDefault ["boundedRecycleEnds",0]) > _boundedRecycleEndsBefore
+        && {(_stats getOrDefault ["lastRecycleCycles",-1]) == 2}
+        && {_reflexUnit knowsAbout _closeTarget > 0}
+        && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
+},12] call _wait;
+["DANGER-close-contact-finite-reflex-handoff",_finiteReflexHandoff,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_reflexGroup getVariable ["WAIT_Cortex_Phase",""]]] call _check;
 _reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
