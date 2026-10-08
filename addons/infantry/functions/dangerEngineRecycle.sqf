@@ -1,8 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Decide whether one completed engine danger response needs a bounded follow-up sample.
- * It preserves close hostile contact and commander vehicle awareness without issuing movement,
- * targeting, firing or posture commands and without starting another tactical controller.
+ * It preserves close hostile contact, its original danger cause and commander vehicle awareness
+ * without issuing movement, targeting, firing or posture commands and without starting another
+ * tactical controller.
  * Locality / Authority: Runs only for the local AI actor from its engine danger FSM. The existing
  * group brain remains the sole group-level decision owner.
  * Repeat/JIP: Stateless apart from bounded diagnostics. Locality loss or any newer owner makes the
@@ -60,4 +61,7 @@ if (_mode == 'VEHICLE') then {
     _stats set ['vehicleRecycleActors',_actors];
 };
 _group setVariable ['WAIT_Danger_EngineStats',_stats];
-[0,+_position,time+1.5,_source]
+// Retain the cause which justified the response. Collapsing a continuing hit or near-round event
+// into DETECTED made the next group handoff lose its safety priority and could prematurely retire
+// a mounted response even though the same known hostile remained actionable.
+[_cause,+_position,time+1.5,_source]

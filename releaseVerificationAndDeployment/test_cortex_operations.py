@@ -410,6 +410,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
         self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
+        self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('checkAIFeature "MOVE"'))
         self.assertIn('(side _group) getFriend (side group _source) < 0.6',engine_mode)
         self.assertIn('else {"ASSESS"}',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:
@@ -480,6 +481,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("['vehicleRecycleActors',_actors]",engine_recycle)
         self.assertIn('_actor distance2D _source < 35',engine_recycle)
         self.assertIn('(side _group) getFriend (side _sourceGroup) >= 0.6',engine_recycle)
+        self.assertIn('[_cause,+_position,time+1.5,_source]',engine_recycle)
+        self.assertNotIn('[0,+_position,time+1.5,_source]',engine_recycle)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,engine_recycle)
         self.assertIn('first-contactBootstraps=',diagnostics)
