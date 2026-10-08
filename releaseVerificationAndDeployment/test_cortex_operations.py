@@ -413,7 +413,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStats',engine_act)
         self.assertIn('WAIT_Danger_EngineResponse',engine_act)
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_act)
+        self.assertIn('_actor setVariable ["WAIT_Danger_EngineResponse",nil]',engine_release)
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_release)
+        for text in [engine_mode,engine_act,engine_continue]:
+            self.assertIn('WAIT_fnc_CortexCombatEffective',text)
         self.assertIn('toUpperANSI (unitPos _actor) != _applied',engine_release)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',engine_release)
         self.assertIn('WAIT_fnc_CortexZeusHeld',engine_release)

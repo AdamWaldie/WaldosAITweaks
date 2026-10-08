@@ -13,7 +13,8 @@
  */
 
 params [["_actor",objNull,[objNull]]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {false};
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _actor}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
