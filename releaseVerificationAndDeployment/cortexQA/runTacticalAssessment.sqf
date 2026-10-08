@@ -80,7 +80,10 @@ _armour setVariable ["WAIT_CortexQA_Label","LIVE ARMOURED THREAT",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_armourActors+[_armour],true];
 private _armourOrigins=_armourActors apply {getPosATL _x};
 ["Tactical assessment: armour restraint","Six riflemen face a live protected vehicle without anti-armour weapons. Native awareness and fire remain available, but WAIT must record ARMOUR_OVERMATCH and must not create a flank, advance or assault operation.",getPosATL leader _armourGroup] call _phase;
-private _armourContact=[{(([_armourGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {vehicle (_x select 0) == _armour} >= 0},35] call _wait;
+private _armourContact=[{
+    private _knowledge=[_armourGroup] call WAIT_fnc_CortexKnowledge;
+    ((_knowledge select 0) findIf {vehicle (_x select 0) == _armour}) >= 0
+},35] call _wait;
 private _armourDecision=[{[_armourGroup,"HOLD","ARMOUR_OVERMATCH"] call _assessmentMatches},25] call _wait;
 sleep 8;
 private _armourDrill=((_armourGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
@@ -116,7 +119,10 @@ _waypoint setWaypointDescription "QA AUTHORED FORWARD ORDER";
 _orderGroup setCurrentWaypoint _waypoint;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_orderActors+[_orderVehicle],true];
 ["Tactical assessment: authored movement","An ordinary MOVE order exists beyond a live protected vehicle. WAIT must preserve that mission intent, select ADVANCE with AUTHORED_FORWARD_ORDER and make physical forward progress rather than treating armour restraint as a global stop.",getPosATL leader _orderGroup] call _phase;
-private _orderContact=[{(([_orderGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {vehicle (_x select 0) == _orderVehicle} >= 0},35] call _wait;
+private _orderContact=[{
+    private _knowledge=[_orderGroup] call WAIT_fnc_CortexKnowledge;
+    ((_knowledge select 0) findIf {vehicle (_x select 0) == _orderVehicle}) >= 0
+},35] call _wait;
 private _orderDecision=[{[_orderGroup,"ADVANCE","AUTHORED_FORWARD_ORDER","STARTED"] call _assessmentMatches},55] call _wait;
 private _orderProgress=[{alive leader _orderGroup && {leader _orderGroup distance2D _orderOrigin >= 20}},55] call _wait;
 ["TACTICAL-authored-vehicle-contact",_orderContact,str ([_orderGroup] call WAIT_fnc_CortexKnowledge)] call _check;
@@ -157,7 +163,10 @@ if (_elevatedReady) then {
     missionNamespace setVariable ["WAIT_CortexQA_Actors",_elevatedActors+[_elevatedEnemy],true];
     private _elevatedOrigins=_elevatedActors apply {getPosATL _x};
     ["Tactical assessment: elevated restraint","A live hostile occupies a physical tower more than 300 metres away. On this exposed approach WAIT must retain native engagement, record ELEVATED_FIRE_POSITION and avoid authoring an uphill manoeuvre.",getPosATL leader _elevatedGroup] call _phase;
-    private _elevatedContact=[{(([_elevatedGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _elevatedEnemy} >= 0},45] call _wait;
+    private _elevatedContact=[{
+        private _knowledge=[_elevatedGroup] call WAIT_fnc_CortexKnowledge;
+        ((_knowledge select 0) findIf {(_x select 0) == _elevatedEnemy}) >= 0
+    },45] call _wait;
     private _elevatedDecision=[{_elevatedGeometry && {[_elevatedGroup,"HOLD","ELEVATED_FIRE_POSITION"] call _assessmentMatches}},30] call _wait;
     sleep 8;
     private _elevatedDrill=((_elevatedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
