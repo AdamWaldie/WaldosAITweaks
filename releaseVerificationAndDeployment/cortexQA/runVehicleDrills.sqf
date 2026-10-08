@@ -181,9 +181,14 @@ _contactEnemy setVariable ["WAIT_CortexQA_Label","MOUNTED DANGER HOSTILE",true];
 private _contactCrew=crew _contactVehicle;
 {_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["MOUNTED CREW %1",_forEachIndex+1],true]} forEach _contactCrew;
 _contactVehicle setVariable ["WAIT_CortexQA_DangerShots",0];
+_contactVehicle setVariable ["WAIT_CortexQA_DangerCountermeasures",0];
 private _contactFiredHandler=_contactVehicle addEventHandler ["Fired",{
-    params ["_vehicle"];
+    params ["_vehicle","_weapon"];
     _vehicle setVariable ["WAIT_CortexQA_DangerShots",(_vehicle getVariable ["WAIT_CortexQA_DangerShots",0])+1];
+    if (toLowerANSI getText (configFile >> "CfgWeapons" >> _weapon >> "simulation") == "cmlauncher") then {
+        _vehicle setVariable ["WAIT_CortexQA_DangerCountermeasures",
+            (_vehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0])+1];
+    };
 }];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactCrew+[_contactFootLeader,_contactEnemy],true];
 ["Danger FSM: mixed-group mounted persistence","A three-person APC crew and separate foot leader face a real hostile at 25 metres. The mounted event must remain a vehicle response owned only by the effective commander, without WAIT vehicle gunnery, target assignment or injected danger.",getPosATL _contactEnemy] call _phase;
@@ -248,6 +253,18 @@ private _vehicleReaction=_contactVehicle getVariable ["WAIT_Danger_VehicleReacti
         && {(_vehicleReaction select 2) == _contactEnemy},
     str [_vehicleReaction,_contactCrewGroup getVariable ["WAIT_Danger_Generation",-1],
         _contactCrewGroup getVariable ["WAIT_Danger_Action",[]]]] call _check;
+// A real explosive stimulus must permit one defensive smoke request without replacing the route or
+// gunner response. The Fired event proves physical launcher use; the generation record proves that
+// repeated danger ticks did not manufacture a persistent countermeasure worker.
+createVehicle ["GrenadeHand",_contactVehicle modelToWorld [6,0,0],[],0,"CAN_COLLIDE"];
+private _dangerCountermeasure=[{
+    (_contactVehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0]) > 0
+        && {count (_contactVehicle getVariable ["WAIT_Danger_VehicleCountermeasure",[]]) == 5}
+},20] call _wait;
+["DANGER-VEHICLE-finite-countermeasure",_dangerCountermeasure,
+    str [_contactVehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0],
+        _contactVehicle getVariable ["WAIT_Danger_VehicleCountermeasure",[]],
+        _contactCrewGroup getVariable ["WAIT_Danger_Generation",-1]]] call _check;
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
 {deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;

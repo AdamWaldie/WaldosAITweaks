@@ -26,7 +26,8 @@
  * (RETREAT phase, through an inserted waypoint). Each vehicle withdraws once per engagement.
  * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): a fresh mounted danger event may orient the exact
  * affected armed platform and request one safe suppression response against an already known hostile.
- * This finite reaction never changes the vehicle route and runs once per danger generation.
+ * An intact armed or armoured platform may also request its own smoke countermeasure once for a
+ * hit, explosion or suppression generation. These finite reactions never change the vehicle route.
  * During sustained contact the AI gunner is pointed at the most dangerous
  * enemy seen in the last 15 s within 600 m: anti-tank infantry first, then armour, then anything
  * else, nearest first, held for 8 s. A fully mounted tank or APC that knows of an anti-tank soldier
@@ -283,6 +284,25 @@ if (_dangerDismount isNotEqualTo []) then {
                     && {_dangerProfile in ["STATIC","ARMED","ARMOURED"]};
                 private _freshGeneration=_dangerGeneration >= 0
                     && {_reaction param [0,-2,[0]] != _dangerGeneration};
+                // Defensive smoke is independent from the gunner response: consuming one must not
+                // suppress the other. Record the generation even when no compatible loaded launcher
+                // exists, so a two-second danger lease cannot repeat the same inventory/config scan.
+                // BLUE/GREEN, convoy, player, Zeus and specialist ownership remain authoritative.
+                private _countermeasureReaction=_state getOrDefault ["vehicleDangerCountermeasure",[]];
+                private _freshCountermeasureGeneration=_dangerGeneration >= 0
+                    && {_countermeasureReaction param [0,-2,[0]] != _dangerGeneration};
+                if (_freshCountermeasureGeneration
+                    && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {combatMode _group in ["YELLOW","RED"]}
+                    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                    && {[] call _mayIssueVehicle}) then {
+                    private _countermeasureFired=[_vehicle] call WAIT_fnc_CortexFireCountermeasure;
+                    _state set ["vehicleDangerCountermeasure",[_dangerGeneration,_vehicle,_countermeasureFired,serverTime]];
+                    _vehicle setVariable ["WAIT_Danger_VehicleCountermeasure",
+                        [_dangerGeneration,effectiveCommander _vehicle,_dangerSource,serverTime,_countermeasureFired],true];
+                };
                 // A useful static mortar answers the same real, known hostile through the finite
                 // artillery mission owner. The server revalidates locality, knowledge, allegiance,
                 // ammunition, range and friendly safety; this call never fires a shell directly.

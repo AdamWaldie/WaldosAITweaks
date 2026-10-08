@@ -5532,6 +5532,7 @@ class CortexOperations(unittest.TestCase):
                      'DANGER-VEHICLE-no-invented-combat','DANGER-VEHICLE-contact-fixture-ready',
                      'DANGER-VEHICLE-effective-commander-persistence',
                      'DANGER-VEHICLE-known-hostile-finite-reaction',
+                     'DANGER-VEHICLE-finite-countermeasure',
                      'DANGER-STATIC-empty-crew-released','DANGER-STATIC-useful-crew-retained',
                      'DANGER-STATIC-no-invented-combat']:
             self.assertIn(item,text)
@@ -5554,6 +5555,19 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,danger)
         for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity']:
             self.assertNotIn(forbidden,danger.split('// An intact armed platform',1)[1])
+
+    def test_armoured_danger_countermeasure_is_generation_owned_and_route_neutral(self):
+        text=source('cortexVehicles')
+        danger=text.split('// Defensive smoke is independent',1)[1].split('// A useful static mortar',1)[0]
+        for marker in ['vehicleDangerCountermeasure','_dangerGeneration','["ARMED","ARMOURED"]',
+                       '["HIT","EXPLOSION","SUPPRESSED"]','combatMode _group in ["YELLOW","RED"]',
+                       'WAIT_Convoy_Active','WAIT_fnc_CortexFireCountermeasure',
+                       'WAIT_Danger_VehicleCountermeasure']:
+            self.assertIn(marker,danger)
+        self.assertLess(danger.index('_state set ["vehicleDangerCountermeasure"'),
+                        danger.index('WAIT_Danger_VehicleCountermeasure'))
+        for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity','doMove','commandMove']:
+            self.assertNotIn(forbidden,danger)
 
     def test_danger_mortar_uses_the_finite_artillery_owner_and_live_gates(self):
         vehicles=source('cortexVehicles')
