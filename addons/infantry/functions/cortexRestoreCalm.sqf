@@ -138,9 +138,12 @@ private _staticDeployment=_group getVariable ["WAIT_Danger_StaticDeployment",[]]
 if (count _staticDeployment >= 10) then {
     private _deployGunner=_staticDeployment param [2,objNull,[objNull]];
     private _deployedWeapon=_staticDeployment param [7,objNull,[objNull]];
+    private _packHandler=_staticDeployment param [10,-1,[0]];
     if (!isNull _deployGunner && {local _deployGunner}) then {
+        if (_packHandler >= 0) then {_deployGunner removeEventHandler ["WeaponDisassembled",_packHandler]};
+        _deployGunner setVariable ["WAIT_Danger_StaticPackContext",nil];
         private _deployMove=_deployGunner getVariable ["WAIT_Cortex_ActorMove",[]];
-        if ((_deployMove param [0,""]) == "STATIC_DEPLOY") then {
+        if ((_deployMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {
             _deployGunner setVariable ["WAIT_Cortex_ActorMove",nil];
         };
         if (!_yieldToExternal && {!isNull _deployedWeapon}
@@ -155,7 +158,7 @@ if (count _staticDeployment >= 10) then {
     private _deployAssistant=_staticDeployment param [3,objNull,[objNull]];
     if (!isNull _deployAssistant && {local _deployAssistant}) then {
         private _assistantMove=_deployAssistant getVariable ["WAIT_Cortex_ActorMove",[]];
-        if ((_assistantMove param [0,""]) == "STATIC_DEPLOY") then {
+        if ((_assistantMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {
             _deployAssistant setVariable ["WAIT_Cortex_ActorMove",nil];
         };
     };

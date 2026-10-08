@@ -1007,6 +1007,10 @@ private _deployReleased=[{
         && {vehicle _deployGunner == _deployGunner}
 },75] call _wait;
 ["DANGER-static-deploy-contact-release",_deployActive && {_deployReleased},str [vehicle _deployGunner,assignedVehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]]] call _check;
+private _deployPacked=_deployReleased && {isNull _deployedWeapon}
+    && {backpack _deployGunner == "O_HMG_01_weapon_F"}
+    && {backpack _deployAssistant == "O_HMG_01_support_F"};
+["DANGER-static-deploy-native-pack",_deployActive && {_deployPacked},str [_deployedWeapon,backpack _deployGunner,backpack _deployAssistant,_deployGroup getVariable ["WAIT_Danger_StaticDeployAttempt",[]]]] call _check;
 {deleteVehicle _x} forEach (_deployUnits+[_deployedWeapon]);
 deleteGroup _deployGroup;
 deleteGroup _deployOpposition;

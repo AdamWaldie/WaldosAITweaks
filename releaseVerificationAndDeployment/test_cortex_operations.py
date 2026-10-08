@@ -686,7 +686,11 @@ class CortexOperations(unittest.TestCase):
             'nearestObjects [_deployPos,[_expectedClass],8,true]',
             'assignAsGunner _assembled','orderGetIn true',
             'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
-            'lineIntersectsSurfaces','surfaceNormal _x'
+            'lineIntersectsSurfaces','surfaceNormal _x',
+            'WeaponDisassembled','["Disassemble",_weapon]',
+            '["TakeBag",_primaryBag]','["TakeBag",_baseBag]',
+            '"PACK_MOVING"','"PACKING"','"TAKING"','"PACKED"',
+            'removeEventHandler ["WeaponDisassembled",_handler]'
         ]:
             self.assertIn(marker,deploy)
         self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
@@ -696,14 +700,20 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('while {',deploy)
         self.assertNotIn('CortexQueueJob',deploy)
         for marker in ['WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
-                       'orderGetIn false','unassignVehicle','_yieldToExternal']:
+                       'orderGetIn false','unassignVehicle','_yieldToExternal',
+                       'removeEventHandler ["WeaponDisassembled",_packHandler]',
+                       'WAIT_Danger_StaticPackContext']:
             self.assertIn(marker,restore)
+        group_tick=source('cortexGroupTick')
+        self.assertIn('[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep',group_tick)
+        self.assertIn('_staticPack in ["PACK_MOVING","PACKING","TAKING"]',group_tick)
         audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
         for marker in [
             'DANGER-static-deploy-config-prerequisite',
             'DANGER-static-deploy-physical-assembly',
             'DANGER-static-deploy-real-fire',
             'DANGER-static-deploy-contact-release',
+            'DANGER-static-deploy-native-pack',
             'O_HMG_01_weapon_F','O_HMG_01_support_F'
         ]:
             self.assertIn(marker,audit)

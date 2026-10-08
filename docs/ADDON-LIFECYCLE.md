@@ -172,8 +172,12 @@ weapon bag and base bag from uncommitted local AI. The pair physically moves to 
 dry, low-slope positions with a clear firing sector, uses the engine assembly action and gives the
 original carrier a real gunner assignment. The squad does not wait. Failure is recorded once for
 the contact episode; WAIT does not create a weapon, consume bags directly or force-seat the gunner.
-When contact ends, WAIT releases only its exact assignment and leaves the physical emplacement in
-the world. Finite disassembly and bag recovery remain an explicit outstanding parity step.
+During the ordinary post-contact security phase, the same pair receives one bounded recovery attempt:
+the gunner exits normally, both actors approach the exact WAIT-deployed weapon, native disassembly
+creates the two bags and the engine's bag actions return them to their original carriers. A renewed
+contact before disassembly remounts the gunner; one arriving during disassembly lets the finite pack
+finish before the recovered team may deploy again. Authored movement, Zeus, specialist control,
+locality loss, casualties or timeout release WAIT ownership without deleting the weapon or loose bags.
 `WAIT_AIPass_VehicleJink_Enable` is a next-operation control, default true. A slow, intact, crew-only
 armed ground vehicle may make one 25-second terrain-checked escape from a close hostile, hit or
 explosion generation. The response uses the shared operation and movement lease, covers 35-45 metres
