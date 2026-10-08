@@ -2967,6 +2967,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('createVehicle ["B_APC_Wheeled_01_cannon_F"',qa)
         self.assertIn('createVehicle ["Land_Cargo_Tower_V1_F"',qa)
         self.assertIn('call WAIT_fnc_CortexKnowledge',qa)
+        self.assertGreaterEqual(qa.count('call WAIT_fnc_CortexKnowledge) select 0'),3)
         self.assertIn('WAIT_Cortex_TacticalAssessment',qa)
         self.assertIn('"ARMOUR_OVERMATCH"',qa)
         self.assertIn('"AUTHORED_FORWARD_ORDER"',qa)
