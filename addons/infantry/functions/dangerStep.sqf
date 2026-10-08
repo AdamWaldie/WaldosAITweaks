@@ -136,7 +136,7 @@ if (isNull _observer || {!alive _observer} || {!local _observer} || {group _obse
 private _sourceObserver=_selected param [6,_observer,[objNull]];
 if (isNull _sourceObserver || {!alive _sourceObserver} || {!local _sourceObserver}
     || {group _sourceObserver != _group}) then {_sourceObserver=_observer};
-if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}
+if (!isNull _source && {alive _source} && {(side _group) getFriend (side _source) < 0.6}
     && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
 };

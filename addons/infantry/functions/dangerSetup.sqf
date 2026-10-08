@@ -77,8 +77,9 @@ if (_groupHandlers isNotEqualTo []) exitWith {};
 private _handler=_group addEventHandler ["EnemyDetected",{
     params ["_observingGroup","_target"];
     if (isNull _observingGroup || {!local _observingGroup} || {isNull _target} || {!alive _target}) exitWith {};
-    private _targetGroup=group _target;
-    private _friendly=!isNull _targetGroup && {(side _observingGroup) getFriend (side _targetGroup) >= 0.6};
+    // EnemyDetected can report a man or a vehicle. A vehicle object has no useful direct `group`,
+    // so compare the target object's actual side or armoured/air contacts lose their identity here.
+    private _friendly=(side _observingGroup) getFriend (side _target) >= 0.6;
     private _spotters=(units _observingGroup) select {alive _x && {local _x} && {!isPlayer _x}};
     _spotters resize ((count _spotters) min 12);
     private _knowerIndex=_spotters findIf {_x knowsAbout _target >= 1};

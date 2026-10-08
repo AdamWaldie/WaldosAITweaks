@@ -142,6 +142,13 @@ match. An old FSM may finish naturally after invalidation, but it cannot absorb 
 the replacement owner and create a silent response gap. Static and package validation are required;
 physical disable/re-enable, locality migration and Zeus replacement acceptance remain pending.
 
+Danger-source allegiance now comes from the source object itself at every engine, observer, queue and
+recycle boundary. The earlier infantry-only `group source` assumption could reduce a vehicle, static
+weapon or aircraft contact to an unknown-side object and discard its native hostile identity before
+the vehicle or combined-arms layer saw it. This correction adds no target scan or reveal and retains
+the existing native-knowledge requirement. Static/package validation is required; physical infantry
+against hostile manned and unmanned vehicle acceptance remains pending.
+
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
 Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the

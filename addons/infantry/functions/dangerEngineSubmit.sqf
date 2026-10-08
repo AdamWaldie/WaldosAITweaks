@@ -42,9 +42,9 @@ private _reflexOnly=0;
             _processed=true;
             if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
             private _source=_x param [3,objNull,[objNull]];
-            private _knownFriendly=!isNull _source && {(side _group) getFriend (side group _source) >= 0.6};
+            private _knownFriendly=!isNull _source && {(side _group) getFriend (side _source) >= 0.6};
             private _hostileSource=!isNull _source && {alive _source}
-                && {(side _group) getFriend (side group _source) < 0.6};
+                && {(side _group) getFriend (side _source) < 0.6};
             private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.

@@ -358,7 +358,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"EnemyDetected"',setup)
         self.assertIn('WAIT_Danger_GroupHandlers',setup)
         self.assertIn('_group removeEventHandler _x',setup)
-        self.assertIn('private _targetGroup=group _target',setup)
+        self.assertIn('(side _observingGroup) getFriend (side _target)',setup)
         self.assertIn('private _spotters=(units _observingGroup)',setup)
         self.assertIn('_spotters resize ((count _spotters) min 12)',setup)
         self.assertIn('private _knowerIndex=_spotters findIf {_x knowsAbout _target >= 1};',setup)
@@ -443,7 +443,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
         self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('checkAIFeature "MOVE"'))
-        self.assertIn('(side _group) getFriend (side group _source) < 0.6',engine_mode)
+        self.assertIn('(side _group) getFriend (side _source) < 0.6',engine_mode)
+        for danger_source in [engine_mode,engine,request,source('dangerStep'),source('dangerEngineRecycle'),setup]:
+            self.assertNotIn('getFriend (side group _source)',danger_source)
+            self.assertNotIn('private _targetGroup=group _target',danger_source)
         self.assertIn('else {"ASSESS"}',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:
             self.assertIn(mode,engine_mode+engine_fsm)
@@ -515,7 +518,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("['lastRecycleActor',_actor]",engine_recycle)
         self.assertIn("['vehicleRecycleActors',_actors]",engine_recycle)
         self.assertIn('_actor distance2D _source < 35',engine_recycle)
-        self.assertIn('(side _group) getFriend (side _sourceGroup) >= 0.6',engine_recycle)
+        self.assertIn('(side _group) getFriend (side _source) >= 0.6',engine_recycle)
         self.assertIn('[_cause,+_position,time+1.5,_source]',engine_recycle)
         self.assertNotIn('[0,+_position,time+1.5,_source]',engine_recycle)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
