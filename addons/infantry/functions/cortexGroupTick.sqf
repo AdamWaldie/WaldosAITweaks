@@ -222,7 +222,20 @@ if (count _dangerResponse == 5) then {
 // The engine FSM owns the immediate posture. This already-budgeted group step may additionally
 // move one idle exposed actor into nearby physical cover. The helper refuses every active operation,
 // native command and external owner, so contact reaction cannot interrupt a committed route.
-private _dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor;
+// Preserve the actor selected by the native danger FSM. Falling back to the group anchor made a
+// wingman's hit or near-round response move the leader instead, disconnecting the visible reaction
+// from the physical event. The observation timestamp binds this identity to the live response; a
+// stale, dead or migrated observer still falls back safely to the current combat-effective anchor.
+private _dangerAssessment=_group getVariable ["WAIT_Danger_LastAssessment",[]];
+private _dangerCoverActor=objNull;
+if (count _dangerAssessment >= 6
+    && {(_dangerAssessment param [0,"",[""]]) == (_dangerResponse param [0,"",[""]])}
+    && {(_dangerAssessment param [2,-1,[0]]) == (_dangerResponse param [2,-2,[0]])}) then {
+    private _observedActor=_dangerAssessment param [5,objNull,[objNull]];
+    if (!isNull _observedActor && {alive _observedActor} && {local _observedActor}
+        && {group _observedActor == _group}) then {_dangerCoverActor=_observedActor};
+};
+if (isNull _dangerCoverActor) then {_dangerCoverActor=[_group] call WAIT_fnc_CortexGroupAnchor};
 if (isNull _dangerCoverActor) then {_dangerCoverActor=_leader};
 private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
 private _dangerActionName=if (count _dangerAction == 5

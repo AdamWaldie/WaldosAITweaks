@@ -165,7 +165,7 @@ Its responsibility map is deliberately narrow:
 | State | WAIT responsibility |
 |---|---|
 | `ASSESS` | Record bounded geometry and expiry only. It never moves, reveals, targets or fires. |
-| `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move one genuinely idle exposed actor to nearby physical cover; it does not start another worker. |
+| `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move the genuinely idle exposed soldier who received the native event to nearby physical cover; a stale or unavailable observer falls back to the current combat-effective anchor. It does not start another worker. |
 | `HIDE` | Treat casualty and scream evidence as mobile awareness. It may use a finite crouch but cannot request cover movement from those causes. |
 | `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. Explicit BLUE/GREEN fire discipline remains unchanged and blocks danger-only tactical promotion. |
 | `VEHICLE` | Record a bounded vehicle-safety wake only. The finite vehicle layer may stop for eligible passenger exit; infantry CONTACT, withdrawal, gunnery and manoeuvre still require their own gates and native target knowledge. |

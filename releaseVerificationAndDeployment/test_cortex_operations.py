@@ -538,10 +538,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('DANGER-committed-mover-not-forced-prone',reflex_fixture)
         self.assertIn('DANGER-committed-route-physical-continuity',reflex_fixture)
         self.assertIn('DANGER-idle-physical-cover',reflex_fixture)
+        self.assertIn('DANGER-exact-observer-physical-cover',reflex_fixture)
+        self.assertIn('(_assessment select 5) == _observerWingman',reflex_fixture)
+        self.assertIn('(_lease select 0) == _observerWingman',reflex_fixture)
         self.assertIn('Land_CncWall4_F',reflex_fixture)
         self.assertIn('WAIT_Danger_CoverLease',reflex_fixture)
         self.assertIn('WAIT_fnc_OperationStart',reflex_fixture)
         self.assertIn('WAIT_fnc_CortexGroupMove',reflex_fixture)
+        group_tick=source('cortexGroupTick')
+        self.assertIn('WAIT_Danger_LastAssessment',group_tick)
+        observer_selection=group_tick.split('private _dangerAssessment=',1)[1].split('private _dangerAction=',1)[0]
+        self.assertIn('param [5,objNull,[objNull]]',observer_selection)
+        self.assertIn('group _observedActor == _group',observer_selection)
         scheduler_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runScheduler.sqf').read_text(encoding='utf-8')
         danger_audit=scheduler_audit.split('// This section diagnoses the real FSM-to-existing-job bridge.',1)[1]
         self.assertIn('WAIT_GroupBrain',danger_audit)
