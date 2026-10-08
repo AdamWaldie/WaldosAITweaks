@@ -85,7 +85,10 @@ private _dangerOwnedExit=_dangerPassengers findIf {
     private _passenger=_x;
     (_dangerPassengerState getOrDefault ["dismounted",[]]) findIf {(_x select 0) == _passenger && {(_x select 1) == _dangerTruck}} < 0
 } < 0;
-private _dangerNoTarget=isNull (assignedTarget (driver _dangerTruck)) && {isNull (attackTarget (driver _dangerTruck))};
+private _dangerDriver=driver _dangerTruck;
+private _dangerAssignedTarget=assignedTarget _dangerDriver;
+private _dangerAttackTarget=attackTarget _dangerDriver;
+private _dangerNoTarget=isNull _dangerAssignedTarget && {isNull _dangerAttackTarget};
 private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []
     && {(_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) != "RETREAT"};
 ["DANGER-VEHICLE-native-explosion",_dangerSubmitted,str (_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
@@ -93,7 +96,7 @@ private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_Withdraw
 ["DANGER-VEHICLE-safe-stop",_dangerStopped,str [speed _dangerTruck,_dangerTruck getVariable ["WAIT_Cortex_DismountStopRequest",[]]]] call _check;
 ["DANGER-VEHICLE-passengers-physically-exit",_dangerReady && {_dangerExited} && {_dangerOwnedExit},str (_dangerPassengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x]})] call _check;
 ["DANGER-VEHICLE-operating-crew-retained",_dangerCrew findIf {!alive _x || {vehicle _x != _dangerTruck}} < 0,str (_dangerCrew apply {vehicle _x})] call _check;
-["DANGER-VEHICLE-no-invented-combat",_dangerNoTarget && {_dangerNoWithdrawal},str [assignedTarget (driver _dangerTruck),attackTarget (driver _dangerTruck),_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]]] call _check;
+["DANGER-VEHICLE-no-invented-combat",_dangerNoTarget && {_dangerNoWithdrawal},str [_dangerAssignedTarget,_dangerAttackTarget,_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]]] call _check;
 deleteVehicle _dangerProjectile;
 {deleteVehicle _x} forEach (_dangerPassengers+_dangerCrew+[_dangerTruck]);
 deleteGroup _dangerPassengerGroup;

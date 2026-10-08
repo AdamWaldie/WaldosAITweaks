@@ -1,7 +1,7 @@
 version=12;
 class Mission {
-    addOns[]={"A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
-    addOnsAuto[]={"A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
+    addOns[]={"A3_Characters_F","A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
+    addOnsAuto[]={"A3_Characters_F","A3_Characters_F_BLUFOR","A3_Map_VR","A3_Functions_F"};
     randomSeed=4012026;
     class Intel {briefingName="WAIT packaged AI audit"; year=2035; month=6; day=24; hour=12; minute=0; startWeather=0; forecastWeather=0;};
     class Groups {

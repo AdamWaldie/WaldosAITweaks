@@ -391,7 +391,7 @@ private _observerGroupHide=[{
     private _leases=_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]];
     private _leasedActors=_leases apply {_x param [0,objNull]};
     count _leases == 4
-        && {_observerSupportOne notIn _leasedActors}
+        && {!(_observerSupportOne in _leasedActors)}
         && {[_observerSupportTwo,_observerSupportThree,_observerSupportFour,_observerSupportFive]
             findIf {!(_x in _leasedActors)} < 0}
 },8] call _wait;

@@ -1,97 +1,128 @@
-class FSM {
+class FSM
+{
     fsmName = "WAIT engine danger response";
-    class States {
-        class Start {
+    class States
+    {
+        class Start
+        {
             name = "Start";
+            itemno = 0;
             init = "_records=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]; _records append (_queue select [0,11]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
             precondition = "";
-            class Links {
-                class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};
-                class Forced {priority = 2; to = "Forced"; condition = "_mode == ""FORCED"""; action = "";};
-                class Vehicle {priority = 1; to = "Vehicle"; condition = "_mode == ""VEHICLE"""; action = "";};
-                class Foot {priority = 0; to = "Dispatch"; condition = "true"; action = "";};
+            class Links
+            {
+                class Release {itemno=20; priority=3; to="Finished"; precondition=""; condition="_mode == ""RELEASE"""; action="";};
+                class Forced {itemno=21; priority=2; to="Forced"; precondition=""; condition="_mode == ""FORCED"""; action="";};
+                class Vehicle {itemno=22; priority=1; to="Vehicle"; precondition=""; condition="_mode == ""VEHICLE"""; action="";};
+                class Foot {itemno=23; priority=0; to="Dispatch"; precondition=""; condition="true"; action="";};
             };
         };
-        class Dispatch {
+        class Dispatch
+        {
             name = "Dispatch";
+            itemno = 1;
             init = "";
             precondition = "";
-            class Links {
-                class Immediate {priority = 3; to = "Immediate"; condition = "_mode == ""IMMEDIATE"""; action = "";};
-                class Hide {priority = 2; to = "Hide"; condition = "_mode == ""HIDE"""; action = "";};
-                class Engage {priority = 1; to = "Engage"; condition = "_mode == ""ENGAGE"""; action = "";};
-                class Assess {priority = 0; to = "Assess"; condition = "true"; action = "";};
+            class Links
+            {
+                class Immediate {itemno=24; priority=3; to="Immediate"; precondition=""; condition="_mode == ""IMMEDIATE"""; action="";};
+                class Hide {itemno=25; priority=2; to="Hide"; precondition=""; condition="_mode == ""HIDE"""; action="";};
+                class Engage {itemno=26; priority=1; to="Engage"; precondition=""; condition="_mode == ""ENGAGE"""; action="";};
+                class Assess {itemno=27; priority=0; to="Assess"; precondition=""; condition="true"; action="";};
             };
         };
-        class Forced {
+        class Forced
+        {
             name = "Forced";
+            itemno = 2;
             init = "_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=28; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Vehicle {
+        class Vehicle
+        {
             name = "Vehicle";
+            itemno = 3;
             init = "_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=29; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Immediate {
+        class Immediate
+        {
             name = "Immediate";
+            itemno = 4;
             init = "_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=30; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Hide {
+        class Hide
+        {
             name = "Hide";
+            itemno = 5;
             init = "_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=31; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Engage {
+        class Engage
+        {
             name = "Engage";
+            itemno = 6;
             init = "_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=32; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Assess {
+        class Assess
+        {
             name = "Assess";
+            itemno = 7;
             init = "_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);";
             precondition = "";
-            class Links {class Wait {priority = 0; to = "Waiting"; condition = "true"; action = "";};};
+            class Links {class Wait {itemno=33; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
         };
-        class Waiting {
+        class Waiting
+        {
             name = "Waiting";
+            itemno = 8;
             init = "";
             precondition = "";
-            class Links {
-                class Interrupted {priority = 4; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
-                class Saturated {priority = 2; to = "Queued"; condition = "count _queue > 3"; action = "";};
-                class Done {priority = 0; to = "Recycle"; condition = "time >= _deadline"; action = "";};
+            class Links
+            {
+                class Interrupted {itemno=34; priority=4; to="Finished"; precondition=""; condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action="";};
+                class Saturated {itemno=35; priority=2; to="Queued"; precondition=""; condition="count _queue > 3"; action="";};
+                class Done {itemno=36; priority=0; to="Recycle"; precondition=""; condition="time >= _deadline"; action="";};
             };
         };
-        class Recycle {
+        class Recycle
+        {
             name = "Recycle";
+            itemno = 9;
             init = "_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};";
             precondition = "";
-            class Links {
-                class Interrupted {priority = 3; to = "Finished"; condition = "!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action = "";};
-                class Drain {priority = 1; to = "Queued"; condition = "count _queue > 0"; action = "";};
-                class Done {priority = 0; to = "Finished"; condition = "true"; action = "";};
+            class Links
+            {
+                class Interrupted {itemno=37; priority=3; to="Finished"; precondition=""; condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action="";};
+                class Drain {itemno=38; priority=1; to="Queued"; precondition=""; condition="count _queue > 0"; action="";};
+                class Done {itemno=39; priority=0; to="Finished"; precondition=""; condition="true"; action="";};
             };
         };
-        class Queued {
+        class Queued
+        {
             name = "Queued";
+            itemno = 10;
             init = "_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
             precondition = "";
-            class Links {
-                class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};
-                class Forced {priority = 2; to = "Forced"; condition = "_mode == ""FORCED"""; action = "";};
-                class Vehicle {priority = 1; to = "Vehicle"; condition = "_mode == ""VEHICLE"""; action = "";};
-                class Foot {priority = 0; to = "Dispatch"; condition = "true"; action = "";};
+            class Links
+            {
+                class Release {itemno=40; priority=3; to="Finished"; precondition=""; condition="_mode == ""RELEASE"""; action="";};
+                class Forced {itemno=41; priority=2; to="Forced"; precondition=""; condition="_mode == ""FORCED"""; action="";};
+                class Vehicle {itemno=42; priority=1; to="Vehicle"; precondition=""; condition="_mode == ""VEHICLE"""; action="";};
+                class Foot {itemno=43; priority=0; to="Dispatch"; precondition=""; condition="true"; action="";};
             };
         };
-        class Finished {
+        class Finished
+        {
             name = "Finished";
+            itemno = 11;
             init = "[_this] call WAIT_fnc_DangerEngineRelease;";
             precondition = "";
             class Links {};

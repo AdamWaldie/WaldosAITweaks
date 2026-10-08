@@ -34,6 +34,19 @@ class CortexReportTests(unittest.TestCase):
         self.assertEqual('FAIL',report['status'])
         self.assertEqual(1,len(report['runtime_errors']))
 
+    def test_fsm_load_failure_is_an_explicit_blocker(self):
+        report=summarize({'client.rpt':"Warning Message: FSM '\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm' cannot be loaded."})
+        self.assertEqual('FAIL',report['status'])
+        self.assertEqual(1,len(report['load_errors']))
+        rendered='\n'.join(render_markdown(report))
+        self.assertIn('Addon or FSM load failures:',rendered)
+        self.assertIn('danger.fsm',rendered)
+
+    def test_missing_required_addon_is_an_explicit_blocker(self):
+        report=summarize({'server.rpt':'Warning Message: You cannot play/edit this mission; it is dependent on downloadable content that has been deleted.\\na3_characters_f'})
+        self.assertEqual('FAIL',report['status'])
+        self.assertEqual(1,len(report['load_errors']))
+
     def test_failure_does_not_imply_completion_and_details_are_visible(self):
         report=summarize({'server.rpt':'WAIT CORTEX QA|arrival|FAIL|remaining=63 m | allowed=50 m\nWAIT CORTEX QA SERVER COMPLETE: 1 finding(s) []'})
         self.assertEqual('FAIL',report['status'])

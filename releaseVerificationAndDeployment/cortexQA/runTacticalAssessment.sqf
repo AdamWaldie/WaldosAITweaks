@@ -137,7 +137,7 @@ private _towerPositions=(_tower buildingPos -1) select {(_x select 2) > ((getPos
 private _elevatedReady=_towerPositions isNotEqualTo [];
 ["TACTICAL-elevated-fixture-position",_elevatedReady,str _towerPositions] call _check;
 if (_elevatedReady) then {
-    private _elevatedFixture=[[2000,1680,0],"TACTICAL ELEVATED RESTRAINT",6] call _newGroup;
+    private _elevatedFixture=[[2000,1500,0],"TACTICAL ELEVATED RESTRAINT",6] call _newGroup;
     _elevatedFixture params ["_elevatedGroup","_elevatedActors"];
     private _elevatedEnemyGroup=createGroup [west,true];
     _elevatedEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -150,11 +150,15 @@ if (_elevatedReady) then {
     _elevatedEnemy setDir 180;
     _elevatedEnemy setVariable ["acex_headless_blacklist",true,true];
     _elevatedEnemy setVariable ["WAIT_CortexQA_Label","LIVE ELEVATED INFANTRY",true];
+    private _elevatedRange=leader _elevatedGroup distance2D _elevatedEnemy;
+    private _elevatedHeight=(getPosATL _elevatedEnemy select 2)-(getPosATL leader _elevatedGroup select 2);
+    private _elevatedGeometry=_elevatedRange >= 300 && {_elevatedHeight >= 15};
+    ["TACTICAL-elevated-fixture-geometry",_elevatedGeometry,str [_elevatedRange,_elevatedHeight,getPosATL leader _elevatedGroup,getPosATL _elevatedEnemy]] call _check;
     missionNamespace setVariable ["WAIT_CortexQA_Actors",_elevatedActors+[_elevatedEnemy],true];
     private _elevatedOrigins=_elevatedActors apply {getPosATL _x};
     ["Tactical assessment: elevated restraint","A live hostile occupies a physical tower more than 300 metres away. On this exposed approach WAIT must retain native engagement, record ELEVATED_FIRE_POSITION and avoid authoring an uphill manoeuvre.",getPosATL leader _elevatedGroup] call _phase;
     private _elevatedContact=[{(([_elevatedGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _elevatedEnemy} >= 0},45] call _wait;
-    private _elevatedDecision=[{[_elevatedGroup,"HOLD","ELEVATED_FIRE_POSITION"] call _assessmentMatches},30] call _wait;
+    private _elevatedDecision=[{_elevatedGeometry && {[_elevatedGroup,"HOLD","ELEVATED_FIRE_POSITION"] call _assessmentMatches}},30] call _wait;
     sleep 8;
     private _elevatedDrill=((_elevatedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
     private _elevatedTravel=0;

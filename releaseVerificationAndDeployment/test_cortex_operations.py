@@ -245,6 +245,10 @@ class CortexOperations(unittest.TestCase):
         danger_cover=source('dangerCoverStep')
         danger_smoke=source('dangerSmokeStep')
         engine_fsm=(ROOT/'addons/infantry/fsm/danger.fsm').read_text()
+        self.assertEqual(12,engine_fsm.count('itemno = '))
+        self.assertEqual(24,engine_fsm.count('itemno='))
+        self.assertEqual(12,engine_fsm.count('precondition = "";'))
+        self.assertEqual(24,engine_fsm.count('precondition="";'))
         request=source('dangerRequest')
         step=source('dangerStep')
         selection=source('dangerSelect')
@@ -548,7 +552,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('CortexIsPaused',mode_preflight)
         for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Recycle','Queued','Finished']:
             self.assertIn('class '+state,engine_fsm)
-        waiting=engine_fsm.split('class Waiting {',1)[1].split('class Recycle {',1)[0]
+        waiting=re.split(r'class\s+Waiting\s*\{',engine_fsm,1)[1]
+        waiting=re.split(r'class\s+Recycle\s*\{',waiting,1)[0]
         self.assertIn('count _queue > 3',waiting)
         self.assertNotIn('condition = "count _queue > 0"',waiting)
         self.assertIn('effectiveCommander (vehicle _actor) == _actor',engine_recycle)
@@ -613,7 +618,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('DANGER-finite-group-hide',reflex_fixture)
         self.assertIn('WAIT_Danger_GroupHideLeases',reflex_fixture)
         self.assertIn('O_Soldier_LAT_F',reflex_fixture)
-        self.assertIn('_observerSupportOne notIn _leasedActors',reflex_fixture)
+        self.assertIn('!(_observerSupportOne in _leasedActors)',reflex_fixture)
         self.assertIn('[_observerSupportTwo,_observerSupportThree,_observerSupportFour,_observerSupportFive]',reflex_fixture)
         self.assertIn('toUpperANSI (unitPos _observerSupportOne) == "AUTO"',reflex_fixture)
         self.assertIn('(_assessment select 5) == _observerWingman',reflex_fixture)
@@ -5055,6 +5060,8 @@ class CortexOperations(unittest.TestCase):
         serverAudit=(ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text(encoding='utf-8')
         self.assertIn('skipLobby=1;',description)
         self.assertIn('player="PLAYER COMMANDER"',mission)
+        self.assertIn('addOns[]={"A3_Characters_F","A3_Characters_F_BLUFOR"',mission)
+        self.assertIn('addOnsAuto[]={"A3_Characters_F","A3_Characters_F_BLUFOR"',mission)
         self.assertIn('_observer assignCurator _curator;',serverAudit)
         self.assertIn('WAIT AUDIT OBSERVER ZEUS READY',serverAudit)
         self.assertIn('skips role selection and assigns the sole observer Zeus slot automatically',launcher)
