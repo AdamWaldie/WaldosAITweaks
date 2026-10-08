@@ -18,7 +18,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | DECEL - Helicopter braking | 14 | 1 | 3 | `runDeceleration.sqf` | 0 | implemented_partial |
 | REGROUP - Survivor regroup | 9 | 0 | 2 | `runMechanics.sqf` | 0 | implemented_partial |
 | MEDICAL - Finite squad medical assistance | 4 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
-| CONTACT - Contact detection | 3 | 0 | 17 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf`, `runVehicleDrills.sqf` | 0 | implemented_partial |
+| CONTACT - Contact detection | 4 | 0 | 18 | `runContact.sqf`, `runCombat.sqf`, `runScheduler.sqf`, `runVehicleDrills.sqf` | 0 | implemented_partial |
 | POST - Post-contact search | 5 | 0 | 0 | `runMechanics.sqf`, `runContact.sqf` | 0 | implemented_partial |
 | FLANK - Flanking bounds | 8 | 0 | 4 | `runCombat.sqf` | 3 | implemented_partial |
 | CROSS - Road crossing | 1 | 0 | 1 | `runCrossing.sqf` | 0 | implemented_partial |
@@ -26,10 +26,10 @@ Feature cases: **65**. Required variant categories: **14**.
 | MORALE - Morale and withdrawal | 3 | 0 | 1 | `runReactions.sqf` | 2 | implemented_partial |
 | SURRENDER - Surrender | 1 | 0 | 1 | `runReactions.sqf` | 2 | implemented_partial |
 | GRENADE - Grenade avoidance | 1 | 0 | 2 | `runReactions.sqf` | 2 | implemented_partial |
-| CIVILIAN - Civilian danger response and external ownership | 4 | 0 | 3 | `runReactions.sqf` | 0 | implemented_partial |
+| CIVILIAN - Civilian danger response and external ownership | 4 | 0 | 4 | `runReactions.sqf` | 0 | implemented_partial |
 | AT - Anti-armour and ammunition roles | 2 | 0 | 1 | `runFireControl.sqf` | 0 | implemented_partial |
 | VEH - Vehicle engagement | 3 | 0 | 4 | `runGunnery.sqf`, `runNaval.sqf` | 1 | implemented_partial |
-| DISMOUNT - Contact passenger dismount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
+| DISMOUNT - Contact passenger dismount | 1 | 0 | 2 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | REMOUNT - Contact passenger remount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | WITHDRAW - Damaged vehicle withdrawal | 1 | 0 | 1 | `runVehicleDrills.sqf` | 1 | implemented_partial |
 | COVER - Cover selection and clearance | 1 | 0 | 1 | `runCover.sqf` | 1 | implemented_partial |
@@ -208,9 +208,9 @@ Feature cases: **65**. Required variant categories: **14**.
 
 ### CIVILIAN - Civilian danger response and external ownership
 
-**Expected:** Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, respect the cooldown and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no Cortex movement, animation or combat commands.
+**Expected:** Disabled civilians remain in place. Enabled ordinary civilians choose one finite dry, passable escape avenue, physically move away once, allow a real explosion or hit to replace weaker gunfire without destination churn, recover once from a stall, and yield immediately to a later Zeus order. external controller custom actors, active specialist actors and external civilian controller civilians remain externally owned and receive no WAIT movement, animation or combat commands.
 
-**Automation and open work:** runReactions.sqf adds disabled refusal, enabled physical flight, cooldown refusal and physical Zeus replacement-order checks through the production reaction endpoint. The endpoint now evaluates three separated headings through the same bounded infantry terrain selector and rechecks its single safe-position adjustment without adding a polling controller. Saved, unexecuted. Dependency-loaded specialist/specialist/external civilian controller, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit event-delivery variants remain open.
+**Automation and open work:** runReactions.sqf adds disabled refusal, enabled physical flight, a real grenade Explosion event that must replace a weaker active generation, cooldown refusal and physical Zeus replacement-order checks. The production endpoint evaluates three separated headings through the bounded terrain selector; one shared-scheduler progress step permits one recovery reissue and then retires. Saved, unexecuted. Dependency-loaded specialist/external-controller ownership, locality migration, JIP, uneven-terrain travel and real FiredNear/Hit delivery remain open.
 
 ### AT - Anti-armour and ammunition roles
 

@@ -99,6 +99,7 @@ class CfgFunctions {
             class CortexExternalTakeover {file = "\z\waldo_ai_tweaks\addons\compatibility\functions\cortexExternalTakeover.sqf";};
             class CortexCivilianReact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianReact.sqf";};
             class CortexCivilianSetup {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianSetup.sqf";};
+            class CortexCivilianStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexCivilianStep.sqf";};
             class CortexIsPaused {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexIsPaused.sqf";};
             class CortexQueueJob {file = "\z\waldo_ai_tweaks\addons\core\functions\cortexQueueJob.sqf";};
             class SchedulerReconcile {file = "\z\waldo_ai_tweaks\addons\core\functions\schedulerReconcile.sqf";};

@@ -302,7 +302,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire or a hit using event handlers and one finite move. Player, Zeus and neutral external-control ownership still take precedence. |
+| `WAIT_AIPass_CivilianReaction_Enable` | Civilian danger reactions | CHECKBOX | true | [] | LIVE | Unarmed civilians flee nearby gunfire, explosions or a hit through one priority-aware finite response. Stronger danger can replace weaker noise; player, Zeus and neutral external-control ownership still take precedence. |
 | `WAIT_AIPass_CivilianReaction_Radius` | Civilian gunfire radius (m) | SLIDER | 45 | [10, 150, 0] | NEXT_OPERATION | FiredNear events inside this distance may trigger an escape response. |
 | `WAIT_AIPass_CivilianReaction_Distance` | Civilian escape distance (m) | SLIDER | 180 | [50, 500, 0] | NEXT_OPERATION | Approximate length of the safe escape leg away from the threat. |
-| `WAIT_AIPass_CivilianReaction_Cooldown` | Civilian reaction cooldown (s) | SLIDER | 20 | [2, 120, 0] | NEXT_OPERATION | Minimum delay before another danger event can replace the current escape order. |
+| `WAIT_AIPass_CivilianReaction_Cooldown` | Civilian reaction cooldown (s) | SLIDER | 20 | [2, 120, 0] | NEXT_OPERATION | Minimum delay before an equal or weaker danger event can replace the current escape order. A stronger event may replace it immediately. |
