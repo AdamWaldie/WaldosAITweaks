@@ -9,7 +9,8 @@
  * position are sent there. Only three-dimensional arrival locks PATH; a fixed safety deadline records
  * failure and leaves movement enabled rather than renewing forever around an unreachable doorway.
  * Routes stage at a real entrance when approaching from more than 30 m, then commit directly to the
- * interior destination. Each leg uses one native doMove destination; pairing it with
+ * interior destination. The initial route releases formation once with doStop; recovery, alternate
+ * entrance and reassignment legs use only one native doMove destination. Pairing a repeated stop with
  * setDestination previously created a second route owner and could leave an actor oscillating or
  * stationary at a threshold. A machine-local, damage-aware building topology cache shares that
  * entrance-anchor lookup between soldiers while refreshing a materially changed structure. Units move
@@ -216,7 +217,7 @@ private _buildingAnchor = {
                         } else {
                             if (time-_lastProgress >= 12) then {
                                 if (_retries < 2 && {call _mayIssueMovement}) then {
-                                    doStop _x; _x doMove _target;
+                                    _x doMove _target;
                                     _route set [3,time]; _route set [4,_retries+1];
                                 } else {
                                     // Alternate exterior entrances recover a failed approach. Once an
@@ -233,7 +234,7 @@ private _buildingAnchor = {
                                         _route set [8,_nextEntry];
                                         _route set [9,[_assignment param [2,objNull],_nextTarget,_assignment select 0] call (_job get "buildingAnchor")];
                                         _route set [10,false];
-                                        doStop _x; _x doMove _nextTarget;
+                                        _x doMove _nextTarget;
                                         diag_log format ["[WAIT] Garrison trying alternate entrance unit=%1 entrance=%2/%3 remaining=%4",_x,_nextEntry+1,count _entries,_x distance (_assignment select 0)];
                                     } else {
                                     private _occupied=(units _group) apply {
@@ -260,7 +261,7 @@ private _buildingAnchor = {
                                         _attempted pushBackUnique (str _replacementDestination);
                                         _x setVariable ["WAIT_AIPass_GarrisonPos",_replacement,true];
                                         _route=[_replacementTarget,_replacementApproach,getPosATL _x,time,0,_attempted,_reassignments+1,_replacementEntries,_replacementEntryIndex,_replacementAnchor,false];
-                                        doStop _x; _x doMove _replacementTarget;
+                                        _x doMove _replacementTarget;
                                         diag_log format ["[WAIT] Garrison reassigned unit=%1 remaining=%2 alternative=%3",_x,_x distance (_assignment select 0),_replacementDestination];
                                     } else {
                                         _x setVariable ["WAIT_AIPass_GarrisonFailed",true,true];

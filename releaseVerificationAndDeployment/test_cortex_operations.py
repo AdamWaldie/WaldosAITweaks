@@ -1642,6 +1642,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _replacementAnchor=if (_replacementApproach)',apply)
         self.assertIn('_entries resize ((count _entries) min 4)',apply)
         self.assertIn('if (_nextEntry < count _entries && {call _mayIssueMovement}) then',apply)
+        self.assertNotIn('doStop _x; _x doMove',apply)
+        self.assertIn('if (call _mayIssueMovement) then {doStop _unit}',apply)
         self.assertIn('["deadline", time + 240]',apply)
         self.assertNotIn('_job set ["deadline",(_job get "deadline") max (time+60)]',apply)
 
