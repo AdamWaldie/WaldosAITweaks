@@ -393,7 +393,7 @@ if (count _dangerContact == 4
     _dangerContactSource=_dangerContact select 0;
 };
 private _dangerConfirmed=!isNull _dangerContactSource && {alive _dangerContactSource}
-    && {(side _group) getFriend (side group _dangerContactSource) < 0.6}
+    && {(side _group) getFriend (side _dangerContactSource) < 0.6}
     && {_enemies findIf {(_x select 0) == _dangerContactSource} >= 0};
 if (!_dangerConfirmed && {_dangerContact isNotEqualTo []}) then {
     _group setVariable ["WAIT_Danger_Contact",nil,true];

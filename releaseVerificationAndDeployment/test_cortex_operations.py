@@ -444,8 +444,11 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
         self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('checkAIFeature "MOVE"'))
         self.assertIn('(side _group) getFriend (side _source) < 0.6',engine_mode)
-        for danger_source in [engine_mode,engine,request,source('dangerStep'),source('dangerEngineRecycle'),setup]:
+        for danger_source in [engine_mode,engine,request,source('dangerStep'),source('dangerEngineRecycle'),setup,
+                              source('cortexGroupTick'),source('cortexVehicles')]:
             self.assertNotIn('getFriend (side group _source)',danger_source)
+            self.assertNotIn('getFriend (side group _dangerSource)',danger_source)
+            self.assertNotIn('getFriend (side group _dangerContactSource)',danger_source)
             self.assertNotIn('private _targetGroup=group _target',danger_source)
         self.assertIn('else {"ASSESS"}',engine_mode)
         for mode in ['"RELEASE"','"FORCED"','"VEHICLE"','"IMMEDIATE"','"HIDE"','"ENGAGE"','"ASSESS"']:

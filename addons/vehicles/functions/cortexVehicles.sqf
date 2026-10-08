@@ -198,7 +198,7 @@ if (count _dangerDismount in [2,3,4,5,6,7]) then {
     if (time < _dangerExpiry) then {
         private _affectedVehicles=if (!isNull _dangerVehicle && {_dangerVehicle in _vehicles}) then {[_dangerVehicle]} else {_vehicles};
         private _dangerHostile=!isNull _dangerSource && {alive _dangerSource}
-            && {(side _group) getFriend (side group _dangerSource) < 0.6}
+            && {(side _group) getFriend (side _dangerSource) < 0.6}
             && {(units _group) findIf {_x knowsAbout _dangerSource > 0} >= 0};
         // Targetless damage and incoming rounds justify passenger safety. Other vehicle danger
         // causes may unload only when they retain a real hostile already known by this group.
