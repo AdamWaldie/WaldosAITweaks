@@ -4295,9 +4295,20 @@ class CortexOperations(unittest.TestCase):
         native=text.split('if (_native && {_path isNotEqualTo []}) then {',1)[1].split('} else {',1)[0]
         self.assertIn('private _committedDestination=_progress param [5,[]];',native)
         self.assertIn('_committedDestination distance2D _destination > 8',native)
-        self.assertIn('currentCommand driver _vehicle in ["","STOP"]',native)
+        self.assertNotIn('currentCommand driver _vehicle in ["","STOP"]',native)
         self.assertIn('_progress set [5,+_destination];',native)
         self.assertEqual(native.count('driver _vehicle doMove _destination;'),1)
+
+    def test_steering_convoy_follower_keeps_one_committed_path_between_trail_samples(self):
+        text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
+        steering=text.split('} else {\n                if (count _path >= 2) then {',1)[1].split('\n            };\n        } else {',1)[0]
+        self.assertIn('private _committedPathDestination=_progress param [6,[]];',steering)
+        self.assertIn('_committedPathDestination distance2D _pathDestination > 8',steering)
+        self.assertIn('_vehicle setDriveOnPath _path;',steering)
+        self.assertIn('_progress set [6,+_pathDestination];',steering)
+        self.assertNotIn('_path apply {_x + [_limit / 3.6]}',steering)
+        self.assertIn('[getPosATL _vehicle, time, -1, _trailBase, 0, [], []]',text)
+        self.assertNotIn('_progress = [getPosATL _vehicle, time, _progress select 2, _progress select 3]',text)
 
     def test_convoy_spacing_cannot_stabilize_a_lateral_wedge(self):
         text=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
@@ -4481,7 +4492,7 @@ class CortexOperations(unittest.TestCase):
         for command in ['_lead forceSpeed _ownedSpeed',
                         '(driver _lead) doMove _watchedPosition',
                         'driver _vehicle doMove _destination',
-                        '_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})']:
+                        '_vehicle setDriveOnPath _path']:
             self.assertLess(tick.rindex('[] call _mayIssueDriving',0,tick.index(command)+len(command)),tick.index(command))
 
     def test_group_tick_does_not_rejoin_or_search_over_a_new_external_owner(self):

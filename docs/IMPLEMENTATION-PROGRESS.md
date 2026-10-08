@@ -1,3 +1,11 @@
+- Convoy followers now retain their committed native destination and steering path across physical
+  progress updates. The former progress-record rebuild discarded both values after every three metres,
+  causing the one-second trail sample to issue another movement command. Steering-capable vehicles now
+  refresh `setDriveOnPath` only after the predecessor path endpoint advances by more than eight metres;
+  the existing exact-owned `forceSpeed` remains the sole continuous spacing and braking control. Native
+  fallback followers use the same committed-endpoint rule and rely on the bounded obstruction recovery
+  before any retry. Static validation passes; wheeled, tracked and mixed physical stop/resume acceptance
+  remains pending.
 - Engine feasibility has been checked against the current official command and FSM contracts. The
   danger/operation architecture is supported; the observed freezes and oscillation are controller
   ownership defects rather than a missing engine capability. Post-contact consolidation now commits

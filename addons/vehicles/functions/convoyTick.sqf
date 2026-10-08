@@ -469,8 +469,15 @@ for "_i" from 1 to (count _vehicles - 1) do {
         _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,_ownedSpeed]];
     };
     _speedLimits set [_key,[_limit,time]];
-    private _progress = _followers getOrDefault [_key, [getPosATL _vehicle, time, -1, _trailBase]];
-    if (_vehicle distance2D (_progress select 0) > 3) then {_progress = [getPosATL _vehicle, time, _progress select 2, _progress select 3]};
+    // Keep the committed native and steering-path destinations when progress is made. Rebuilding
+    // this record as the former four-field array erased both commitments every few metres, so the
+    // next one-second trail sample looked like a new order and restarted engine planning.
+    private _progress = _followers getOrDefault [_key, [getPosATL _vehicle, time, -1, _trailBase, 0, [], []]];
+    if (_vehicle distance2D (_progress select 0) > 3) then {
+        _progress set [0,getPosATL _vehicle];
+        _progress set [1,time];
+        _progress set [4,0];
+    };
     // Let the normal engine route around an obstruction after a bounded timeout. Never teleport.
     if (time - (_progress select 1) > 20 && {_limit > 2} && {_gap > _gapLow+3}
         && {_frontSpeed > 1 || {_gap > _gapHigh}}) then {
@@ -484,7 +491,7 @@ for "_i" from 1 to (count _vehicles - 1) do {
                 _vehicle setConvoySeparation _desiredGap;
             };
         };
-        _progress = [getPosATL _vehicle, time, time + 10, _progress select 3, _attempts];
+        _progress = [getPosATL _vehicle, time, time + 10, _progress select 3, _attempts, [], []];
     };
     if (time >= (_progress select 2) && {count _trail >= 1} && {_gap > _desiredGap * 0.8 || {_pathOwners getOrDefault [_key,false]}}) then {
         private _nearest = -1;
@@ -570,8 +577,7 @@ for "_i" from 1 to (count _vehicles - 1) do {
                 // has actually stopped.
                 private _committedDestination=_progress param [5,[]];
                 if (count _committedDestination < 2
-                    || {_committedDestination distance2D _destination > 8}
-                    || {currentCommand driver _vehicle in ["","STOP"]}) then {
+                    || {_committedDestination distance2D _destination > 8}) then {
                     if ([] call _mayIssueDriving) then {
                         driver _vehicle doMove _destination;
                         _progress set [5,+_destination];
@@ -588,9 +594,18 @@ for "_i" from 1 to (count _vehicles - 1) do {
                             _pathOwners set [_key,true];
                         };
                     };
-                    // Path driving consumes its own speed component in metres per second.
-                    // Refresh it even inside the gap band so an earlier faster path cannot outrun braking.
-                    if ([] call _mayIssueDriving) then {_vehicle setDriveOnPath (_path apply {_x + [_limit / 3.6]})};
+                    // Commit a useful predecessor segment and refresh only when its endpoint advances.
+                    // forceSpeed above owns continuous spacing/braking; embedding a new speed in a
+                    // replacement path every second restarted steering and produced stop/start waves.
+                    private _pathDestination=_path select ((count _path)-1);
+                    private _committedPathDestination=_progress param [6,[]];
+                    if (count _committedPathDestination < 2
+                        || {_committedPathDestination distance2D _pathDestination > 8}) then {
+                        if ([] call _mayIssueDriving) then {
+                            _vehicle setDriveOnPath _path;
+                            _progress set [6,+_pathDestination];
+                        };
+                    };
                     _progress set [2, time + 1];
                 };
             };
