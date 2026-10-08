@@ -74,7 +74,7 @@ class FSM
         {
             name = "Start";
             itemno = 0;
-            init = "_records=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]; _records append (_queue select [0,11]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
+            init = "_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
             precondition = "";
             class Links
             {

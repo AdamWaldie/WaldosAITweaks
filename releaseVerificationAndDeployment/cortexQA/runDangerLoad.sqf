@@ -35,6 +35,31 @@ private _origin=getPosATL _unit;
 private _before=(_group getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 ["Danger FSM loader gate","A real grenade detonates beside one server-local soldier. The packaged engine FSM must record the event, produce a finite physical reflex and then restore its exact temporary stance ownership.",_origin] call _phase;
 private _grenade=createVehicle ["GrenadeHand",_origin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _configuredFSM=getText (configFile >> "CfgVehicles" >> typeOf _unit >> "fsmDanger");
+private _threatGroup=createGroup [west,true];
+_threatGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_threatGroup setVariable ["acex_headless_blacklist",true,true];
+private _threat=_threatGroup createUnit ["B_Soldier_F",_origin getPos [45,270],[],0,"NONE"];
+_threat allowDamage false;
+_threat setVariable ["acex_headless_blacklist",true,true];
+_threat setDir (_threat getDir _unit);
+_threat reveal [_unit,4];
+_unit reveal [_threat,4];
+[_threat,_unit] spawn {
+    params ["_threat","_unit"];
+    sleep 1;
+    for "_shot" from 1 to 3 do {
+        if (!alive _threat || {!alive _unit}) exitWith {};
+        _threat setDir (_threat getDir _unit);
+        _threat forceWeaponFire [currentWeapon _threat,currentMuzzle _threat];
+        sleep 0.4;
+    };
+};
+[
+    "DANGERLOAD-configured-fsm",
+    toLowerANSI _configuredFSM == "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm",
+    _configuredFSM
+] call _check;
 private _accepted=[{
     ((_group getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _before
         && {(_unit getVariable ["WAIT_Danger_EngineResponse",[]]) isNotEqualTo []}
@@ -54,6 +79,8 @@ private _released=[{
 ["DANGERLOAD-finite-exact-release",_accepted && {_released},str [unitPos _unit,_unit getVariable ["WAIT_Danger_EngineResponse",[]],_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]]] call _check;
 
 deleteVehicle _grenade;
+deleteVehicle _threat;
+deleteGroup _threatGroup;
 deleteVehicle _unit;
 deleteGroup _group;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];

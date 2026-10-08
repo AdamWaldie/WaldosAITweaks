@@ -549,7 +549,7 @@ class CortexOperations(unittest.TestCase):
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
             self.assertNotIn(forbidden,engine_act)
         self.assertIn('[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]',engine_fsm)
-        self.assertIn('_queue select [0,11]',engine_fsm)
+        self.assertIn('_queue select [0,12]',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
         self.assertIn('[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit',engine_fsm)

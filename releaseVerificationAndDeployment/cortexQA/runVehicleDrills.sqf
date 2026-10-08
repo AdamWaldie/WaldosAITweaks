@@ -87,7 +87,7 @@ private _dangerOwnedExit=_dangerPassengers findIf {
 } < 0;
 private _dangerDriver=driver _dangerTruck;
 private _dangerAssignedTarget=assignedTarget _dangerDriver;
-private _dangerAttackTarget=attackTarget _dangerDriver;
+private _dangerAttackTarget=attackTarget (_dangerDriver);
 private _dangerNoTarget=isNull _dangerAssignedTarget && {isNull _dangerAttackTarget};
 private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []
     && {(_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) != "RETREAT"};
@@ -251,11 +251,11 @@ private _emptyReleased=[{
 },30] call _wait;
 private _armedRetained=_armedStaticCrew findIf {!alive _x || {vehicle _x != _armedStatic}} < 0;
 private _staticNoTargets=(_emptyStaticCrew+_armedStaticCrew) findIf {
-    !isNull (assignedTarget _x) || {!isNull (attackTarget _x)}
+    !isNull (assignedTarget _x) || {!isNull (attackTarget (_x))}
 } < 0;
 ["DANGER-STATIC-empty-crew-released",_staticReady && {_emptyReleased},str [_emptyStatic getVariable ["WAIT_Danger_AbandonReason",[]],_emptyStaticCrew apply {vehicle _x}]] call _check;
 ["DANGER-STATIC-useful-crew-retained",_staticReady && {_armedRetained},str [_armedStatic getVariable ["WAIT_Danger_AbandonReason",[]],_armedStaticCrew apply {vehicle _x}]] call _check;
-["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget _x,currentCommand _x]})] call _check;
+["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget (_x),currentCommand _x]})] call _check;
 deleteVehicle _emptyBlast;
 deleteVehicle _armedBlast;
 {deleteVehicle _x} forEach (_emptyStaticCrew+_armedStaticCrew+[_emptyStatic,_armedStatic]);
