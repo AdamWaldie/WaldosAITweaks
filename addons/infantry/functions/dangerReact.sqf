@@ -49,6 +49,10 @@ if (_action == "RELEASE") exitWith {"IGNORED"};
 // dedicated vehicle/native owner receives the group-brain wake, but WAIT does not alter behaviour,
 // ROE, posture or movement while that owner is active.
 if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"};
+// Casualty and scream causes do not identify a hostile. The per-soldier engine FSM may still use a
+// short weak stance, while the group layer preserves its current behaviour and ROE. Morale and
+// survivor-role logic consume actual losses independently on their normal bounded group step.
+if (_cause in ["CASUALTY","SCREAM"]) exitWith {"ASSESS"};
 if !(_action in ["HIDE","ENGAGE","MAINTAIN",""]) then {_action=""};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 // MAINTAIN is valid only while a real operation still owns the committed route. A delayed danger

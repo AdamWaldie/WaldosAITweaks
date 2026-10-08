@@ -289,7 +289,10 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('set ["wakeAt"',forced_handoff)
         self.assertLess(step.index('if (_action == "FORCED") exitWith {'),step.index('private _responseDurations='))
         tick=source('cortexGroupTick')
-        self.assertIn('private _dangerTactical=_dangerActive && {!(_dangerActionName in ["FORCED","VEHICLE"])};',tick)
+        self.assertIn('private _dangerTactical=_dangerActive',tick)
+        self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]',tick)
+        self.assertIn('private _dangerAlert=_dangerActive',tick)
+        self.assertIn('in ["CASUALTY","SCREAM"]',tick)
         self.assertIn('private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};',tick)
         self.assertIn('[_group,_state,[]] call WAIT_fnc_CortexVehicles;',tick)
         self.assertLess(step.index('private _replace='),step.index('WAIT_fnc_DangerReact', step.index('if (_replace) then {')))
@@ -364,7 +367,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("['bootstraps'",engine)
         self.assertIn("['reflexOnlyRecords'",engine)
         self.assertIn("'ASSESS'",engine)
-        self.assertIn('private _groupRelevant=if (_cause == 10) then {false}',engine)
+        self.assertIn("private _groupRelevant=if (_mode in ['FORCED','RELEASE'] || {_cause == 10}) then {false}",engine)
         self.assertIn('if (_cause in [0,3,8]) then {_hostileEngage}',engine)
         self.assertLess(engine.index('private _causeNames='),engine.index('call WAIT_fnc_GroupBrainStart'))
         self.assertIn('WAIT_Danger_EngineStats',engine_act)
@@ -395,6 +398,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED"]',source('cortexGroupTick'))
         self.assertIn('getSuppression _actor > 0.45',engine_act)
         self.assertNotIn('_cause in [5,6]',engine_act)
+        reaction=source('dangerReact')
+        self.assertIn('if (_cause in ["CASUALTY","SCREAM"]) exitWith {"ASSESS"};',reaction)
         self.assertIn('count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',danger_cover)
         self.assertIn('currentCommand _actor != ""',danger_cover)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',danger_cover)
@@ -413,6 +418,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_queue select [0,11]',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
+        self.assertIn('[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineCanContinue',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRelease',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRecycle',engine_fsm)
@@ -452,6 +458,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('Friendly near-fire can produce a short local reflex but cannot create group CONTACT',diagnostics)
         self.assertIn('["ERROR","ACTIVE"] select _dangerFsmOwned',diagnostics)
         self.assertIn('Native ATTACK remains eligible',diagnostics)
+        self.assertIn("_mode in ['FORCED','RELEASE']",engine)
+        self.assertIn("then {false}",engine.split("_mode in ['FORCED','RELEASE']",1)[1].split(';',1)[0])
         self.assertIn('private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply',diagnostics)
         self.assertIn('WAIT must own all west, east and independent soldier danger slots',diagnostics)
         lifecycle=(ROOT/'docs/ADDON-LIFECYCLE.md').read_text(encoding='utf-8')
@@ -5311,6 +5319,26 @@ class CortexOperations(unittest.TestCase):
 
     def test_contact_transition_audit_requires_physical_search_and_resumption(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
+        for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-forced-order-no-tactical-handoff']:
+            self.assertIn(case,text)
+        disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
+        self.assertIn('createVehicle ["GrenadeHand"',disabled)
+        self.assertIn('["WAIT_AIPass_Danger_Enable",false]',disabled)
+        self.assertIn('["WAIT_AIPass_Danger_Enable",true]',disabled)
+        self.assertNotIn('call WAIT_fnc_DangerEngineSubmit',disabled)
+        casualty=text.split('// A real same-group death',1)[1].split('// Prove the engine-loaded FSM',1)[0]
+        self.assertIn('_casualtyActor setDamage 1',casualty)
+        self.assertIn('getOrDefault ["HIDE",0]',casualty)
+        self.assertIn('== "CALM"',casualty)
+        self.assertIn('combatMode _casualtyGroup == "BLUE"',casualty)
+        released=text.split('// CARELESS is an authored mission state',1)[1].split('// Prove the engine-loaded FSM',1)[0]
+        self.assertIn('_releaseGroup setBehaviourStrong "CARELESS"',released)
+        self.assertIn('"acceptedRecords",0',released)
+        self.assertIn('== _releaseAcceptedBefore',released)
+        self.assertIn('behaviour _releaseUnit == "CARELESS"',released)
+        forced=text.split('// A concrete native boarding task',1)[1].split('deleteGroup _forcedGroup;',1)[0]
+        self.assertIn('"acceptedRecords",0',forced)
+        self.assertIn('== _forcedAcceptedBefore',forced)
         for case in ['CONTACT-natural-reacquisition','TRANS-contact-postcontact-sequence','TRANS-search-contact-interruption','TRANS-search-physical-approach','TRANS-regroup-physical-cohesion','TRANS-calm-new-orders-physical-arrival','TRANS-no-old-search-order-resurrection']:
             self.assertIn(case,text)
         self.assertIn('_searchTravel >= 15 && {_searchApproach}',text)

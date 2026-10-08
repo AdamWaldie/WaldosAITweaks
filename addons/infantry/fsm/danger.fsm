@@ -3,7 +3,7 @@ class FSM {
     class States {
         class Start {
             name = "Start";
-            init = "_records=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]; _records append (_queue select [0,11]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records] call WAIT_fnc_DangerEngineSubmit;";
+            init = "_records=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]; _records append (_queue select [0,11]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
             precondition = "";
             class Links {
                 class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};
@@ -81,7 +81,7 @@ class FSM {
         };
         class Queued {
             name = "Queued";
-            init = "_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records] call WAIT_fnc_DangerEngineSubmit;";
+            init = "_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
             precondition = "";
             class Links {
                 class Release {priority = 3; to = "Finished"; condition = "_mode == ""RELEASE"""; action = "";};

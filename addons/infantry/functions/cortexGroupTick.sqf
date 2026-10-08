@@ -219,7 +219,14 @@ private _dangerActionName=if (count _dangerAction == 5
 // for its passengers without authorising an on-foot CONTACT operation; a concrete native FORCED task
 // receives neither. This defensive FORCED exclusion also protects an older packaged response during
 // a same-frame task handover even though DangerStep normally clears it before this tick.
-private _dangerTactical=_dangerActive && {!(_dangerActionName in ["FORCED","VEHICLE"])};
+// A casualty or scream is useful alerting evidence, but it does not identify an attacker. Keep the
+// response available to morale, remount cancellation and diagnostics without promoting the group
+// into CONTACT or the expensive tactical tier. Immediate hazards and validated hostile observations
+// retain that authority.
+private _dangerTactical=_dangerActive
+    && {!(_dangerActionName in ["FORCED","VEHICLE"])}
+    && {(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]};
+private _dangerAlert=_dangerActive && {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]};
 private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
 // their reported position as a physical threat sent soldiers away from bodies or voices and made
@@ -384,7 +391,7 @@ if (_remount isNotEqualTo []) then {
 private _contactDelay = if (_tacticalTier) then {["WAIT_AIPass_TickContact", 2] call _get} else {_delay};
 // A local danger event wakes this existing job. Do not wait for the distance-tier cadence before
 // it re-evaluates native knowledge, but do not create an additional job or issue movement here.
-if (_dangerTactical || {_dangerVehicleSafety}) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
+if (_dangerTactical || {_dangerVehicleSafety} || {_dangerAlert}) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
 
 private _areaMode = _state getOrDefault ["areaInvestigation",""];
 if (_areaMode != "" && {(!([_group,"WAIT_AIPass_Investigate_Enable",true] call WAIT_fnc_CortexFeatureEnabled))

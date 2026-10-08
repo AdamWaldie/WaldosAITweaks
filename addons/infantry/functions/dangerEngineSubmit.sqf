@@ -8,14 +8,16 @@
  * generation on the current group owner. A locality change ends the old engine FSM and fresh engine
  * danger starts on the new owner.
  * Arguments: 0: affected soldier <OBJECT>, objNull; 1: engine records <ARRAY>, each
- * [cause number, ATL/ASL position, expiry number, source object], [].
+ * [cause number, ATL/ASL position, expiry number, source object], []; 2: selected response mode
+ * <STRING>, ASSESS. FORCED records remain local observations and RELEASE records are discarded
+ * before group planning.
  * Return Value: Boolean - true when at least one valid record was processed for a local reflex or
  * group handoff. Reflex-only records do not start the group brain.
  * Current callers: Engine-loaded infantry danger FSM.
- * Example: [cursorObject,[[2,getPosATL cursorObject,time + 1,objNull]]] call WAIT_fnc_DangerEngineSubmit;
+ * Example: [cursorObject,[[2,getPosATL cursorObject,time + 1,objNull]],"IMMEDIATE"] call WAIT_fnc_DangerEngineSubmit;
  */
 
-params [['_actor',objNull,[objNull]],['_records',[],[[]]]];
+params [['_actor',objNull,[objNull]],['_records',[],[[]]],['_mode','ASSESS',['']]];
 if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
@@ -43,7 +45,10 @@ private _reflexOnly=0;
                 && {(side _group) getFriend (side group _source) < 0.6};
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
-            private _groupRelevant=if (_cause == 10) then {false} else {
+            // The engine FSM has already classified concrete boarding, treatment, supply, action
+            // and join tasks as FORCED. Keep their danger evidence actor-local: publishing even a
+            // transient group record can wake CONTACT before the later group step clears it.
+            private _groupRelevant=if (_mode in ['FORCED','RELEASE'] || {_cause == 10}) then {false} else {
                 if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
             };
             if (count _position == 3 && {_groupRelevant}) then {

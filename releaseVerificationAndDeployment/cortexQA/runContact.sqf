@@ -19,6 +19,110 @@ params ["_check","_phase","_wait"];
     ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
 
+// The configured engine FSM remains installed when its live CBA gate is off, so prove that the
+// disabled path is inert under a real engine-delivered explosion. Native animation may still react;
+// only WAIT-authored stance, cover, response and tactical phase are prohibited.
+private _disabledGroup=createGroup [east,true];
+_disabledGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_disabledGroup setVariable ["acex_headless_blacklist",true,true];
+_disabledGroup setCombatMode "BLUE";
+private _disabledUnit=_disabledGroup createUnit ["O_Soldier_F",[2260,1350,0],[],0,"NONE"];
+_disabledUnit allowDamage false;
+_disabledUnit setUnitPos "AUTO";
+_disabledUnit setVariable ["acex_headless_blacklist",true,true];
+_disabledUnit setVariable ["WAIT_CortexQA_Label","DANGER DISABLED",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disabledUnit],true];
+[createHashMapFromArray [["WAIT_AIPass_Danger_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _disabledReady=[{!(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])},10] call _wait;
+private _disabledOrigin=getPosATL _disabledUnit;
+private _disabledTransitionsBefore=count (_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+["Danger FSM: disabled physical stimulus","A real grenade detonates beside this isolated soldier while Danger response is disabled. Native animation is allowed, but WAIT must not take stance, cover, response or CONTACT ownership.",_disabledOrigin] call _phase;
+private _disabledGrenade=createVehicle ["GrenadeHand",_disabledOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+sleep 4;
+private _disabledTransitions=(_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disabledTransitionsBefore];
+private _disabledInert=(_disabledUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
+    && {(_disabledGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
+    && {(_disabledGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+    && {(_disabledGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []}
+    && {((_disabledGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+    && {_disabledTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0};
+["DANGER-disabled-real-stimulus-inert",_disabledReady && {_disabledInert},str [unitPos _disabledUnit,_disabledTransitions,_disabledGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+deleteVehicle _disabledGrenade;
+deleteVehicle _disabledUnit;
+deleteGroup _disabledGroup;
+[createHashMapFromArray [["WAIT_AIPass_Danger_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
+["DANGER-live-gate-reenabled",_enabledReady] call _check;
+
+// A real same-group death must reach the native danger FSM as alerting evidence without inventing
+// an attacker or converting the surviving group into CONTACT. Morale and role replacement consume
+// the actual casualty independently; this stage tests only the immediate danger ownership boundary.
+private _casualtyGroup=createGroup [east,true];
+_casualtyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_casualtyGroup setVariable ["acex_headless_blacklist",true,true];
+_casualtyGroup setCombatMode "BLUE";
+private _casualtySurvivor=_casualtyGroup createUnit ["O_Soldier_F",[2280,1350,0],[],0,"NONE"];
+private _casualtyActor=_casualtyGroup createUnit ["O_Soldier_F",[2283,1350,0],[],0,"NONE"];
+_casualtySurvivor allowDamage false;
+{_x setVariable ["acex_headless_blacklist",true,true]} forEach [_casualtySurvivor,_casualtyActor];
+_casualtySurvivor setVariable ["WAIT_CortexQA_Label","CASUALTY ALERT SURVIVOR",true];
+_casualtyActor setVariable ["WAIT_CortexQA_Label","REAL SAME-GROUP CASUALTY",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_casualtySurvivor,_casualtyActor],true];
+private _casualtyHideBefore=((_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0];
+private _casualtyTransitionsBefore=count (_casualtyGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+["Danger FSM: casualty alert is not contact","One soldier is killed by real damage beside his squad-mate. The survivor may take a finite local hide posture, but WAIT must not invent an attacker, change group combat posture or enter CONTACT.",getPosATL _casualtyActor] call _phase;
+_casualtyActor setDamage 1;
+private _casualtyObserved=[{
+    private _stats=_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    ((_stats getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0]) > _casualtyHideBefore
+},12] call _wait;
+sleep 4;
+private _casualtyTransitions=(_casualtyGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_casualtyTransitionsBefore];
+private _casualtyNoContact=_casualtyTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0
+    && {((_casualtyGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+    && {(_casualtyGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
+    && {combatMode _casualtyGroup == "BLUE"}
+    && {(([_casualtyGroup] call WAIT_fnc_CortexKnowledge) select 0) isEqualTo []};
+["DANGER-casualty-alert-no-contact",_casualtyObserved && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
+deleteVehicle _casualtyActor;
+deleteVehicle _casualtySurvivor;
+deleteGroup _casualtyGroup;
+
+// CARELESS is an authored mission state and maps to RELEASE in the engine FSM. A real stimulus may
+// be observed for diagnostics, but it must be filtered before group submission in the same frame.
+private _releaseGroup=createGroup [east,true];
+_releaseGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_releaseGroup setVariable ["acex_headless_blacklist",true,true];
+_releaseGroup setCombatMode "BLUE";
+private _releaseUnit=_releaseGroup createUnit ["O_Soldier_F",[2340,1350,0],[],0,"NONE"];
+_releaseUnit allowDamage false;
+_releaseUnit setVariable ["acex_headless_blacklist",true,true];
+_releaseGroup setBehaviourStrong "CARELESS";
+_releaseUnit setVariable ["WAIT_CortexQA_Label","CARELESS RELEASE OWNER",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_releaseUnit],true];
+private _releaseStatsBefore=_releaseGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _releaseSubmissionsBefore=_releaseStatsBefore getOrDefault ["submissions",0];
+private _releaseAcceptedBefore=_releaseStatsBefore getOrDefault ["acceptedRecords",0];
+private _releaseTransitionsBefore=count (_releaseGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+["Danger FSM: authored CARELESS release","A real grenade detonates near an invulnerable CARELESS soldier. WAIT may record the engine stimulus, but must discard it before group planning and preserve the authored state.",getPosATL _releaseUnit] call _phase;
+private _releaseGrenade=createVehicle ["GrenadeHand",(getPosATL _releaseUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _releaseObserved=[{
+    ((_releaseGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _releaseSubmissionsBefore
+},12] call _wait;
+sleep 2;
+private _releaseStatsAfter=_releaseGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _releaseTransitions=(_releaseGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_releaseTransitionsBefore];
+private _releaseInert=(_releaseStatsAfter getOrDefault ["acceptedRecords",0]) == _releaseAcceptedBefore
+    && {(_releaseGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
+    && {(_releaseGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+    && {(_releaseGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
+    && {behaviour _releaseUnit == "CARELESS"}
+    && {_releaseTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0};
+["DANGER-release-mode-no-tactical-handoff",_releaseObserved && {_releaseInert},str [_releaseStatsAfter,behaviour _releaseUnit,_releaseTransitions]] call _check;
+deleteVehicle _releaseGrenade;
+deleteVehicle _releaseUnit;
+deleteGroup _releaseGroup;
+
 // Prove the engine-loaded FSM with a real targetless explosion before introducing any enemy. The
 // fixture reads production diagnostics but never calls DangerEngineSubmit, writes a response, or
 // assigns phase. Its authored AUTO scripted stance provides an exact baseline that the production
@@ -156,6 +260,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_forcedUnit,_forcedVehicle
 ["Danger FSM: native boarding ownership","The soldier has an ordinary engine GET IN task before a real grenade detonates. WAIT must observe FORCED, never publish infantry tactical authority, and allow physical boarding to finish.",getPosATL _forcedVehicle] call _phase;
 private _forcedReady=[{toUpperANSI (currentCommand _forcedUnit) == "GET IN"},10] call _wait;
 private _forcedModesBefore=((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["FORCED",0];
+private _forcedAcceptedBefore=(_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
 private _forcedTransitionCount=count (_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 private _forcedGrenade=createVehicle ["GrenadeHand",(getPosATL _forcedUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
 private _forcedNoHandoff=[{
@@ -169,7 +274,8 @@ private _forcedNoHandoff=[{
 private _forcedBoarded=[{vehicle _forcedUnit == _forcedVehicle},35] call _wait;
 private _forcedTransitions=(_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_forcedTransitionCount];
 private _forcedNeverContact=_forcedTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0;
-["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedNeverContact},
+["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedNeverContact}
+    && {((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0]) == _forcedAcceptedBefore},
     str [currentCommand _forcedUnit,vehicle _forcedUnit,_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_forcedTransitions]] call _check;
 deleteVehicle _forcedGrenade;
 deleteVehicle _forcedUnit;
