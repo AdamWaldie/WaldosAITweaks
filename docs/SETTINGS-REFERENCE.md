@@ -128,6 +128,13 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Regroup_TimeoutSeconds` | Recovery time limit (s) | SLIDER | 120 | [30, 300, 0] | NEXT_OPERATION | Maximum recovery attempt duration before explicit abandonment. |
 | `WAIT_AIPass_Regroup_SettleSeconds` | Casualty assessment delay (s) | SLIDER | 5 | [0, 15, 1] | NEXT_OPERATION | Brief delay to assess simultaneous casualties before survivor recovery. |
 
+### 07 Buildings and CQB
+
+| Variable | Label | Type | Default | Range / choices | Activation | Purpose |
+| --- | --- | --- | --- | --- | --- | --- |
+| `WAIT_AIPass_BuildingCombat_Enable` | Enter hostile buildings | CHECKBOX | true | [] | NEXT_OPERATION | A squad of at least four may turn a recent, engine-confirmed hostile physically inside a usable building into a clearance operation. Approximate danger and outdoor contacts never trigger entry. |
+| `WAIT_AIPass_BuildingCombat_Range` | Hostile building entry range (m) | SLIDER | 100 | [25, 200, 0] | NEXT_OPERATION | Maximum distance for natural entry against a recently seen hostile inside a building. Explicit Clear Building orders are unaffected. |
+
 ## 04 Coordination
 
 ### 01 Communication

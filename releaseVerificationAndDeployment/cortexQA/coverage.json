@@ -1276,17 +1276,21 @@
       "title": "Building clearance",
       "setup": "Use enterable multi-room buildings with live enemies, blocked rooms and different owners.",
       "expected": "Team physically visits required positions and engages; inaccessible rooms produce INCOMPLETE, never cleared-by-timeout.",
-      "settings": [],
+      "settings": [
+        "WAIT_AIPass_BuildingCombat_Enable",
+        "WAIT_AIPass_BuildingCombat_Range"
+      ],
       "status": "implemented_partial",
       "live_evidence": [
         "20260929-184640: only one of four room positions visited; clearance incomplete. Outside-start prerequisite also failed, so fresh-group cases are required."
       ],
-      "automation": "runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance and ordinary-waypoint physical handover. Live enemies, terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.",
+      "automation": "runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance, ordinary-waypoint physical handover, casualty replacement, door handling and natural native-known indoor-contact entry. Terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.",
       "executable_sources": [
         "runBuildingComparison.sqf"
       ],
       "production_sources": [
         "addons/infantry/functions/cortexBuildingDoor.sqf",
+        "addons/infantry/functions/cortexBuildingContact.sqf",
         "addons/infantry/functions/cortexClearBuilding.sqf",
         "addons/infantry/functions/buildingOperationStart.sqf",
         "addons/infantry/functions/buildingOperationQueue.sqf",

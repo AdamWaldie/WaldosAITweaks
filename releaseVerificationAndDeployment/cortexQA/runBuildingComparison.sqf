@@ -227,3 +227,53 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach _doorMembers;
 deleteGroup _doorGroup;
 deleteVehicle _doorHouse;
+
+// Natural building contact acceptance. This fixture supplies only live opposing actors and geometry:
+// no reveal, direct clear call, target assignment or movement command is injected after spawning.
+// The production contact brain must first acquire the hostile through the engine, identify that the
+// fresh contact is physically inside the house, and hand the same squad to the building operation.
+private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
+_contactHouse enableSimulationGlobal true;
+private _contactRooms=_contactHouse buildingPos -1;
+private _contactGroup=createGroup [east,true];
+private _contactOpposition=createGroup [west,true];
+{
+    _x setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _x setVariable ["acex_headless_blacklist",true,true];
+} forEach [_contactGroup,_contactOpposition];
+_contactOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
+private _contactMembers=[];
+for "_i" from 0 to 5 do {
+    private _unit=_contactGroup createUnit ["O_Soldier_F",[6238+(_i mod 3)*3,5762-floor(_i/3)*3,0],[],0,"NONE"];
+    _unit allowDamage false;
+    _unit setDir (_unit getDir _contactHouse);
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["NATURAL CQB %1",_i+1],true];
+    _contactMembers pushBack _unit;
+};
+private _contactEnemy=_contactOpposition createUnit ["B_Soldier_F",_contactRooms param [0,getPosATL _contactHouse],[],0,"NONE"];
+_contactEnemy allowDamage false;
+_contactEnemy setDir (_contactEnemy getDir leader _contactGroup);
+_contactEnemy setVariable ["acex_headless_blacklist",true,true];
+_contactEnemy setVariable ["WAIT_CortexQA_Label","INDOOR LIVE HOSTILE",true];
+_contactGroup setCombatMode "RED";
+_contactOpposition setCombatMode "RED";
+missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Enable",true,true];
+missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Range",100,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactMembers+[_contactEnemy],true];
+["Natural building contact","The six-person squad faces a live hostile physically inside the house. Native knowledge must form first; WAIT should then transition directly from contact into its single building-clear operation and physically enter. The audit injects no reveal, clear order or route.",getPosATL _contactHouse] call _phase;
+private _nativeContact=[{(units _contactGroup) findIf {_x knowsAbout _contactEnemy >= 1} >= 0},30] call _wait;
+["BUILD-CONTACT-native-knowledge",_nativeContact,str (_contactMembers apply {_x knowsAbout _contactEnemy})] call _check;
+private _naturalClear=[{_contactGroup getVariable ["WAIT_AIPass_ClearBuilding",false]},20] call _wait;
+["BUILD-CONTACT-natural-clear-started",_nativeContact && {_naturalClear},str [_contactGroup getVariable ["WAIT_Cortex_ClearStatus",[]],_contactGroup getVariable ["WAIT_OperationResult",[]]]] call _check;
+private _naturalEntry=[{_contactRooms findIf {
+    private _room=_x;
+    _contactMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _room) <= 1.5}} >= 0
+} >= 0},90] call _wait;
+["BUILD-CONTACT-physical-entry",_naturalClear && {_naturalEntry},str (_contactMembers apply {[getPosATL _x,currentCommand _x,expectedDestination _x]})] call _check;
+[_contactGroup] call WAIT_fnc_CortexClearRelease;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+{deleteVehicle _x} forEach (_contactMembers+[_contactEnemy]);
+deleteGroup _contactGroup;
+deleteGroup _contactOpposition;
+deleteVehicle _contactHouse;

@@ -61,9 +61,9 @@
       "capability": "Buildings",
       "purpose": "Enter, progress through rooms/floors and exit with the squad",
       "decision": "repair",
-      "mechanism": "Topology cache and physical progress",
+      "mechanism": "Fresh native indoor-contact confirmation, topology cache and physical progress under one building operation owner",
       "implementation_status": "implemented_partial",
-      "controls": "shared tuning specification; additional gaps remain",
+      "controls": "natural hostile-building entry gate and range plus explicit orders; additional gaps remain",
       "ownership": "current AI owner; server coordinates cross-group requests",
       "cost": "shared budget; worst-case measurement pending",
       "acceptance": "physical outcome, disable/re-enable, Zeus replacement, casualty flow, JIP/locality, cleanup and terrain"

@@ -765,7 +765,16 @@ switch (_state get "phase") do {
             if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_vehicleOwnsMovement} && {["WAIT_AIPass_CoordinatedAssault_Enable", true] call _get}) then {
                 _coordinatedOwnsMovement = [_group, _state] call WAIT_fnc_CortexCoordinatedAssault;
             };
+            // A fresh, confirmed hostile physically inside a usable building changes the next
+            // manoeuvre from open-ground flank/advance into the same finite clearance controller
+            // used by explicit orders. Cross-squad support gets first refusal; the building entry
+            // never replaces an accepted support/manoeuvre role or an authored Zeus order.
+            private _buildingOwnsMovement=false;
             if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement}) then {
+                _buildingOwnsMovement=[_group,_state,_enemies] call WAIT_fnc_CortexBuildingContact;
+                if (_buildingOwnsMovement) then {_ordered=true};
+            };
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement} && {!_buildingOwnsMovement}) then {
                 [_group, _state, _enemies,
                     ["WAIT_AIPass_Flank_Enable", true] call _get,
                     ["WAIT_AIPass_Advance_Enable", true] call _get,

@@ -38,7 +38,9 @@
  * Arguments:
  * 0: group <GROUP or OBJECT> - the group, or a unit in it
  * 1: target <OBJECT or ARRAY> - the building, or a position (the nearest building is used)
- * 2: options <HASHMAP> (optional) - resume (default false) and operation-specific controls
+ * 2: options <HASHMAP> (optional) - resume (default false), preserveBrain (default false for an
+ *    explicit order) and operation-specific controls. Natural contact entry uses preserveBrain so
+ *    live fire control and contact transitions continue around the single building movement owner.
  *
  * Return Value:
  * Boolean - true when the order was applied or forwarded
@@ -84,7 +86,16 @@ private _topologyElement = ((count _allPositions) max 2) min 8;
 private _entryCapacity = ((2 max _squadElement) min _topologyElement) min 8;
 _entryCapacity = _entryCapacity min (count _team);
 _team = _team select [0,_entryCapacity];
-[_group,false] call WAIT_fnc_CortexReleaseGroup;
+private _preserveBrain=_options getOrDefault ["preserveBrain",false];
+if (_preserveBrain) then {
+    private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
+    if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
+        [_group,_state,"BUILDING_CONTACT"] call WAIT_fnc_CortexFlankEnd;
+    };
+    [_group] call WAIT_fnc_CortexGroupMoveClear;
+} else {
+    [_group,false] call WAIT_fnc_CortexReleaseGroup;
+};
 if ((_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexGarrisonRelease};
 if ((_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexDefendRelease};
 private _previous = _group getVariable ["WAIT_AIPass_ClearOrder", []];

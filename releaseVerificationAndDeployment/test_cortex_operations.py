@@ -5539,6 +5539,44 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['moveIn','orderGetIn true','assignAs','setPos','deleteVehicle']:
             self.assertNotIn(forbidden,release)
 
+    def test_confirmed_building_contact_enters_single_clearance_owner(self):
+        """Fresh native indoor contact must select CQB without a second tactical controller."""
+        contact=source('cortexBuildingContact')
+        clear=source('cortexClearBuilding')
+        tick=source('cortexGroupTick')
+        spec=source('cortexTuningSpec')
+        sections=source('aiTweaksSettingsSections')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        for marker in ['WAIT_AIPass_BuildingCombat_Enable','WAIT_AIPass_BuildingCombat_Range']:
+            self.assertIn(marker,spec)
+            self.assertIn(marker,contact)
+        self.assertIn('["BUILDINGS", "03 Infantry", "07 Buildings and CQB"]',sections)
+        self.assertIn('class CortexBuildingContact',functions)
+        for marker in ['(_x param [2,1e6,[0]]) <= 5','isNull objectParent _enemy',
+                       'boundingBoxReal _candidateBuilding','worldToModelVisual','lineIntersectsSurfaces',
+                       '(_x select 2) == _candidateBuilding','count _capable < 4',
+                       '["preserveBrain",true]','WAIT_fnc_CortexClearBuilding']:
+            self.assertIn(marker,contact)
+        for forbidden in [' setPos ',' moveIn ',' allowDamage ',' disableAI ']:
+            self.assertNotIn(forbidden,contact)
+        self.assertIn('private _preserveBrain=_options getOrDefault ["preserveBrain",false];',clear)
+        preserved=clear.split('if (_preserveBrain) then {',1)[1].split('} else {',1)[0]
+        self.assertNotIn('WAIT_fnc_CortexReleaseGroup',preserved)
+        self.assertIn('WAIT_fnc_CortexGroupMoveClear',preserved)
+        self.assertIn('WAIT_fnc_CortexBuildingContact',tick)
+        self.assertLess(tick.index('WAIT_fnc_CortexCoordinatedAssault'),tick.index('WAIT_fnc_CortexBuildingContact'))
+        self.assertLess(tick.index('WAIT_fnc_CortexBuildingContact'),tick.index('WAIT_fnc_CortexTacticalStart'))
+
+    def test_natural_building_contact_has_physical_audit(self):
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8')
+        for marker in ['BUILD-CONTACT-native-knowledge','BUILD-CONTACT-natural-clear-started',
+                       'BUILD-CONTACT-physical-entry','WAIT_AIPass_BuildingCombat_Enable',
+                       'WAIT_AIPass_BuildingCombat_Range','knowsAbout _contactEnemy']:
+            self.assertIn(marker,audit)
+        natural=audit.split('// Natural building contact acceptance.',1)[1]
+        for forbidden in [' reveal ','WAIT_fnc_CortexClearBuilding','setPos','moveIn','disableAI "PATH"']:
+            self.assertNotIn(forbidden,natural)
+
     def test_naval_delivery_tracks_crew_and_passenger_generations_separately(self):
         naval=source('cortexNavalAssault')
         release=source('cortexNavalRelease')

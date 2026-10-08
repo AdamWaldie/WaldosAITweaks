@@ -239,6 +239,8 @@
  * - WAIT_AIPass_Investigate_Seconds (ADVANCED): time limit for an investigation.
  * - WAIT_AIPass_Assault_Enable (MISSION MAKER): an eligible manoeuvre finishes with a paired-element clear-through; a fresh known threat already inside ordinary manoeuvre range can start it directly.
  * - WAIT_AIPass_Assault_Range (ADVANCED): maximum transition range for a final assault; direct close assault remains capped at 60 metres.
+ * - WAIT_AIPass_BuildingCombat_Enable (MISSION MAKER): a capable squad may enter a usable building containing a recent, engine-confirmed hostile.
+ * - WAIT_AIPass_BuildingCombat_Range (ADVANCED): maximum range for natural hostile-building entry; explicit clearance orders are unaffected.
  * - WAIT_AIPass_Advance_Enable (MISSION MAKER): squads in a long firefight that still have a waypoint to reach push a fire team forward in covered bounds.
  * - WAIT_AIPass_Advance_MinContactSeconds (ADVANCED): seconds in contact before a bounding advance is considered.
  * - WAIT_AIPass_Advance_Cooldown (ADVANCED): seconds before a squad may begin another bounding advance.
@@ -439,6 +441,8 @@ createHashMapFromArray [
         ["WAIT_AIPass_Investigate_Seconds", 60], // SECONDS: investigation time limit.
         ["WAIT_AIPass_Assault_Enable", true], // BOOL: paired-element clear-through after manoeuvre or directly against a fresh close threat.
         ["WAIT_AIPass_Assault_Range", 80], // METRES: final-assault transition range; direct close assault is capped at 60 m.
+        ["WAIT_AIPass_BuildingCombat_Enable", true], // BOOL: enter a usable building containing a recent native-known hostile.
+        ["WAIT_AIPass_BuildingCombat_Range", 100], // METRES: maximum range for natural hostile-building entry.
         ["WAIT_AIPass_Advance_Enable", true], // BOOL: pinned squads with somewhere to go push a team forward in bounds.
         ["WAIT_AIPass_Advance_MinContactSeconds", 0], // SECONDS: optional confirmed-contact delay before an advance is considered.
         ["WAIT_AIPass_Advance_Cooldown", 20], // SECONDS: after an advance ends before the squad may start another.

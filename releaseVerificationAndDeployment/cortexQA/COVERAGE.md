@@ -58,7 +58,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | ART-SMOKE - Artillery smoke | 1 | 0 | 0 | `runArtillerySmoke.sqf` | 1 | implemented_partial |
 | BREAK - Aircraft evasive break | 1 | 0 | 0 | `runAircraft.sqf` | 2 | implemented_partial |
 | DEFEND - Defence orders | 0 | 0 | 4 | `runServer.sqf` | 0 | implemented_partial |
-| CLEAR - Building clearance | 0 | 0 | 6 | `runBuildingComparison.sqf` | 1 | implemented_partial |
+| CLEAR - Building clearance | 2 | 0 | 7 | `runBuildingComparison.sqf` | 1 | implemented_partial |
 | UI - CBA configuration and diagnostics | 0 | 0 | 1 | `runClient.sqf` | 0 | implemented_partial |
 | LIFECYCLE - Transfer, disconnect and JIP | 0 | 0 | 15 | `runLifecycle.sqf` | 6 | implemented_partial |
 | MULTI-FLANK - Multi-squad flank cohesion | 0 | 0 | 0 | `runMultiManoeuvre.sqf` | 1 | implemented_partial |
@@ -402,7 +402,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Team physically visits required positions and engages; inaccessible rooms produce INCOMPLETE, never cleared-by-timeout.
 
-**Automation and open work:** runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance and ordinary-waypoint physical handover. Live enemies, terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.
+**Automation and open work:** runBuildingComparison.sqf: original room visits preserved; fresh 2/6/12-soldier clearance, ordinary-waypoint physical handover, casualty replacement, door handling and natural native-known indoor-contact entry. Terrain buildings, blocked-room recovery and owner/interruption variants remain incomplete.
 
 ### UI - CBA configuration and diagnostics
 

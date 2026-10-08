@@ -19,6 +19,7 @@
     ["COVER", "03 Infantry", "04 Cover and stance"],
     ["MORALE", "03 Infantry", "05 Morale and withdrawal"],
     ["RECOVERY", "03 Infantry", "06 Survivor recovery"],
+    ["BUILDINGS", "03 Infantry", "07 Buildings and CQB"],
     ["COMMS", "04 Coordination", "01 Communication"],
     ["COORD", "04 Coordination", "02 Support and assault"],
     ["RESUPPLY", "04 Coordination", "03 Resupply"],

@@ -143,6 +143,7 @@ class CfgFunctions {
             class CortexGroupAnchor {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupAnchor.sqf";};
             class CortexGroupTransmitter {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTransmitter.sqf";};
             class CortexBuildingDoor {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexBuildingDoor.sqf";};
+            class CortexBuildingContact {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexBuildingContact.sqf";};
             class CortexClearBuilding {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexClearBuilding.sqf";};
             class CortexReportServer {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexReportServer.sqf";};
             class CortexReportLocal {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexReportLocal.sqf";};
