@@ -149,6 +149,73 @@ private _jinkCrewRetained=_jinkCrew findIf {!alive _x || {vehicle _x != _jinkVeh
 deleteVehicle _jinkBlast;
 {deleteVehicle _x} forEach (_jinkCrew+[_jinkVehicle]);
 deleteGroup _jinkGroup;
+// A stopped tracked fighting vehicle must physically turn its hull toward a naturally detected
+// hostile while the gunnery gate is enabled, without receiving a waypoint or changing position.
+// A first naturally detected hostile with the gate disabled proves that danger alone cannot acquire
+// the orientation owner. A replacement hostile then creates a fresh native detection generation.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleGunnery_Enable",false],
+    ["WAIT_AIPass_VehicleJink_Enable",false],["WAIT_AIPass_VehicleDismount_Enable",false],
+    ["WAIT_AIPass_VehicleWithdraw_Enable",false]
+]] call WAIT_fnc_CortexTuning;
+private _orientVehicle=createVehicle ["O_MBT_02_cannon_F",[1580,880,0],[],0,"NONE"];
+createVehicleCrew _orientVehicle;
+_orientVehicle allowDamage false;
+_orientVehicle setDir 0;
+private _orientGroup=group driver _orientVehicle;
+[_orientGroup] call _pin;
+_orientGroup setCombatMode "RED";
+private _orientCrew=crew _orientVehicle;
+{_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["DANGER ORIENT CREW %1",_forEachIndex+1],true]} forEach _orientCrew;
+private _orientDisabledTargetGroup=createGroup [west,true];
+private _orientDisabledTarget=_orientDisabledTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+removeAllWeapons _orientDisabledTarget;
+_orientDisabledTarget allowDamage false;
+_orientDisabledTarget disableAI "PATH";
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_orientCrew+[_orientDisabledTarget],true];
+["Danger FSM: finite tracked-vehicle orientation","A stationary tank naturally detects a hostile off its bow. Disabled, WAIT must not take orientation ownership. Enabled, a fresh hostile may trigger one bounded hull turn with no waypoint or travel.",getPosATL _orientVehicle] call _phase;
+private _orientReady=[{
+    missionNamespace getVariable ["WAIT_AIPass_Active",false]
+        && {_orientGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {count _orientCrew >= 3}
+},30] call _wait;
+private _orientDisabledKnown=[{(effectiveCommander _orientVehicle) knowsAbout _orientDisabledTarget > 0},20] call _wait;
+sleep 3;
+private _orientState=_orientGroup getVariable ["WAIT_AIPass_State",createHashMap];
+private _orientDisabledNoOwner=(_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]) isEqualTo []
+    && {(_orientState getOrDefault ["movementLease",[]]) param [0,""] != "VEHICLE_ORIENT"};
+["DANGER-VEHICLE-orient-disabled",_orientReady && {_orientDisabledKnown} && {_orientDisabledNoOwner},str [_orientVehicle getDir _orientDisabledTarget,_orientState getOrDefault ["movementLease",[]]]] call _check;
+deleteVehicle _orientDisabledTarget;
+deleteGroup _orientDisabledTargetGroup;
+[createHashMapFromArray [["WAIT_AIPass_VehicleGunnery_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _orientTargetGroup=createGroup [west,true];
+private _orientTarget=_orientTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+removeAllWeapons _orientTarget;
+_orientTarget allowDamage false;
+_orientTarget disableAI "PATH";
+_orientTarget setVariable ["WAIT_CortexQA_Label","DANGER ORIENT HOSTILE",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_orientCrew+[_orientTarget],true];
+private _orientOrigin=getPosATL _orientVehicle;
+private _orientOwned=[{
+    count (_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]) == 5
+        && {private _state=_orientGroup getVariable ["WAIT_AIPass_State",createHashMap];
+            (_state getOrDefault ["movementLease",[]]) param [0,""] == "VEHICLE_ORIENT"}
+},25] call _wait;
+private _orientAligned=[{
+    private _relative=_orientVehicle getRelDir _orientTarget;
+    _relative <= 20 || {_relative >= 340}
+},15] call _wait;
+private _orientCrewRetained=_orientCrew findIf {!alive _x || {vehicle _x != _orientVehicle}} < 0;
+["DANGER-VEHICLE-orient-operation-owned",_orientReady && {_orientOwned},str [_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]],(_orientGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-orient-physical-alignment",_orientOwned && {_orientAligned},str [getDir _orientVehicle,_orientVehicle getDir _orientTarget,_orientVehicle getRelDir _orientTarget]] call _check;
+["DANGER-VEHICLE-orient-no-travel",_orientVehicle distance2D _orientOrigin < 8,str [_orientOrigin,getPosATL _orientVehicle,_orientVehicle distance2D _orientOrigin]] call _check;
+["DANGER-VEHICLE-orient-crew-retained",_orientCrewRetained,str (_orientCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;
+deleteVehicle _orientTarget;
+{deleteVehicle _x} forEach (_orientCrew+[_orientVehicle]);
+deleteGroup _orientTargetGroup;
+deleteGroup _orientGroup;
+
 // Empty and useful emplacements share the same real explosion stimulus. Only the empty exact
 // platform may release its crew: the armed emplacement must remain manned, and neither case may
 // manufacture a target or route. This exercises the static domain which ordinary driving cannot.

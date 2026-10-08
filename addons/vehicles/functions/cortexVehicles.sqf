@@ -30,8 +30,9 @@
  * AI commander to change to that seat once for the exact DETECTED generation. The driver never moves.
  * An intact armed or armoured platform may also request its own smoke countermeasure once for a
  * hit, explosion or suppression generation. A slow, crew-only fighting vehicle may make one short,
- * terrain-checked jink away from a close hostile or severe impact; convoy, passengers and any existing
- * movement owner remain authoritative.
+ * terrain-checked jink away from a close hostile or severe impact. A stopped tracked fighting vehicle
+ * may instead make one generation-owned chassis turn toward a real known hostile. Convoy, passengers
+ * and any existing movement owner remain authoritative.
  * During sustained contact the AI gunner is pointed at the most dangerous
  * enemy seen in the last 15 s within 600 m: anti-tank infantry first, then armour, then anything
  * else, nearest first, held for 8 s. A fully mounted tank or APC that knows of an anti-tank soldier
@@ -54,7 +55,7 @@
  * 2: enemies <ARRAY> - from WAIT_fnc_CortexKnowledge
  *
  * Return Value:
- * Boolean - true while vehicle withdrawal, standoff or danger jink owns group movement
+ * Boolean - true while vehicle withdrawal, standoff, danger jink or tracked orientation owns group movement
  *
  * Example:
  * [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
@@ -67,18 +68,54 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 private _vehicleMove = _state getOrDefault ["movementLease",[]];
 private _activeVehicleMove = false;
 if (_vehicleMove isNotEqualTo []) then {
-    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"];
+    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","VEHICLE_ORIENT"];
     if (_vehicleOwnsLease) then {
-        _activeVehicleMove = ((waypoints _group) findIf {
-            (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
-        } >= 0) && {time < (_vehicleMove select 1)};
+        private _movementOwner=_vehicleMove param [0,""];
+        if (_movementOwner == "VEHICLE_ORIENT") then {
+            private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+            private _orientVehicle=_orientState param [1,objNull,[objNull]];
+            private _marker=if (!isNull _orientVehicle) then {
+                _orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]
+            } else {[]};
+            private _targetPosition=_marker param [2,[],[[]]];
+            _activeVehicleMove=count _marker == 5
+                && {_marker param [1,grpNull,[grpNull]] == _group}
+                && {serverTime < (_marker param [3,0,[0]])}
+                && {count _targetPosition >= 2}
+                && {!isNull _orientVehicle} && {alive _orientVehicle} && {canMove _orientVehicle}
+                && {private _relative=_orientVehicle getRelDir _targetPosition; _relative > 20 && {_relative < 340}}
+                && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
+        } else {
+            _activeVehicleMove = ((waypoints _group) findIf {
+                (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
+            } >= 0) && {time < (_vehicleMove select 1)};
+        };
         if (!_activeVehicleMove) then {
+            private _finishedOwner=_vehicleMove param [0,""];
             private _generation=_state getOrDefault ["vehicleOperationGeneration",-1];
             if (_generation >= 0) then {
-                [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                if (_finishedOwner == "VEHICLE_ORIENT") then {
+                    private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+                    private _orientVehicle=_orientState param [1,objNull,[objNull]];
+                    private _orientMarker=if (!isNull _orientVehicle) then {
+                        _orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]
+                    } else {[]};
+                    private _targetPosition=_orientMarker param [2,[],[[]]];
+                    private _aligned=!isNull _orientVehicle && {count _targetPosition >= 2}
+                        && {private _relative=_orientVehicle getRelDir _targetPosition;
+                            _relative <= 20 || {_relative >= 340}};
+                    if ([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                        [_group,_generation,"EXTERNAL_OWNER"] call WAIT_fnc_OperationCancel;
+                    } else {
+                        [_group,_generation,["INCOMPLETE","COMPLETE"] select _aligned,
+                            ["VEHICLE_ORIENT_TIMEOUT","VEHICLE_ORIENT_ALIGNED"] select _aligned]
+                            call WAIT_fnc_OperationRelease;
+                    };
+                } else {
+                    [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                };
                 _state deleteAt "vehicleOperationGeneration";
             };
-            private _finishedOwner=_vehicleMove param [0,""];
             if (_finishedOwner == "VEHICLE_JINK") then {
                 private _jinkState=_state getOrDefault ["vehicleDangerJink",[]];
                 private _jinkVehicle=_jinkState param [1,objNull,[objNull]];
@@ -88,6 +125,20 @@ if (_vehicleMove isNotEqualTo []) then {
                         _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
                     };
                 };
+            };
+            if (_finishedOwner == "VEHICLE_ORIENT") then {
+                private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+                private _orientVehicle=_orientState param [1,objNull,[objNull]];
+                if (!isNull _orientVehicle && {local _orientVehicle}) then {
+                    private _marker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+                    if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                        if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                            _orientVehicle sendSimpleCommand "STOPTURNING";
+                        };
+                        _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+                    };
+                };
+                _state deleteAt "vehicleDangerOrient";
             };
             [_group,_finishedOwner,false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
@@ -345,6 +396,20 @@ if (_dangerDismount isNotEqualTo []) then {
                         call WAIT_fnc_CortexVehicleJink;
                     _state set ["vehicleDangerJink",[_dangerGeneration,_vehicle,_jinkStarted,serverTime]];
                     if (_jinkStarted) then {_movementOwned=true};
+                };
+                // A stopped tracked fighting vehicle can turn its hull toward the exact known
+                // hostile without receiving a destination. This runs after the more urgent escape
+                // decision: a jink or any other movement owner refuses the orientation operation.
+                private _orient=_state getOrDefault ["vehicleDangerOrient",[]];
+                private _freshOrientGeneration=_dangerGeneration >= 0
+                    && {_orient param [0,-2,[0]] != _dangerGeneration};
+                if (_freshOrientGeneration && {_knownHostile} && {_dangerProfile == "ARMOURED"}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {_dangerCause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE","SUPPRESSED"]}) then {
+                    private _orientStarted=[_group,_state,_vehicle,_dangerPosition,_dangerSource,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleOrient;
+                    _state set ["vehicleDangerOrient",[_dangerGeneration,_vehicle,_orientStarted,serverTime]];
+                    if (_orientStarted) then {_movementOwned=true};
                 };
                 // A useful static mortar answers the same real, known hostile through the finite
                 // artillery mission owner. The server revalidates locality, knowledge, allegiance,

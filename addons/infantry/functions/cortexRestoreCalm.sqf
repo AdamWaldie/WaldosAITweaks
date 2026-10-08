@@ -142,6 +142,15 @@ if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
         _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
     };
 };
+private _vehicleOrient=_state getOrDefault ["vehicleDangerOrient",[]];
+private _orientVehicle=_vehicleOrient param [1,objNull,[objNull]];
+if (!isNull _orientVehicle && {local _orientVehicle}) then {
+    private _orientMarker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+    if (_orientMarker param [1,grpNull,[grpNull]] == _group) then {
+        if (!_yieldToExternal) then {_orientVehicle sendSimpleCommand "STOPTURNING"};
+        _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+    };
+};
 if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {behaviour _leader in ["COMBAT", "AWARE"]}) then {
     private _base = _state getOrDefault ["baseBehaviour", "AWARE"];
     // After a real firefight a squad stays alert rather than slinging weapons, as the engine does.
@@ -171,7 +180,7 @@ if (!_allowRemount) then {
 {_state deleteAt _x} forEach [
     "consolidateIssued", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
     "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];

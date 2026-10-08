@@ -3509,7 +3509,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_vehicle_combat_layer_preserves_other_movement_owners(self):
         vehicles=source('cortexVehicles')
-        self.assertIn('in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"]',vehicles)
+        self.assertIn('in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","VEHICLE_ORIENT"]',vehicles)
         self.assertIn('if (_vehicleOwnsLease) then',vehicles)
         self.assertIn('_activeVehicleMove = count _vehicleMove == 2',vehicles)
         non_vehicle=vehicles.split('} else {',1)[1].split('};',1)[0]
@@ -5649,10 +5649,40 @@ class CortexOperations(unittest.TestCase):
             self.assertNotIn(forbidden,jink)
         self.assertIn('vehicleDangerJink',vehicles)
         self.assertIn('_dangerCause in ["HIT","EXPLOSION"] || {_knownCloseThreat}',vehicles)
-        self.assertIn('["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"]',vehicles)
+        self.assertIn('["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","VEHICLE_ORIENT"]',vehicles)
         audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
         for marker in ['DANGER-VEHICLE-jink-disabled','DANGER-VEHICLE-jink-operation-owned',
                        'DANGER-VEHICLE-jink-physical-travel','DANGER-VEHICLE-jink-crew-retained']:
+            self.assertIn(marker,audit)
+
+    def test_tracked_vehicle_danger_orientation_is_finite_generation_owned_and_route_safe(self):
+        registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        orient=source('cortexVehicleOrient')
+        vehicles=source('cortexVehicles')
+        self.assertIn('class CortexVehicleOrient',registry)
+        for marker in [
+            'WAIT_AIPass_VehicleGunnery_Enable','WAIT_Convoy_Active','CortexExternalTakeover',
+            'isKindOf "Tank"','abs speed _vehicle > 5',
+            'count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',
+            '(_state getOrDefault ["movementLease",[]]) isNotEqualTo []',
+            'WAIT_fnc_CortexOwnershipLease','WAIT_fnc_OperationStart',
+            '["VEHICLE_ORIENT",time+8]','sendSimpleCommand (["LEFT","RIGHT"]',
+            'WAIT_Danger_VehicleOrient'
+        ]:
+            self.assertIn(marker,orient)
+        for forbidden in ['setDir','setVectorDir','setVelocity','setPos','doMove','commandMove','addWaypoint','while {']:
+            self.assertNotIn(forbidden,orient)
+        self.assertIn('vehicleDangerOrient',vehicles)
+        self.assertIn('_dangerProfile == "ARMOURED"',vehicles)
+        self.assertIn('sendSimpleCommand "STOPTURNING"',vehicles)
+        for marker in ['WAIT_fnc_OperationCancel','VEHICLE_ORIENT_TIMEOUT','VEHICLE_ORIENT_ALIGNED',
+                       '["INCOMPLETE","COMPLETE"] select _aligned']:
+            self.assertIn(marker,vehicles)
+        self.assertIn('["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","VEHICLE_ORIENT"]',vehicles)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
+        for marker in ['DANGER-VEHICLE-orient-disabled','DANGER-VEHICLE-orient-operation-owned',
+                       'DANGER-VEHICLE-orient-physical-alignment','DANGER-VEHICLE-orient-no-travel',
+                       'DANGER-VEHICLE-orient-crew-retained']:
             self.assertIn(marker,audit)
 
     def test_mounted_danger_recovers_a_lost_gunner_without_sacrificing_the_driver(self):

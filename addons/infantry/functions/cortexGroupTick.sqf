@@ -316,6 +316,7 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         case "VEHICLE_WITHDRAW": {"vehicleOperationGeneration"};
         case "VEHICLE_STANDOFF": {"vehicleOperationGeneration"};
         case "VEHICLE_JINK": {"vehicleOperationGeneration"};
+        case "VEHICLE_ORIENT": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
         case "SUPPORT_RALLY": {"supportOperationGeneration"};
         default {""};
@@ -334,6 +335,20 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
                 _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
             };
         };
+    };
+    if (_movementOwner == "VEHICLE_ORIENT") then {
+        private _orientState=_state getOrDefault ["vehicleDangerOrient",[]];
+        private _orientVehicle=_orientState param [1,objNull,[objNull]];
+        if (!isNull _orientVehicle && {local _orientVehicle}) then {
+            private _marker=_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]];
+            if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+                    _orientVehicle sendSimpleCommand "STOPTURNING";
+                };
+                _orientVehicle setVariable ["WAIT_Danger_VehicleOrient",nil,true];
+            };
+        };
+        _state deleteAt "vehicleDangerOrient";
     };
     if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
     _state deleteAt "movementLease";
