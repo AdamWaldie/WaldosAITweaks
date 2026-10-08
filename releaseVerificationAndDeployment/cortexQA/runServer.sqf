@@ -6,9 +6,10 @@
  * Phase changes place only the protected human observer near the fixture on its owner; AI is never relocated.
  * Arguments: None. WAIT_CortexQA_Focus selects the staged batch; airskills runs aircraft and
  * AI-profile/vehicle-crew mechanics together, while supportflows runs coordinated manoeuvre plus
- * combined-arms composition in one process without unrelated feature suites. dangerparity batches
- * immediate contact, tactical selection and vehicle danger responses. terrain runs a measured-relief
- * prerequisite and physical infantry, vehicle and defence traversal batch.
+ * combined-arms composition in one process without unrelated feature suites. dangerload is the short
+ * packaged engine-FSM gate; dangerparity batches immediate contact, tactical selection and vehicle
+ * danger responses. terrain runs a measured-relief prerequisite and physical infantry, vehicle and
+ * defence traversal batch.
  * Return: Nothing (scheduled script).
  * Current callers: staged audit continuation. Example: [] execVM "cortexQAServer.sqf";
  */
@@ -46,6 +47,7 @@ if (_failures isNotEqualTo []) exitWith {
 };
 private _wait = {params ["_condition",["_seconds",15]]; private _until = diag_tickTime + _seconds; waitUntil {sleep 0.2; call _condition || {diag_tickTime >= _until}}; call _condition};
 private _saved = createHashMapFromArray (([] call WAIT_fnc_CortexTuningSpec) apply {[_x select 0,missionNamespace getVariable [_x select 0,_x select 5]]});
+if (_focus == "dangerload") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQADangerLoad.sqf"};
 if (_focus == "terrain") then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATerrain.sqf"};
 private _group = grpNull;
 private _house = objNull;
