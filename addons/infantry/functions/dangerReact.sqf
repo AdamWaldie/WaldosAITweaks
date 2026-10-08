@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Applies a short, local danger posture selected by the danger FSM without replacing an active WAIT or external movement operation.
- * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned.
+ * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned. Explicit BLUE/GREEN hold-fire discipline remains authoritative.
  * Repeat/JIP: One public lease contains the prior and applied values. Repeated events extend the lease; restore changes only values still matching WAIT's application and discards its lease on external takeover. DangerStep owns the finite response context.
  * Arguments: 0 actor <OBJECT>; 1 cause <STRING, RESTORE or RELEASE>; 2 approximate danger position <ARRAY, []>; 3 classified action <STRING, "">.
  * Return Value: STRING - RESTORED, ASSESS, POSTURE or IGNORED.
@@ -53,6 +53,10 @@ if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"};
 // short weak stance, while the group layer preserves its current behaviour and ROE. Morale and
 // survivor-role logic consume actual losses independently on their normal bounded group step.
 if (_cause in ["CASUALTY","SCREAM"]) exitWith {"ASSESS"};
+// BLUE and GREEN are deliberate fire-control orders rather than passive defaults. Preserve them
+// exactly: the actor-local engine FSM may still take a finite weak stance, but a danger callback
+// cannot silently authorise fire or launch group tactics against the mission maker's order.
+if (combatMode _group in ["BLUE","GREEN"]) exitWith {"ASSESS"};
 if !(_action in ["HIDE","ENGAGE","MAINTAIN",""]) then {_action=""};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 // MAINTAIN is valid only while a real operation still owns the committed route. A delayed danger
@@ -79,7 +83,7 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 // own danger response merely because it already owned movement.
 private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","GUNFIRE"]}};
 private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
-if (_priorCombat in ["BLUE","GREEN"] || {_engaging && {_priorCombat != "RED"}}) then {
+if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
     _group setCombatMode _desiredCombat;
     _appliedCombat=_desiredCombat;
 };

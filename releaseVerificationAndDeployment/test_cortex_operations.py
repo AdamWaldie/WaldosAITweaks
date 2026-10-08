@@ -520,7 +520,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _desiredCombat',reaction)
         self.assertIn('if (_action in ["FORCED","VEHICLE"]) exitWith {"ASSESS"}',reaction)
         self.assertLess(reaction.index('if (_action in ["FORCED","VEHICLE"]'),reaction.index('setBehaviour "COMBAT"'))
-        self.assertIn('_priorCombat in ["BLUE","GREEN"]',reaction)
+        self.assertIn('combatMode _group in ["BLUE","GREEN"]',reaction)
+        self.assertIn('exitWith {"ASSESS"}',reaction)
+        self.assertNotIn('_priorCombat in ["BLUE","GREEN"]',reaction)
         self.assertNotIn('doMove',reaction)
         self.assertNotIn('doTarget',reaction)
         self.assertIn('"EXPLOSION",2.5',reaction)
@@ -5319,8 +5321,9 @@ class CortexOperations(unittest.TestCase):
 
     def test_contact_transition_audit_requires_physical_search_and_resumption(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
-        for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-forced-order-no-tactical-handoff']:
+        for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-authored-hold-fire-preserved','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-active-zeus-replacement','DANGER-leader-loss-physical-continuation','DANGER-forced-order-no-tactical-handoff']:
             self.assertIn(case,text)
+        self.assertIn('[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
         disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
         self.assertIn('createVehicle ["GrenadeHand"',disabled)
         self.assertIn('["WAIT_AIPass_Danger_Enable",false]',disabled)

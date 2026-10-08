@@ -1,7 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
- * Tests a real targetless explosion reflex with physical cover, exact release, danger during committed movement and
- * close-contact persistence, then
+ * Tests explicit fire-discipline preservation, a real targetless explosion reflex with physical
+ * cover, exact release, danger during committed movement, close-contact persistence, active Zeus
+ * replacement and leader loss, then
  * real occlusion, physical exposure, sight loss, post-contact flow and reacquisition without injected
  * knowledge, including live contact interrupting an active search.
  * Locality/authority: scheduled server audit; both fixture groups pinned against HC distributors.
@@ -53,6 +54,33 @@ deleteGroup _disabledGroup;
 [createHashMapFromArray [["WAIT_AIPass_Danger_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
 ["DANGER-live-gate-reenabled",_enabledReady] call _check;
+
+// BLUE is an explicit authored hold-fire instruction. With the live danger gate enabled, a real
+// explosion must still reach the engine FSM and may produce a finite actor stance, but it cannot
+// promote fire discipline or enter the group tactical state.
+private _disciplineGroup=createGroup [east,true];
+_disciplineGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_disciplineGroup setVariable ["acex_headless_blacklist",true,true];
+_disciplineGroup setCombatMode "BLUE";
+private _disciplineUnit=_disciplineGroup createUnit ["O_Soldier_F",[2270,1350,0],[],0,"NONE"];
+_disciplineUnit allowDamage false;
+_disciplineUnit setVariable ["acex_headless_blacklist",true,true];
+_disciplineUnit setVariable ["WAIT_CortexQA_Label","AUTHORED HOLD FIRE",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disciplineUnit],true];
+private _disciplineStatsBefore=(_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _disciplineTransitionsBefore=count (_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE and never begin CONTACT.",getPosATL _disciplineUnit] call _phase;
+private _disciplineGrenade=createVehicle ["GrenadeHand",(getPosATL _disciplineUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _disciplineObserved=[{
+    ((_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _disciplineStatsBefore
+},12] call _wait;
+sleep 4;
+private _disciplineTransitions=(_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disciplineTransitionsBefore];
+["DANGER-authored-hold-fire-preserved",_disciplineObserved && {combatMode _disciplineGroup == "BLUE"}
+    && {_disciplineTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0},str [combatMode _disciplineGroup,_disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+deleteVehicle _disciplineGrenade;
+deleteVehicle _disciplineUnit;
+deleteGroup _disciplineGroup;
 
 // A real same-group death must reach the native danger FSM as alerting evidence without inventing
 // an attacker or converting the surviving group into CONTACT. Morale and role replacement consume
@@ -238,6 +266,84 @@ _reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
 deleteGroup _closeGroup;
+
+// A curator replacement order is the strongest live interruption edge. Trigger a real engine
+// response, prove it became active, then install and mark an ordinary replacement waypoint through
+// the production Zeus boundary. No danger action, cover move or stale response may return afterward.
+_reflexGroup setCombatMode "YELLOW";
+_reflexGroup setBehaviourStrong "AWARE";
+private _zeusOrigin=getPosATL _reflexUnit;
+private _zeusStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _zeusGrenade=createVehicle ["GrenadeHand",_zeusOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _zeusDangerActive=[{
+    ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _zeusStatsBefore
+        && {(_reflexGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
+},12] call _wait;
+private _zeusDestination=_zeusOrigin getPos [55,270];
+private _zeusWaypoint=_reflexGroup addWaypoint [_zeusDestination,0];
+_zeusWaypoint setWaypointType "MOVE";
+_zeusWaypoint setWaypointBehaviour "AWARE";
+_zeusWaypoint setWaypointCombatMode "YELLOW";
+_zeusWaypoint setWaypointCompletionRadius 3;
+_reflexGroup setCurrentWaypoint _zeusWaypoint;
+[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+_reflexUnit setVariable ["WAIT_CortexQA_Target",_zeusDestination,true];
+["Danger FSM: Zeus replaces active response","A real explosion first activates the danger response. A production Zeus waypoint then takes ownership immediately; the soldier must travel to it without an old cover or danger command returning.",_zeusDestination] call _phase;
+private _zeusCleared=[{
+    (_reflexGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []
+        && {(_reflexGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+        && {(_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []}
+},12] call _wait;
+private _zeusArrived=[{alive _reflexUnit && {_reflexUnit distance2D _zeusDestination < 7}},55] call _wait;
+private _zeusStable=true;
+for "_sample" from 1 to 8 do {sleep 0.5; if (_reflexUnit distance2D _zeusDestination > 10) then {_zeusStable=false}};
+["DANGER-active-zeus-replacement",_zeusDangerActive && {_zeusCleared} && {_zeusArrived} && {_zeusStable},str [getPosATL _reflexUnit,_zeusDestination,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+deleteVehicle _zeusGrenade;
+
+// Leader loss during a finite response must change the viable group anchor without ending the
+// squad's ordinary movement. The explosion is native, the casualty is real damage and the final
+// movement uses a normal group waypoint; no direct danger or operation callback is injected.
+private _leaderLossGroup=createGroup [east,true];
+_leaderLossGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_leaderLossGroup setVariable ["acex_headless_blacklist",true,true];
+_leaderLossGroup setCombatMode "YELLOW";
+private _lostLeader=_leaderLossGroup createUnit ["O_Soldier_F",[2420,1350,0],[],0,"NONE"];
+private _newLeader=_leaderLossGroup createUnit ["O_Soldier_F",[2423,1350,0],[],0,"NONE"];
+_lostLeader allowDamage false;
+_newLeader allowDamage false;
+{_x setVariable ["acex_headless_blacklist",true,true]} forEach [_lostLeader,_newLeader];
+_leaderLossGroup selectLeader _lostLeader;
+_lostLeader setVariable ["WAIT_CortexQA_Label","DANGER LEADER CASUALTY",true];
+_newLeader setVariable ["WAIT_CortexQA_Label","DANGER SURVIVING ANCHOR",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_lostLeader,_newLeader],true];
+private _leaderLossStatsBefore=(_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _leaderLossGrenade=createVehicle ["GrenadeHand",(getPosATL _lostLeader) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _leaderDangerActive=[{
+    ((_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _leaderLossStatsBefore
+        && {(_leaderLossGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
+},12] call _wait;
+_lostLeader allowDamage true;
+_lostLeader setDamage 1;
+private _successorSelected=[{!alive _lostLeader && {leader _leaderLossGroup == _newLeader}},15] call _wait;
+private _leaderLossDestination=[2485,1350,0];
+private _leaderLossWaypoint=_leaderLossGroup addWaypoint [_leaderLossDestination,0];
+_leaderLossWaypoint setWaypointType "MOVE";
+_leaderLossWaypoint setWaypointBehaviour "AWARE";
+_leaderLossWaypoint setWaypointCombatMode "YELLOW";
+_leaderLossWaypoint setWaypointCompletionRadius 3;
+_leaderLossGroup setCurrentWaypoint _leaderLossWaypoint;
+_newLeader setVariable ["WAIT_CortexQA_Target",_leaderLossDestination,true];
+["Danger FSM: leader loss continuity","A real explosion activates the squad response, then its leader becomes a casualty. The living successor must take command and physically continue the ordinary route while the finite response expires.",_leaderLossDestination] call _phase;
+private _successorArrived=[{alive _newLeader && {_newLeader distance2D _leaderLossDestination < 7}},60] call _wait;
+private _leaderDangerReleased=[{
+    (_leaderLossGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []
+        && {(_leaderLossGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+},12] call _wait;
+["DANGER-leader-loss-physical-continuation",_leaderDangerActive && {_successorSelected} && {_successorArrived} && {_leaderDangerReleased},str [leader _leaderLossGroup,getPosATL _newLeader,_leaderLossDestination,_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+deleteVehicle _leaderLossGrenade;
+deleteVehicle _lostLeader;
+deleteVehicle _newLeader;
+deleteGroup _leaderLossGroup;
 
 // A concrete native boarding task must remain the movement owner through a real danger event. The
 // fixture waits for the engine GET IN command before detonating the grenade, then requires WAIT's

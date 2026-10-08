@@ -225,8 +225,12 @@ private _dangerActionName=if (count _dangerAction == 5
 // retain that authority.
 private _dangerTactical=_dangerActive
     && {!(_dangerActionName in ["FORCED","VEHICLE"])}
+    && {!(combatMode _group in ["BLUE","GREEN"])}
     && {(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","GUNFIRE"]};
-private _dangerAlert=_dangerActive && {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]};
+private _dangerAlert=_dangerActive && {
+    combatMode _group in ["BLUE","GREEN"]
+    || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]}
+};
 private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
 // their reported position as a physical threat sent soldiers away from bodies or voices and made
