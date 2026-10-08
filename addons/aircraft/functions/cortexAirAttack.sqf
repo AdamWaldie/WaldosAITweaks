@@ -9,8 +9,10 @@
  * It flies physical route legs, presents the live target only to the retained weapon operator, records real
  * non-countermeasure shots and requests finite approach/departure countermeasures. Every pattern
  * uses a compatible loaded weapon and opens fire only inside a live range and alignment envelope.
- * On attack entry the selected living operator receives one native target instruction using only
- * knowledge the aircraft group already possessed when the finite plan was selected.
+ * On attack entry an independently aimed turret, helicopter pilot weapon or air-to-air operator
+ * receives one native target instruction using only knowledge the aircraft group already possessed
+ * when the finite plan was selected. A fixed-wing pilot surface station relies on the attached
+ * native DESTROY order so WAIT does not create a second ATTACK movement owner.
  * Fixed-wing pilots prosecute the object-attached native attack order. Once the live delivery basket
  * is valid, Cortex issues one bounded native doFire request to the selected pilot; independently
  * aimed turrets use fireAtTarget. This joins route geometry to the engine's weapon FSM instead of
@@ -621,6 +623,7 @@ if (_stage == "ATTACK") then {
     private _operator=if (_turret isEqualTo [-1]) then {_pilot} else {_aircraft turretUnit _turret};
     private _fireTarget=_job getOrDefault ["fireTarget",_target];
     if (isNull _fireTarget) then {_fireTarget=_target};
+    private _pilotSurfaceStation=_isPlane && {!_airContact} && {_turret isEqualTo [-1]};
     // Select the retained station once for this attack phase. Re-selecting it on every scheduler
     // callback restarts native weapon handling while the pilot or gunner is still acquiring the
     // same target, producing the observed pause/fire/pause cycle and refused releases.
@@ -629,13 +632,14 @@ if (_stage == "ATTACK") then {
         _job set ["weaponSelected",true];
     };
     if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {
-        // A MOVE leg alone never asks the engine weapon FSM to prosecute the contact. Retain the
-        // group's existing knowledge and let the selected operator and native flight model solve the
-        // shot; manufacturing maximum knowledge here made every attack unrealistically precise.
-        _aircraft doWatch _fireTarget;
-        _aircraft doTarget _fireTarget;
-        _operator doWatch _fireTarget;
-        _operator doTarget _fireTarget;
+        // The object-attached DESTROY waypoint is already the fixed-wing pilot's native attack
+        // owner. A duplicate doTarget on that pilot can replace the committed run with ATTACK pursuit
+        // and produce a circle before release. Turrets, helicopters and air-to-air engagements do
+        // not have that surface-run association, so their actual operator receives one target order.
+        if (!_pilotSurfaceStation) then {
+            _operator doWatch _fireTarget;
+            _operator doTarget _fireTarget;
+        };
         _job set ["targetCommanded",true];
     };
     private _range=_aircraft distance _target;
@@ -791,7 +795,7 @@ if (_stage == "ATTACK") then {
         && {serverTime < _requestAt+3};
     private _requestAvailable=_requestProducedShot || {_requestAt < 0}
         || {!_requestPending && {_requestAttempts < 2}};
-    private _pilotSurfaceRelease=_isPlane && {!_airContact} && {_turret isEqualTo [-1]};
+    private _pilotSurfaceRelease=_pilotSurfaceStation;
     if (_validSolution && {_pilotSurfaceRelease} && {_requestAvailable}
         && {serverTime >= (_job getOrDefault ["nextWeaponFire",0])}) then {
         // The attached DESTROY waypoint establishes the run but does not consistently ask a

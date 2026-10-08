@@ -249,7 +249,11 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         controller = src('cortexAirAttack')
         self.assertIn('"NATIVE_PILOT_REQUEST"', controller)
         self.assertIn('_operator doFire _fireTarget', controller)
-        self.assertIn('private _pilotSurfaceRelease=_isPlane && {!_airContact}', controller)
+        self.assertIn('private _pilotSurfaceStation=_isPlane && {!_airContact}', controller)
+        self.assertIn('private _pilotSurfaceRelease=_pilotSurfaceStation', controller)
+        target_block=controller.split('if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {',1)[1].split('private _range=',1)[0]
+        self.assertIn('if (!_pilotSurfaceStation) then {',target_block)
+        self.assertNotIn('_aircraft doTarget',target_block)
         self.assertIn('private _requestPending=', controller)
         self.assertNotIn('_operator forceWeaponFire', controller)
         self.assertNotIn('_aircraft setVelocity ', controller)

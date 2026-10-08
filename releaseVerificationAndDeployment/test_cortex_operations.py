@@ -1571,7 +1571,9 @@ class CortexOperations(unittest.TestCase):
         ground=source('cortexCombinedGroundStep')
         crew=source('convoyCrewLocal')
         self.assertGreaterEqual(combined.count('CortexExternalTakeover'),5)
-        self.assertLess(combined.index('CortexExternalTakeover'),combined.index('_x doTarget _target'))
+        ground_fire=combined.split('if (_role == "GROUND_FIRE") exitWith {',1)[1].split('if (_role == "GROUND_MANOEUVRE") exitWith {',1)[0]
+        self.assertLess(ground_fire.index('CortexExternalTakeover'),ground_fire.index('_gunner doTarget _target'))
+        self.assertNotIn('forEach crew _asset',combined)
         self.assertLess(combined.rindex('CortexExternalTakeover'),combined.index('call WAIT_fnc_AirAttackOperationStart'))
         self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover) then {',ground)
         self.assertIn('&& {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {_gunner doTarget _target; _gunner doFire _target};',ground)
@@ -3160,6 +3162,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_CombinedApplied',tick)
         self.assertIn('(_combinedApplied param [1,-1]) != clientOwner',tick)
         self.assertIn('_group reveal [_target,2.5]',local)
+        # Shared knowledge must not become an ATTACK/pursuit order for every crew member. Only the
+        # stationary fire role may explicitly target its gunner; manoeuvre and air controllers own
+        # their later target/release boundary.
+        role_preamble=local.split('if (_role == "GROUND_FIRE") exitWith {',1)[0]
+        ground_fire=local.split('if (_role == "GROUND_FIRE") exitWith {',1)[1].split('if (_role == "GROUND_MANOEUVRE") exitWith {',1)[0]
+        self.assertNotIn('doTarget',role_preamble)
+        self.assertNotIn('forEach crew _asset',local)
+        self.assertIn('_gunner doTarget _target',ground_fire)
+        self.assertIn('_gunner doFire _target',ground_fire)
         self.assertIn('WAIT_fnc_AirAttackOperationStart',local)
         self.assertIn('private _plan=[_asset,_target] call WAIT_fnc_CortexAirAttackPlan',local)
         self.assertIn('"NO_VIABLE_WEAPON"',local)
@@ -5352,12 +5363,16 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!(_job getOrDefault ["weaponSelected",false])',controller)
         self.assertIn('_job set ["weaponSelected",true]',controller)
         self.assertIn('_operator doWatch _fireTarget',controller)
+        self.assertIn('private _pilotSurfaceStation=_isPlane && {!_airContact} && {_turret isEqualTo [-1]}',controller)
+        target_block=controller.split('if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {',1)[1].split('private _range=',1)[0]
+        self.assertIn('if (!_pilotSurfaceStation) then {',target_block)
+        self.assertNotIn('_aircraft doTarget',target_block)
+        self.assertNotIn('_aircraft doWatch',target_block)
         self.assertIn('private _nativeFixedBasket=',controller)
         self.assertIn('private _minimumAim=0;',controller)
         self.assertNotIn('&& {_aimed >= _minimumAim}',controller)
-        self.assertIn('_aircraft doWatch _fireTarget',controller)
         self.assertIn('_fired=_aircraft fireAtTarget [_fireTarget,_weapon]',controller)
-        self.assertIn('private _pilotSurfaceRelease=_isPlane && {!_airContact}',controller)
+        self.assertIn('private _pilotSurfaceRelease=_pilotSurfaceStation',controller)
         self.assertIn('"NATIVE_PILOT_REQUEST"',controller)
         self.assertNotIn('_operator forceWeaponFire [_weapon,_mode]',controller)
         self.assertIn('private _deliveryPassed=false;',controller)
