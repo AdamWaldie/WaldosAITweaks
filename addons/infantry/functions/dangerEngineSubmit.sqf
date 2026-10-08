@@ -29,6 +29,8 @@ if (isNull _group || {!local _group}
 private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
 private _latestSource=createHashMap;
+private _latestExpiry=createHashMap;
+private _latestSourceExpiry=createHashMap;
 private _processed=false;
 private _reflexOnly=0;
 {
@@ -53,8 +55,22 @@ private _reflexOnly=0;
                 if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
             };
             if (count _position == 3 && {_groupRelevant}) then {
-                _latest set [_causeNames select _cause,+_position];
-                _latestSource set [_causeNames select _cause,[_source,objNull] select (!_hostileSource)];
+                private _causeName=_causeNames select _cause;
+                // The engine supplies the current record before its queued records. Select by
+                // expiry rather than iteration order so an older queued duplicate cannot replace
+                // the freshest geometry or erase a valid hostile identity during dense contact.
+                if (_expires >= (_latestExpiry getOrDefault [_causeName,-1])) then {
+                    _latest set [_causeName,+_position];
+                    _latestExpiry set [_causeName,_expires];
+                    if (!(_causeName in _latestSource)) then {_latestSource set [_causeName,objNull]};
+                };
+                // Identity and geometry have independent freshness. A newer approximate record
+                // may have no source, while a slightly older record in the same bounded queue has
+                // a live hostile already known by the observer. Retain the freshest valid source.
+                if (_hostileSource && {_expires >= (_latestSourceExpiry getOrDefault [_causeName,-1])}) then {
+                    _latestSource set [_causeName,_source];
+                    _latestSourceExpiry set [_causeName,_expires];
+                };
             } else {
                 _reflexOnly=_reflexOnly+1;
             };

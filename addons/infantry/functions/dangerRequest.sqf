@@ -34,6 +34,13 @@ private _index=_events findIf {(_x select 0) == _cause};
 private _hostileSource=objNull;
 if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}
     && {_actor knowsAbout _source > 0}) then {_hostileSource=_source};
+if (isNull _hostileSource && {_index >= 0}) then {
+    private _prior=_events select _index;
+    private _priorSource=_prior param [4,objNull,[objNull]];
+    if ((_prior param [3,-1,[0]]) > time && {!isNull _priorSource} && {alive _priorSource}
+        && {(side _group) getFriend (side group _priorSource) < 0.6}
+        && {_actor knowsAbout _priorSource > 0}) then {_hostileSource=_priorSource};
+};
 private _event=[_cause,+_position,time,time+2,_hostileSource];
 if (_index >= 0) then {_events set [_index,_event]} else {_events pushBack _event};
 _group setVariable ["WAIT_Danger_Events",_events select [0,16]];

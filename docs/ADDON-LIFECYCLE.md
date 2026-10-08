@@ -17,7 +17,9 @@ specialist actor ownership still yields through explicit finite compatibility ma
 Each server or headless owner verifies the final configured west, east and independent base-soldier
 paths before starting infantry tactics. A mismatch fails that tactical runtime closed and reports the
 three resolved paths, preventing WAIT group operations from competing with a foreign danger brain.
-Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
+Repeated engine observations are coalesced by expiry, so an older queued duplicate cannot replace the
+current cause geometry. Hostile identity is retained on its own freshness track and must remain alive,
+hostile and natively known before use. Immediate soldier danger posture is also generation-bounded: the engine danger FSM records the prior
 scripted stance, applies one short scripted stance, and restores it only while that exact observable value remains owned by WAIT.
 Any newer engine, Zeus or specialist stance wins and invalidates the lease without restoration.
 
