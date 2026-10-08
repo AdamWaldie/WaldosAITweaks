@@ -366,7 +366,8 @@
       "settings": [
         "WAIT_AIPass_Contact_Enable",
         "WAIT_AIPass_EngageRange",
-        "WAIT_AIPass_Danger_Enable"
+        "WAIT_AIPass_Danger_Enable",
+        "WAIT_AIPass_DangerSmoke_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -390,6 +391,7 @@
         "addons/infantry/functions/dangerEngineSelect.sqf",
         "addons/infantry/functions/dangerEngineSubmit.sqf",
         "addons/infantry/functions/dangerCoverStep.sqf",
+        "addons/infantry/functions/dangerSmokeStep.sqf",
         "addons/infantry/functions/dangerRequest.sqf",
         "addons/infantry/functions/dangerStep.sqf",
         "addons/infantry/functions/dangerSetup.sqf",

@@ -61,6 +61,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_PostContact_Enable` | Post-contact search | CHECKBOX | true | [] | NEXT_OPERATION | After contact is lost: hold, send two soldiers to check the last known position, regroup. |
 | `WAIT_AIPass_Investigate_Enable` | Investigation | CHECKBOX | true | [] | NEXT_OPERATION | Squads send two riflemen to check enemies they know about but have not seen. |
 | `WAIT_AIPass_Danger_Enable` | Danger response | CHECKBOX | true | [] | LIVE | Enables WAIT's bounded local danger reflex and tactical group handoff. When disabled, the configured FSM exits without issuing WAIT stance, movement, targeting or planning commands. |
+| `WAIT_AIPass_DangerSmoke_Enable` | Danger smoke screen | CHECKBOX | true | [] | LIVE | Allows one available soldier to throw carried smoke during severe incoming danger. The operation continues without waiting for the throw. |
 | `WAIT_AIPass_Hearing_Enable` | Nearby gunfire investigation | CHECKBOX | true | [] | NEXT_OPERATION | Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal. |
 | `WAIT_AIPass_PostContact_LostSeconds` | Contact lost delay (s) | SLIDER | 30 | [3, 120, 0] | NEXT_OPERATION | Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover. |
 | `WAIT_AIPass_PostContact_SecuritySeconds` | Security hold (s) | SLIDER | 10 | [0, 60, 0] | NEXT_OPERATION | Seconds spent securing the last contact before a search team moves. |

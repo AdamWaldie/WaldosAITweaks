@@ -154,6 +154,11 @@ The configured engine slot cannot be swapped at runtime. Disabling `WAIT_AIPass_
 ## Danger assessment
 
 `WAIT_AIPass_Danger_Enable` is a server-enforced, live CBA option under Infantry / Contact, default true.
+`WAIT_AIPass_DangerSmoke_Enable` is a separate live control, also default true. During a severe hit,
+explosion or suppression response, one eligible local soldier may queue one carried-smoke throw. A
+generation lease and 45-second group cooldown prevent a burst from consuming the squad's smoke.
+The operation does not wait for the throw, and the next-frame weapon release rechecks the setting,
+danger generation, Zeus state and specialist ownership.
 Arma loads WAIT's bounded danger FSM for the three soldier base classes. The engine supplies immediate cause,
 position, expiry, source and queued records; WAIT maps those into detected enemy, gunfire, hit, explosion,
 suppression, casualty and scream observations. One owner-local EnemyDetected observer separately retains only

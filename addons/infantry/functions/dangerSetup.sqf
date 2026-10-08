@@ -66,6 +66,8 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_ObservedContacts",nil];
     _group setVariable ["WAIT_Danger_LastAssessment",nil];
     _group setVariable ["WAIT_Danger_WakeAfter",nil];
+    _group setVariable ["WAIT_Danger_SmokeLease",nil,true];
+    _group setVariable ["WAIT_Danger_SmokeAfter",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];

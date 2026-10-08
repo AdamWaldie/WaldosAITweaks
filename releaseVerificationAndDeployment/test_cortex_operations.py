@@ -243,6 +243,7 @@ class CortexOperations(unittest.TestCase):
         engine_mode=source('dangerEngineMode')
         engine_select=source('dangerEngineSelect')
         danger_cover=source('dangerCoverStep')
+        danger_smoke=source('dangerSmokeStep')
         engine_fsm=(ROOT/'addons/infantry/fsm/danger.fsm').read_text()
         request=source('dangerRequest')
         step=source('dangerStep')
@@ -278,6 +279,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_Action',step)
         self.assertIn('WAIT_Danger_VehicleContext',step)
         self.assertIn('WAIT_fnc_DangerVehicleProfile',step)
+        self.assertIn('WAIT_fnc_DangerSmokeStep',source('cortexGroupTick'))
+        for marker in ['WAIT_AIPass_DangerSmoke_Enable','WAIT_Danger_SmokeLease','WAIT_Danger_SmokeAfter',
+                       'getSuppression _x >= 0.55','["DANGER",_generation,_expires]',
+                       'call WAIT_fnc_CortexThrowGrenade']:
+            self.assertIn(marker,danger_smoke)
+        self.assertNotIn('sleep ',danger_smoke)
+        self.assertNotIn('waitUntil',danger_smoke)
+        throw=source('cortexThrowGrenade')
+        queued=throw.split('params ["_unit", "_muzzle", "_magazine"',1)[1]
+        for marker in ['WAIT_AIPass_DangerSmoke_Enable','WAIT_Danger_Generation','WAIT_fnc_CortexExternalTakeover']:
+            self.assertIn(marker,queued)
+        self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('forceWeaponFire'))
+        self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('_unit setDir'))
+        self.assertLess(queued.index('WAIT_fnc_CortexExternalTakeover'),queued.index('_unit setDir'))
         self.assertIn('WAIT_fnc_DangerActionSelect',step)
         self.assertIn('private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;',step)
         self.assertIn('[_observer,_cause,_position,_action] call WAIT_fnc_DangerReact',step)

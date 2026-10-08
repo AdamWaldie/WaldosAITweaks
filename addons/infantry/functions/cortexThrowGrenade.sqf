@@ -5,8 +5,8 @@
  * Grenade types are identified from config, so mod grenades work: smoke is ammo simulation shotSmoke
  * or shotSmokeX; fragmentation is shotGrenade. Chemlights and ACE
  * flashbangs are skipped. The throw muzzle is the "Throw" weapon muzzle that accepts that magazine.
- * The thrower is turned to face the target and throws on the next frame, because a throw leaves
- * along the unit's facing. A fragmentation grenade is never thrown when a
+ * The thrower is validated, turned to face the target and throws on the next frame, because a throw
+ * leaves along the unit's facing. A fragmentation grenade is never thrown when a
  * friendly or civilian soldier is within 12 m of the target, or when the target is under 8 m or over
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
@@ -18,6 +18,7 @@
  * 0: unit <OBJECT>
  * 1: towards <ARRAY> - ATL position
  * 2: kind <STRING> - "SMOKE" or "FRAG" (optional, default: "SMOKE")
+ * 3: context <ARRAY> - optional ["DANGER", generation, expiry] cancellation contract
  *
  * Return Value:
  * Boolean - true when a carried grenade was queued; FiredMan/projectile evidence confirms deployment
@@ -26,10 +27,10 @@
  * [_unit, _enemyPos, "FRAG"] call WAIT_fnc_CortexThrowGrenade;
  * Result: the lead assaulter throws a grenade before the final rush.
  *
- * Current callers: WAIT_fnc_CortexFlankStep and WAIT_fnc_CortexRetreat.
+ * Current callers: WAIT_fnc_CortexFlankStep, WAIT_fnc_CortexRetreat and WAIT_fnc_DangerSmokeStep.
  */
 
-params [["_unit", objNull, [objNull]], ["_towards", [], [[]]], ["_kind", "SMOKE", [""]]];
+params [["_unit", objNull, [objNull]], ["_towards", [], [[]]], ["_kind", "SMOKE", [""]], ["_context",[],[[]]]];
 if (isNull _unit || {!alive _unit} || {!local _unit} || {vehicle _unit != _unit} || {count _towards < 2}) exitWith {false};
 if !([_unit] call WAIT_fnc_CortexCombatEffective) exitWith {false};
 _kind=toUpperANSI _kind;
@@ -60,13 +61,12 @@ private _thrown = false;
         private _muzzleIndex = _muzzles findIf {_magazine in getArray (_throwConfig >> _x >> "magazines")};
         if (_muzzleIndex >= 0) then {
             private _muzzle = _muzzles select _muzzleIndex;
-            // A throw leaves along the unit's current facing, and doWatch turns him over several
-            // frames, so face the target first and throw on the next frame.
+            // A throw leaves along the unit's current facing. Do not alter facing until the queued
+            // release has revalidated WAIT, Zeus, specialist, generation and ammunition ownership.
             if (_kind == "FRAG") then {_unit setVariable ["WAIT_Cortex_FragCancelled",nil]};
-            _unit setDir (_unit getDir _towards);
-            _unit doWatch _towards;
+            private _drillToken=(((group _unit) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""];
             [{
-                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken"];
+                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context"];
                 private _cancel = {
                     if (_kind == "FRAG" && {_drillToken != ""}) then {
                         _unit setVariable ["WAIT_Cortex_FragCancelled",_drillToken];
@@ -77,8 +77,17 @@ private _thrown = false;
                     || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo _hold}
                     || {!(_magazine in magazines _unit)}
                     || {(((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""]) != _drillToken}) exitWith {call _cancel};
+                if (count _context == 3 && {(_context select 0) == "DANGER"}) then {
+                    if (!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
+                        || {!([_group,"WAIT_AIPass_DangerSmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+                        || {(_context select 1) != (_group getVariable ["WAIT_Danger_Generation",-1])}
+                        || {time >= (_context select 2)}
+                        || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {call _cancel};
+                };
                 if (_kind == "FRAG" && {_drillToken != ""}
                     && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _cancel};
+                _unit setDir (_unit getDir _towards);
+                _unit doWatch _towards;
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
@@ -111,7 +120,7 @@ private _thrown = false;
                     },[_unit,_handler],10] call CBA_fnc_waitAndExecute;
                     _unit forceWeaponFire [_muzzle,_muzzle];
                 } else {_unit forceWeaponFire [_muzzle,_muzzle]};
-            }, [_unit, _muzzle, _magazine, group _unit, +(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]), _kind, +_towards, (((group _unit) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""]]] call CBA_fnc_execNextFrame;
+            }, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context]] call CBA_fnc_execNextFrame;
             _thrown = true;
         };
     };

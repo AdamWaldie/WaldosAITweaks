@@ -137,6 +137,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_Convoy_ContactHalt_Enable` | `true` | Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available. |
 | `WAIT_Convoy_Unload_Enable` | `true` | Allows WAIT passenger unloading on halt. Operating crews remain aboard. |
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |
+| `WAIT_AIPass_DangerSmoke_Enable` | `true` | One available soldier may throw carried smoke during severe finite danger. The current operation continues without waiting for it. |
 | `WAIT_AIPass_Hearing_Enable` | `true` | Nearby gunfire creates throttled approximate investigation reports, never target reveals. |
 | `WAIT_AIPass_Vehicles_Enable` | `true` | BOOL: dismount under fire; damaged vehicles smoke and withdraw. |
 | `WAIT_AIPass_NavalAssault_Enable` | `true` | BOOL: finite coastal boat approach and infantry landing; yields to external naval controller. |

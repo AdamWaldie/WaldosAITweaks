@@ -111,6 +111,7 @@ private _spec = [
     ["WAIT_Convoy_ContactHalt_Enable", "Convoy contact halts", "Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
     ["WAIT_Convoy_Unload_Enable", "Convoy cargo unloading", "Registered convoys only: unloads cargo on halt. Operating crews remain aboard; general passenger remount settings do not initiate convoy reboarding.", "CHECKBOX", [], true, "CONVOY_CONTACT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Danger_Enable", "Danger response", "Enables WAIT's bounded local danger reflex and tactical group handoff. When disabled, the configured FSM exits without issuing WAIT stance, movement, targeting or planning commands.", "CHECKBOX", [], true, "CONTACT", "LIVE"],
+    ["WAIT_AIPass_DangerSmoke_Enable", "Danger smoke screen", "Allows one available soldier to throw carried smoke during severe incoming danger. The operation continues without waiting for the throw.", "CHECKBOX", [], true, "CONTACT", "LIVE"],
     ["WAIT_AIPass_Hearing_Enable", "Nearby gunfire investigation", "Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal.", "CHECKBOX", [], true, "CONTACT", "NEXT_OPERATION"],
     // Squad behaviour
     ["WAIT_AIPass_BehaviourProfile", "Behaviour profile", "Tactics profile for every squad without a group or faction profile of its own. Skill values are not changed.", "COMBO", [_profiles, _profileLabels], "", "PROFILE", "NEXT_OPERATION"],

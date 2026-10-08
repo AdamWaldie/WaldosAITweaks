@@ -273,6 +273,12 @@ if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) the
         [_group,_coverLease select 0,[],_coverLease select 1] call WAIT_fnc_DangerCoverStep;
     };
 };
+// Smoke is a supporting reflex, never another movement phase. One unreserved local actor may throw
+// while cover selection and the current operation continue; the helper's generation context cancels
+// the queued release if Zeus, a specialist owner or a newer danger response takes over next frame.
+if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
+    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
+};
 [_group,_state] call WAIT_fnc_CortexSupportMaintain;
 // The drill controller is a separate scheduled job. If it is lost or starved, leaving the
 // drill HashMap in place blocks replacement tactics and can leave Cortex-owned PATH,

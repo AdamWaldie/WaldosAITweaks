@@ -331,6 +331,45 @@ deleteVehicle _observerWall;
 {deleteVehicle _x} forEach [_observerLeader,_observerWingman];
 deleteGroup _observerGroup;
 
+// A severe danger response may add one carried smoke screen, but the operation never waits for it.
+// Use an ordinary waypoint rather than a WAIT-owned drill: a real explosion must produce a real
+// smoke projectile and the same actor must continue to the authored destination.
+private _smokeGroup=createGroup [east,true];
+_smokeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_smokeGroup setVariable ["acex_headless_blacklist",true,true];
+_smokeGroup setCombatMode "YELLOW";
+private _smokeUnit=_smokeGroup createUnit ["O_Soldier_F",[2640,1250,0],[],0,"NONE"];
+_smokeUnit allowDamage false;
+_smokeUnit addMagazine "SmokeShell";
+_smokeUnit setVariable ["acex_headless_blacklist",true,true];
+_smokeUnit setVariable ["WAIT_CortexQA_Label","DANGER SMOKE MOVER",true];
+_smokeUnit setVariable ["WAIT_CortexQA_SmokeShots",0,true];
+_smokeUnit addEventHandler ["FiredMan",{
+    params ["_unit","_weapon","_muzzle","_mode","_ammo"];
+    if (_weapon == "Throw" && {toLowerANSI getText (configFile >> "CfgAmmo" >> _ammo >> "simulation") in ["shotsmoke","shotsmokex"]}) then {
+        _unit setVariable ["WAIT_CortexQA_SmokeShots",(_unit getVariable ["WAIT_CortexQA_SmokeShots",0])+1,true];
+    };
+}];
+private _smokeStart=getPosATL _smokeUnit;
+private _smokeDestination=_smokeStart getPos [55,90];
+private _smokeWaypoint=_smokeGroup addWaypoint [_smokeDestination,0];
+_smokeWaypoint setWaypointType "MOVE";
+_smokeWaypoint setWaypointSpeed "FULL";
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_smokeUnit],true];
+["Danger FSM: non-blocking smoke","The moving soldier has one carried smoke grenade. A real explosion must trigger one physical smoke throw while his ordinary waypoint remains authoritative; he must continue to the destination rather than waiting on the throw.",_smokeDestination] call _phase;
+private _smokeMoving=[{_smokeUnit distance2D _smokeStart >= 4},20] call _wait;
+private _smokeGrenade=createVehicle ["GrenadeHand",(getPosATL _smokeUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _smokeThrown=[{(_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0]) == 1},18] call _wait;
+private _smokeArrived=[{_smokeUnit distance2D _smokeDestination < 7},55] call _wait;
+private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeThrown}
+    && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats]] call _check;
+["DANGER-smoke-does-not-block-route",_smokeMoving && {_smokeThrown} && {_smokeArrived}
+    && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
+deleteVehicle _smokeGrenade;
+deleteVehicle _smokeUnit;
+deleteGroup _smokeGroup;
+
 // Repeat the real engine stimulus while the same actor owns a committed WAIT route. The immediate
 // FSM may lower his profile, but its lease must never request DOWN and repeated danger must not
 // cancel, replace or arrest the operation's physical travel.

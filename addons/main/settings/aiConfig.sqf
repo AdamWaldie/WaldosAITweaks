@@ -106,6 +106,7 @@
  * - WAIT_AIPass_VehicleWithdraw_Enable (MISSION MAKER): Damaged vehicle smoke and withdrawal. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
+ * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
  * - WAIT_AIPass_Hearing_Enable (MISSION MAKER): Coarse nearby-gunfire reports for eligible squad leaders; requires investigation. Default true.
  * - WAIT_Convoy_MountedFire_Enable (MISSION MAKER): Mounted crew targeting under existing ROE. Default true.
  * - WAIT_Convoy_Cover_Enable (MISSION MAKER): Short passenger movement clear of vehicles after a halt, using cover during contact. Default true.
@@ -382,6 +383,7 @@ createHashMapFromArray [
         ["WAIT_Convoy_ContactHalt_Enable", true], // Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.
         ["WAIT_Convoy_Unload_Enable", true], // Allows WAIT passenger unloading on halt. Operating crews remain aboard.
         ["WAIT_AIPass_Danger_Enable", true], // Bounded danger events; one shared decision owner.
+        ["WAIT_AIPass_DangerSmoke_Enable", true], // One generation-scoped carried smoke response; movement does not wait.
         ["WAIT_AIPass_Hearing_Enable", true], // Nearby gunfire area reports, never target reveals.
         ["WAIT_AIPass_Vehicles_Enable", true], // BOOL: dismount under fire; damaged vehicles smoke and withdraw.
         ["WAIT_AIPass_DrivingAssist_Enable", true], // Sparse terrain-grade speed cap for ordinary AI ground vehicles; preserves native routes.
