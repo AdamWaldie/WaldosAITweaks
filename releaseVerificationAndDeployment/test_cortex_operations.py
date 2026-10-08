@@ -251,17 +251,19 @@ class CortexOperations(unittest.TestCase):
         self.assertTrue(engine_fsm.startswith('/*%FSM<COMPILE "scriptedFSM.cfg, Danger">*/'))
         self.assertTrue(engine_fsm.rstrip().endswith('/*%FSM</COMPILE>*/'))
         self.assertIn('/*%FSM<HEAD>*/',engine_fsm)
-        self.assertRegex(engine_fsm,r'item0\[\]\s*=\s*\{"Start",0,250')
-        self.assertRegex(engine_fsm,r'link46\[\]\s*=\s*\{10,35\};')
-        self.assertRegex(engine_fsm,r'link47\[\]\s*=\s*\{35,1\};')
-        self.assertIn('/*%FSM<STATE "Start">*/',engine_fsm)
+        self.assertRegex(engine_fsm,r'item0\[\]\s*=\s*\{"Start_Danger",0,250')
+        self.assertRegex(engine_fsm,r'link44\[\]\s*=\s*\{38,39\};')
+        self.assertRegex(engine_fsm,r'link45\[\]\s*=\s*\{41,40\};')
+        self.assertIn('/*%FSM<STATE "Start_Danger">*/',engine_fsm)
         self.assertIn('/*%FSM<STATEINIT',engine_fsm)
         self.assertIn('/*%FSM<CONDITION',engine_fsm)
         runtime_fsm=engine_fsm.split('class FSM',1)[1]
-        self.assertEqual(36,len(re.findall(r'\bitemno\s*=\s*\d+;',runtime_fsm)))
-        self.assertEqual(36,len(re.findall(r'\bprecondition\s*=',runtime_fsm)))
+        self.assertEqual(42,len(re.findall(r'\bitemno\s*=\s*\d+;',runtime_fsm)))
+        self.assertEqual(42,len(re.findall(r'\bprecondition\s*=',runtime_fsm)))
         editor_items=[int(value) for value in re.findall(r'item(\d+)\[\]\s*=',engine_fsm.split('class FSM',1)[0])]
-        self.assertEqual(list(range(36)),editor_items)
+        self.assertEqual(list(range(42)),editor_items)
+        editor_link_ids=[int(value) for value in re.findall(r'link(\d+)\[\]\s*=',engine_fsm.split('class FSM',1)[0])]
+        self.assertEqual(list(range(46)),editor_link_ids)
         editor_links=[tuple(map(int,values)) for values in re.findall(r'link\d+\[\]\s*=\s*\{(\d+),(\d+)\}',engine_fsm.split('class FSM',1)[0])]
         self.assertTrue(editor_links)
         self.assertTrue(all(source_id in editor_items and target_id in editor_items for source_id,target_id in editor_links))
@@ -557,8 +559,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexZeusHeld',engine_act)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
             self.assertNotIn(forbidden,engine_act)
-        self.assertIn('_records=+_queue',engine_fsm)
-        self.assertNotIn('[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]',engine_fsm)
+        self.assertIn('_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]',engine_fsm)
+        self.assertIn('_records=+(_queue select [0,12])',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
         self.assertIn('[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit',engine_fsm)
@@ -573,7 +575,10 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(int(target_item),editor_items)
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
-        self.assertIn('class Interrupted',engine_fsm)
+        self.assertIn('initState="Start_Danger"',engine_fsm)
+        for final_state in ['"End_Danger"','"End_Danger_vehic"','"End_Danger_1"','"End_Forced"']:
+            self.assertIn(final_state,engine_fsm)
+        self.assertNotRegex(engine_fsm.lower(),r'lambs|upstream|baseline')
         self.assertIn('WAIT_AIPass_Danger_Enable',engine_continue)
         self.assertIn('WAIT_AIPass_DisabledFeatures',engine_continue)
         self.assertIn('WAIT_fnc_CortexIsPaused',engine_continue)
@@ -590,12 +595,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_AIPass_Active',mode_preflight)
         self.assertIn('WAIT_AIPass_Danger_Enable',mode_preflight)
         self.assertIn('CortexIsPaused',mode_preflight)
-        for state in ['Start','Dispatch','Forced','Vehicle','Immediate','Hide','Engage','Assess','Waiting','Recycle','Queued','Finished']:
+        for state in ['Start_Danger','Init','Evaluate_Vehicle','Reset_vehicle','Evaluate_Infantr',
+                      'Roll_dodge','Stay_firm','Attack','Check_self','End_Danger','Reset_foot',
+                      'Check_queue','End_Danger_vehic','Check_self_1','Check_self_2','Tactics',
+                      'End_Danger_1','End_Forced']:
             self.assertIn('class '+state,engine_fsm)
-        waiting=re.split(r'class\s+Waiting\s*\{',engine_fsm,1)[1]
-        waiting=re.split(r'class\s+Recycle\s*\{',waiting,1)[0]
-        self.assertIn('count _queue > 3',waiting)
-        self.assertNotIn('condition = "count _queue > 0"',waiting)
+        self.assertGreaterEqual(engine_fsm.count('time >= _deadline'),4)
+        self.assertGreaterEqual(engine_fsm.count('WAIT_fnc_DangerEngineCanContinue'),5)
         self.assertIn('effectiveCommander (vehicle _actor) == _actor',engine_recycle)
         self.assertIn("['lastRecycleActor',_actor]",engine_recycle)
         self.assertIn("['vehicleRecycleActors',_actors]",engine_recycle)

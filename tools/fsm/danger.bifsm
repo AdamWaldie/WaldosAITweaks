@@ -6,7 +6,7 @@ class GraphItems
 		class ItemInfo
 		{
 			ItemType=0;
-			Text="Start";
+			Text="Start Danger";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -17,13 +17,13 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=0;
-				InitCode="_records=+_queue; _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
+				InitCode="_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _selected=[]; _mode=""ASSESS""; _accepted=false; _deadline=time;";
 			};
 		};
-		Left=0;
-		Right=100;
-		Top=0;
-		Bottom=50;
+		Left=-75;
+		Right=25;
+		Top=-175;
+		Bottom=-125;
 		Flags=250;
 		BasicText="";
 		BgColor=255;
@@ -32,61 +32,53 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Dispatch";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=0;
-			class ItemInfo
-			{
-				Id=1;
-			};
+			Text="WAIT DANGER FSM" \n
+ "v.2.6.2";
+			FontFace="Arial";
+			FontHeight=16;
+			lStyle=1;
+			FontWidth=-3.4359738e+008;
 		};
-		Left=0;
-		Right=100;
-		Top=150;
-		Bottom=200;
+		Left=-675;
+		Right=-225;
+		Top=-175;
+		Bottom=-100;
 		Flags=250;
 		BasicText="";
-		BgColor=16777215;
 	};
 	class Item2
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Forced";
+			ItemType=8;
+			Text="true";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=0;
+			Shape=2;
 			class ItemInfo
 			{
 				Id=2;
-				InitCode="_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);";
+				Condition="true";
 			};
 		};
-		Left=-300;
-		Right=-200;
-		Top=300;
-		Bottom=350;
-		Flags=250;
+		Left=-75;
+		Right=25;
+		Top=-75;
+		Bottom=-25;
+		Flags=218;
 		BasicText="";
-		BgColor=16777215;
+		BgColor=8421440;
 	};
 	class Item3
 	{
 		class ItemInfo
 		{
 			ItemType=2;
-			Text="Vehicle";
+			Text="Init";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -97,13 +89,13 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=3;
-				InitCode="_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);";
+				InitCode="_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
 			};
 		};
-		Left=-150;
-		Right=-50;
-		Top=300;
-		Bottom=350;
+		Left=-75;
+		Right=25;
+		Top=50;
+		Bottom=100;
 		Flags=250;
 		BasicText="";
 		BgColor=16777215;
@@ -112,89 +104,92 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Immediate";
+			ItemType=4;
+			Text="Vehicle";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=0;
+			Shape=2;
 			class ItemInfo
 			{
 				Id=4;
-				InitCode="_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);";
+				Condition="true";
 			};
 		};
-		Left=0;
-		Right=100;
-		Top=300;
-		Bottom=350;
-		Flags=250;
+		Left=-325;
+		Right=-225;
+		Top=150;
+		Bottom=200;
+		Flags=218;
 		BasicText="";
-		BgColor=16777215;
+		BgColor=65535;
 	};
 	class Item5
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Hide";
+			ItemType=4;
+			Text="Foot";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=0;
+			Shape=2;
 			class ItemInfo
 			{
 				Id=5;
-				InitCode="_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);";
+				Priority=2;
+				Condition="isNull objectParent _this";
 			};
 		};
-		Left=150;
-		Right=250;
-		Top=300;
-		Bottom=350;
-		Flags=250;
+		Left=-75;
+		Right=25;
+		Top=150;
+		Bottom=200;
+		Flags=218;
 		BasicText="";
-		BgColor=16777215;
+		BgColor=65535;
 	};
 	class Item6
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Engage";
+			ItemType=4;
+			Text="Forced";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=0;
+			Shape=2;
 			class ItemInfo
 			{
 				Id=6;
-				InitCode="_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);";
+				Priority=4;
+				Condition="_mode == ""FORCED""";
 			};
 		};
-		Left=300;
-		Right=400;
-		Top=300;
-		Bottom=350;
-		Flags=250;
+		Left=175;
+		Right=275;
+		Top=150;
+		Bottom=200;
+		Flags=218;
 		BasicText="";
-		BgColor=16777215;
+		BgColor=65535;
 	};
 	class Item7
 	{
 		class ItemInfo
 		{
 			ItemType=2;
-			Text="Assess";
+			Text="Evaluate" \n
+ "Vehicle";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -205,13 +200,13 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=7;
-				InitCode="_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);";
+				InitCode="_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);";
 			};
 		};
-		Left=450;
-		Right=550;
-		Top=300;
-		Bottom=350;
+		Left=-325;
+		Right=-225;
+		Top=275;
+		Bottom=325;
 		Flags=250;
 		BasicText="";
 		BgColor=16777215;
@@ -220,34 +215,35 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=2;
-			Text="Waiting";
+			ItemType=4;
+			Text="timeout";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=0;
+			Shape=2;
 			class ItemInfo
 			{
 				Id=8;
+				Condition="(time >= _deadline) || {!([_this] call WAIT_fnc_DangerEngineCanContinue)}";
 			};
 		};
-		Left=75;
-		Right=175;
-		Top=500;
-		Bottom=550;
-		Flags=250;
+		Left=-550;
+		Right=-450;
+		Top=275;
+		Bottom=325;
+		Flags=218;
 		BasicText="";
-		BgColor=16777215;
+		BgColor=65535;
 	};
 	class Item9
 	{
 		class ItemInfo
 		{
 			ItemType=2;
-			Text="Recycle";
+			Text="Reset vehicle";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -261,10 +257,10 @@ class GraphItems
 				InitCode="_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};";
 			};
 		};
-		Left=-25;
-		Right=75;
-		Top=650;
-		Bottom=700;
+		Left=-550;
+		Right=-450;
+		Top=50;
+		Bottom=100;
 		Flags=250;
 		BasicText="";
 		BgColor=16777215;
@@ -274,7 +270,8 @@ class GraphItems
 		class ItemInfo
 		{
 			ItemType=2;
-			Text="Queued";
+			Text="Evaluate" \n
+ "Infantry";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -285,13 +282,13 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=10;
-				InitCode="_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
+				InitCode="";
 			};
 		};
-		Left=175;
-		Right=275;
-		Top=650;
-		Bottom=700;
+		Left=-75;
+		Right=25;
+		Top=275;
+		Bottom=325;
 		Flags=250;
 		BasicText="";
 		BgColor=16777215;
@@ -300,141 +297,29 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=1;
-			Text="Finished";
-			FontCharSet=0;
-			FontFace="";
+			Text="DEFINE_ENUM_BEG(DangerCause)" \n
+ "  DCEnemyDetected, // the first enemy detected" \n
+ "  DCFire, // fire visible" \n
+ "  DCHit, // vehicle hit" \n
+ "  DCEnemyNear, // enemy very close to me" \n
+ "  DCExplosion, // explosion detected" \n
+ "  DCDeadBodyGroup, // dead soldier from my group found" \n
+ "  DCDeadBody, // other dead soldier found" \n
+ "  DCScream // hit soldier screaming" \n
+ "DEFINE_ENUM_END(DangerCause)" \n
+ "";
+			FontFace="Arial";
 			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=700;
-			lStyle=-842150451;
-			Shape=6;
-			class ItemInfo
-			{
-				Id=11;
-				InitCode="[_this] call WAIT_fnc_DangerEngineRelease;";
-			};
+			lStyle=1;
 		};
-		Left=75;
-		Right=175;
-		Top=800;
-		Bottom=850;
+		Left=350;
+		Right=700;
+		Top=-175;
+		Bottom=0;
 		Flags=250;
 		BasicText="";
-		BgColor=33023;
 	};
 	class Item12
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Release";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=12;
-				Condition="_mode == ""RELEASE""";
-				Priority=3;
-			};
-		};
-		Left=-300;
-		Right=-200;
-		Top=75;
-		Bottom=125;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item13
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Forced";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=13;
-				Condition="_mode == ""FORCED""";
-				Priority=2;
-			};
-		};
-		Left=-150;
-		Right=-50;
-		Top=75;
-		Bottom=125;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item14
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Vehicle";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=14;
-				Condition="_mode == ""VEHICLE""";
-				Priority=1;
-			};
-		};
-		Left=0;
-		Right=100;
-		Top=75;
-		Bottom=125;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item15
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Foot";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=15;
-				Condition="true";
-			};
-		};
-		Left=150;
-		Right=250;
-		Top=75;
-		Bottom=125;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item16
 	{
 		class ItemInfo
 		{
@@ -449,20 +334,20 @@ class GraphItems
 			Shape=2;
 			class ItemInfo
 			{
-				Id=16;
+				Id=12;
+				Priority=6;
 				Condition="_mode == ""IMMEDIATE""";
-				Priority=3;
 			};
 		};
-		Left=-150;
-		Right=-50;
-		Top=225;
-		Bottom=275;
+		Left=-175;
+		Right=-75;
+		Top=425;
+		Bottom=475;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
 	};
-	class Item17
+	class Item13
 	{
 		class ItemInfo
 		{
@@ -477,20 +362,20 @@ class GraphItems
 			Shape=2;
 			class ItemInfo
 			{
-				Id=17;
+				Id=13;
+				Priority=4;
 				Condition="_mode == ""HIDE""";
-				Priority=2;
 			};
 		};
 		Left=0;
 		Right=100;
-		Top=225;
-		Bottom=275;
+		Top=425;
+		Bottom=475;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
 	};
-	class Item18
+	class Item14
 	{
 		class ItemInfo
 		{
@@ -505,20 +390,427 @@ class GraphItems
 			Shape=2;
 			class ItemInfo
 			{
-				Id=18;
+				Id=14;
+				Priority=2;
 				Condition="_mode == ""ENGAGE""";
-				Priority=1;
 			};
 		};
-		Left=150;
-		Right=250;
-		Top=225;
-		Bottom=275;
+		Left=175;
+		Right=275;
+		Top=425;
+		Bottom=475;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
 	};
+	class Item15
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Roll/dodge";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=15;
+				InitCode="_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);";
+			};
+		};
+		Left=-175;
+		Right=-75;
+		Top=600;
+		Bottom=650;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item16
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Stay firm";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=16;
+				InitCode="_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);";
+			};
+		};
+		Left=0;
+		Right=100;
+		Top=600;
+		Bottom=650;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item17
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Attack";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=17;
+				InitCode="_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);";
+			};
+		};
+		Left=175;
+		Right=275;
+		Top=600;
+		Bottom=650;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item18
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Check self";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=18;
+				InitCode="_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);";
+			};
+		};
+		Left=175;
+		Right=275;
+		Top=275;
+		Bottom=325;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
 	class Item19
+	{
+		class ItemInfo
+		{
+			ItemType=1;
+			Text="End Danger";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=700;
+			lStyle=-842150451;
+			Shape=6;
+			class ItemInfo
+			{
+				Id=19;
+				InitCode="[_this] call WAIT_fnc_DangerEngineRelease;";
+			};
+		};
+		Left=700;
+		Right=800;
+		Top=1200;
+		Bottom=1250;
+		Flags=250;
+		BasicText="";
+		BgColor=33023;
+	};
+	class Item20
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="no queue";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=20;
+				Priority=2;
+				Condition="_queue isEqualTo []";
+			};
+		};
+		Left=700;
+		Right=800;
+		Top=1075;
+		Bottom=1125;
+		Flags=218;
+		BasicText="";
+		BgColor=65535;
+	};
+	class Item21
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="timeout";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=21;
+				Condition="(time >= _deadline) || {!([_this] call WAIT_fnc_DangerEngineCanContinue)}";
+			};
+		};
+		Left=175;
+		Right=275;
+		Top=750;
+		Bottom=800;
+		Flags=218;
+		BasicText="";
+		BgColor=65535;
+	};
+	class Item22
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="timeout";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=22;
+				Condition="(time >= _deadline) || {!([_this] call WAIT_fnc_DangerEngineCanContinue)}";
+			};
+		};
+		Left=-175;
+		Right=-75;
+		Top=750;
+		Bottom=800;
+		Flags=218;
+		BasicText="";
+		BgColor=65535;
+	};
+	class Item23
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Reset foot";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=23;
+				InitCode="_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};";
+			};
+		};
+		Left=-375;
+		Right=275;
+		Top=925;
+		Bottom=975;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item24
+	{
+		class ItemInfo
+		{
+			ItemType=8;
+			Text="true";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=24;
+				Condition="true";
+			};
+		};
+		Left=500;
+		Right=600;
+		Top=925;
+		Bottom=975;
+		Flags=218;
+		BasicText="";
+		BgColor=8421440;
+	};
+	class Item25
+	{
+		class ItemInfo
+		{
+			ItemType=2;
+			Text="Check queue";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=25;
+				InitCode="";
+			};
+		};
+		Left=700;
+		Right=800;
+		Top=925;
+		Bottom=975;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item26
+	{
+		class ItemInfo
+		{
+			ItemType=8;
+			Text="true";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=26;
+				Condition="true";
+			};
+		};
+		Left=700;
+		Right=800;
+		Top=800;
+		Bottom=850;
+		Flags=218;
+		BasicText="";
+		BgColor=8421440;
+	};
+	class Item27
+	{
+		class ItemInfo
+		{
+			ItemType=7;
+			Text="";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=27;
+			};
+		};
+		Left=746;
+		Right=754;
+		Top=71;
+		Bottom=79;
+		Flags=210;
+		BasicText="";
+		BgColor=0;
+	};
+	class Item28
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="no queue";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=28;
+				Priority=2;
+				Condition="_queue isEqualTo []";
+			};
+		};
+		Left=-775;
+		Right=-675;
+		Top=50;
+		Bottom=100;
+		Flags=218;
+		BasicText="";
+		BgColor=65535;
+	};
+	class Item29
+	{
+		class ItemInfo
+		{
+			ItemType=1;
+			Text="End Danger" \n
+ "vehicle";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=700;
+			lStyle=-842150451;
+			Shape=6;
+			class ItemInfo
+			{
+				Id=29;
+				InitCode="[_this] call WAIT_fnc_DangerEngineRelease;";
+			};
+		};
+		Left=-775;
+		Right=-675;
+		Top=275;
+		Bottom=325;
+		Flags=250;
+		BasicText="";
+		BgColor=33023;
+	};
+	class Item30
 	{
 		class ItemInfo
 		{
@@ -533,315 +825,14 @@ class GraphItems
 			Shape=2;
 			class ItemInfo
 			{
-				Id=19;
-				Condition="true";
-			};
-		};
-		Left=300;
-		Right=400;
-		Top=225;
-		Bottom=275;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item20
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=20;
-				Condition="true";
-			};
-		};
-		Left=-300;
-		Right=-200;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item21
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=21;
-				Condition="true";
-			};
-		};
-		Left=-150;
-		Right=-50;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item22
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=22;
-				Condition="true";
-			};
-		};
-		Left=0;
-		Right=100;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item23
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=23;
-				Condition="true";
-			};
-		};
-		Left=150;
-		Right=250;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item24
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=24;
-				Condition="true";
-			};
-		};
-		Left=300;
-		Right=400;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item25
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Wait";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=25;
-				Condition="true";
-			};
-		};
-		Left=450;
-		Right=550;
-		Top=400;
-		Bottom=450;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item26
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Interrupted";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=26;
-				Condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)";
-				Priority=4;
-			};
-		};
-		Left=-75;
-		Right=25;
-		Top=575;
-		Bottom=625;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item27
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Saturated";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=27;
-				Condition="count _queue > 3";
-				Priority=2;
-			};
-		};
-		Left=75;
-		Right=175;
-		Top=575;
-		Bottom=625;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item28
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Done";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=28;
-				Condition="time >= _deadline";
-			};
-		};
-		Left=225;
-		Right=325;
-		Top=575;
-		Bottom=625;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item29
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Interrupted";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
-				Id=29;
-				Condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)";
-				Priority=3;
-			};
-		};
-		Left=-150;
-		Right=-50;
-		Top=725;
-		Bottom=775;
-		Flags=218;
-		BasicText="";
-		BgColor=65535;
-	};
-	class Item30
-	{
-		class ItemInfo
-		{
-			ItemType=4;
-			Text="Drain";
-			FontCharSet=0;
-			FontFace="";
-			FontHeight=10;
-			FontUnderline=0;
-			FontWeight=0;
-			lStyle=-842150451;
-			Shape=2;
-			class ItemInfo
-			{
 				Id=30;
-				Condition="count _queue > 0";
-				Priority=1;
+				Condition="true";
 			};
 		};
-		Left=0;
-		Right=100;
-		Top=725;
-		Bottom=775;
+		Left=-325;
+		Right=-225;
+		Top=425;
+		Bottom=475;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
@@ -850,35 +841,35 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=4;
-			Text="Done";
+			ItemType=2;
+			Text="Check self";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=2;
+			Shape=0;
 			class ItemInfo
 			{
 				Id=31;
-				Condition="true";
+				InitCode="_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);";
 			};
 		};
-		Left=150;
-		Right=250;
-		Top=725;
-		Bottom=775;
-		Flags=218;
+		Left=-325;
+		Right=-225;
+		Top=600;
+		Bottom=650;
+		Flags=250;
 		BasicText="";
-		BgColor=65535;
+		BgColor=16777215;
 	};
 	class Item32
 	{
 		class ItemInfo
 		{
 			ItemType=4;
-			Text="Release";
+			Text="timeout";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -889,14 +880,13 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=32;
-				Condition="_mode == ""RELEASE""";
-				Priority=3;
+				Condition="(time >= _deadline) || {!([_this] call WAIT_fnc_DangerEngineCanContinue)}";
 			};
 		};
-		Left=300;
-		Right=400;
-		Top=725;
-		Bottom=775;
+		Left=500;
+		Right=600;
+		Top=275;
+		Bottom=325;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
@@ -905,36 +895,35 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=4;
-			Text="Forced";
+			ItemType=2;
+			Text="Check self";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
 			FontUnderline=0;
 			FontWeight=0;
 			lStyle=-842150451;
-			Shape=2;
+			Shape=0;
 			class ItemInfo
 			{
 				Id=33;
-				Condition="_mode == ""FORCED""";
-				Priority=2;
+				InitCode="";
 			};
 		};
-		Left=450;
-		Right=550;
-		Top=725;
-		Bottom=775;
-		Flags=218;
+		Left=500;
+		Right=600;
+		Top=600;
+		Bottom=650;
+		Flags=250;
 		BasicText="";
-		BgColor=65535;
+		BgColor=16777215;
 	};
 	class Item34
 	{
 		class ItemInfo
 		{
 			ItemType=4;
-			Text="Vehicle";
+			Text="Leader";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -945,14 +934,14 @@ class GraphItems
 			class ItemInfo
 			{
 				Id=34;
-				Condition="_mode == ""VEHICLE""";
-				Priority=1;
+				Priority=4;
+				Condition="_this == leader group _this";
 			};
 		};
-		Left=600;
-		Right=700;
-		Top=725;
-		Bottom=775;
+		Left=-100;
+		Right=0;
+		Top=1075;
+		Bottom=1125;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
@@ -961,8 +950,61 @@ class GraphItems
 	{
 		class ItemInfo
 		{
-			ItemType=4;
-			Text="Foot";
+			ItemType=2;
+			Text="Tactics";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=35;
+				InitCode="";
+			};
+		};
+		Left=-100;
+		Right=0;
+		Top=1200;
+		Bottom=1250;
+		Flags=250;
+		BasicText="";
+		BgColor=16777215;
+	};
+	class Item36
+	{
+		class ItemInfo
+		{
+			ItemType=7;
+			Text="";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=0;
+			class ItemInfo
+			{
+				Id=36;
+			};
+		};
+		Left=545.99994;
+		Right=554.00006;
+		Top=1221;
+		Bottom=1229;
+		Flags=210;
+		BasicText="";
+		BgColor=0;
+	};
+	class Item37
+	{
+		class ItemInfo
+		{
+			ItemType=8;
+			Text="true";
 			FontCharSet=0;
 			FontFace="";
 			FontHeight=10;
@@ -972,14 +1014,125 @@ class GraphItems
 			Shape=2;
 			class ItemInfo
 			{
-				Id=35;
+				Id=37;
 				Condition="true";
 			};
 		};
-		Left=750;
-		Right=850;
-		Top=725;
-		Bottom=775;
+		Left=-325;
+		Right=-225;
+		Top=50;
+		Bottom=100;
+		Flags=218;
+		BasicText="";
+		BgColor=8421440;
+	};
+	class Item38
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="Exit";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=38;
+				Priority=2;
+				Condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)";
+			};
+		};
+		Left=175;
+		Right=275;
+		Top=-175;
+		Bottom=-125;
+		Flags=218;
+		BasicText="";
+		BgColor=65535;
+	};
+	class Item39
+	{
+		class ItemInfo
+		{
+			ItemType=1;
+			Text="End Danger";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=700;
+			lStyle=-842150451;
+			Shape=6;
+			class ItemInfo
+			{
+				Id=39;
+				InitCode="[_this] call WAIT_fnc_DangerEngineRelease;";
+			};
+		};
+		Left=175;
+		Right=275;
+		Top=-50;
+		Bottom=0;
+		Flags=250;
+		BasicText="";
+		BgColor=33023;
+	};
+	class Item40
+	{
+		class ItemInfo
+		{
+			ItemType=1;
+			Text="End Forced";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=700;
+			lStyle=-842150451;
+			Shape=6;
+			class ItemInfo
+			{
+				Id=40;
+				InitCode="[_this] call WAIT_fnc_DangerEngineRelease;";
+			};
+		};
+		Left=1025;
+		Right=1125;
+		Top=925;
+		Bottom=975;
+		Flags=250;
+		BasicText="";
+		BgColor=33023;
+	};
+	class Item41
+	{
+		class ItemInfo
+		{
+			ItemType=4;
+			Text="no queue" \n
+ "and forced";
+			FontCharSet=0;
+			FontFace="";
+			FontHeight=10;
+			FontUnderline=0;
+			FontWeight=0;
+			lStyle=-842150451;
+			Shape=2;
+			class ItemInfo
+			{
+				Id=41;
+				Priority=4;
+				Condition="_queue isEqualTo [] && {_mode == ""FORCED""}";
+			};
+		};
+		Left=850;
+		Right=950;
+		Top=925;
+		Bottom=975;
 		Flags=218;
 		BasicText="";
 		BgColor=65535;
@@ -990,7 +1143,7 @@ class GraphLinks
 	class Link0
 	{
 		From=0;
-		To=12;
+		To=2;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1000,8 +1153,8 @@ class GraphLinks
 	};
 	class Link1
 	{
-		From=12;
-		To=11;
+		From=0;
+		To=38;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1011,8 +1164,8 @@ class GraphLinks
 	};
 	class Link2
 	{
-		From=0;
-		To=13;
+		From=2;
+		To=3;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1022,8 +1175,8 @@ class GraphLinks
 	};
 	class Link3
 	{
-		From=13;
-		To=2;
+		From=3;
+		To=4;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1033,8 +1186,8 @@ class GraphLinks
 	};
 	class Link4
 	{
-		From=0;
-		To=14;
+		From=3;
+		To=5;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1044,8 +1197,8 @@ class GraphLinks
 	};
 	class Link5
 	{
-		From=14;
-		To=3;
+		From=3;
+		To=6;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1055,8 +1208,8 @@ class GraphLinks
 	};
 	class Link6
 	{
-		From=0;
-		To=15;
+		From=4;
+		To=7;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1066,8 +1219,8 @@ class GraphLinks
 	};
 	class Link7
 	{
-		From=15;
-		To=1;
+		From=5;
+		To=10;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1077,8 +1230,8 @@ class GraphLinks
 	};
 	class Link8
 	{
-		From=1;
-		To=16;
+		From=6;
+		To=18;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1088,8 +1241,8 @@ class GraphLinks
 	};
 	class Link9
 	{
-		From=16;
-		To=4;
+		From=7;
+		To=8;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1099,8 +1252,8 @@ class GraphLinks
 	};
 	class Link10
 	{
-		From=1;
-		To=17;
+		From=8;
+		To=9;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1110,8 +1263,8 @@ class GraphLinks
 	};
 	class Link11
 	{
-		From=17;
-		To=5;
+		From=9;
+		To=28;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1121,8 +1274,8 @@ class GraphLinks
 	};
 	class Link12
 	{
-		From=1;
-		To=18;
+		From=9;
+		To=37;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1132,8 +1285,8 @@ class GraphLinks
 	};
 	class Link13
 	{
-		From=18;
-		To=6;
+		From=10;
+		To=12;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1143,8 +1296,8 @@ class GraphLinks
 	};
 	class Link14
 	{
-		From=1;
-		To=19;
+		From=10;
+		To=13;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1154,8 +1307,8 @@ class GraphLinks
 	};
 	class Link15
 	{
-		From=19;
-		To=7;
+		From=10;
+		To=14;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1165,8 +1318,8 @@ class GraphLinks
 	};
 	class Link16
 	{
-		From=2;
-		To=20;
+		From=10;
+		To=30;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1176,8 +1329,8 @@ class GraphLinks
 	};
 	class Link17
 	{
-		From=20;
-		To=8;
+		From=12;
+		To=15;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1187,8 +1340,8 @@ class GraphLinks
 	};
 	class Link18
 	{
-		From=3;
-		To=21;
+		From=13;
+		To=16;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1198,8 +1351,8 @@ class GraphLinks
 	};
 	class Link19
 	{
-		From=21;
-		To=8;
+		From=14;
+		To=17;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1209,7 +1362,7 @@ class GraphLinks
 	};
 	class Link20
 	{
-		From=4;
+		From=15;
 		To=22;
 		Color=6316128;
 		Flags=2;
@@ -1220,8 +1373,8 @@ class GraphLinks
 	};
 	class Link21
 	{
-		From=22;
-		To=8;
+		From=16;
+		To=22;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1231,8 +1384,8 @@ class GraphLinks
 	};
 	class Link22
 	{
-		From=5;
-		To=23;
+		From=17;
+		To=21;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1242,8 +1395,8 @@ class GraphLinks
 	};
 	class Link23
 	{
-		From=23;
-		To=8;
+		From=18;
+		To=32;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1253,8 +1406,8 @@ class GraphLinks
 	};
 	class Link24
 	{
-		From=6;
-		To=24;
+		From=20;
+		To=19;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1264,8 +1417,8 @@ class GraphLinks
 	};
 	class Link25
 	{
-		From=24;
-		To=8;
+		From=21;
+		To=23;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1275,8 +1428,8 @@ class GraphLinks
 	};
 	class Link26
 	{
-		From=7;
-		To=25;
+		From=22;
+		To=23;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1286,8 +1439,8 @@ class GraphLinks
 	};
 	class Link27
 	{
-		From=25;
-		To=8;
+		From=23;
+		To=24;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1297,8 +1450,8 @@ class GraphLinks
 	};
 	class Link28
 	{
-		From=8;
-		To=26;
+		From=23;
+		To=34;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1308,8 +1461,8 @@ class GraphLinks
 	};
 	class Link29
 	{
-		From=26;
-		To=11;
+		From=24;
+		To=25;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1319,8 +1472,8 @@ class GraphLinks
 	};
 	class Link30
 	{
-		From=8;
-		To=27;
+		From=25;
+		To=20;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1330,8 +1483,8 @@ class GraphLinks
 	};
 	class Link31
 	{
-		From=27;
-		To=10;
+		From=25;
+		To=26;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1341,8 +1494,8 @@ class GraphLinks
 	};
 	class Link32
 	{
-		From=8;
-		To=28;
+		From=25;
+		To=41;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1352,8 +1505,8 @@ class GraphLinks
 	};
 	class Link33
 	{
-		From=28;
-		To=9;
+		From=26;
+		To=27;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1363,8 +1516,8 @@ class GraphLinks
 	};
 	class Link34
 	{
-		From=9;
-		To=29;
+		From=27;
+		To=3;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1374,8 +1527,8 @@ class GraphLinks
 	};
 	class Link35
 	{
-		From=29;
-		To=11;
+		From=28;
+		To=29;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1385,8 +1538,8 @@ class GraphLinks
 	};
 	class Link36
 	{
-		From=9;
-		To=30;
+		From=30;
+		To=31;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1396,8 +1549,8 @@ class GraphLinks
 	};
 	class Link37
 	{
-		From=30;
-		To=10;
+		From=31;
+		To=22;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1407,8 +1560,8 @@ class GraphLinks
 	};
 	class Link38
 	{
-		From=9;
-		To=31;
+		From=32;
+		To=33;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1418,8 +1571,8 @@ class GraphLinks
 	};
 	class Link39
 	{
-		From=31;
-		To=11;
+		From=33;
+		To=24;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1429,8 +1582,8 @@ class GraphLinks
 	};
 	class Link40
 	{
-		From=10;
-		To=32;
+		From=34;
+		To=35;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1440,8 +1593,8 @@ class GraphLinks
 	};
 	class Link41
 	{
-		From=32;
-		To=11;
+		From=35;
+		To=36;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1451,8 +1604,8 @@ class GraphLinks
 	};
 	class Link42
 	{
-		From=10;
-		To=33;
+		From=36;
+		To=24;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1462,8 +1615,8 @@ class GraphLinks
 	};
 	class Link43
 	{
-		From=33;
-		To=2;
+		From=37;
+		To=3;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1473,8 +1626,8 @@ class GraphLinks
 	};
 	class Link44
 	{
-		From=10;
-		To=34;
+		From=38;
+		To=39;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1484,30 +1637,8 @@ class GraphLinks
 	};
 	class Link45
 	{
-		From=34;
-		To=3;
-		Color=6316128;
-		Flags=2;
-		class Extra
-		{
-			ArrowSize=0;
-		};
-	};
-	class Link46
-	{
-		From=10;
-		To=35;
-		Color=6316128;
-		Flags=2;
-		class Extra
-		{
-			ArrowSize=0;
-		};
-	};
-	class Link47
-	{
-		From=35;
-		To=1;
+		From=41;
+		To=40;
 		Color=6316128;
 		Flags=2;
 		class Extra
@@ -1519,15 +1650,15 @@ class GraphLinks
 class Globals
 {
 	NextGroupID=1;
-	NextID=48;
+	NextID=67;
 	FSMName="Danger";
 	CompileConfig="scriptedFSM.cfg";
 	DefaultLinkColor=6316128;
 	DefaultLinkUseCustom=1;
-	PZoomLeft=-400;
-	PZoomRight=900;
-	PZoomBottom=1100;
-	PZoomTop=-200;
+	PZoomLeft=-1051.2986;
+	PZoomRight=1485.3114;
+	PZoomBottom=1723.9004;
+	PZoomTop=-657.74005;
 	Clxs=933;
 	Clys=876;
 	Aspect=1;
@@ -1539,10 +1670,10 @@ class Window
 	MaxPosY=-1;
 	MinPosX=-1;
 	MinPosY=-1;
-	Left=0;
-	Top=720;
-	Right=1280;
-	Bottom=0;
+	Left=52;
+	Top=52;
+	Right=1492;
+	Bottom=811;
 	ShowCmd=3;
-	SplitPos=933;
+	SplitPos=951;
 };
