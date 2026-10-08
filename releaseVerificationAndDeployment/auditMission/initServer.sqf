@@ -3,6 +3,7 @@
  * Purpose: Start the packaged WAIT audit and provide an observer curator and HC registry.
  * Locality/authority: Dedicated server. Only audit fixtures are created.
  * Repeat/JIP: One initialization per mission; arriving or respawned observers receive the curator.
+ * The dangerload preflight starts server-side without an observer and remains guarded by the QA runner.
  * Arguments: None. Return: Nothing. Current callers: engine mission initialization.
  * Example: Launch WAIT_Audit.VR with the checked-in launcher.
  */
@@ -54,3 +55,6 @@ WAIT_fnc_HeadlessMigrateGroup={
     true
 };
 diag_log "WAIT AUDIT SERVER READY";
+if ((missionNamespace getVariable ["WAIT_CortexQA_Focus", "all"]) isEqualTo "dangerload") then {
+    [] execVM "cortexQAServer.sqf";
+};

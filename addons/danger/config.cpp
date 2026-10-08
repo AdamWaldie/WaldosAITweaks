@@ -12,12 +12,12 @@ class CfgPatches {
 class CfgVehicles {
     class CAManBase;
     class SoldierWB: CAManBase {
-        fsmDanger = "\z\wait\danger\danger.fsm";
+        fsmDanger = "z\wait\danger\danger.fsm";
     };
     class SoldierEB: CAManBase {
-        fsmDanger = "\z\wait\danger\danger.fsm";
+        fsmDanger = "z\wait\danger\danger.fsm";
     };
     class SoldierGB: CAManBase {
-        fsmDanger = "\z\wait\danger\danger.fsm";
+        fsmDanger = "z\wait\danger\danger.fsm";
     };
 };

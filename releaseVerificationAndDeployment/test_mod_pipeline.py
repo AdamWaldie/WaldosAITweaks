@@ -64,6 +64,11 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertIn('"-name=WAIT_HC$i"', launcher)
         for option in ('-cfg=$clientConfig', '-x=$ResolutionWidth', '-y=$ResolutionHeight', '-noPause'):
             self.assertIn(option, launcher)
+        self.assertIn('ClientReadyTimeoutSeconds=180', launcher)
+        self.assertIn("'WAIT AUDIT OBSERVER ZEUS READY'", launcher)
+        self.assertIn('this batch is not valid', launcher)
+        self.assertIn("$ServerOnly -and $Focus -ne 'dangerload'", launcher)
+        self.assertIn('WAIT danger loader diagnostic entered WAIT_Audit.VR server-side', launcher)
 
     def test_observer_has_curator_on_join_and_respawn(self):
         server = (ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text()
@@ -72,6 +77,7 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertIn('getAssignedCuratorLogic _current != _curator', server)
         self.assertIn('_current assignCurator _curator', server)
         self.assertIn('addCuratorEditableObjects [allUnits + vehicles,true]', server)
+        self.assertIn('WAIT_CortexQA_Focus", "all"]) isEqualTo "dangerload"', server)
 
     def test_phase_observer_placement_preserves_production_distance_gates(self):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text()

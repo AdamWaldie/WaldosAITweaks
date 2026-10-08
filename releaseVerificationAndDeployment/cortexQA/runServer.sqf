@@ -33,7 +33,7 @@ private _phase = {
     missionNamespace setVariable ["WAIT_CortexQA_Phase",[_title,_expected,_position,serverTime],true];
     sleep 8;
 };
-private _readyUntil = diag_tickTime + 120;
+private _readyUntil = diag_tickTime + ([120,5] select (_focus == "dangerload"));
 waitUntil {sleep 0.5; missionNamespace getVariable ["WAIT_CortexQA_GuideReady",false] || {diag_tickTime > _readyUntil}};
 private _check = {params ["_id","_ok",["_detail",""]]; diag_log format ["WAIT CORTEX QA|%1|%2|%3",_id,["FAIL","PASS"] select _ok,_detail]; if (!_ok) then {_failures pushBack _id}; private _results = missionNamespace getVariable ["WAIT_CortexQA_Results",[]]; _results pushBack [_id,["FAIL","PASS"] select _ok]; missionNamespace setVariable ["WAIT_CortexQA_Results",_results,true]};
 [_check] call compile preprocessFileLineNumbers "cortexQAAddon.sqf";

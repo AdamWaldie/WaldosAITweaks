@@ -12,7 +12,7 @@ class AIModularityContracts(unittest.TestCase):
         lease=src('cortexOwnershipLease')
         spec=src('cortexTuningSpec')
         danger=(ROOT/'addons/danger/config.cpp').read_text(encoding='utf-8')
-        self.assertEqual(danger.count('fsmDanger = "\\z\\wait\\danger\\danger.fsm"'),3)
+        self.assertEqual(danger.count('fsmDanger = "z\\wait\\danger\\danger.fsm"'),3)
         self.assertNotIn('WAIT_AIPass_InfantryOwnership',spec)
         self.assertNotIn('DangerBackend',discovery)
         self.assertNotIn('lambs_',lease.lower())
@@ -214,7 +214,7 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         self.assertIn('requiredAddons[] = {"A3_Characters_F"}', danger)
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
             self.assertIn('class '+base+': CAManBase', danger)
-        self.assertEqual(danger.count('fsmDanger = "\\z\\wait\\danger\\danger.fsm"'),3)
+        self.assertEqual(danger.count('fsmDanger = "z\\wait\\danger\\danger.fsm"'),3)
 
     def test_specialist_external_ownership_is_read_only_and_actor_scoped(self):
         owner = src('cortexExternalOwner')

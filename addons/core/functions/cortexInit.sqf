@@ -68,7 +68,7 @@ private _dangerFsmPaths=["SoldierWB","SoldierEB","SoldierGB"] apply {
     [_x,toLowerANSI getText (configFile >> "CfgVehicles" >> _x >> "fsmDanger")]
 };
 private _dangerFsmOwned=_dangerFsmPaths findIf {
-    (_x select 1) find "\z\wait\danger\danger.fsm" < 0
+    (_x select 1) find "z\wait\danger\danger.fsm" < 0
 } < 0;
 missionNamespace setVariable ["WAIT_AIPass_DangerOwnershipConflict",[[],_dangerFsmPaths] select !_dangerFsmOwned];
 if (!_dangerFsmOwned) exitWith {

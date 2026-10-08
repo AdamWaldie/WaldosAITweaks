@@ -717,7 +717,7 @@ class CortexOperations(unittest.TestCase):
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
             self.assertIn(base,compatibility_audit)
         self.assertIn('COMPAT-exclusive-danger-fsm-',compatibility_audit)
-        self.assertIn('find "\\z\\wait\\danger\\danger.fsm"',compatibility_audit)
+        self.assertIn('find "z\\wait\\danger\\danger.fsm"',compatibility_audit)
         self.assertNotIn('find "\\\\z\\\\waldo_ai_tweaks',compatibility_audit)
 
     def test_danger_static_support_is_one_actor_and_one_attempt_per_contact(self):
