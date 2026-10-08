@@ -34,14 +34,15 @@ if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
 // authoritative. Zeus, players and declared external owners have already yielded above.
 if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
+private _cause=_event select 0;
+// Detection, proximity, a firing opportunity and audible fire require the native-known hostile
+// retained in the event before they can become an engagement. Resolve this before MAINTAIN: an
+// approximate observation during an existing operation may preserve that route, but it cannot gain
+// CONTACT authority merely because WAIT already owns movement.
+if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]
+    && {isNull (_event param [4,objNull,[objNull]])}) exitWith {"HIDE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"MAINTAIN"};
-private _cause=_event select 0;
-// Gunfire is an immediate physical cue, but without the native-known hostile retained in the event
-// it is not an engagement. Keep the actor's short cover reflex while the ordinary knowledge layer
-// decides whether any real contact exists; this prevents distant or unidentified fire from creating
-// CONTACT and RED fire authority on its own.
-if (_cause == "GUNFIRE" && {isNull (_event param [4,objNull,[objNull]])}) exitWith {"HIDE"};
 if (_cause in ["HIT","EXPLOSION","SUPPRESSED","SCREAM","CASUALTY"]) exitWith {"HIDE"};
 "ENGAGE"

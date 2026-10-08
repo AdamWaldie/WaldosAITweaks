@@ -253,12 +253,12 @@ private _dangerTactical=_dangerActive
     && {!(_dangerActionName in ["FORCED","VEHICLE"])}
     && {!(combatMode _group in ["BLUE","GREEN"])}
     && {private _responseCause=_dangerResponse param [0,"",[""]];
-        _responseCause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE"]
-            || {_responseCause == "GUNFIRE" && {_dangerActionName != "HIDE"}}};
+        _responseCause in ["HIT","EXPLOSION","SUPPRESSED"]
+            || {_responseCause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName != "HIDE"}}};
 private _dangerAlert=_dangerActive && {
     combatMode _group in ["BLUE","GREEN"]
     || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]}
-    || {(_dangerResponse param [0,"",[""]]) == "GUNFIRE" && {_dangerActionName == "HIDE"}}
+    || {(_dangerResponse param [0,"",[""]]) in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName == "HIDE"}}
 };
 private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating

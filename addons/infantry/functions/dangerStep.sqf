@@ -59,11 +59,20 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     -1
 };
 // A concrete engine task can arrive after the selected danger event has already published a short
-// response lease. Recheck the exact observer retained by the last assessment instead of assuming
-// the current leader owns that task. This is an ownership handover: release WAIT's exact posture,
-// discard its pending observations and wake context, and leave the native command untouched.
+// response lease. Recheck the observer retained by the still-authoritative action lease instead of
+// assuming the current leader or newest lower-priority assessment owns that task. This matters when
+// a hit response survives while other queued causes drain through the group assessment. It is an
+// ownership handover: release WAIT's exact posture, discard its pending observations and wake
+// context, and leave the native command untouched.
 private _lastAssessment=_group getVariable ["WAIT_Danger_LastAssessment",[]];
-private _responseActor=_lastAssessment param [5,_actor,[objNull]];
+private _activeAction=_group getVariable ["WAIT_Danger_Action",[]];
+private _responseActor=if (count _activeAction >= 6
+    && {(_activeAction param [4,-1,[0]]) == _generation}
+    && {time < (_activeAction param [3,-1,[0]])}) then {
+    _activeAction param [5,_actor,[objNull]]
+} else {
+    _lastAssessment param [5,_actor,[objNull]]
+};
 if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
     || {group _responseActor != _group}) then {_responseActor=_actor};
 private _responseCommand=toUpperANSI (currentCommand _responseActor);
