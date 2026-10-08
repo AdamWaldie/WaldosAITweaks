@@ -5540,6 +5540,42 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity']:
             self.assertNotIn(forbidden,danger.split('// An intact armed platform',1)[1])
 
+    def test_danger_mortar_uses_the_finite_artillery_owner_and_live_gates(self):
+        vehicles=source('cortexVehicles')
+        fire=source('cortexArtilleryFire')
+        step=source('cortexArtilleryMissionStep')
+        shot=source('cortexArtilleryShot')
+        danger=vehicles.split('// A useful static mortar',1)[1].split('// An intact armed platform',1)[0]
+        for marker in ['_dangerProfile == "ARTILLERY"','_vehicle isKindOf "StaticMortar"',
+                       '"DANGER",objNull,_dangerSource','WAIT_fnc_CortexArtilleryFire']:
+            self.assertIn(marker,danger)
+        for forbidden in ['doArtilleryFire','commandArtilleryFire','createVehicle']:
+            self.assertNotIn(forbidden,danger)
+        for text in [fire,step,shot]:
+            self.assertIn('WAIT_AIPass_Danger_Enable',text)
+            self.assertIn('WAIT_AIPass_Vehicles_Enable',text)
+            self.assertIn('WAIT_AIPass_VehicleGunnery_Enable',text)
+            self.assertIn('CortexExternalTakeover',text)
+        self.assertIn('["SUPPORT", "COUNTER", "DANGER"]',fire)
+        self.assertIn('_battery isKindOf "StaticMortar"',fire)
+        self.assertIn('_commander knowsAbout _enemy <= 0',fire)
+        self.assertIn('_target distance2D (getPosATL _enemy) > 75',fire)
+        self.assertIn('["burstsLeft", if (_mode == "SMOKE" || {_danger}) then {1}',fire)
+        self.assertIn('["opening", !_danger]',fire)
+        self.assertIn('WAIT_AIPass_NextDangerFire',fire+step)
+        self.assertIn('if ((_mission get "phase") == "READY" && {(_mission get "mode") == "HE"}) exitWith',step)
+        self.assertIn('_battery doArtilleryFire [_aim, _magazine, 1]',shot)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
+        for case in ['DANGER-MORTAR-real-hostile-fire','DANGER-MORTAR-natural-knowledge',
+                     'DANGER-MORTAR-finite-owner','DANGER-MORTAR-lethal-warning',
+                     'DANGER-MORTAR-one-real-round','DANGER-MORTAR-finite-release',
+                     'DANGER-MORTAR-crew-retained','DANGER-MORTAR-support-remained-disabled']:
+            self.assertIn(case,audit)
+        mortar=audit.split('// A useful static mortar',1)[1].split('// Real enemy artillery events',1)[0]
+        self.assertIn('_dangerEnemy doFire gunner _gun',mortar)
+        self.assertNotIn(' reveal ',mortar)
+        self.assertNotIn('call WAIT_fnc_CortexArtilleryFire',mortar)
+
     def test_stationary_passenger_comparison_is_explicit_and_additive(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()
         self.assertIn('if (_stationary) then {(driver _truck) disableAI "PATH"}',text)

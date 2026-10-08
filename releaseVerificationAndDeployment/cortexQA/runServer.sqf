@@ -415,6 +415,76 @@ missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",nil];
 [_spotter,false] call WAIT_fnc_CortexSetSpotter;
 deleteVehicle _spotter;
 deleteGroup _spotterGroup;
+// A useful static mortar must react through the same finite mission FSM even while optional
+// squad-requested artillery is disabled. The hostile fires real rounds and must be acquired
+// naturally; no reveal, target assignment or direct fire request is injected by the fixture.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleGunnery_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+private _dangerEnemyGroup=createGroup [west,true];
+_dangerEnemyGroup setCombatMode "RED";
+private _dangerEnemy=_dangerEnemyGroup createUnit ["B_Soldier_F",[6900,6000,0],[],0,"NONE"];
+_dangerEnemy allowDamage false;
+{_x allowDamage false} forEach crew _gun;
+_dangerEnemy setDir 270;
+_dangerEnemy setSkill ["aimingAccuracy",0.05];
+_dangerEnemy setSkill ["aimingShake",0.05];
+_dangerEnemy setVariable ["WAIT_CortexQA_Shots",0,true];
+_dangerEnemy addEventHandler ["Fired",{
+    params ["_unit"];
+    _unit setVariable ["WAIT_CortexQA_Shots",(_unit getVariable ["WAIT_CortexQA_Shots",0])+1,true];
+}];
+_gun setVariable ["WAIT_CortexQA_Shots",0];
+_gun setVariable ["WAIT_AIPass_NextDangerFire",nil,true];
+missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",[]];
+private _dangerRedHandler=addMissionEventHandler ["ProjectileCreated",{
+    params ["_projectile"];
+    if (typeOf _projectile == "SmokeShellRed") then {
+        private _events=missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]];
+        _events pushBack [time,_projectile];
+        missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",_events];
+    };
+}];
+private _dangerFirstShot=-1;
+private _dangerShotHandler=_gun addEventHandler ["Fired",{
+    params ["_gun"];
+    if ((_gun getVariable ["WAIT_CortexQA_DangerFirstShot",-1]) < 0) then {
+        _gun setVariable ["WAIT_CortexQA_DangerFirstShot",time,true];
+    };
+}];
+_gun setVariable ["WAIT_CortexQA_DangerFirstShot",-1,true];
+["Danger mortar: finite self-defence","The hostile fires naturally at the useful mortar. The crew must retain the emplacement, acquire the attacker, enter one finite DANGER mission, receive the lethal-burst red warning, fire one real HE round and release without enabling optional artillery support.",[6500,6000,0]] call _phase;
+private _dangerFireUntil=time+12;
+while {time < _dangerFireUntil && {alive _dangerEnemy}} do {
+    _dangerEnemy doWatch gunner _gun;
+    _dangerEnemy doTarget gunner _gun;
+    _dangerEnemy doFire gunner _gun;
+    sleep 1;
+};
+private _dangerEnemyFired=(_dangerEnemy getVariable ["WAIT_CortexQA_Shots",0]) > 0;
+["DANGER-MORTAR-real-hostile-fire",_dangerEnemyFired,str (_dangerEnemy getVariable ["WAIT_CortexQA_Shots",0])] call _check;
+private _dangerKnown=[{effectiveCommander _gun knowsAbout _dangerEnemy > 0},20] call _wait;
+["DANGER-MORTAR-natural-knowledge",_dangerKnown,str (effectiveCommander _gun knowsAbout _dangerEnemy)] call _check;
+private _dangerMission=[{
+    private _mission=(missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]) getOrDefault [netId _gun,createHashMap];
+    count _mission > 0 && {(_mission getOrDefault ["purpose",""]) == "DANGER"}
+},30] call _wait;
+["DANGER-MORTAR-finite-owner",_dangerMission,str ((missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]) getOrDefault [netId _gun,createHashMap])] call _check;
+private _dangerWarned=[{count (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]]) == 4},20] call _wait;
+["DANGER-MORTAR-lethal-warning",_dangerWarned,str (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]])] call _check;
+private _dangerFired=[{(_gun getVariable ["WAIT_CortexQA_Shots",0]) == 1},90] call _wait;
+["DANGER-MORTAR-one-real-round",_dangerFired,str (_gun getVariable ["WAIT_CortexQA_Shots",0])] call _check;
+private _dangerReleased=[{!((netId _gun) in (missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap]))},45] call _wait;
+["DANGER-MORTAR-finite-release",_dangerFired && {_dangerReleased} && {(_gun getVariable ["WAIT_CortexQA_Shots",0]) == 1},str [_gun getVariable ["WAIT_CortexQA_Shots",0],_gun getVariable ["WAIT_AIPass_FireToken",""]]] call _check;
+["DANGER-MORTAR-crew-retained",alive gunner _gun && {vehicle (gunner _gun) == _gun},str [gunner _gun,vehicle (gunner _gun)]] call _check;
+["DANGER-MORTAR-support-remained-disabled",!(missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable",true])] call _check;
+removeMissionEventHandler ["ProjectileCreated",_dangerRedHandler];
+_gun removeEventHandler ["Fired",_dangerShotHandler];
+{if (!isNull _x) then {deleteVehicle _x}} forEach (missionNamespace getVariable ["WAIT_CortexQA_HEWarnings",[]] apply {_x select 1});
+missionNamespace setVariable ["WAIT_CortexQA_HEWarnings",nil];
+deleteVehicle _dangerEnemy;
+deleteGroup _dangerEnemyGroup;
 // Real enemy artillery events exercise acquisition with and without a radar.
 [_gun,"SUPPORT"] call WAIT_fnc_CortexSetArtilleryRole;
 [createHashMapFromArray [["WAIT_AIPass_CounterBattery_Enable",true],["WAIT_AIPass_CounterBattery_Delay",8],["WAIT_AIPass_CounterBattery_RadarDelay",2],["WAIT_AIPass_CounterBattery_Rounds",2],["WAIT_AIPass_CounterBattery_ShootAndScoot",false]]] call WAIT_fnc_CortexTuning;

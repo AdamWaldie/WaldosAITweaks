@@ -283,6 +283,21 @@ if (_dangerDismount isNotEqualTo []) then {
                     && {_dangerProfile in ["STATIC","ARMED","ARMOURED"]};
                 private _freshGeneration=_dangerGeneration >= 0
                     && {_reaction param [0,-2,[0]] != _dangerGeneration};
+                // A useful static mortar answers the same real, known hostile through the finite
+                // artillery mission owner. The server revalidates locality, knowledge, allegiance,
+                // ammunition, range and friendly safety; this call never fires a shell directly.
+                // Recording the generation before dispatch prevents one danger event from queuing
+                // repeatedly while the server accepts or rejects the request.
+                if (_dangerProfile == "ARTILLERY" && {_dangerHostile} && {_freshGeneration}
+                    && {_vehicle isKindOf "StaticMortar"} && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                    && {[_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {combatMode _group in ["YELLOW","RED"]}
+                    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                    && {[] call _mayIssueVehicle}) then {
+                    _state set ["vehicleDangerReaction",[_dangerGeneration,_vehicle,_dangerSource,serverTime]];
+                    _vehicle setVariable ["WAIT_Danger_VehicleReaction",[_dangerGeneration,_gunner,_dangerSource,serverTime],true];
+                    [_vehicle,+_dangerPosition,25,"HE",1,false,"DANGER",objNull,_dangerSource] call WAIT_fnc_CortexArtilleryFire;
+                };
                 if (_knownHostile && {_freshGeneration} && {!(_emplacementUnsafe || {_disabledUnsafe})}
                     && {[_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
                     && {combatMode _group in ["YELLOW","RED"]}

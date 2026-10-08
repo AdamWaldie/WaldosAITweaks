@@ -231,6 +231,10 @@ private _crewAimAdjusted={
         && {abs (getCustomAimCoef _x - (_x getVariable ["WAIT_AI_OriginalAimCoef",getCustomAimCoef _x])) > 0.01}
 } count _operatingCrew;
 private _activeAirAttacks=vehicles select {(_x getVariable ["WAIT_Cortex_AirAttackPlan",[]]) isNotEqualTo []};
+private _fireMissions=missionNamespace getVariable ["WAIT_AIPass_FireMissions",createHashMap];
+private _dangerMortarMissions=values _fireMissions select {
+    (_x getOrDefault ["purpose",""]) == "DANGER"
+};
 // Standalone driving and convoy driving deliberately have different owners. Keep this snapshot
 // bounded and on-demand so diagnostics do not turn routine vehicle safety into a global worker.
 private _drivingAssistVehicles=(vehicles select {
@@ -306,14 +310,14 @@ private _checks = [
         {_x getVariable ["WAIT_AIPass_ZeusWaypoints", false]} count _groups,
         {_x getVariable ["WAIT_AIPass_Exclude", false]} count _groups,
         missionNamespace getVariable ["WAIT_AIPass_ZeusHoldSeconds", 120]]],
-    ["ai", "cortex-support", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["artillery=%1 counterBattery=%2 serverBatteries=%3 missions=%4 radars=%5 airborne=%6 drops=%7 reactiveFlares=%8 attackRunFlares=%9 adaptiveAirAttacks=%10 activeAirAttacks=%11",
+    ["ai", "cortex-support", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["artillery=%1 counterBattery=%2 serverBatteries=%3 missions=%4 dangerMortarMissions=%12 radars=%5 airborne=%6 drops=%7 reactiveFlares=%8 attackRunFlares=%9 adaptiveAirAttacks=%10 activeAirAttacks=%11",
         missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false], missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Enable", false],
         count (missionNamespace getVariable ["WAIT_AIPass_LocalArtillery", []]), missionNamespace getVariable ["WAIT_AIPass_ArtilleryMissions", 0],
         count (missionNamespace getVariable ["WAIT_AIPass_CounterBatteryRadars", []]), missionNamespace getVariable ["WAIT_AIPass_Airborne_Enable", false],
         missionNamespace getVariable ["WAIT_AIPass_AirborneDrops", 0],
         missionNamespace getVariable ["WAIT_AIPass_AircraftFlares_Enable", true],
         missionNamespace getVariable ["WAIT_Cortex_AttackRunFlares_Enable", true],
-        missionNamespace getVariable ["WAIT_Cortex_AirAttack_Enable", true],count _activeAirAttacks]],
+        missionNamespace getVariable ["WAIT_Cortex_AirAttack_Enable", true],count _activeAirAttacks,count _dangerMortarMissions]],
     ["ai", "cortex-tuning", if (!_passEnabled) then {"DISABLED"} else {"LOADED"}, format ["profile=%1 aggression=%2 cohesion=%3 reaction=%4 artilleryRole=%5 counterBatteryMode=%6",
         [missionNamespace getVariable ["WAIT_AIPass_BehaviourProfile", ""], "FOLLOW"] select ((missionNamespace getVariable ["WAIT_AIPass_BehaviourProfile", ""]) == ""),
         missionNamespace getVariable ["WAIT_AIPass_Aggression", 1.2], missionNamespace getVariable ["WAIT_AIPass_Cohesion", 1],
