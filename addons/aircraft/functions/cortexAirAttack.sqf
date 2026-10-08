@@ -610,9 +610,13 @@ if (_stage == "ATTACK") then {
     private _operator=if (_turret isEqualTo [-1]) then {_pilot} else {_aircraft turretUnit _turret};
     private _fireTarget=_job getOrDefault ["fireTarget",_target];
     if (isNull _fireTarget) then {_fireTarget=_target};
-    // Select and acquire once at attack entry. Targeting lets the native FSM begin aligning, but
-    // weapon release remains behind the live delivery basket below.
-    if (_weapon != "") then {_aircraft selectWeaponTurret [_weapon,_turret]};
+    // Select the retained station once for this attack phase. Re-selecting it on every scheduler
+    // callback restarts native weapon handling while the pilot or gunner is still acquiring the
+    // same target, producing the observed pause/fire/pause cycle and refused releases.
+    if (_weapon != "" && {!(_job getOrDefault ["weaponSelected",false])}) then {
+        _aircraft selectWeaponTurret [_weapon,_turret];
+        _job set ["weaponSelected",true];
+    };
     if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {
         // A MOVE leg alone never asks the engine weapon FSM to prosecute the contact. Reveal only
         // the already selected hostile at attack entry, then let the retained operator and native
@@ -764,10 +768,21 @@ if (_stage == "ATTACK") then {
     // path; no projectile is created, steered or corrected here.
     private _requestAt=_job getOrDefault ["fireRequestAt",-1];
     private _requestShotBaseline=_job getOrDefault ["fireRequestShotBaseline",-1];
-    private _requestPending=_requestAt >= 0 && {_shots <= _requestShotBaseline}
-        && {serverTime < _requestAt+0.35};
+    private _requestProducedShot=_requestAt >= 0 && {_shots > _requestShotBaseline};
+    if (_requestProducedShot) then {
+        _job set ["fireRequestAttempts",0];
+    };
+    // A native doFire/fireAtTarget request is asynchronous. Give the operator three seconds to
+    // accept or refuse it instead of submitting the same command every scheduler pass. Permit at
+    // most one no-shot retry during this delivery; real Fired events reset the counter so a finite
+    // rocket ripple or gun burst can continue without command spam.
+    private _requestAttempts=_job getOrDefault ["fireRequestAttempts",0];
+    private _requestPending=_requestAt >= 0 && {!_requestProducedShot}
+        && {serverTime < _requestAt+3};
+    private _requestAvailable=_requestProducedShot || {_requestAt < 0}
+        || {!_requestPending && {_requestAttempts < 2}};
     private _pilotSurfaceRelease=_isPlane && {!_airContact} && {_turret isEqualTo [-1]};
-    if (_validSolution && {_pilotSurfaceRelease} && {!_requestPending}
+    if (_validSolution && {_pilotSurfaceRelease} && {_requestAvailable}
         && {serverTime >= (_job getOrDefault ["nextWeaponFire",0])}) then {
         // The attached DESTROY waypoint establishes the run but does not consistently ask a
         // pilot-operated fixed station to release. Request native fire once; a Fired event remains
@@ -777,6 +792,7 @@ if (_stage == "ATTACK") then {
             _deliveryAlong,_deliveryTerrainClear,waypointType [_group,currentWaypoint _group]]];
         _job set ["fireRequestAt",serverTime];
         _job set ["fireRequestShotBaseline",_shots];
+        _job set ["fireRequestAttempts",[1,_requestAttempts+1] select !_requestProducedShot];
         private _pilotFireDelay=switch _weaponClass do {
             case "GUN": {0.18+random 0.22};
             case "ROCKET": {0.5+random 0.5};
@@ -785,7 +801,7 @@ if (_stage == "ATTACK") then {
         };
         _job set ["nextWeaponFire",serverTime+_pilotFireDelay];
     };
-    if (_validSolution && {!_pilotSurfaceRelease} && {!_requestPending}
+    if (_validSolution && {!_pilotSurfaceRelease} && {_requestAvailable}
         && {serverTime >= (_job getOrDefault ["nextWeaponFire",0])}) then {
         // One native request at a time for an independently aimed turret. Fixed-wing pilots are
         // already controlled by the native attached DESTROY order above.
@@ -796,6 +812,7 @@ if (_stage == "ATTACK") then {
         if (_fired) then {
             _job set ["fireRequestAt",serverTime];
             _job set ["fireRequestShotBaseline",_shots];
+            _job set ["fireRequestAttempts",[1,_requestAttempts+1] select !_requestProducedShot];
         };
         private _fireDelay=if (!_fired) then {0.7+random 0.8} else {
             switch _weaponClass do {
@@ -897,6 +914,10 @@ switch _stage do {
             _stage="ATTACK";
             ["ATTACK"] call _setOperationPhase;
             _job set ["commandedStage",""];
+            _job set ["weaponSelected",false];
+            _job set ["fireRequestAt",-1];
+            _job set ["fireRequestShotBaseline",-1];
+            _job set ["fireRequestAttempts",0];
             _job set ["deadline",serverTime+50];
             _job set ["attackStartedAt",serverTime];
             _job set ["attackShotBaseline",_shots];
