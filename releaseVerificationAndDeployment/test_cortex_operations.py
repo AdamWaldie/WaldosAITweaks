@@ -1831,9 +1831,9 @@ class CortexOperations(unittest.TestCase):
         end=source('cortexFlankEnd')
         self.assertIn('_reason in ["STALLED","TIME_LIMIT","RECOVERY_FAILED"]',end)
         hold=end.split('if (_holdFailedBound) then {',1)[1].split('} else {',1)[0]
-        self.assertIn('_state set ["supportHeld",_held]',hold)
-        self.assertIn('_x disableAI "PATH"',hold)
-        self.assertIn('WAIT_Cortex_SupportPathHold',hold)
+        self.assertIn('doStop _x',hold)
+        self.assertNotIn('disableAI "PATH"',hold)
+        self.assertNotIn('supportHeld',hold)
         self.assertNotIn('_x doFollow',hold)
         self.assertIn('[_supportToken,_drill get "supportSequence",_reason]',end)
         maintain=source('cortexSupportMaintain')
@@ -2071,6 +2071,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('supportHeld is the ownership record',maintain)
         self.assertIn('group _x == _group',maintain)
         self.assertIn('WAIT_Cortex_SupportPathHold',maintain)
+        cover=maintain.split('if (_coordinating) then {',1)[1]
+        self.assertNotIn('disableAI "PATH"',cover)
+        self.assertNotIn('setVariable ["WAIT_Cortex_SupportPathHold",true',cover)
         restore=source('cortexRestoreCalm')
         self.assertIn('group _unit == _group',restore)
         self.assertIn('WAIT_Cortex_SupportPathHold',restore)
@@ -2228,11 +2231,11 @@ class CortexOperations(unittest.TestCase):
         enter=tick.split('private _enterContact = {',1)[1].split('};\nprivate _beginContact',1)[0]
         self.assertIn('setVariable ["WAIT_Cortex_TransitionIntent",nil,true]',enter)
 
-    def test_native_waypoint_return_uses_bounded_recovery_without_editing_waypoints(self):
+    def test_native_waypoint_return_uses_one_bounded_recovery_without_editing_waypoints(self):
         text = source('cortexFlankStep')
         guard = text.split('private _returnedToWaypoint =')[1].split('if (_now-(_last select 3) > _timeout)')[0]
         for required in ['currentWaypoint _group ==', 'isEqualTo (_waypoint select 1)',
-                         'expectedDestination _unit', '(_retry select 0) < 2',
+                         'expectedDestination _unit', '(_retry select 0) < 1',
                          '_now-(_retry select 1) >= 8']:
             self.assertIn(required, guard)
         self.assertNotIn('setWaypoint', text)
@@ -2489,29 +2492,26 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn(' reveal ', text)
         self.assertIn('private _suppressPos = +_reported;', text)
 
-    def test_moving_behaviour_override_survives_checkpoint_and_cleans_up(self):
+    def test_moving_bounds_preserve_native_combat_behaviour(self):
         step = source("cortexFlankStep")
-        self.assertIn('_unit setCombatBehaviour "AWARE"', step)
-        self.assertIn('_disabled pushBack [_unit,"AUTOCOMBAT"]', step)
-        self.assertIn('_combatBehaviours pushBack [_unit,"COMBAT","AWARE"]', step)
-        self.assertNotIn('_unit disableAI "TARGET"',step)
-        self.assertNotIn('_unit disableAI "AUTOTARGET"',step)
+        for capability in ['TARGET','AUTOTARGET','AUTOCOMBAT','PATH']:
+            self.assertNotIn(f'_unit disableAI "{capability}"',step)
+        self.assertNotIn('_unit setCombatBehaviour "AWARE"',step)
+        self.assertNotIn('_unit setDestination',step)
         self.assertIn('"restoreCombatBehaviours"', source("cortexCheckpoint"))
         for name in ["cortexFlankStep", "cortexFlankEnd", "cortexLocality"]:
             self.assertIn('behaviour _unit == _owned', source(name))
             self.assertIn('_unit setCombatBehaviour _previous', source(name))
 
-    def test_native_attack_destination_override_gets_bounded_actor_only_recovery(self):
+    def test_native_attack_is_not_fought_before_physical_no_progress(self):
         step = source("cortexFlankStep")
-        self.assertIn('currentCommand _unit == "ATTACK"', step)
-        self.assertIn('_expected distance2D _spot > 15', step)
-        self.assertIn('_expected distance2D _spot > 15 || {_pursuitResetCount > 0}', step)
-        self.assertIn('_pursuitResetCount < 2', step)
-        recovery = step.split('// Live dedicated QA proved that YELLOW', 1)[1].split('private _last =', 1)[0]
-        for order in ['_unit doTarget objNull', '_unit doWatch _enemyPos', '_unit doMove _spot',
-                      '_unit setDestination [_spot,"LEADER PLANNED",true]']:
-            self.assertIn(order, recovery)
-        self.assertNotIn('enableAttack false', recovery)
+        self.assertNotIn('currentCommand _unit == "ATTACK"', step)
+        self.assertNotIn('_unit doTarget objNull',step)
+        retry=step.split('private _retry = _retries select _forEachIndex;',1)[1].split('if (_now-(_last select 3) > _timeout)',1)[0]
+        self.assertIn('_now-(_last select 3) >= 8',retry)
+        self.assertIn('(_retry select 0) < 1',retry)
+        self.assertEqual(1,retry.count('_unit doMove'))
+        self.assertNotIn('setDestination',retry)
 
     def test_active_support_assignment_is_adopted_by_the_new_local_owner(self):
         locality=source('cortexLocality')
@@ -2524,12 +2524,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state set ["supportBoundSequence",-1]',apply)
         self.assertIn('_state set ["arrivedAt"',apply)
 
-    def test_tactical_bounds_own_actor_path_without_disabling_fire(self):
+    def test_tactical_bounds_use_one_native_destination_without_disabling_combat(self):
         step = source("cortexFlankStep")
-        self.assertGreaterEqual(step.count('setDestination ['), 3)
-        self.assertIn('_unit setDestination [_spots select _forEachIndex,"LEADER PLANNED",true]',step)
-        self.assertNotIn('_unit disableAI "TARGET"',step)
-        self.assertNotIn('_unit disableAI "AUTOTARGET"',step)
+        body=step.split('*/',1)[1]
+        issue=step.split('private _issue = {',1)[1].split('private _result =',1)[0]
+        self.assertEqual(1,issue.count('_unit doMove _spot'))
+        self.assertNotIn('setDestination [',body)
+        self.assertNotIn('doTarget objNull',body)
+        for capability in ['TARGET','AUTOTARGET','AUTOCOMBAT','PATH']:
+            self.assertNotIn(f'_unit disableAI "{capability}"',step)
 
     def test_suppressive_fire_talks_inside_squad_and_desynchronises_squads(self):
         fire = source("cortexFireControl")
@@ -2665,7 +2668,7 @@ class CortexOperations(unittest.TestCase):
     def test_bound_retry_is_finite_and_does_not_fabricate_progress(self):
         text = source('cortexFlankStep')
         retry = text.split('private _retry = _retries select _forEachIndex;')[1].split('if (_now-(_last select 3) > _timeout)')[0]
-        self.assertIn('(_retry select 0) < 2', retry)
+        self.assertIn('(_retry select 0) < 1', retry)
         self.assertIn('_now-(_retry select 1) >= 8', retry)
         self.assertIn('checkAIFeature "PATH"', retry)
         self.assertNotIn('_last set', retry)
@@ -4087,7 +4090,8 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexFlankStep')
         for feature in ['TARGET','AUTOTARGET']:
             self.assertNotIn(f'_unit disableAI "{feature}"',step)
-        self.assertIn('_unit disableAI "AUTOCOMBAT"',step)
+        self.assertNotIn('_unit disableAI "AUTOCOMBAT"',step)
+        self.assertNotIn('_unit setCombatBehaviour "AWARE"',step)
 
     def test_every_ai_setting_has_an_acceptance_case(self):
         import re, json
@@ -5025,6 +5029,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_recovery pushBack [_straggler,0,_now]',step)
         self.assertIn('Bound role complete',step)
         self.assertNotIn('setPos',step)
+        self.assertIn('_drill set ["arrivedUnits",[]]',step)
+        self.assertIn('if !(_unit in _previousArrivals) then {',step)
 
     def test_frontage_audit_measures_only_physical_halts_with_two_actor_tolerance(self):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()

@@ -10,8 +10,8 @@
  * group, or release) orders members to follow the leader again at once, unless replacement
  * orders or external ownership prohibit movement commands. A failed coordinated
  * bound instead holds its gained ground until the next server sequence; it must not regroup
- * backwards before a retry. PATH holds transfer to supportHeld and a public actor marker so the
- * new owner can release the exact Cortex-owned restriction after migration.
+ * backwards before a retry. Holding uses an ordinary stop order and never disables PATH, so a
+ * replacement mission, Zeus order or locality handover cannot inherit frozen actors.
  * The drill's type-specific cooldown starts: advances may resume sooner than wide flanks. Cleanup
  * releases a TACTICAL_DRILL movement lease only; a newer
  * withdrawal, vehicle, artillery or coordinated-assault owner survives a delayed drill callback.
@@ -86,16 +86,9 @@ _group setVariable ["WAIT_Cortex_DrillRecovery",[_reason,_stragglers,_drill getO
 if (_holdFailedBound) then {
     // A failed movement remains a failure. Preserve physical gains while the server
     // yields the turn; doFollow here creates repeated outward/return journeys.
-    private _held=_state getOrDefault ["supportHeld",[]];
     {
         doStop _x;
-        if (_x checkAIFeature "PATH") then {
-            _x disableAI "PATH";
-            _x setVariable ["WAIT_Cortex_SupportPathHold",true,true];
-            _held pushBackUnique _x;
-        };
     } forEach _members;
-    _state set ["supportHeld",_held];
 } else {
 if (_hold) then {
     private _holders = _state getOrDefault ["holders", []];

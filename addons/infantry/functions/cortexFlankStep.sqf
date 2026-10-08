@@ -10,23 +10,19 @@
  * bounds, the final position and the assault position are snapped to cover facing the enemy
  * (WAIT_fnc_CortexFindCover); street crossings and the clearing rush are not. On movement bounds, final approaches and
  * street crossings, group-level RED pursuit is replaced by a finite YELLOW lease, but individual
- * TARGET and AUTOTARGET remain enabled. Movers therefore keep acquiring and engaging visible threats
- * while their owned destination remains authoritative. Only AUTOCOMBAT is suspended so the engine
- * cannot replace the finite AWARE move with a new COMBAT movement plan. Every bound pairs doMove with an
- * actor-local LEADER PLANNED destination so the engine path planner retains the owned spot while the actor
- * continues firing. If a live ATTACK command still replaces the owned MOVE, the controller reissues the
- * same paired movement order at most twice per bound. It clears that actor's target only when the engine
- * destination has also diverged from the owned spot. This is a narrow
- * recovery for a measured engine override, not a blanket
- * targeting disable; other movers and every stationary fire element continue engaging.
+ * TARGET, AUTOTARGET and AUTOCOMBAT remain enabled. Movers therefore keep acquiring, engaging and
+ * reacting to visible threats while one committed doMove destination expresses WAIT's tactical intent.
+ * WAIT does not pair doMove with setDestination, clear native targets, or repeatedly fight a live ATTACK
+ * command. A mover is reconsidered only after measured physical no-progress; one route refresh is allowed
+ * before the actor becomes a recovery straggler and the viable element continues.
  * A RED group first receives a finite YELLOW movement lease: it remains fire-at-will, but the engine must keep
  * formation instead of creating independent ATTACK subgroups that compete with the bounds. The lease begins one
  * scheduler step before the first move, remains active for the whole manoeuvre, and is restored only if the group
  * still has the value Cortex applied. A later Zeus, waypoint or script ROE change cancels the manoeuvre and survives
  * cleanup. Movers retain automatic target acquisition and may fire while moving; the paired fire team and covering
  * squad still provide deliberate supporting fire. Movers watch the known threat direction.
- * COMBAT movers temporarily use per-unit AWARE with automatic combat switching suspended;
- * their previous behaviour is restored at halts, cancellation and ownership migration.
+ * Native COMBAT behaviour remains available throughout movement. WAIT owns route and role selection,
+ * while the engine owns moment-to-moment posture, target engagement and obstacle avoidance.
  * The manoeuvre group receives a finite FULL-speed lease so inherited NORMAL or LIMITED travel
  * does not make short tactical bounds crawl. Cleanup restores the prior speed only while Cortex
  * still owns FULL; a later Zeus or script speed change cancels the drill and survives cleanup.
@@ -34,15 +30,15 @@
  * No explicit attack target is assigned to movers, because that replaced bound destinations in live QA.
  * The lease never uses BLUE or disables firing. Same-frame BLUE/reset experiments did not reliably cancel stale
  * attack orders and briefly silenced the base of fire; they are intentionally not used.
- * Only features
- * that were on are switched off, and they are switched back on at every halt, so mission-maker
- * disableAI settings survive. A bound completes when every member is within 3 m of his spot, or after
+ * Covering and arrived actors receive doStop without disabling PATH, so the following committed move can
+ * begin immediately and external orders never inherit a frozen actor. A bound completes when every member
+ * is within 3 m of his spot, or after
  * six seconds when at least two soldiers and 60 percent of the assigned element have physically arrived.
  * A remaining soldier who is still making physical progress receives up to six additional seconds to
  * finish the bound. This short, progress-driven grace avoids turning an active mover into a recovery
  * chase while never holding the element for an actor who has actually stopped.
  * Remaining actors become bounded recovery stragglers and keep moving toward their element; they are
- * never counted as arrived or teleported. Each arrival holds PATH until the next bound, preventing formation return. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Handoffs occur as soon as physical arrival is established. WAIT_AIPass_Flank_BoundPause is an
+ * never counted as arrived or teleported. WAIT_AIPass_Flank_BoundTimeout limits stationary time; four times that value is the absolute bound limit. Stationary movement ends as STALLED; the absolute limit ends as TIME_LIMIT, never arrival. Handoffs occur as soon as physical arrival is established. WAIT_AIPass_Flank_BoundPause is an
  * optional deliberate overwatch interval (default zero), never an internal scheduling requirement.
  * Road smoke is dispatched opportunistically without holding the crossing for an animation or bloom.
  * Final, clearing and consolidation transitions use the same optional interval; coordinated bounds
@@ -75,7 +71,8 @@
  * Repeat/JIP: each job rechecks its drill token, locality and gates; completion publishes the real ending reason.
  * Every authenticated step renews its heartbeat and standalone movement lease. GroupTick ends a silent
  * controller through CortexFlankEnd, so scheduler loss cannot leave actors restricted indefinitely.
- * A stationary mover receives at most two route reissues per bound, eight seconds apart.
+ * A stationary mover receives at most one route refresh per bound after eight seconds of physical
+ * no-progress. Native ATTACK is observed for diagnostics but is never treated as an immediate failure.
  * The same bounded retries also detect a return to an unchanged original group waypoint when one
  * actually exists. Contact advances with no authored waypoint keep an empty snapshot.
  * They never change that waypoint, and the eligibility check gives Zeus priority first.
@@ -137,10 +134,8 @@ if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _e
 private _mayIssueMovement = {
     !([_group] call WAIT_fnc_CortexExternalTakeover)
 };
-// RED explicitly permits independent pursuit. That engine-owned ATTACK state replaces
-// individual doMove destinations and was the common cause of stalled bounds in live QA.
-// YELLOW preserves fire-at-will while keeping the group in formation. Give the engine one
-// scheduler step to retire its pursuit subgroups before issuing the first owned destination.
+// YELLOW preserves fire-at-will while discouraging independent RED pursuit subgroups. Give the
+// engine one scheduler step to settle the group mode before issuing the committed destination.
 private _groupModeLease = _drill getOrDefault ["groupCombatMode",[]];
 if (_groupModeLease isEqualTo [] && {combatMode _group == "RED"}) exitWith {
     _drill set ["groupCombatMode",["RED","YELLOW"]];
@@ -373,7 +368,6 @@ if (_units isEqualTo [] || {_teams isNotEqualTo [] && {count (_fit - _units) == 
 private _points = _drill get "points";
 private _now = time;
 private _restoreFeatures = {
-    params [["_keepHolds",false]];
     private _stillRecovering = (_drill getOrDefault ["recovery",[]]) apply {_x select 0};
     private _keptBehaviours = [];
     {
@@ -398,7 +392,7 @@ private _restoreFeatures = {
     private _kept = [];
     {
         _x params ["_unit", "_feature"];
-        if ((_keepHolds && {_feature == "PATH"}) || {_unit in _stillRecovering && {_feature in ["AUTOTARGET","TARGET","AUTOCOMBAT"]}}) then {_kept pushBack _x} else {
+        if (_unit in _stillRecovering && {_feature in ["AUTOTARGET","TARGET","AUTOCOMBAT"]}) then {_kept pushBack _x} else {
             if (alive _unit && {local _unit}) then {_unit enableAI _feature};
         };
     } forEach (_drill get "disabled");
@@ -417,7 +411,7 @@ private _issue = {
     private _combatBehaviours = +(_drill getOrDefault ["combatBehaviours",[]]);
     if (_teams isNotEqualTo []) then {
         {
-            if (_x checkAIFeature "PATH") then {doStop _x; _x disableAI "PATH"; _disabled pushBack [_x,"PATH"]};
+            doStop _x;
             _x doWatch _enemyPos;
         } forEach (_fit - _units);
     };
@@ -453,29 +447,12 @@ private _issue = {
             if (_cover distance2D _spot <= 2 && {_spots findIf {_cover distance2D _x < 2} < 0}) then {_spot = _cover};
         };
         _spots pushBack _spot;
-        // Keep TARGET and AUTOTARGET available. The group-level YELLOW lease prevents
-        // RED pursuit subgroups, while these features let a moving soldier continue to
-        // acquire and engage threats instead of becoming an inert path follower.
-        // Only autonomous combat movement is suspended for the finite owned move.
-        if (_unit checkAIFeature "AUTOCOMBAT") then {
-            _unit disableAI "AUTOCOMBAT";
-            _disabled pushBack [_unit,"AUTOCOMBAT"];
-        };
-        if (behaviour _unit == "COMBAT") then {
-            _combatBehaviours pushBack [_unit,"COMBAT","AWARE"];
-            _unit setCombatBehaviour "AWARE";
-        };
-        // Group YELLOW owns disengagement for the finite manoeuvre. Do not restore RED
-        // between bounds: that recreates engine ATTACK subgroups before the next move.
-        // Do not issue doFollow here. It starts native formation movement and can
-        // survive the immediate doMove, pulling this element back toward its leader.
-        // Preserve the actor's target. Clearing it every bound created a visible pause
-        // and made the movement element repeatedly reacquire the same contact.
+        // Preserve native target acquisition, autonomous combat and the actor's current behaviour.
+        // WAIT commits a route and role but leaves moment-to-moment combat to the engine.
+        // Do not issue doFollow or setDestination: either can create a second movement owner.
         if (call _mayIssueMovement) then {
-            doStop _unit;
             _unit doWatch _enemyPos;
             _unit doMove _spot;
-            _unit setDestination [_spot,"LEADER PLANNED",true];
         };
     } forEach _units;
     private _waypointIndex = currentWaypoint _group;
@@ -486,11 +463,11 @@ private _issue = {
     _drill set ["boundWaypoint",_waypointSnapshot];
     _drill set ["spots", _spots];
     _drill set ["movers", +_units];
+    _drill set ["arrivedUnits",[]];
     private _progress = [];
     {_progress pushBack [_x distance2D (_spots select _forEachIndex),_now,getPosATL _x,_now]} forEach _units;
     _drill set ["progress",_progress];
     _drill set ["retries",_units apply {[0,_now]}];
-    _drill set ["pursuitResets",_units apply {0}];
     _drill set ["disabled", _disabled];
     _drill set ["combatModes",_combatModes];
     _drill set ["combatBehaviours",_combatBehaviours];
@@ -511,43 +488,19 @@ switch (_drill get "stage") do {
         private _timeout = missionNamespace getVariable ["WAIT_AIPass_Flank_BoundTimeout",25];
         private _progress = _drill get "progress";
         private _retries = _drill getOrDefault ["retries",_movers apply {[0,_now]}];
-        private _pursuitResets = _drill getOrDefault ["pursuitResets",_movers apply {0}];
+        private _previousArrivals=_drill getOrDefault ["arrivedUnits",[]];
         {
             private _unit = _x;
             if (alive _unit && {_unit in _units}) then {
                 private _remaining = _unit distance2D (_spots select _forEachIndex);
                 if (_remaining <= 3) then {
                     _arrivedUnits pushBack _unit;
-                    if (_unit checkAIFeature "PATH") then {
+                    if !(_unit in _previousArrivals) then {
                         doStop _unit;
-                        _unit disableAI "PATH";
-                        (_drill get "disabled") pushBack [_unit,"PATH"];
                         _unit doWatch _enemyPos;
                     };
                 } else {
                     _arrived = false;
-                    private _spot = _spots select _forEachIndex;
-                    private _expected = (expectedDestination _unit) select 0;
-                    private _pursuitResetCount = _pursuitResets select _forEachIndex;
-                    // Live dedicated QA proved that YELLOW can retain a pre-existing native ATTACK
-                    // plan whose destination is hundreds of metres from the owned bound. The ATTACK
-                    // command itself is an ownership loss even before expectedDestination visibly
-                    // diverges. The first recovery is deliberately non-destructive. If the engine
-                    // immediately steals the same actor again, clear only that actor's stale target
-                    // before reasserting the finite move; this leaves the rest of the fire team free
-                    // to keep engaging while preventing an endless native ATTACK loop.
-                    if (currentCommand _unit == "ATTACK"
-                        && {_remaining > 3}
-                        && {_pursuitResetCount < 2}
-                        && {call _mayIssueMovement}) then {
-                        if (_expected distance2D _spot > 15 || {_pursuitResetCount > 0}) then {_unit doTarget objNull};
-                        _unit doWatch _enemyPos;
-                        _unit doMove _spot;
-                        _unit setDestination [_spot,"LEADER PLANNED",true];
-                        _pursuitResetCount = _pursuitResetCount + 1;
-                        _pursuitResets set [_forEachIndex,_pursuitResetCount];
-                        diag_log format ["[WAIT] Native pursuit reset group=%1 unit=%2 bound=%3 attempt=%4 expectedOffset=%5",_group,netId _unit,_drill get "index",_pursuitResetCount,_expected distance2D _spot];
-                    };
                     private _last = _progress select _forEachIndex;
                     if ((_last select 0)-_remaining >= 0.5) then {_last set [0,_remaining]; _last set [1,_now]};
                     // A valid obstacle detour can temporarily increase target distance.
@@ -564,13 +517,12 @@ switch (_drill get "stage") do {
                         && {(_waypoint select 1) distance2D (_spots select _forEachIndex) > 5}
                         && {((expectedDestination _unit) select 0) distance2D (_waypoint select 1) < 1};
                     if ((_now-(_last select 3) >= 8 || {_returnedToWaypoint}) && {_now-(_retry select 1) >= 8}
-                        && {(_retry select 0) < 2} && {_unit checkAIFeature "PATH"}
+                        && {(_retry select 0) < 1} && {_unit checkAIFeature "PATH"}
                         && {_unit checkAIFeature "MOVE"} && {call _mayIssueMovement}) then {
                         // Replan the same destination; do not move the actor or waive arrival.
-                        // Reissue only the movement destination. Target ownership is
-                        // independent and must survive a path recovery attempt.
+                        // One native route refresh is allowed only after measured no-progress.
+                        // Target and combat behaviour remain engine-owned.
                         _unit doMove (_spots select _forEachIndex);
-                        _unit setDestination [_spots select _forEachIndex,"LEADER PLANNED",true];
                         _retry set [0,(_retry select 0)+1];
                         _retry set [1,_now];
                         diag_log format ["[WAIT] Bound retry group=%1 unit=%2 bound=%3 attempt=%4 remaining=%5",_group,netId _unit,_drill get "index",_retry select 0,_remaining];
@@ -579,7 +531,7 @@ switch (_drill get "stage") do {
                 };
             };
         } forEach _movers;
-        _drill set ["pursuitResets",_pursuitResets];
+        _drill set ["arrivedUnits",_arrivedUnits];
         private _originalElement = if (_teams isEqualTo []) then {_allUnits} else {_teams select (_drill getOrDefault ["teamTurn",0])};
         // Use the live assigned movers for this bound. Casualty replacement, recovery and
         // consolidation can change the original team; a stale denominator must not hold the
@@ -640,7 +592,7 @@ switch (_drill get "stage") do {
             _result = _reason call _end;
         };
         if (_arrived) then {
-            [true] call _restoreFeatures;
+            call _restoreFeatures;
             if (_teams isNotEqualTo [] && {(_drill get "teamTurn") == 0}) then {
                 [_group,_drill,"PAUSE","FIRE_TEAM_ARRIVED"] call WAIT_fnc_CortexDrillSetStage;
                 // A separate squad already covers a coordinated bound. Avoid stacking

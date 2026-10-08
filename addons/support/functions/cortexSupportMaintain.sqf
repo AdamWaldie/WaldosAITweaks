@@ -8,11 +8,9 @@
  * Restores the recorded autonomous-attack setting when the support move is released.
  * Measures physical rally arrival in both calm and contact phases; seeing an enemy
  * does not cancel an accepted reinforcement reservation.
- * A failed bound keeps its PATH holds until a new MOVE sequence or reservation release;
- * the old MOVE role must not release them on the next group tick. A public per-actor ownership
- * marker survives HC migration and is cleared only when Cortex restores PATH.
- * A live actor-level grenade evasion temporarily outranks the covering PATH hold; the next cover
- * step reacquires that soldier only after the six-second safety move expires.
+ * A failed bound keeps its actors at the ground gained with an ordinary stop order until a new
+ * MOVE sequence or reservation release. Cover roles never disable PATH, allowing Zeus, locality
+ * handover and later operations to move an actor without first repairing hidden AI state.
  * A MOVE role which cannot form two viable local teams reports NOT_READY immediately;
  * the server can yield the turn instead of waiting for its 180-second safety timeout.
  * A server retirement is consumed only when its token matches this local assignment, then releases
@@ -167,9 +165,7 @@ private _role=_group getVariable ["WAIT_Cortex_SupportRole",[]];
 private _coordinating=(_state getOrDefault ["supportToken",""]) == _token
     && {_state getOrDefault ["assaulting",false]} && {count _role == 5} && {(_role select 0) == _token};
 private _moving=_coordinating && {(_role select 2) == "MOVE"};
-// The public actor marker is the durable ownership record. Local HashMap state disappears during
-// HC migration, while the marker follows the actor and proves that Cortex, rather than a mission
-// maker, disabled PATH. Merge both records before release so locality changes cannot strand a unit.
+// Retain cleanup for holds created by an older packaged version. New cover roles use doStop only.
 private _held=_state getOrDefault ["supportHeld",[]];
 {
     if (_x getVariable ["WAIT_Cortex_SupportPathHold",false]) then {_held pushBackUnique _x};
@@ -210,11 +206,7 @@ if (_coordinating) then {
             if (local _x && {isNull objectParent _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
                 && {_x checkAIFeature "PATH"} && {count _actorMove != 3 || {time >= (_actorMove select 2)}}) then {
                 doStop _x;
-                _x disableAI "PATH";
-                _x setVariable ["WAIT_Cortex_SupportPathHold",true,true];
-                _held pushBackUnique _x;
             };
         } forEach units _group;
-        _state set ["supportHeld",_held];
     };
 };
