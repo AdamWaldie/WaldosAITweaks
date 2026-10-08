@@ -64,8 +64,10 @@
  * tactics and expensive planning through the shared scheduler; it does not wait on another danger
  * controller or start a second movement worker.
  * Zeus always wins: a group Zeus is commanding is ineligible (WAIT_fnc_CortexZeusHeld), so it is
- * released, including WAIT garrison, defence and clear orders. Stance cleanup preserves a later
- * different externally assigned posture instead of unconditionally resetting it.
+ * released, including WAIT garrison, defence and clear orders. An authored HOLD or SENTRY waypoint
+ * also blocks every autonomous WAIT movement owner while leaving native observation, stance and
+ * fire control available. Stance cleanup preserves a later different externally assigned posture
+ * instead of unconditionally resetting it.
  * Locality and authority: runs as a scheduler job on the group owner. When the group stops being
  * local the job retires and the new owner's discovery sweep starts a fresh one.
  * A running tactical drill has a separate scheduler heartbeat. If it stays silent for 30 seconds,
@@ -442,7 +444,19 @@ if (_dangerVehicleSafety && {["WAIT_AIPass_Vehicles_Enable",true] call _get}) th
 };
 private _garrisoned = (_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo [];
 private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo [];
-private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
+// HOLD and SENTRY are concrete mission intent even when they were authored before Zeus connected
+// or created by a script rather than a curator. They may continue to observe and fire, but WAIT must
+// not replace them with investigation, reinforcement, coordinated movement, CQB entry, flank,
+// advance, assault, remount or post-contact search. WAIT-generated waypoints use distinct types and
+// descriptions, so this gate does not mistake its own finite route for external ownership.
+private _waypointIndex=currentWaypoint _group;
+private _waypointCount=count waypoints _group;
+private _authoredStationary=_waypointIndex < _waypointCount
+    && {waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]}
+    && {waypointDescription [_group,_waypointIndex] != "WAIT AI PASS"};
+private _ordered = _garrisoned || {_defending}
+    || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]}
+    || {_authoredStationary};
 // Passenger squads can hear their own vehicle crew without acquiring exact target knowledge.
 // Run this lightweight own-vehicle check at every distance tier: the far cadence is already
 // bounded, and suppressing it outside FarRange made separate passenger squads unable to react.
@@ -757,7 +771,10 @@ switch (_state get "phase") do {
             };
         };
         private _retreatStarted=false;
-        if (_outcome == "RETREAT") then {
+        // Surrender remains an immediate survival outcome, but an automatic morale withdrawal is
+        // still movement ownership. Preserve the authored stationary order and let its native fire,
+        // suppression and posture continue instead of replacing it with a WAIT fallback route.
+        if (_outcome == "RETREAT" && {!_authoredStationary}) then {
             if (_now >= (_state getOrDefault ["retreatRetryAt",0])) then {
                 switch (true) do {
                     case (_garrisoned): {[_group] call WAIT_fnc_CortexGarrisonRelease};

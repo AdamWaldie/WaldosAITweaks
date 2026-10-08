@@ -127,6 +127,60 @@ deleteVehicle _disciplineEnemy;
 deleteGroup _disciplineEnemyGroup;
 deleteVehicle _disciplineUnit;
 deleteGroup _disciplineGroup;
+
+// HOLD and SENTRY waypoints are authored stationary intent even when fire is permitted. A real
+// hostile may be engaged through native combat, but WAIT must not replace the waypoint with an
+// investigation, support rally, coordinated route, building entry, flank, advance or assault.
+private _holdGroup=createGroup [east,true];
+_holdGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_holdGroup setVariable ["acex_headless_blacklist",true,true];
+_holdGroup setCombatMode "YELLOW";
+_holdGroup setBehaviourStrong "COMBAT";
+private _holdUnits=[];
+for "_i" from 0 to 3 do {
+    private _unit=_holdGroup createUnit ["O_Soldier_F",[2340+_i*2,1350,0],[],0,"NONE"];
+    _unit allowDamage false;
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["AUTHORED HOLD %1",_i+1],true];
+    _holdUnits pushBack _unit;
+};
+private _holdOrigin=getPosATL leader _holdGroup;
+private _holdWaypoint=_holdGroup addWaypoint [_holdOrigin,0];
+_holdWaypoint setWaypointType "HOLD";
+_holdWaypoint setWaypointCombatMode "YELLOW";
+private _holdEnemyGroup=createGroup [west,true];
+_holdEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_holdEnemyGroup setVariable ["acex_headless_blacklist",true,true];
+_holdEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_holdEnemyGroup setCombatMode "BLUE";
+private _holdEnemy=_holdEnemyGroup createUnit ["B_Soldier_F",[2340,1395,0],[],0,"NONE"];
+_holdEnemy allowDamage false;
+_holdEnemy disableAI "PATH";
+_holdEnemy setDir 180;
+{_x setVariable ["WAIT_CortexQA_Shots",0]; _x addEventHandler ["Fired",{params ["_unit"]; _unit setVariable ["WAIT_CortexQA_Shots",(_unit getVariable ["WAIT_CortexQA_Shots",0])+1]}]} forEach _holdUnits;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_holdUnits+[_holdEnemy],true];
+["Danger FSM: authored HOLD permits fire without movement","Four riflemen naturally detect a close hostile while an ordinary HOLD waypoint is active. Native fire is expected, but WAIT must create no movement operation or replacement waypoint and the squad must remain around its authored position.",getPosATL _holdEnemy] call _phase;
+private _holdContact=[{
+    (_holdGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"
+        && {{_x getVariable ["WAIT_CortexQA_Shots",0]} count _holdUnits > 0}
+},35] call _wait;
+sleep 10;
+private _holdShots=0;
+{_holdShots=_holdShots+(_x getVariable ["WAIT_CortexQA_Shots",0])} forEach _holdUnits;
+private _holdTravel=0;
+{_holdTravel=_holdTravel max (_x distance2D _holdOrigin)} forEach _holdUnits;
+private _holdState=_holdGroup getVariable ["WAIT_AIPass_State",createHashMap];
+private _holdPreserved=waypointType [_holdGroup,currentWaypoint _holdGroup] == "HOLD"
+    && {(_holdGroup getVariable ["WAIT_Operation",createHashMap]) isEqualTo createHashMap}
+    && {(_holdState getOrDefault ["drill",createHashMap]) isEqualTo createHashMap}
+    && {(_holdGroup getVariable ["WAIT_Cortex_SupportResponders",[]]) isEqualTo []}
+    && {(waypoints _holdGroup) findIf {waypointDescription _x == "WAIT AI PASS"} < 0}
+    && {_holdTravel < 20};
+["DANGER-authored-HOLD-native-fire-no-WAIT-movement",_holdContact && {_holdPreserved},str [_holdShots,_holdTravel,waypointType [_holdGroup,currentWaypoint _holdGroup],_holdGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+{deleteVehicle _x} forEach _holdUnits;
+deleteVehicle _holdEnemy;
+deleteGroup _holdGroup;
+deleteGroup _holdEnemyGroup;
 [createHashMapFromArray [
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
     ["WAIT_AIPass_FireControl_Enable",false],["WAIT_AIPass_Reinforce_Enable",false],

@@ -847,6 +847,22 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state getOrDefault ["withdrawReason","MORALE_WITHDRAWAL"]',retreat)
         self.assertIn('[_group,_state,"RETREAT",_withdrawReason',retreat)
 
+    def test_authored_hold_and_sentry_block_autonomous_movement_but_not_combat(self):
+        """Stationary mission intent must gate every WAIT movement owner without disabling fire control."""
+        tick=source('cortexGroupTick')
+        for marker in [
+            'waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]',
+            'waypointDescription [_group,_waypointIndex] != "WAIT AI PASS"',
+            '|| {_authoredStationary}',
+        ]:
+            self.assertIn(marker,tick)
+        order_gate=tick.index('private _authoredStationary=')
+        self.assertLess(order_gate,tick.index('[_group,_state] call WAIT_fnc_CortexCoordinatedAssault'))
+        self.assertLess(order_gate,tick.index('call WAIT_fnc_CortexTacticalStart'))
+        self.assertLess(order_gate,tick.index('case "SECURITY":'))
+        self.assertIn('if (_outcome == "RETREAT" && {!_authoredStationary})',tick)
+        self.assertIn('if (!_holdFire && {["WAIT_AIPass_FireControl_Enable", true] call _get})',tick)
+
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
         medical=source('cortexMedicalStep')
