@@ -1,3 +1,4 @@
+/*%FSM<COMPILE "scriptedFSM.cfg, Danger">*/
 class FSM
 {
     fsmName = "WAIT engine danger response";
@@ -131,3 +132,4 @@ class FSM
     initState = "Start";
     finalStates[] = {"Finished"};
 };
+/*%FSM</COMPILE>*/

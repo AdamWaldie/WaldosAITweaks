@@ -245,6 +245,11 @@ class CortexOperations(unittest.TestCase):
         danger_cover=source('dangerCoverStep')
         danger_smoke=source('dangerSmokeStep')
         engine_fsm=(ROOT/'addons/infantry/fsm/danger.fsm').read_text()
+        # fsmDanger is loaded directly by the engine rather than through execFSM. The Arma FSM
+        # compiler requires the named scripted-FSM envelope; a bare class parses as config text
+        # during packaging but produces "FSM ... cannot be loaded" at runtime.
+        self.assertTrue(engine_fsm.startswith('/*%FSM<COMPILE "scriptedFSM.cfg, Danger">*/'))
+        self.assertTrue(engine_fsm.rstrip().endswith('/*%FSM</COMPILE>*/'))
         self.assertEqual(12,engine_fsm.count('itemno = '))
         self.assertEqual(24,engine_fsm.count('itemno='))
         self.assertEqual(12,engine_fsm.count('precondition = "";'))
