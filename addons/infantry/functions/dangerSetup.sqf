@@ -49,6 +49,7 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_ObservedContacts",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     {_x setVariable ["WAIT_Danger_EngineResponse",nil]} forEach units _group;
 };
 if (_groupHandlers isNotEqualTo []) exitWith {};
@@ -81,7 +82,7 @@ private _handler=_group addEventHandler ["EnemyDetected",{
     // reversing or zero-length approaches even though the contact cache contained the right actor.
     private _dangerPosition=_observer getHideFrom _target;
     if (_dangerPosition isNotEqualTo [0,0,0]) then {
-        [_observer,"DETECTED",_dangerPosition] call WAIT_fnc_DangerRequest;
+        [_observer,"DETECTED",_dangerPosition,_target] call WAIT_fnc_DangerRequest;
     };
 }];
 _group setVariable ["WAIT_Danger_GroupHandlers",[["EnemyDetected",_handler]]];

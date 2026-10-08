@@ -79,8 +79,51 @@ private _disciplineTransitions=(_disciplineGroup getVariable ["WAIT_Cortex_Phase
 ["DANGER-authored-hold-fire-preserved",_disciplineObserved && {combatMode _disciplineGroup == "BLUE"}
     && {_disciplineTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0},str [combatMode _disciplineGroup,_disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
 deleteVehicle _disciplineGrenade;
+// Contact awareness is still useful under an explicit hold-fire order, but it must not silently
+// become permission for WAIT fire, reinforcement, artillery or manoeuvre. Enable those gates for
+// this isolated group, expose a real hostile and require the authored BLUE order to remain in charge.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Flank_Enable",true],["WAIT_AIPass_Advance_Enable",true],
+    ["WAIT_AIPass_FireControl_Enable",true],["WAIT_AIPass_Reinforce_Enable",true],
+    ["WAIT_AIPass_ContactReports_Enable",true],["WAIT_AIPass_Artillery_Enable",true],
+    ["WAIT_AIPass_CoordinatedAssault_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+private _disciplineEnemyGroup=createGroup [west,true];
+_disciplineEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_disciplineEnemyGroup setVariable ["acex_headless_blacklist",true,true];
+_disciplineEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_disciplineEnemyGroup setCombatMode "BLUE";
+private _disciplineEnemy=_disciplineEnemyGroup createUnit ["B_Soldier_F",[2270,1375,0],[],0,"NONE"];
+_disciplineEnemy allowDamage false;
+_disciplineEnemy disableAI "PATH";
+_disciplineEnemy setDir 180;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disciplineUnit,_disciplineEnemy],true];
+["Danger FSM: known contact under authored hold fire","The soldier naturally sees a real hostile while BLUE. WAIT may record awareness and CONTACT, but must issue no fire, support, artillery or manoeuvre operation and must preserve BLUE.",getPosATL _disciplineEnemy] call _phase;
+private _disciplineKnown=[{
+    (([_disciplineGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _disciplineEnemy} >= 0
+        && {(_disciplineGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
+},20] call _wait;
+sleep 8;
+private _disciplineState=_disciplineGroup getVariable ["WAIT_AIPass_State",createHashMap];
+private _disciplineCooldowns=_disciplineState getOrDefault ["cooldowns",createHashMap];
+private _disciplineNoTactics=(_disciplineGroup getVariable ["WAIT_Operation",createHashMap]) isEqualTo createHashMap
+    && {(_disciplineGroup getVariable ["WAIT_Cortex_SupportResponders",[]]) isEqualTo []}
+    && {(_disciplineGroup getVariable ["WAIT_Cortex_CombinedRole",[]]) isEqualTo []}
+    && {!("combinedArmsDue" in _disciplineState)}
+    && {(_disciplineState getOrDefault ["reinforceRequested",0]) == 0}
+    && {!("artillery" in _disciplineCooldowns)};
+["DANGER-known-contact-hold-fire-no-tactics",_disciplineKnown && {_disciplineNoTactics}
+    && {combatMode _disciplineGroup == "BLUE"},str [combatMode _disciplineGroup,_disciplineGroup getVariable ["WAIT_Operation",createHashMap],_disciplineGroup getVariable ["WAIT_Cortex_SupportResponders",[]]]] call _check;
+deleteVehicle _disciplineEnemy;
+deleteGroup _disciplineEnemyGroup;
 deleteVehicle _disciplineUnit;
 deleteGroup _disciplineGroup;
+[createHashMapFromArray [
+    ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
+    ["WAIT_AIPass_FireControl_Enable",false],["WAIT_AIPass_Reinforce_Enable",false],
+    ["WAIT_AIPass_ContactReports_Enable",false],["WAIT_AIPass_Artillery_Enable",false],
+    ["WAIT_AIPass_CoordinatedAssault_Enable",false]
+]] call WAIT_fnc_CortexTuning;
 
 // A real same-group death must reach the native danger FSM as alerting evidence without inventing
 // an attacker or converting the surviving group into CONTACT. Morale and role replacement consume

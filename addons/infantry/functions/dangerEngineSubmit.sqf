@@ -28,6 +28,7 @@ if (isNull _group || {!local _group}
 
 private _causeNames=['DETECTED','GUNFIRE','HIT','DETECTED','EXPLOSION','CASUALTY','CASUALTY','SCREAM','DETECTED','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
+private _latestSource=createHashMap;
 private _processed=false;
 private _reflexOnly=0;
 {
@@ -40,9 +41,9 @@ private _reflexOnly=0;
             if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
             private _source=_x param [3,objNull,[objNull]];
             private _knownFriendly=!isNull _source && {(side _group) getFriend (side group _source) >= 0.6};
-            private _hostileEngage=_cause in [0,3,8]
-                && {!isNull _source} && {alive _source}
+            private _hostileSource=!isNull _source && {alive _source}
                 && {(side _group) getFriend (side group _source) < 0.6};
+            private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
             // The engine FSM has already classified concrete boarding, treatment, supply, action
@@ -53,6 +54,7 @@ private _reflexOnly=0;
             };
             if (count _position == 3 && {_groupRelevant}) then {
                 _latest set [_causeNames select _cause,+_position];
+                _latestSource set [_causeNames select _cause,[_source,objNull] select (!_hostileSource)];
             } else {
                 _reflexOnly=_reflexOnly+1;
             };
@@ -72,7 +74,7 @@ private _accepted=false;
 private _acceptedCauses=[];
 if (_groupReady) then {
     {
-        if ([_actor,_x,_latest get _x] call WAIT_fnc_DangerRequest) then {
+        if ([_actor,_x,_latest get _x,_latestSource getOrDefault [_x,objNull]] call WAIT_fnc_DangerRequest) then {
             _accepted=true;
             _acceptedCauses pushBack _x;
         };

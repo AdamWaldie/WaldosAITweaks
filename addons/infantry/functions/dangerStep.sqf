@@ -24,6 +24,7 @@ if (_yieldToOwner) exitWith {
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -35,6 +36,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -46,6 +48,7 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -65,6 +68,7 @@ if (_selected isEqualTo []) exitWith {
         if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact};
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
+        _group setVariable ["WAIT_Danger_Contact",nil,true];
         private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
         if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
         -1
@@ -72,6 +76,11 @@ if (_selected isEqualTo []) exitWith {
 };
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
+private _source=_selected param [4,objNull,[objNull]];
+if (!isNull _source && {alive _source} && {(side _group) getFriend (side group _source) < 0.6}
+    && {_actor knowsAbout _source > 0}) then {
+    _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
+};
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
 // A concrete native task is an ownership boundary, not a tactical response mode. The engine FSM may
 // record the event and perform its observation-only FORCED state, but the assessment layer must not
@@ -82,6 +91,7 @@ if (_action == "FORCED") exitWith {
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     private _forcedBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _forcedBrain > 0) then {_forcedBrain deleteAt "responsiveUntil"};
     -1

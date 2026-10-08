@@ -99,6 +99,7 @@ if (local _group) then {
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
     private _currentBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _currentBrain > 0) then {_currentBrain deleteAt "responsiveUntil"};
 };

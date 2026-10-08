@@ -126,6 +126,11 @@ _contactEnemy setDir 180;
 _contactEnemy setVariable ["WAIT_CortexQA_Label","MOUNTED DANGER HOSTILE",true];
 private _contactCrew=crew _contactVehicle;
 {_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["MOUNTED CREW %1",_forEachIndex+1],true]} forEach _contactCrew;
+_contactVehicle setVariable ["WAIT_CortexQA_DangerShots",0];
+private _contactFiredHandler=_contactVehicle addEventHandler ["Fired",{
+    params ["_vehicle"];
+    _vehicle setVariable ["WAIT_CortexQA_DangerShots",(_vehicle getVariable ["WAIT_CortexQA_DangerShots",0])+1];
+}];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactCrew+[_contactEnemy],true];
 ["Danger FSM: mounted hostile persistence","A three-person APC crew faces a real hostile at 25 metres. Native danger may persist only through the effective commander, without WAIT vehicle gunnery, target assignment or injected danger.",getPosATL _contactEnemy] call _phase;
 private _contactReady=[{
@@ -153,6 +158,21 @@ private _mountedPersistent=[{
 },30] call _wait;
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
+// Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally
+// known hostile must now cross the validated danger handoff, enter CONTACT and produce real fire;
+// the audit never reveals, assigns a target, issues a fire command or injects a group danger record.
+[createHashMapFromArray [["WAIT_AIPass_VehicleGunnery_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _mountedCombat=[{
+    (_contactCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"
+        && {(_contactVehicle getVariable ["WAIT_CortexQA_DangerShots",0]) > 0}
+        && {(crew _contactVehicle) findIf {
+            (_x getVariable ["WAIT_AIPass_VehicleTarget",objNull]) == _contactEnemy
+        } >= 0}
+},30] call _wait;
+["DANGER-VEHICLE-confirmed-contact-enters-combat",_mountedCombat,
+    str [_contactCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""],_contactVehicle getVariable ["WAIT_CortexQA_DangerShots",0],
+        _contactCrew apply {[_x,_x getVariable ["WAIT_AIPass_VehicleTarget",objNull],assignedTarget _x]}]] call _check;
+_contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
 {deleteVehicle _x} forEach (_contactCrew+[_contactEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;
 deleteGroup _contactCrewGroup;
