@@ -174,7 +174,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Selected element physically reaches successive spots; base of fire remains; a blocked bound ends STALLED without completion credit.
 
-**Automation and open work:** runCombat.sqf: runtime-20260927-130332 ordinary RED flank ended STALLED and failed moving fire. YELLOW passed physical movement, frontage and moving fire but exceeded the completion deadline. Additive independent fire-control comparisons and late-completion diagnostic saved for retest.
+**Automation and open work:** runCombat.sqf now requires the production tactical assessment to select FLANK and publish STARTED before applying its existing physical movement, firing, blocked-route, completion and interruption checks. Earlier runtime evidence remains unaccepted; exact-package retest is pending.
 
 ### CROSS - Road crossing
 
@@ -348,13 +348,13 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** After an eligible advance or flank, or immediately against an already-close fresh dismounted infantry threat, troops approach the reported objective in paired elements, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate. Vehicles, mounted crew and static weapons are refused as direct infantry clear-through objectives and remain with anti-armour, fire-control, standoff, flank or withdrawal logic. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.
 
-**Automation and open work:** runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. ASSAULT-MULTI-CONTACT requires native knowledge of both a too-close contact and a second viable contact, selects the viable target and then applies the normal physical assault checks. runFireControl.sqf adds an occupied armed-vehicle contact at 45 metres against a four-person launcher-capable squad and requires natural CONTACT with no ASSAULT drill/operation and less than 20 metres movement. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. New or changed stages await exact-package live acceptance.
+**Automation and open work:** runCombat.sqf requires the production tactical assessment to select ASSAULT and publish STARTED before actual approach proximity, physical crossing by each element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. ASSAULT-MULTI-CONTACT requires native knowledge of both a too-close contact and a second viable contact, selects the viable target and then applies the normal physical assault checks. runFireControl.sqf adds an occupied armed-vehicle contact at 45 metres against a four-person launcher-capable squad and requires natural CONTACT with no ASSAULT drill/operation and less than 20 metres movement. New or changed stages await exact-package live acceptance.
 
 ### ADVANCE - Bounding advance
 
 **Expected:** After the contact delay, a fire team physically bounds toward the waypoint while others engage; authored route survives.
 
-**Automation and open work:** runCombat.sqf COMBAT-ADVANCE-*; server completion and proximity-stop passed
+**Automation and open work:** runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. Changed assessment stage awaits exact-package live acceptance.
 
 ### COORD - Coordinated assault
 

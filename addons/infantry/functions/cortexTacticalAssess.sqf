@@ -25,6 +25,10 @@ if (isNull _group || {!local _group} || {_enemies isEqualTo []}) exitWith {_resu
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (isNull _leader || {!alive _leader}) exitWith {_result};
+if ((_state getOrDefault ["moraleState","STEADY"]) != "STEADY") exitWith {
+    _result set ["reason","MORALE_NOT_STEADY"];
+    _result
+};
 
 private _waypointIndex=currentWaypoint _group;
 private _forwardOrder=_waypointIndex < count waypoints _group
@@ -33,6 +37,12 @@ private _forwardOrder=_waypointIndex < count waypoints _group
     && {_leader distance2D waypointPosition [_group,_waypointIndex] > 80};
 private _foot=(units _group) select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {isNull objectParent _x}
+};
+private _armedFoot=_foot select {primaryWeapon _x != ""};
+if (count _armedFoot < 2) exitWith {
+    _result set ["reason","INSUFFICIENT_FIREPOWER"];
+    _result set ["evidence",[count _foot,count _armedFoot]];
+    _result
 };
 private _capableAT=_foot findIf {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
 private _houses=(getPosATL _leader) getEnvSoundController "houses";
@@ -77,7 +87,7 @@ private _closePosition=_manoeuvre findIf {
         && {(_record param [3,1e9,[0]]) >= 12}
         && {(_record param [3,1e9,[0]]) <= _closeRange}
 };
-if (_assaultEnabled && {_closePosition >= 0} && {count _foot >= 4}) then {
+if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
     _selected=_manoeuvre select _closePosition;
     _intent="ASSAULT";
     _reason="FRESH_CLOSE_INFANTRY";
@@ -106,17 +116,23 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _foot >= 4}) then {
                 (_record param [3,0,[0]]) >= 60 && {(_record param [2,1e9,[0]]) <= 10}
             };
             if (_freshPosition >= 0) then {_selected=_manoeuvre select _freshPosition};
-            if (_fortifiedIndex >= 0 && {_flankEnabled}) then {
-                _selected=_fortifiedIndex;
-                _intent="FLANK";
-                _reason="FORTIFIED_OR_DISTANT_CONTACT";
-                _candidates=["FLANK"];
-                if (_advanceEnabled) then {_candidates pushBack "ADVANCE"};
-            } else {
-                if (_elevatedIndex >= 0 && {_flankEnabled}) then {
-                    _selected=_elevatedIndex;
+            if (_elevatedIndex >= 0) then {
+                _selected=_elevatedIndex;
+                if (_flankEnabled && {_concealment >= 0.45}) then {
                     _intent="FLANK";
-                    _reason="ELEVATED_EXPOSED_CONTACT";
+                    _reason="CONCEALED_ELEVATED_APPROACH";
+                    _candidates=["FLANK"];
+                    if (_advanceEnabled) then {_candidates pushBack "ADVANCE"};
+                } else {
+                    // An exposed uphill rush is worse than retaining cover and native suppression.
+                    // Fire control and support discovery continue because HOLD takes no ownership.
+                    _reason="ELEVATED_FIRE_POSITION";
+                };
+            } else {
+                if (_fortifiedIndex >= 0 && {_flankEnabled}) then {
+                    _selected=_fortifiedIndex;
+                    _intent="FLANK";
+                    _reason="FORTIFIED_OR_DISTANT_CONTACT";
                     _candidates=["FLANK"];
                     if (_advanceEnabled) then {_candidates pushBack "ADVANCE"};
                 } else {
@@ -150,5 +166,5 @@ _result set ["intent",_intent];
 _result set ["reason",_reason];
 _result set ["targetIndex",_selected];
 _result set ["candidates",_candidates];
-_result set ["evidence",[count _foot,_capableAT,_concealment,_armourIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
+_result set ["evidence",[count _foot,count _armedFoot,_capableAT,_concealment,_armourIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
 _result

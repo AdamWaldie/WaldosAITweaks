@@ -128,13 +128,17 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     if (_advance) then {{_x enableAI "PATH"} forEach _members};
     diag_log format ["WAIT CORTEX QA COMBAT START CONDITIONS: case=%1 leader=%2 waypoint=%3 remaining=%4 knowledge=%5",_case,getPosATL leader _group,currentWaypoint _group,leader _group distance2D waypointPosition [_group,currentWaypoint _group],[_group] call WAIT_fnc_CortexKnowledge];
     private _started = [{count ((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) > 0},70] call _wait;
+    private _assessment=_group getVariable ["WAIT_Cortex_TacticalAssessment",[]];
     private _startRefusal=[
         _group getVariable ["WAIT_Cortex_FlankRefusal",[]],
         _group getVariable ["WAIT_Cortex_AdvanceRefusal",[]],
         (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
-        [_group] call WAIT_fnc_CortexKnowledge
+        [_group] call WAIT_fnc_CortexKnowledge,
+        _assessment
     ];
     [_prefix+"-started",_started,str _startRefusal] call _check;
+    [_prefix+"-assessment-selected-intent",_started && {count _assessment >= 6}
+        && {(_assessment select 0) == _mode} && {(_assessment select 5) == "STARTED"},str _assessment] call _check;
     private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
     private _drillToken = _drill getOrDefault ["token",""];
     if (_case == "ASSAULT-MULTI-CONTACT") then {
