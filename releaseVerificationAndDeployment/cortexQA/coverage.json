@@ -1089,7 +1089,7 @@
         "runtime-20260927-142945 stages the new Advance/Flank approach, grenade hold, 20 m clear-through and flank support consolidation. Live outcomes pending; no acceptance from static checks.",
         "Runtime 200043: focused ADVANCE-GRENADE completed 38 checks with zero findings and zero SQF errors, including actual grenade, physical clear-through by both elements and fire while moving. Single server-owner run; wider variants remain pending."
       ],
-      "automation": "runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. All new stages await live acceptance in runtime 142945.",
+      "automation": "runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. ASSAULT-MULTI-CONTACT requires native knowledge of both a too-close contact and a second viable contact, selects the viable target and then applies the normal physical assault checks. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. New or changed stages await exact-package live acceptance.",
       "executable_sources": [
         "runCombat.sqf"
       ],

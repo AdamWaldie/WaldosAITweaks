@@ -8,7 +8,7 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACombat.sqf";
  */
 params ["_check","_phase","_wait"];
-private _cases = ["ASSAULT-CLOSE","FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE","FLANK-YELLOW","FLANK-AWARE","ADVANCE-AWARE","FLANK","ADVANCE","ADVANCE-YELLOW","ADVANCE-CLOSE","ADVANCE-DISTANT","FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-BLOCKED","ADVANCE-BLOCKED","FLANK-GRENADE","FLANK-ZEUS-CONSOLIDATE","ADVANCE-GRENADE"];
+private _cases = ["ASSAULT-CLOSE","ASSAULT-MULTI-CONTACT","FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE","FLANK-YELLOW","FLANK-AWARE","ADVANCE-AWARE","FLANK","ADVANCE","ADVANCE-YELLOW","ADVANCE-CLOSE","ADVANCE-DISTANT","FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-BLOCKED","ADVANCE-BLOCKED","FLANK-GRENADE","FLANK-ZEUS-CONSOLIDATE","ADVANCE-GRENADE"];
 private _selected = missionNamespace getVariable ["WAIT_CortexQA_CombatCase",""];
 if (_selected != "" && {!(_selected in _cases)}) exitWith {["COMBAT-invalid-case",false,_selected] call _check};
 if (_selected != "") then {_cases = [_selected]};
@@ -17,9 +17,9 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     private _case = _x;
     private _blockage = _case in ["FLANK-BLOCKED","ADVANCE-BLOCKED"];
     private _handover = _case in ["FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-ZEUS-CONSOLIDATE"];
-    private _directAssault=_case == "ASSAULT-CLOSE";
+    private _directAssault=_case in ["ASSAULT-CLOSE","ASSAULT-MULTI-CONTACT"];
     private _mode = if (_directAssault) then {"ASSAULT"} else {if ((_case find "FLANK") == 0) then {"FLANK"} else {"ADVANCE"}};
-    private _enemyPosition = [1200,switch (_case) do {case "ASSAULT-CLOSE": {1250}; case "ADVANCE-YELLOW": {1450}; case "ADVANCE-AWARE": {1450}; case "ADVANCE-BLOCKED": {1450}; case "ADVANCE-ZEUS": {1450}; case "ADVANCE": {1450}; case "ADVANCE-DISTANT": {1550}; default {1350}},0];
+    private _enemyPosition = [1200,switch (_case) do {case "ASSAULT-CLOSE": {1250}; case "ASSAULT-MULTI-CONTACT": {1250}; case "ADVANCE-YELLOW": {1450}; case "ADVANCE-AWARE": {1450}; case "ADVANCE-BLOCKED": {1450}; case "ADVANCE-ZEUS": {1450}; case "ADVANCE": {1450}; case "ADVANCE-DISTANT": {1550}; default {1350}},0];
     private _advance = _mode == "ADVANCE";
     private _group = createGroup [east,true];
     private _enemyGroup = createGroup [west,true];
@@ -63,7 +63,12 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     missionNamespace setVariable ["WAIT_CortexQA_Combat",[_group,_case,"WAITING FOR CONTACT",[],[],[],_enemyPosition,-1,[]],true];
     private _enemies = [];
     for "_i" from 0 to 1 do {
-        private _enemy = _enemyGroup createUnit ["B_Soldier_F",(_enemyPosition vectorAdd [_i*8,0,0]),[],0,"NONE"];
+        private _spawnPosition=if (_case == "ASSAULT-MULTI-CONTACT" && {_i == 0}) then {
+            [1200,1208,0]
+        } else {
+            _enemyPosition vectorAdd [_i*8,0,0]
+        };
+        private _enemy = _enemyGroup createUnit ["B_Soldier_F",_spawnPosition,[],0,"NONE"];
         _enemy allowDamage false;
         _enemy disableAI "PATH";
         _enemy setVariable ["acex_headless_blacklist",true,true];
@@ -108,6 +113,14 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     [_prefix+"-tactical-range",_nearestPlayer <= (missionNamespace getVariable ["WAIT_AIPass_FarRange",2500]),format ["nearestPlayer=%1 farRange=%2",_nearestPlayer,missionNamespace getVariable ["WAIT_AIPass_FarRange",2500]]] call _check;
     private _contact = [{((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase",""]) == "CONTACT"},60] call _wait;
     [_prefix+"-contact",_contact] call _check;
+    if (_case == "ASSAULT-MULTI-CONTACT") then {
+        private _liveKnowledge=[_group] call WAIT_fnc_CortexKnowledge;
+        private _nearestDistance=if (_liveKnowledge isEqualTo []) then {1e9} else {(_liveKnowledge select 0) select 3};
+        private _viableIndex=_liveKnowledge findIf {
+            (_x select 2) <= 10 && {(_x select 3) >= 12} && {(_x select 3) <= 60}
+        };
+        [_prefix+"-native-mixed-range-knowledge",_nearestDistance < 12 && {_viableIndex > 0},str _liveKnowledge] call _check;
+    };
     if (!_contact) then {
         private _diagnosticState=_group getVariable ["WAIT_AIPass_State",createHashMap];
         diag_log format ["WAIT CORTEX QA CONTACT PREREQUISITE: case=%1 owner=%2 local=%3 eligible=%4 phase=%5 hold=%6 waypointsHeld=%7 knowledge=%8",_case,groupOwner _group,local _group,[_group] call WAIT_fnc_CortexIsEligible,_diagnosticState getOrDefault ["phase","NO STATE"],_group getVariable ["WAIT_AIPass_ZeusHold",[]],_group getVariable ["WAIT_AIPass_ZeusWaypoints",false],[_group] call WAIT_fnc_CortexKnowledge];
@@ -124,6 +137,10 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     [_prefix+"-started",_started,str _startRefusal] call _check;
     private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
     private _drillToken = _drill getOrDefault ["token",""];
+    if (_case == "ASSAULT-MULTI-CONTACT") then {
+        [_prefix+"-viable-contact-selected",_started && {(_drill getOrDefault ["target",objNull]) == (_enemies select 1)},
+            str [_drill getOrDefault ["target",objNull],_enemies]] call _check;
+    };
     if (_case == "ADVANCE-GRENADE" && {_started}) then {
         private _teams = _drill getOrDefault ["teams",[]];
         if (count _teams == 2 && {(_teams select 0) isNotEqualTo []}) then {

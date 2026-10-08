@@ -2723,8 +2723,15 @@ class CortexOperations(unittest.TestCase):
         assault=source('cortexAssaultStart')
         coordinated=source('cortexCoordinatedAssault')
         self.assertIn('call WAIT_fnc_CortexAssaultStart',selector)
-        self.assertIn('(_enemies select 0) select 3) <= _closeRange',selector)
-        self.assertIn('(_enemies select 0) select 2) <= 10',selector)
+        self.assertIn('private _assaultIndex=_enemies findIf',selector)
+        self.assertIn('_distance >= 12',selector)
+        self.assertIn('_distance <= _closeRange',selector)
+        self.assertIn('private _advanceIndex=_enemies findIf',selector)
+        self.assertIn('_distance >= 60',selector)
+        self.assertIn('[_enemies,_assaultIndex] call _prioritiseContact',selector)
+        self.assertIn('[_enemies,_advanceIndex] call _prioritiseContact',selector)
+        self.assertIn('[_group,_state,_assaultEnemies] call WAIT_fnc_CortexAssaultStart',selector)
+        self.assertEqual(2,selector.count('[_group, _state, _advanceEnemies] call WAIT_fnc_CortexAdvanceStart'))
         self.assertIn('private _hasForwardOrder = _waypointIndex < count waypoints _group',selector)
         self.assertIn('private _preferFlank = _flankEnabled && {!_advanceEnabled || {!_hasForwardOrder}}',selector)
         self.assertIn('if (!_started && {_advanceEnabled})',selector)
@@ -5664,6 +5671,15 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_AdvanceRefusal',text)
         self.assertIn('getOrDefault ["movementLease",[]]',text)
         self.assertIn('[_prefix+"-started",_started,str _startRefusal]',text)
+
+    def test_combat_audit_proves_action_specific_contact_selection(self):
+        text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
+        self.assertIn('"ASSAULT-MULTI-CONTACT"',text)
+        self.assertIn('[_group] call WAIT_fnc_CortexKnowledge',text)
+        self.assertIn('_nearestDistance < 12 && {_viableIndex > 0}',text)
+        self.assertIn('-viable-contact-selected',text)
+        self.assertIn('(_drill getOrDefault ["target",objNull]) == (_enemies select 1)',text)
+        self.assertNotIn('reveal [',text)
 
     def test_calm_cleanup_retires_onboard_contact_deadline(self):
         text=source('cortexRestoreCalm')

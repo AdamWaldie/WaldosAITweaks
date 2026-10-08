@@ -348,7 +348,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** After an eligible advance or flank, or immediately against an already-close fresh threat, troops approach the reported objective in paired elements, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.
 
-**Automation and open work:** runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. All new stages await live acceptance in runtime 142945.
+**Automation and open work:** runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. ASSAULT-MULTI-CONTACT requires native knowledge of both a too-close contact and a second viable contact, selects the viable target and then applies the normal physical assault checks. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. New or changed stages await exact-package live acceptance.
 
 ### ADVANCE - Bounding advance
 
