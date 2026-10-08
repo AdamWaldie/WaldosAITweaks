@@ -812,6 +812,72 @@ for "_sample" from 1 to 15 do {
 };
 ["TRANS-no-old-search-order-resurrection",_heldDestination,format ["maximumDistance=%1",_largestReturnDistance]] call _check;
 
+// An empty static weapon is an actor-level support opportunity inside the same contact brain. The
+// fixture first proves the disabled state, then enables the production gate and requires a real
+// gunner-seat occupation plus real fire from the emplacement and another squad member. No moveIn,
+// reveal, assigned target or audit callback is used. Removing the hostile must release the exact
+// assignment without holding the rest of the squad in CONTACT.
+private _staticGroup=createGroup [east,true];
+private _staticOpposition=createGroup [west,true];
+{
+    _x setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _x setVariable ["acex_headless_blacklist",true,true];
+} forEach [_staticGroup,_staticOpposition];
+_staticOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
+_staticGroup setCombatMode "RED";
+private _staticUnits=[];
+for "_i" from 0 to 3 do {
+    private _unit=_staticGroup createUnit ["O_Soldier_F",[2580+(_i mod 2)*3,1360+floor (_i/2)*3,0],[],0,"NONE"];
+    _unit setDir 0;
+    _unit allowDamage false;
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["STATIC SUPPORT %1",_i+1],true];
+    _unit setVariable ["WAIT_CortexQA_Shots",0];
+    _unit addEventHandler ["FiredMan",{params ["_unit"]; _unit setVariable ["WAIT_CortexQA_Shots",(_unit getVariable ["WAIT_CortexQA_Shots",0])+1]}];
+    _staticUnits pushBack _unit;
+};
+private _staticWeapon=createVehicle ["O_HMG_01_F",[2588,1365,0],[],0,"NONE"];
+_staticWeapon allowDamage false;
+_staticWeapon setDir 0;
+_staticWeapon setVariable ["WAIT_CortexQA_Shots",0];
+_staticWeapon addEventHandler ["Fired",{params ["_weapon"]; _weapon setVariable ["WAIT_CortexQA_Shots",(_weapon getVariable ["WAIT_CortexQA_Shots",0])+1]}];
+private _staticEnemy=_staticOpposition createUnit ["B_Soldier_F",[2588,1460,0],[],0,"NONE"];
+_staticEnemy allowDamage false;
+_staticEnemy disableAI "PATH";
+_staticEnemy setDir 180;
+_staticEnemy setVariable ["acex_headless_blacklist",true,true];
+_staticEnemy setVariable ["WAIT_CortexQA_Label","STATIC SUPPORT TARGET",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_staticUnits+[_staticWeapon,_staticEnemy],true];
+[createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",false]]] call WAIT_fnc_CortexTuning;
+["Danger tactics: nearby static disabled","The squad must naturally contact the target but leave the nearby empty HMG unassigned while the feature is disabled.",getPosATL _staticWeapon] call _phase;
+private _staticContact=[{(([_staticGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _staticEnemy} >= 0},30] call _wait;
+sleep 6;
+private _staticDisabled=gunner _staticWeapon isEqualTo objNull
+    && {(_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]) isEqualTo []};
+["DANGER-static-support-disabled",_staticContact && {_staticDisabled},str [gunner _staticWeapon,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+[createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",true]]] call WAIT_fnc_CortexTuning;
+// The disabled path does not consume the contact episode's single attempt. Opening the live gate
+// therefore exercises production selection during the same natural contact without assigning a
+// phase, revealing a target or invoking a production callback from the audit.
+private _staticOccupied=[{!isNull gunner _staticWeapon && {gunner _staticWeapon in _staticUnits}},35] call _wait;
+private _staticGunner=gunner _staticWeapon;
+private _staticFired=[{(_staticWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0},30] call _wait;
+private _staticSquadFired=[{
+    _staticUnits findIf {_x != _staticGunner && {(_x getVariable ["WAIT_CortexQA_Shots",0]) > 0}} >= 0
+},30] call _wait;
+["DANGER-static-support-physical-seat",_staticOccupied,str [_staticGunner,assignedVehicle _staticGunner,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+["DANGER-static-support-composable-fire",_staticOccupied && {_staticFired} && {_staticSquadFired},str [_staticWeapon getVariable ["WAIT_CortexQA_Shots",0],_staticUnits apply {_x getVariable ["WAIT_CortexQA_Shots",0]}]] call _check;
+deleteVehicle _staticEnemy;
+private _staticReleased=[{
+    (_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]) isEqualTo []
+        && {isNull assignedVehicle _staticGunner}
+        && {vehicle _staticGunner == _staticGunner}
+},75] call _wait;
+["DANGER-static-support-contact-cleanup",_staticOccupied && {_staticReleased},str [vehicle _staticGunner,assignedVehicle _staticGunner,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+{deleteVehicle _x} forEach (_staticUnits+[_staticWeapon]);
+deleteGroup _staticGroup;
+deleteGroup _staticOpposition;
+
 sleep 8;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach (_units+[_enemy]+_walls);

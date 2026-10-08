@@ -751,6 +751,14 @@ switch (_state get "phase") do {
             };
         };
         if (_retreatStarted) exitWith {};
+        // A useful empty emplacement is an actor-level support opportunity, not a competing group
+        // operation. One nonleader may take its real gunner seat while the remaining squad retains
+        // fire, manoeuvre and casualty decisions. The helper samples only once per contact episode.
+        if (_hasTargetKnowledge && {!_holdFire}) then {
+            [_group,_state,_enemies] call WAIT_fnc_CortexStaticSupport;
+        } else {
+            [_group,_state,[]] call WAIT_fnc_CortexStaticSupport;
+        };
         _state set ["armourSeen", (_state getOrDefault ["armourSeen", false]) || {_enemies findIf {
             private _enemy = vehicle (_x select 0);
             (_enemy isKindOf "Tank" || {_enemy isKindOf "Wheeled_APC_F"}) && {(_x select 2) <= 60} && {(_x select 3) <= 800}

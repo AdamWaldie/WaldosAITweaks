@@ -553,6 +553,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('boundedRecycleEnds=%18',diagnostics)
         self.assertIn('lastRecycleCycles=%19',diagnostics)
         self.assertIn('_dangerEngineBoundedEnds',diagnostics)
+
         contact_audit=(ROOT/'releaseVerificationAndDeployment'/'cortexQA'/'runContact.sqf').read_text(encoding='utf-8')
         self.assertIn('"BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])',contact_audit)
         self.assertIn('DANGER-other-body-distinct-alert',contact_audit)
@@ -644,6 +645,36 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('COMPAT-exclusive-danger-fsm-',compatibility_audit)
         self.assertIn('find "\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm"',compatibility_audit)
         self.assertNotIn('find "\\\\z\\\\waldo_ai_tweaks',compatibility_audit)
+
+    def test_danger_static_support_is_one_actor_and_one_attempt_per_contact(self):
+        support=source('cortexStaticSupport')
+        group_tick=source('cortexGroupTick')
+        restore=source('cortexRestoreCalm')
+        for marker in [
+            'WAIT_AIPass_StaticSupport_Enable','nearestObjects [_anchor,["StaticWeapon"],75,true]',
+            'crew _x isEqualTo []','canFire _x','someAmmo _x','_x != leader _group',
+            'assignAsGunner _weapon','orderGetIn true','WAIT_Danger_StaticAttempt',
+            'WAIT_Cortex_ActorMove",["STATIC_SUPPORT"','time+20'
+        ]:
+            self.assertIn(marker,support)
+        self.assertIn('count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',support)
+        self.assertIn('failed or unsuitable attempts are not retried until a later contact',support)
+        self.assertNotIn('moveInGunner',support)
+        self.assertNotIn('setPos',support)
+        self.assertNotIn('allowDamage',support)
+        self.assertIn('call WAIT_fnc_CortexStaticSupport',group_tick)
+        self.assertLess(group_tick.index('call WAIT_fnc_CortexStaticSupport'),group_tick.index('call WAIT_fnc_CortexTacticalStart'))
+        for marker in ['WAIT_Danger_StaticSupport','orderGetIn false','unassignVehicle','_yieldToExternal']:
+            self.assertIn(marker,restore)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        for marker in [
+            'DANGER-static-support-disabled','DANGER-static-support-physical-seat',
+            'DANGER-static-support-composable-fire','DANGER-static-support-contact-cleanup',
+            'gunner _staticWeapon','WAIT_CortexQA_Shots'
+        ]:
+            self.assertIn(marker,audit)
+        for forbidden in ['moveInGunner','call WAIT_fnc_CortexStaticSupport','call WAIT_fnc_CortexRestoreCalm']:
+            self.assertNotIn(forbidden,audit)
 
     def test_danger_action_owns_posture_without_owning_movement(self):
         reaction=source('dangerReact')

@@ -159,6 +159,13 @@ explosion or suppression response, one eligible local soldier may queue one carr
 generation lease and 45-second group cooldown prevent a burst from consuming the squad's smoke.
 The operation does not wait for the throw, and the next-frame weapon release rechecks the setting,
 danger generation, Zeus state and specialist ownership.
+`WAIT_AIPass_StaticSupport_Enable` is a next-operation control, default true. On confirmed contact,
+the existing group brain samples at most 75 metres once per contact episode for a live, armed,
+simulation-enabled, empty friendly static weapon. One uncommitted nonleader receives a real gunner
+assignment and a twenty-second physical boarding window. The group does not wait: its remaining
+actors retain fire, manoeuvre, casualty replacement and withdrawal. Failure is recorded without a
+retry during that contact. CONTACT cleanup cancels only the exact WAIT assignment; Zeus or another
+external owner causes a command-free handover. WAIT never teleports an actor into the seat.
 Arma loads WAIT's bounded danger FSM for the three soldier base classes. The engine supplies immediate cause,
 position, expiry, source and queued records; WAIT maps those into detected enemy, gunfire, hit, explosion,
 suppression, casualty and scream observations. One owner-local EnemyDetected observer separately retains only

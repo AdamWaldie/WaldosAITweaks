@@ -121,6 +121,19 @@ if (!_yieldToExternal && {count _retreatModeLease == 2} && {combatMode _group ==
         _x setVariable ["WAIT_Cortex_ActorMove",nil];
     };
 } forEach units _group;
+private _staticSupport=_group getVariable ["WAIT_Danger_StaticSupport",[]];
+if (count _staticSupport >= 7) then {
+    private _staticActor=_staticSupport param [1,objNull,[objNull]];
+    private _staticWeapon=_staticSupport param [2,objNull,[objNull]];
+    if (!_yieldToExternal && {!isNull _staticActor} && {alive _staticActor} && {local _staticActor}
+        && {!isNull _staticWeapon} && {assignedVehicle _staticActor == _staticWeapon}) then {
+        [_staticActor] orderGetIn false;
+        unassignVehicle _staticActor;
+        if (vehicle _staticActor == _staticWeapon) then {_staticActor action ["GetOut",_staticWeapon]};
+    };
+};
+_group setVariable ["WAIT_Danger_StaticSupport",nil,true];
+_group setVariable ["WAIT_Danger_StaticAttempt",nil,true];
 if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {behaviour _leader in ["COMBAT", "AWARE"]}) then {
     private _base = _state getOrDefault ["baseBehaviour", "AWARE"];
     // After a real firefight a squad stays alert rather than slinging weapons, as the engine does.

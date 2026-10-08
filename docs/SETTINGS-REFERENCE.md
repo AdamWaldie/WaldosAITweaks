@@ -74,6 +74,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_FireControl_Enable` | Fire control | CHECKBOX | true | [] | NEXT_OPERATION | Close threats first, spread fire across visible enemies, and alternate suppression inside each squad. A short random delay keeps separate squads from firing in lockstep; every ordered burst checks for friendlies. |
 | `WAIT_AIPass_GrenadeEvasion_Enable` | Grenade evasion | CHECKBOX | true | [] | LIVE | AI move away from a live grenade they can see. Test before live use. |
 | `WAIT_AIPass_AntiArmour_Enable` | Anti-armour | CHECKBOX | true | [] | NEXT_OPERATION | The best anti-tank gunner engages known armour, clear of backblast. |
+| `WAIT_AIPass_StaticSupport_Enable` | Use nearby static weapons | CHECKBOX | true | [] | NEXT_OPERATION | During confirmed contact, one uncommitted nonleader may physically occupy a nearby empty friendly static weapon. The squad does not wait for the mount and a failed attempt is not retried during the same contact. |
 | `WAIT_AIPass_FireControl_MaxShootersPerTarget` | Shooters per target | SLIDER | 2 | [1, 12, 0] | NEXT_OPERATION | Extra shooters prefer another visible enemy once this many soldiers are assigned to one target. Immediate close threats still take priority. |
 | `WAIT_AIPass_FireControl_MaxSuppressors` | Simultaneous suppressors | SLIDER | 2 | [1, 8, 0] | NEXT_OPERATION | Maximum soldiers assigned suppression simultaneously. |
 

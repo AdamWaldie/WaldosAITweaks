@@ -366,6 +366,7 @@ private _featureNotes=createHashMapFromArray [
     ["Surrender","Requires broken isolated survivors and surrender enabled; check captive state and real weapon removal. ACE captivity is optional."],
     ["GrenadeEvasion","Requires a qualifying live projectile and eligible observer. Check projectile handler, movement ownership and evasion release."],
     ["AntiArmour","Requires a known armoured threat, capable launcher/ammunition and clear backblast; targeting alone does not prove firing."],
+    ["StaticSupport","Requires confirmed contact, an empty useful friendly emplacement within 75 m and one uncommitted nonleader. Inspect physical gunner-seat occupation, one-attempt status and continued movement by the rest of the squad."],
     ["Vehicles","Inspect crew versus passengers, vehicle mobility and contact. Separate cargo squads retain their own order authority."],
     ["ContactReports","Requires a deliverable report; jamming/voice range and freshness can prevent delivery. A radio inventory item is not required."],
     ["Reinforce","Requires an eligible idle helper and a report/request; inspect reservation, responding state and physical approach."],
