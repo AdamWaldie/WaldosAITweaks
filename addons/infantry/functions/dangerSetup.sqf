@@ -50,6 +50,7 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     {_x setVariable ["WAIT_Danger_EngineResponse",nil]} forEach units _group;
 };
 if (_groupHandlers isNotEqualTo []) exitWith {};

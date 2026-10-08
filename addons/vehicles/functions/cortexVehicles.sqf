@@ -188,10 +188,12 @@ private _dismountAtThreat = {
     };
 } forEach _vehicles;
 private _dangerDismount=_state getOrDefault ["dangerDismount",[]];
-if (count _dangerDismount == 2) then {
-    _dangerDismount params ["_dangerPosition","_dangerExpiry"];
+if (count _dangerDismount in [2,3]) then {
+    _dangerDismount params ["_dangerPosition","_dangerExpiry",["_dangerProfile","TRANSPORT",[""]]];
     if (time < _dangerExpiry) then {
-        {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _vehicles;
+        if (_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]) then {
+            {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _vehicles;
+        };
     } else {
         _state deleteAt "dangerDismount";
     };

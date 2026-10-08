@@ -194,17 +194,28 @@ if (count _dangerResponse == 5) then {
         // A mounted group may know that its vehicle has been hit before the engine identifies a
         // shooter. Preserve that distinction: this lease permits only the existing stop-and-exit
         // handshake. Target selection, withdrawal and manoeuvre still require native knowledge.
+        private _vehicleContext=_group getVariable ["WAIT_Danger_VehicleContext",[]];
+        private _vehicleProfile=if (count _vehicleContext == 7
+            && {(_vehicleContext select 6) == _dangerGeneration}
+            && {time < (_vehicleContext select 5)}) then {_vehicleContext select 0} else {""};
+        _state set ["dangerVehicleProfile",_vehicleProfile];
+        // A transport or fighting vehicle can move its passengers into the fight without ejecting
+        // operating crew. Aircraft, batteries and static weapons remain with their dedicated owner;
+        // a generic danger callback cannot turn them into an infantry dismount operation.
         if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]
-            && {(units _group) findIf {alive _x && {!isNull objectParent _x}} >= 0}) then {
-            _state set ["dangerDismount",[+_dangerPosition,time+30]];
+            && {_vehicleProfile in ["TRANSPORT","ARMED","ARMOURED"]}) then {
+            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile]];
         };
     } else {
         _state deleteAt "dangerResponse";
+        _state deleteAt "dangerVehicleProfile";
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
+        _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     };
 } else {
     _state deleteAt "dangerResponse";
+    _state deleteAt "dangerVehicleProfile";
 };
 // The engine FSM owns the immediate posture. This already-budgeted group step may additionally
 // move one idle exposed actor into nearby physical cover. The helper refuses every active operation,

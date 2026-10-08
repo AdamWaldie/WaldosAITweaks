@@ -85,6 +85,11 @@ _stats set ["modes",_modes];
 _stats set ["lastMode",_mode];
 _stats set ["lastActor",_actor];
 _stats set ["lastActionAt",time];
+if (_mode == "VEHICLE") then {
+    // Preserve the domain distinction at the engine boundary. The FSM still owns no movement:
+    // group, vehicle, aircraft and support controllers consume the matching bounded handoff.
+    _stats set ["lastVehicleProfile",[_actor] call WAIT_fnc_DangerVehicleProfile];
+};
 _group setVariable ["WAIT_Danger_EngineStats",_stats];
 _actor setVariable ["WAIT_Danger_EngineResponse",[_mode,_cause,time,time+_delay]];
 _delay

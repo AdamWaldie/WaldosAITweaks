@@ -170,10 +170,15 @@ private _mountedPersistent=[{
 ["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {
         private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
         private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
+        private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
         count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
             && {_action param [0,""] == "VEHICLE"}
+            && {count _vehicleContext == 7}
+            && {(_vehicleContext select 0) == "ARMOURED"}
+            && {(_vehicleContext select 1) == _contactVehicle}
     },str [_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]],
-        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]],leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
+        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]],
+        _contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]],leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
 // Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally

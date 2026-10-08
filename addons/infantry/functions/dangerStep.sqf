@@ -25,6 +25,7 @@ if (_yieldToOwner) exitWith {
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -37,6 +38,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -49,6 +51,7 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
@@ -69,6 +72,7 @@ if (_selected isEqualTo []) exitWith {
         _group setVariable ["WAIT_Danger_Response",nil,true];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         _group setVariable ["WAIT_Danger_Contact",nil,true];
+        _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
         private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
         if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
         -1
@@ -97,6 +101,7 @@ if (_action == "FORCED") exitWith {
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _forcedBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _forcedBrain > 0) then {_forcedBrain deleteAt "responsiveUntil"};
     -1
@@ -120,6 +125,13 @@ if (_replace) then {
     [_observer,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
     _group setVariable ["WAIT_Danger_Action",[_action,_cause,_observedAt,time+_responseLifetime,_generation],true];
+    if (_action == "VEHICLE") then {
+        private _vehicle=vehicle _observer;
+        private _profile=[_observer] call WAIT_fnc_DangerVehicleProfile;
+        _group setVariable ["WAIT_Danger_VehicleContext",[_profile,_vehicle,_cause,+_position,_observedAt,time+_responseLifetime,_generation],true];
+    } else {
+        _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
+    };
 };
 // The response that survived priority selection owns the prompt scheduler window. Using the newest
 // candidate lifetime here allowed a one-second gunfire sample to shorten a still-live three-second
