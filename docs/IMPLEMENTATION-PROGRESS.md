@@ -1,3 +1,10 @@
+- Engine feasibility has been checked against the current official command and FSM contracts. The
+  danger/operation architecture is supported; the observed freezes and oscillation are controller
+  ownership defects rather than a missing engine capability. Post-contact consolidation now commits
+  one actor destination, records physical progress and permits one same-route retry after ten seconds
+  of no progress. It no longer recalculates every separated soldier's destination every eight seconds.
+  The route record is discarded on renewed contact and calm restoration. Static validation passes;
+  packaged physical regroup, interruption and locality acceptance remain pending.
 - Defend and medical movement now use the same single-owner native route contract. Defenders receive one
   `doMove` and refresh it only after measured no-progress; medics no longer force a second destination or
   reissue a healthy route every eight seconds. Native treatment remains finite and danger, Zeus or specialist

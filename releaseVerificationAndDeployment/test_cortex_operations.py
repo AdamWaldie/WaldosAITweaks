@@ -3851,8 +3851,13 @@ class CortexOperations(unittest.TestCase):
         regroup=tick.split('case "REGROUP": {',1)[1].split('case "RETREAT": {',1)[0]
         self.assertIn('private _reserved = _members select {_x call _hasLiveActorMove}',regroup)
         self.assertIn('_members - _reserved',regroup)
-        self.assertIn('_x distance2D _leader > 8',regroup)
-        self.assertIn('_x doMove ((getPosATL _leader) getPos',regroup)
+        self.assertIn('_unit distance2D _leader <= 8',regroup)
+        self.assertIn('"consolidationRoutes"',regroup)
+        self.assertIn('_unit doMove _target',regroup)
+        self.assertIn('_unit distance2D _lastPos >= 2',regroup)
+        self.assertIn('_now - _lastProgressAt >= 10',regroup)
+        self.assertIn('_retries < 1',regroup)
+        self.assertNotIn('"consolidateIssued"',regroup)
         self.assertIn('_reserved isEqualTo []',regroup)
         self.assertNotIn('doTarget objNull',regroup)
         self.assertNotIn('doWatch objNull',regroup)
@@ -4239,6 +4244,11 @@ class CortexOperations(unittest.TestCase):
     def test_consolidation_orders_follow_and_does_not_call_timeout_arrival(self):
         text=source('cortexGroupTick')
         self.assertIn('_x doFollow _leader',text)
+        self.assertIn('_state getOrDefault ["consolidationRoutes", createHashMap]',text)
+        self.assertIn('_routes set [_key, [_target, getPosATL _unit, _now, 0]]',text)
+        self.assertIn('_record set [3, _retries + 1]',text)
+        self.assertNotIn('_state set ["consolidateIssued", _now]',text)
+        self.assertIn('"consolidationRoutes"',source('cortexRestoreCalm'))
         self.assertIn('["CONSOLIDATING", "INCOMPLETE"] select _expired',text)
         self.assertIn('_gathered == count _members',text)
         self.assertIn('call WAIT_fnc_CortexClearRelease',text)
@@ -4481,7 +4491,7 @@ class CortexOperations(unittest.TestCase):
         for command in ['{_x doFollow _leader} forEach _rejoin',
                         '{_x doMove (_target getPos [4 + _forEachIndex * 4, random 360])} forEach _team',
                         '{_x doMove (_searchPos getPos [4 + _forEachIndex * 4, random 360])} forEach _team',
-                        '_x doMove ((getPosATL _leader) getPos [_slot,(_forEachIndex*137) mod 360])']:
+                        '_unit doMove _target']:
             self.assertLess(tick.rindex('[] call _mayIssueMovement',0,tick.index(command)+len(command)),tick.index(command))
 
     def test_vehicle_contact_commands_yield_to_external_owner_at_issue_time(self):

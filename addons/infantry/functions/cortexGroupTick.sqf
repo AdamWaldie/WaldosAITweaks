@@ -947,7 +947,7 @@ switch (_state get "phase") do {
     };
     case "REGROUP": {
         if (_visible isNotEqualTo []) exitWith {
-            _state deleteAt "consolidateIssued";
+            _state deleteAt "consolidationRoutes";
             _group setVariable ["WAIT_Cortex_Consolidation", ["CONTACT", 0, 0, 0], true];
             call _beginContact;
         };
@@ -961,21 +961,59 @@ switch (_state get "phase") do {
                 && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
         };
         private _reserved = _members select {_x call _hasLiveActorMove};
-        // Preserve authored waypoints and combat targets. Give only separated members a nearby,
-        // finite destination around the living leader. doFollow does not reliably cancel an earlier
-        // doStop (including a casualty, cover or Zeus-interrupted order), which left otherwise healthy
-        // soldiers standing at their old positions until this state timed out. Individual destinations
-        // avoid replacing the group's authored route and avoid collapsing everyone onto one point.
-        if (_now - (_state getOrDefault ["consolidateIssued", -1e6]) >= 8 && {[] call _mayIssueMovement}) then {
-            {
-                if (_x != _leader && {_x distance2D _leader > 8}) then {
-                    private _slot=4+((_forEachIndex mod 3)*2);
-                    _x doMove ((getPosATL _leader) getPos [_slot,(_forEachIndex*137) mod 360]);
-                };
-            } forEach (_members - _reserved);
-            _state set ["consolidateIssued", _now];
-            _state set ["holders", []];
+        // Preserve authored waypoints and combat targets. Each separated member receives one committed
+        // local destination. Progress updates the record without issuing another command; the same
+        // destination is retried once only after measured no-progress. Reaching that destination while
+        // the living leader has moved is the meaningful event that permits a new short destination.
+        // This avoids the old eight-second destination churn that repeatedly restarted engine planning.
+        private _routes = _state getOrDefault ["consolidationRoutes", createHashMap];
+        private _eligible = (_members - _reserved) select {_x != _leader};
+        private _eligibleKeys = _eligible apply {
+            private _key = netId _x;
+            if (_key == "") then {_key = str _x};
+            _key
         };
+        {
+            if !(_x in _eligibleKeys) then {_routes deleteAt _x};
+        } forEach keys _routes;
+        {
+            private _unit = _x;
+            private _key = netId _unit;
+            if (_key == "") then {_key = str _unit};
+            private _record = _routes getOrDefault [_key, []];
+            if (_unit distance2D _leader <= 8) then {
+                _routes deleteAt _key;
+            } else {
+                if (_record isEqualTo []) then {
+                    private _slot = 4 + ((_forEachIndex mod 3) * 2);
+                    private _target = (getPosATL _leader) getPos [_slot, (_forEachIndex * 137) mod 360];
+                    if ([] call _mayIssueMovement) then {
+                        _unit doMove _target;
+                        _routes set [_key, [_target, getPosATL _unit, _now, 0]];
+                        _state set ["holders", []];
+                    };
+                } else {
+                    _record params ["_target", "_lastPos", "_lastProgressAt", "_retries"];
+                    if (_unit distance2D _lastPos >= 2) then {
+                        _record set [1, getPosATL _unit];
+                        _record set [2, _now];
+                        _routes set [_key, _record];
+                    } else {
+                        if (_unit distance2D _target <= 4) then {
+                            _routes deleteAt _key;
+                        } else {
+                            if (_now - _lastProgressAt >= 10 && {_retries < 1} && {[] call _mayIssueMovement}) then {
+                                _unit doMove _target;
+                                _record set [2, _now];
+                                _record set [3, _retries + 1];
+                                _routes set [_key, _record];
+                            };
+                        };
+                    };
+                };
+            };
+        } forEach _eligible;
+        _state set ["consolidationRoutes", _routes];
         private _radius = (12 + 2 * count _members) min 30;
         private _gathered = {_x distance2D _leader <= _radius} count _members;
         private _furthest = 0;
