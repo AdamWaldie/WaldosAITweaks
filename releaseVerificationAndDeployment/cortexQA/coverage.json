@@ -1128,7 +1128,8 @@
       ],
       "production_sources": [
         "addons/infantry/functions/cortexAdvanceStart.sqf",
-        "addons/infantry/functions/cortexTacticalStart.sqf"
+        "addons/infantry/functions/cortexTacticalStart.sqf",
+        "addons/infantry/functions/cortexTacticalAssess.sqf"
       ]
     },
     {

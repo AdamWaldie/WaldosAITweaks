@@ -192,6 +192,7 @@ class CfgFunctions {
             class CortexGroupState {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupState.sqf";};
             class CortexGroupTick {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTick.sqf";};
             class CortexKnowledge {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexKnowledge.sqf";};
+            class CortexTacticalAssess {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalAssess.sqf";};
             class CortexLineOfFireClear {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexLineOfFireClear.sqf";};
             class CortexMorale {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMorale.sqf";};
             class CortexMedicalStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMedicalStep.sqf";};

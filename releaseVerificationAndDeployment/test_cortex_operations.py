@@ -934,28 +934,29 @@ class CortexOperations(unittest.TestCase):
     def test_direct_assault_refuses_vehicle_mounted_and_static_targets(self):
         """Close vehicle contacts must remain with weapon and standoff logic, never infantry clear-through."""
         selector=source('cortexTacticalStart')
+        assessment=source('cortexTacticalAssess')
         assault=source('cortexAssaultStart')
-        for text in [selector,assault]:
+        for text in [assessment,assault]:
             self.assertIn('_target isKindOf "CAManBase"',text)
             self.assertIn('isNull objectParent _target',text)
         self.assertIn('"UNSUITABLE_ASSAULT_TARGET"',assault)
-        self.assertLess(selector.index('_target isKindOf "CAManBase"'),
-                        selector.index('WAIT_fnc_CortexAssaultStart'))
+        self.assertLess(assessment.index('_target isKindOf "CAManBase"'),
+                        assessment.index('_intent="ASSAULT"'))
+        self.assertIn('call WAIT_fnc_CortexTacticalAssess',selector)
 
     def test_autonomous_foot_manoeuvre_rejects_mobile_platform_contacts(self):
         """Vehicle fire and anti-armour work must not also become a generic infantry route."""
         selector=source('cortexTacticalStart')
+        assessment=source('cortexTacticalAssess')
         for marker in [
-            'private _manoeuvreEnemies=_enemies select {',
+            'private _manoeuvre=[];',
             '_target isKindOf "CAManBase" && {isNull objectParent _target}',
             '_platform isKindOf "StaticWeapon"',
-            'if (!_hasForwardOrder && {_manoeuvreEnemies isEqualTo []}) exitWith {',
-            '"FIRE_SUPPORT_ONLY"',
-            '[_group, _state, _manoeuvreEnemies] call WAIT_fnc_CortexFlankStart'
+            '_result set ["targetIndex",_selected]',
+            '"ARMOUR_OVERMATCH"'
         ]:
-            self.assertIn(marker,selector)
-        self.assertLess(selector.index('if (!_hasForwardOrder && {_manoeuvreEnemies isEqualTo []})'),
-                        selector.index('private _preferFlank'))
+            self.assertIn(marker,assessment)
+        self.assertIn('if (_targetIndex < 0 || {_candidates isEqualTo []}) exitWith {false};',selector)
 
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
@@ -2902,28 +2903,30 @@ class CortexOperations(unittest.TestCase):
 
     def test_live_context_chooses_action_instead_of_profile_or_idleness(self):
         selector=source('cortexTacticalStart')
+        assessment=source('cortexTacticalAssess')
         flank=source('cortexFlankStart')
         advance=source('cortexAdvanceStart')
         assault=source('cortexAssaultStart')
         coordinated=source('cortexCoordinatedAssault')
         self.assertIn('call WAIT_fnc_CortexAssaultStart',selector)
-        self.assertIn('private _assaultIndex=_manoeuvreEnemies findIf',selector)
-        self.assertIn('_distance >= 12',selector)
-        self.assertIn('_distance <= _closeRange',selector)
-        self.assertIn('private _advanceIndex=_enemies findIf',selector)
-        self.assertIn('_distance >= 60',selector)
-        self.assertIn('[_manoeuvreEnemies,_assaultIndex] call _prioritiseContact',selector)
-        self.assertIn('[_enemies,_advanceIndex] call _prioritiseContact',selector)
-        self.assertIn('[_group,_state,_assaultEnemies] call WAIT_fnc_CortexAssaultStart',selector)
-        self.assertEqual(2,selector.count('[_group, _state, _advanceEnemies] call WAIT_fnc_CortexAdvanceStart'))
-        self.assertIn('private _hasForwardOrder = _waypointIndex < count waypoints _group',selector)
-        self.assertIn('private _preferFlank = _flankEnabled && {!_advanceEnabled || {!_hasForwardOrder}}',selector)
-        self.assertIn('if (!_started && {_advanceEnabled})',selector)
-        self.assertIn('if (!_started && {_flankEnabled})',selector)
+        self.assertIn('private _closePosition=_manoeuvre findIf',assessment)
+        self.assertIn('(_record param [3,1e9,[0]]) >= 12',assessment)
+        self.assertIn('(_record param [3,1e9,[0]]) <= _closeRange',assessment)
+        self.assertIn('private _freshPosition=_manoeuvre findIf',assessment)
+        self.assertIn('(_record param [3,0,[0]]) >= 60',assessment)
+        self.assertIn('_selected=_enemies findIf',assessment)
+        self.assertIn('Any live contact can provide fire context',assessment)
+        self.assertIn('_selected=_manoeuvre select _closePosition',assessment)
+        self.assertIn('_selected=_manoeuvre select _freshPosition',assessment)
+        self.assertIn('case "ASSAULT": {_started=[_group,_state,_orderedEnemies] call WAIT_fnc_CortexAssaultStart}',selector)
+        self.assertIn('private _forwardOrder=_waypointIndex < count waypoints _group',assessment)
+        self.assertIn('"FORTIFIED_OR_DISTANT_CONTACT"',assessment)
+        self.assertIn('"OPEN_APPROACH"',assessment)
+        self.assertIn('"COVERED_APPROACH"',assessment)
         self.assertNotIn('CortexProfile',selector)
-        self.assertNotIn('random _totalWeight',selector)
-        self.assertEqual(2,selector.count('call WAIT_fnc_CortexFlankStart'))
-        self.assertEqual(2,selector.count('call WAIT_fnc_CortexAdvanceStart'))
+        self.assertNotIn('random',assessment)
+        self.assertEqual(1,selector.count('call WAIT_fnc_CortexFlankStart'))
+        self.assertEqual(1,selector.count('call WAIT_fnc_CortexAdvanceStart'))
         self.assertIn('["type","ASSAULT"]',assault)
         self.assertIn('["assaulting",true]',assault)
         self.assertIn('[["_group",grpNull',assault)
