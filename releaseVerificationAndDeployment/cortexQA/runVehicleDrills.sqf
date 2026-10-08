@@ -265,8 +265,44 @@ private _dangerCountermeasure=[{
     str [_contactVehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0],
         _contactVehicle getVariable ["WAIT_Danger_VehicleCountermeasure",[]],
         _contactCrewGroup getVariable ["WAIT_Danger_Generation",-1]]] call _check;
+// A fresh detected contact after losing the primary gunner must recover the weapon with an existing
+// dedicated commander. This uses the engine's internal seat-change action: the audit neither moves a
+// crew member into a seat nor injects a danger record. The driver and current route remain untouched.
+private _recoveryDriver=driver _contactVehicle;
+private _lostGunner=gunner _contactVehicle;
+private _recoveryCommander=commander _contactVehicle;
+private _recoveryPrerequisite=!isNull _recoveryDriver && {!isNull _lostGunner}
+    && {!isNull _recoveryCommander} && {_recoveryDriver != _recoveryCommander}
+    && {_lostGunner != _recoveryCommander};
+// Retire the first contact and let the real casualty response finish before presenting the fresh
+// target. Otherwise the deliberately stronger casualty lease can consume a simultaneous DETECTED
+// record without replacing its action, which would test priority coalescing rather than crew recovery.
+deleteVehicle _contactEnemy;
+if (_recoveryPrerequisite) then {
+    _lostGunner allowDamage true;
+    _lostGunner setDamage 1;
+};
+sleep 4;
+private _recoveryEnemy=_contactEnemyGroup createUnit ["B_Soldier_F",_contactVehicle modelToWorld [30,20,0],[],0,"NONE"];
+_recoveryEnemy allowDamage false;
+_recoveryEnemy disableAI "PATH";
+_recoveryEnemy setDir (_recoveryEnemy getDir _contactVehicle);
+_recoveryEnemy setVariable ["WAIT_CortexQA_Label","FRESH CREW-RECOVERY CONTACT",true];
+private _gunnerRecovered=[{
+    private _crewState=_contactCrewGroup getVariable ["WAIT_AIPass_State",createHashMap];
+    private _recovery=_crewState getOrDefault ["vehicleDangerCrewRecovery",[]];
+    count _recovery == 4 && {_recovery param [2,false,[true]]}
+        && {gunner _contactVehicle == _recoveryCommander}
+},30] call _wait;
+["DANGER-VEHICLE-gunner-loss-recovered",_recoveryPrerequisite && {_gunnerRecovered},
+    str [_recoveryCommander,gunner _contactVehicle,
+        (_contactCrewGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleDangerCrewRecovery",[]],
+        _contactVehicle getVariable ["WAIT_Danger_CrewRecovery",[]]]] call _check;
+["DANGER-VEHICLE-driver-role-preserved",_recoveryPrerequisite
+        && {alive _recoveryDriver} && {driver _contactVehicle == _recoveryDriver},
+    str [_recoveryDriver,driver _contactVehicle,assignedVehicleRole _recoveryDriver]] call _check;
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
-{deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_contactVehicle]);
+{deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_recoveryEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;
 deleteGroup _contactCrewGroup;
 

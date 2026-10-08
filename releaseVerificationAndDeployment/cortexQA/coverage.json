@@ -614,16 +614,18 @@
       "live_evidence": [
         "runtime-20260927-040456: server suite zero findings; natural detection, actual AT-directed shots, hold-fire, disabled stationary control, physical +60 m standoff and crew retention passed. Client completion missing, broader owner/disable variants unverified."
       ],
-      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued.",
+      "automation": "runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued. A fresh DETECTED generation after primary-gunner loss now requires an existing dedicated AI commander to change internally to the gunner seat while the driver remains in place; no crew is spawned or moved directly into a seat.",
       "executable_sources": [
         "runGunnery.sqf",
-        "runNaval.sqf"
+        "runNaval.sqf",
+        "runVehicleDrills.sqf"
       ],
       "production_sources": [
         "addons/aircraft/functions/cortexAircraftEligible.sqf",
         "addons/vehicles/functions/cortexNavalAssault.sqf",
         "addons/vehicles/functions/cortexNavalRelease.sqf",
-        "addons/vehicles/functions/cortexVehicles.sqf"
+        "addons/vehicles/functions/cortexVehicles.sqf",
+        "addons/vehicles/functions/cortexVehicleCrewRecover.sqf"
       ]
     },
     {

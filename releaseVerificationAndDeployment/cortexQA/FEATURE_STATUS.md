@@ -28,7 +28,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | GRENADE - Grenade avoidance | 1 | 0 | 2 | `runReactions.sqf` | 2 | implemented_partial |
 | CIVILIAN - Civilian danger response and external ownership | 4 | 0 | 4 | `runReactions.sqf` | 0 | implemented_partial |
 | AT - Anti-armour and ammunition roles | 2 | 0 | 1 | `runFireControl.sqf` | 0 | implemented_partial |
-| VEH - Vehicle engagement | 3 | 0 | 4 | `runGunnery.sqf`, `runNaval.sqf` | 1 | implemented_partial |
+| VEH - Vehicle engagement | 3 | 0 | 5 | `runGunnery.sqf`, `runNaval.sqf`, `runVehicleDrills.sqf` | 1 | implemented_partial |
 | DISMOUNT - Contact passenger dismount | 1 | 0 | 2 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | REMOUNT - Contact passenger remount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | WITHDRAW - Damaged vehicle withdrawal | 1 | 0 | 1 | `runVehicleDrills.sqf` | 1 | implemented_partial |
@@ -222,7 +222,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** Only eligible mounted groups receive changes. Boats make a finite shallow-water approach, unload infantry onto dry ground, retain operating crew and restore authored orders; the parent gate and external owner release all controls.
 
-**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued.
+**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued. A fresh DETECTED generation after primary-gunner loss now requires an existing dedicated AI commander to change internally to the gunner seat while the driver remains in place; no crew is spawned or moved directly into a seat.
 
 ### DISMOUNT - Contact passenger dismount
 

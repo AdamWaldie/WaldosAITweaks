@@ -5581,6 +5581,25 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity']:
             self.assertNotIn(forbidden,danger.split('// An intact armed platform',1)[1])
 
+    def test_mounted_danger_recovers_a_lost_gunner_without_sacrificing_the_driver(self):
+        registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        recovery=source('cortexVehicleCrewRecover')
+        vehicles=source('cortexVehicles')
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
+        self.assertIn('class CortexVehicleCrewRecover',registry)
+        for marker in ['_cause != "DETECTED"','abs speed _vehicle >= 20','WAIT_Convoy_Active',
+                       'WAIT_AIPass_VehicleGunnery_Enable','CortexExternalTakeover','CortexZeusHeld']:
+            self.assertIn(marker,recovery)
+        self.assertIn('_candidate=commander _vehicle',recovery)
+        self.assertIn('_candidate == driver _vehicle',recovery)
+        self.assertIn('_candidate assignAsGunner _vehicle',recovery)
+        self.assertIn('_candidate action ["MoveToGunner",_vehicle]',recovery)
+        for forbidden in ['moveInGunner','createUnit','commandMove','doMove','forceSpeed','setVelocity']:
+            self.assertNotIn(forbidden,recovery)
+        self.assertIn('vehicleDangerCrewRecovery',vehicles)
+        self.assertIn('DANGER-VEHICLE-gunner-loss-recovered',audit)
+        self.assertIn('DANGER-VEHICLE-driver-role-preserved',audit)
+
     def test_armoured_danger_countermeasure_is_generation_owned_and_route_neutral(self):
         text=source('cortexVehicles')
         danger=text.split('// Defensive smoke is independent',1)[1].split('// A useful static mortar',1)[0]

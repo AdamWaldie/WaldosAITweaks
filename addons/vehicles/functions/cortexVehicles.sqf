@@ -26,6 +26,8 @@
  * (RETREAT phase, through an inserted waypoint). Each vehicle withdraws once per engagement.
  * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): a fresh mounted danger event may orient the exact
  * affected armed platform and request one safe suppression response against an already known hostile.
+ * A stopped or slow armed vehicle whose primary gunner has been lost may ask an existing dedicated
+ * AI commander to change to that seat once for the exact DETECTED generation. The driver never moves.
  * An intact armed or armoured platform may also request its own smoke countermeasure once for a
  * hit, explosion or suppression generation. These finite reactions never change the vehicle route.
  * During sustained contact the AI gunner is pointed at the most dangerous
@@ -277,6 +279,20 @@ if (_dangerDismount isNotEqualTo []) then {
                 // contact tick; ordinary native/WAIT gunnery owns subsequent target decisions.
                 private _reaction=_state getOrDefault ["vehicleDangerReaction",[]];
                 private _gunner=gunner _vehicle;
+                private _crewRecovery=_state getOrDefault ["vehicleDangerCrewRecovery",[]];
+                private _freshCrewRecovery=_dangerGeneration >= 0
+                    && {_crewRecovery param [0,-2,[0]] != _dangerGeneration};
+                if (_freshCrewRecovery && {_dangerHostile}
+                    && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}) then {
+                    private _crewRecoveryIssued=[_group,_vehicle,_dangerSource,_dangerCause,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleCrewRecover;
+                    // Record both acceptance and refusal for this generation. An impossible seat
+                    // change must not be reconsidered every scheduler tick during the same danger.
+                    _state set ["vehicleDangerCrewRecovery",
+                        [_dangerGeneration,_vehicle,_crewRecoveryIssued,serverTime]];
+                    if (_crewRecoveryIssued) then {_gunner=gunner _vehicle};
+                };
                 private _knownHostile=_dangerHostile
                     && {!isNull _gunner} && {alive _gunner} && {local _gunner} && {!isPlayer _gunner}
                     && {(effectiveCommander _vehicle) in units _group}
