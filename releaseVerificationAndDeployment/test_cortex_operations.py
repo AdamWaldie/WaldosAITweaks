@@ -443,7 +443,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('committed operation movers are never forced prone',diagnostics)
         self.assertIn('finiteCoverMoves=',diagnostics)
         self.assertIn('WAIT_fnc_DangerCoverStep',source('cortexGroupTick'))
-        self.assertIn('in ["HIT","EXPLOSION","SUPPRESSED"]',source('cortexGroupTick'))
+        self.assertIn('(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]',source('cortexGroupTick'))
         self.assertIn('getSuppression _actor > 0.45',engine_act)
         self.assertNotIn('_cause in [5,6]',engine_act)
         reaction=source('dangerReact')
@@ -5341,9 +5341,9 @@ class CortexOperations(unittest.TestCase):
         tick=source('cortexGroupTick')
         vehicles=source('cortexVehicles')
         restore=source('cortexRestoreCalm')
-        self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"]',tick)
-        self.assertIn('_state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource]];',tick)
-        self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"] && {_vehicleProfile != ""}',tick)
+        self.assertIn('_state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource,_dangerGeneration]];',tick)
+        self.assertIn('if (_vehicleProfile != "") then {',tick)
+        self.assertIn('_dangerCause in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"] || {_dangerHostile}',vehicles)
         self.assertIn('_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]',vehicles)
         self.assertIn('WAIT_Danger_VehicleContext',tick)
         self.assertLess(vehicles.index('private _dangerDismount='),vehicles.index('if (_enemies isEqualTo []) exitWith'))
@@ -5400,6 +5400,7 @@ class CortexOperations(unittest.TestCase):
                      'DANGER-VEHICLE-passengers-physically-exit','DANGER-VEHICLE-operating-crew-retained',
                      'DANGER-VEHICLE-no-invented-combat','DANGER-VEHICLE-contact-fixture-ready',
                      'DANGER-VEHICLE-effective-commander-persistence',
+                     'DANGER-VEHICLE-known-hostile-finite-reaction',
                      'DANGER-STATIC-empty-crew-released','DANGER-STATIC-useful-crew-retained',
                      'DANGER-STATIC-no-invented-combat']:
             self.assertIn(item,text)
@@ -5408,10 +5409,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('O_APC_Wheeled_02_rcws_v2_F',text)
         self.assertIn('effectiveCommander _contactVehicle',text)
         self.assertIn('count _actors == 1',text)
+        self.assertIn('WAIT_Danger_VehicleReaction',text)
         mounted=text.split('// A three-person armoured crew',1)[1].split('deleteGroup _contactCrewGroup;',1)[0]
         for forbidden in [' reveal ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' call WAIT_fnc_DangerEngineSubmit']:
             self.assertNotIn(forbidden,mounted)
         self.assertNotIn('vehicle _x != _x',text)
+
+    def test_mounted_danger_reacts_once_without_taking_route_ownership(self):
+        text=source('cortexVehicles')
+        danger=text.split('private _dangerDismount=',1)[1].split('if (_enemies isEqualTo []) exitWith',1)[0]
+        for marker in ['vehicleDangerReaction','_dangerGeneration','WAIT_Danger_VehicleReaction',
+                       'call WAIT_fnc_CortexLineOfFireClear','doSuppressiveFire _aimPosition']:
+            self.assertIn(marker,danger)
+        for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity']:
+            self.assertNotIn(forbidden,danger.split('// An intact armed platform',1)[1])
 
     def test_stationary_passenger_comparison_is_explicit_and_additive(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()

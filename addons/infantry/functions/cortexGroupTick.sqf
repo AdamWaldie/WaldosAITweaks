@@ -203,10 +203,10 @@ if (count _dangerResponse == 5) then {
         // A transport or fighting vehicle can move its passengers into the fight without ejecting
         // operating crew. Aircraft, batteries and static weapons remain with their dedicated owner;
         // a generic danger callback cannot turn them into an infantry dismount operation.
-        if (_dangerCause in ["HIT","EXPLOSION","SUPPRESSED"] && {_vehicleProfile != ""}) then {
+        if (_vehicleProfile != "") then {
             private _dangerVehicle=_vehicleContext param [1,objNull,[objNull]];
             private _dangerSource=_vehicleContext param [7,objNull,[objNull]];
-            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource]];
+            _state set ["dangerDismount",[+_dangerPosition,time+30,_vehicleProfile,_dangerCause,_dangerVehicle,_dangerSource,_dangerGeneration]];
         };
     } else {
         _state deleteAt "dangerResponse";

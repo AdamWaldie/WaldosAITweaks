@@ -225,9 +225,13 @@ private _mountedPersistent=[{
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
 // Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally
-// known hostile must now cross the validated danger handoff, enter CONTACT and produce real fire;
-// the audit never reveals, assigns a target, issues a fire command or injects a group danger record.
+// known hostile must now cross the validated danger handoff, enter CONTACT and produce real fire.
+// The opponent is allowed to engage natively so a fresh engine danger generation also proves the
+// exact platform's finite orient/suppress response. The audit never reveals, assigns a target,
+// issues a fire command or injects a group danger record.
 [createHashMapFromArray [["WAIT_AIPass_VehicleGunnery_Enable",true]]] call WAIT_fnc_CortexTuning;
+_contactEnemyGroup setCombatMode "RED";
+_contactEnemyGroup setBehaviourStrong "COMBAT";
 private _mountedCombat=[{
     (_contactCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"
         && {(_contactVehicle getVariable ["WAIT_CortexQA_DangerShots",0]) > 0}
@@ -238,6 +242,12 @@ private _mountedCombat=[{
 ["DANGER-VEHICLE-confirmed-contact-enters-combat",_mountedCombat,
     str [_contactCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""],_contactVehicle getVariable ["WAIT_CortexQA_DangerShots",0],
         _contactCrew apply {[_x,_x getVariable ["WAIT_AIPass_VehicleTarget",objNull],assignedTarget _x]}]] call _check;
+private _vehicleReaction=_contactVehicle getVariable ["WAIT_Danger_VehicleReaction",[]];
+["DANGER-VEHICLE-known-hostile-finite-reaction",count _vehicleReaction == 4
+        && {(_vehicleReaction select 1) == gunner _contactVehicle}
+        && {(_vehicleReaction select 2) == _contactEnemy},
+    str [_vehicleReaction,_contactCrewGroup getVariable ["WAIT_Danger_Generation",-1],
+        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]]]] call _check;
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
 {deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;

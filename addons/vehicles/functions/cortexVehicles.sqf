@@ -20,7 +20,10 @@
  * within 800 m, fires its smoke launcher (WAIT_fnc_CortexFireCountermeasure). If the whole squad is
  * mounted, it withdraws towards one of five terrain-checked points roughly 300 m away from the enemy
  * (RETREAT phase, through an inserted waypoint). Each vehicle withdraws once per engagement.
- * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): the AI gunner is pointed at the most dangerous
+ * Gunnery (WAIT_AIPass_VehicleGunnery_Enable): a fresh mounted danger event may orient the exact
+ * affected armed platform and request one safe suppression response against an already known hostile.
+ * This finite reaction never changes the vehicle route and runs once per danger generation.
+ * During sustained contact the AI gunner is pointed at the most dangerous
  * enemy seen in the last 15 s within 600 m: anti-tank infantry first, then armour, then anything
  * else, nearest first, held for 8 s. A fully mounted tank or APC that knows of an anti-tank soldier
  * within 60% of WAIT_AIPass_Vehicles_StandoffDistance backs off to that distance, at most once a
@@ -188,20 +191,26 @@ private _dismountAtThreat = {
     };
 } forEach _vehicles;
 private _dangerDismount=_state getOrDefault ["dangerDismount",[]];
-if (count _dangerDismount in [2,3,4,5,6]) then {
+if (count _dangerDismount in [2,3,4,5,6,7]) then {
     _dangerDismount params ["_dangerPosition","_dangerExpiry",["_dangerProfile","TRANSPORT",[""]],
-        ["_dangerCause","",[""]],["_dangerVehicle",objNull,[objNull]],["_dangerSource",objNull,[objNull]]];
+        ["_dangerCause","",[""]],["_dangerVehicle",objNull,[objNull]],["_dangerSource",objNull,[objNull]],
+        ["_dangerGeneration",-1,[0]]];
     if (time < _dangerExpiry) then {
         private _affectedVehicles=if (!isNull _dangerVehicle && {_dangerVehicle in _vehicles}) then {[_dangerVehicle]} else {_vehicles};
-        if (_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]) then {
+        private _dangerHostile=!isNull _dangerSource && {alive _dangerSource}
+            && {(side _group) getFriend (side group _dangerSource) < 0.6}
+            && {(units _group) findIf {_x knowsAbout _dangerSource > 0} >= 0};
+        // Targetless damage and incoming rounds justify passenger safety. Other vehicle danger
+        // causes may unload only when they retain a real hostile already known by this group.
+        // Merely classifying a mounted callback never fabricates a contact or empties a carrier.
+        if (_dangerProfile in ["TRANSPORT","ARMED","ARMOURED"]
+            && {_dangerCause in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"] || {_dangerHostile}}) then {
             {[_x,_dangerPosition,true] call _dismountAtThreat} forEach _affectedVehicles;
         };
         {
             private _vehicle=_x;
-            private _knownCloseThreat=!isNull _dangerSource && {alive _dangerSource}
-                && {(side _group) getFriend (side group _dangerSource) < 0.6}
-                && {_vehicle distance2D _dangerSource < 25}
-                && {(units _group) findIf {_x knowsAbout _dangerSource > 0} >= 0};
+            private _knownCloseThreat=_dangerHostile
+                && {_vehicle distance2D _dangerSource < 25};
             private _emplacementUnsafe=_dangerProfile in ["STATIC","ARTILLERY"]
                 && {!someAmmo _vehicle || {_knownCloseThreat}}
                 && {!(_vehicle isKindOf "Tank" && {count (allTurrets [_vehicle,false]) > 1})};
@@ -222,6 +231,34 @@ if (count _dangerDismount in [2,3,4,5,6]) then {
                 } forEach crew _vehicle;
                 _vehicle setVariable ["WAIT_Danger_AbandonReason",
                     [["DISABLED","EMPLACEMENT"] select _emplacementUnsafe,_dangerCause,serverTime],true];
+            };
+            // An intact armed platform should not sit inert while its effective commander already
+            // knows the hostile which caused this exact native danger response. Orient and request
+            // one bounded suppression action, but retain the current route, speed and waypoint.
+            // The generation record prevents the shared scheduler from repeating the command every
+            // contact tick; ordinary native/WAIT gunnery owns subsequent target decisions.
+            private _reaction=_state getOrDefault ["vehicleDangerReaction",[]];
+            private _gunner=gunner _vehicle;
+            private _knownHostile=_dangerHostile
+                && {!isNull _gunner} && {alive _gunner} && {local _gunner} && {!isPlayer _gunner}
+                && {(effectiveCommander _vehicle) in units _group}
+                && {(effectiveCommander _vehicle) knowsAbout _dangerSource > 0}
+                && {_dangerProfile in ["STATIC","ARMED","ARMOURED"]};
+            private _freshGeneration=_dangerGeneration >= 0
+                && {_reaction param [0,-2,[0]] != _dangerGeneration};
+            if (_knownHostile && {_freshGeneration} && {!(_emplacementUnsafe || {_disabledUnsafe})}
+                && {[_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                && {combatMode _group in ["YELLOW","RED"]}
+                && {unitCombatMode _gunner in ["YELLOW","RED"]}
+                && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])}
+                && {[] call _mayIssueVehicle}) then {
+                private _aimPosition=aimPos _dangerSource;
+                if ([_gunner,_aimPosition] call WAIT_fnc_CortexLineOfFireClear) then {
+                    _gunner doWatch _dangerSource;
+                    _gunner doSuppressiveFire _aimPosition;
+                    _state set ["vehicleDangerReaction",[_dangerGeneration,_vehicle,_dangerSource,serverTime]];
+                    _vehicle setVariable ["WAIT_Danger_VehicleReaction",[_dangerGeneration,_gunner,_dangerSource,serverTime],true];
+                };
             };
         } forEach _affectedVehicles;
     } else {
