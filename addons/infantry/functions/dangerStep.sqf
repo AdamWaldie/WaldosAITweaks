@@ -3,7 +3,9 @@
  * Purpose: Assess current danger, publish one finite response context and wake the existing group tactics FSM without creating a second tactical owner.
  * Locality / Authority: owner-local; never reveals targets or sends movement commands.
  * Repeat/JIP: generation-checked response context is public for diagnostics; a new owner rebuilds it from fresh observations.
- * Lower-priority observations cannot shorten the surviving response or its prompt scheduler cadence.
+ * One strongest event is consumed per step. Other still-live causes remain queued, so an immediate
+ * hit cannot erase a simultaneous confirmed contact. Lower-priority observations cannot shorten
+ * the surviving response or its prompt scheduler cadence.
  * Arguments: 0: group <GROUP>, grpNull; 1: owner epoch <NUMBER>, -1; 2: generation <NUMBER>, -1.
  * Return Value: Number - next assessment delay, or -1 to finish.
  * Current callers: WAIT dangerAssessment FSM.
@@ -82,9 +84,11 @@ if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
     -1
 };
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
-_group setVariable ["WAIT_Danger_Events",[]];
 private _selected=[_events] call WAIT_fnc_DangerSelect;
 if (_selected isEqualTo []) exitWith {
+    // Expired or malformed observations have no continuing authority. Clear them here while the
+    // finite response lease below decides whether this assessment FSM still has useful work.
+    _group setVariable ["WAIT_Danger_Events",[]];
     private _response=_group getVariable ["WAIT_Danger_Response",[]];
     // Continue the finite FSM only while a response lease is live. This keeps the posture lease
     // and the group-brain wake context coherent without creating a persistent worker.
@@ -103,6 +107,18 @@ if (_selected isEqualTo []) exitWith {
         -1
     }
 };
+// Consume only the chosen event. The engine may deliver a hit, a near round and a confirmed enemy
+// in one burst; erasing the whole queue here made the hit response hide the contact until a later
+// knowledge scan. Retain each other well-formed, unexpired cause for the next bounded 0.25-second
+// step. DangerRequest already coalesces duplicates by cause, so this remains at most eight records
+// and adds neither a scan nor another scheduler owner.
+private _selectedIndex=_events findIf {_x isEqualTo _selected};
+if (_selectedIndex >= 0) then {_events deleteAt _selectedIndex};
+private _remaining=_events select {
+    _x isEqualType [] && {count _x in [4,5,6,7]}
+        && {(_x param [3,-1,[0]]) > time}
+};
+_group setVariable ["WAIT_Danger_Events",_remaining];
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _source=_selected param [4,objNull,[objNull]];
