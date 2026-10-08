@@ -75,7 +75,7 @@ while ((Get-Date) -lt $deadline -and !$server.HasExited) {
 if (!$ready) {throw "Server did not reach WAIT audit readiness. Inspect $runtime; processes have been left available for inspection."}
 $processes=@($server.Id)
 for ($i=1; $i -le $HeadlessClients; $i++) {
-    $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),$modArg)
+    $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),"-name=WAIT_HC$i",$modArg)
     $processes+=$hc.Id
 }
 $clientProfile=Join-Path $runtime 'client'

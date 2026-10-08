@@ -61,6 +61,7 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertNotIn('-filePatching', launcher)
         self.assertIn("if ($Interactive) {'Normal'} else {'Hidden'}", launcher)
         self.assertIn("'-name=WAIT_Audit',$modArg) -Interactive", launcher)
+        self.assertIn('"-name=WAIT_HC$i"', launcher)
         for option in ('-cfg=$clientConfig', '-x=$ResolutionWidth', '-y=$ResolutionHeight', '-noPause'):
             self.assertIn(option, launcher)
 

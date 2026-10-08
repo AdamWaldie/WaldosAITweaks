@@ -202,7 +202,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_holdUnits+[_holdEnemy],tru
 ["Danger FSM: authored HOLD permits fire without movement","Four riflemen naturally detect a close hostile while an ordinary HOLD waypoint is active. Native fire is expected, but WAIT must create no movement operation or replacement waypoint and the squad must remain around its authored position.",getPosATL _holdEnemy] call _phase;
 private _holdContact=[{
     (_holdGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"
-        && {{_x getVariable ["WAIT_CortexQA_Shots",0]} count _holdUnits > 0}
+        && {_holdUnits findIf {(_x getVariable ["WAIT_CortexQA_Shots",0]) > 0} >= 0}
 },35] call _wait;
 sleep 10;
 private _holdShots=0;
