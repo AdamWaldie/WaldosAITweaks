@@ -53,6 +53,12 @@ class PackagePipelineTests(unittest.TestCase):
         launcher = (ROOT/'addons/infantry/functions/cortexDrillStart.sqf').read_text()
         self.assertIn('}) exitWith {true};', launcher)
 
+    def test_workflows_inspect_the_packaged_engine_danger_fsm(self):
+        for workflow in ('testing.yml','candidate.yml'):
+            source=(ROOT/'.github/workflows'/workflow).read_text()
+            self.assertIn('hemtt utils config inspect addons/danger/danger.fsm',source)
+            self.assertNotIn('addons/infantry/fsm/danger.fsm',source)
+
     def test_launcher_keeps_packaged_content_and_resolution(self):
         launcher = (ROOT/'releaseVerificationAndDeployment/launch_mod_audit.ps1').read_text()
         for expected in ('-noBattlEye','3840','2160','WAIT AUDIT SERVER READY','StageOnly','@WaldosAITweaks'):

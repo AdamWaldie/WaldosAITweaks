@@ -35,7 +35,7 @@ class CortexReportTests(unittest.TestCase):
         self.assertEqual(1,len(report['runtime_errors']))
 
     def test_fsm_load_failure_is_an_explicit_blocker(self):
-        report=summarize({'client.rpt':"Warning Message: FSM '\\z\\waldo_ai_tweaks\\addons\\infantry\\fsm\\danger.fsm' cannot be loaded."})
+        report=summarize({'client.rpt':"Warning Message: FSM 'z\\wait\\danger\\danger.fsm' cannot be loaded."})
         self.assertEqual('FAIL',report['status'])
         self.assertEqual(1,len(report['load_errors']))
         rendered='\n'.join(render_markdown(report))
