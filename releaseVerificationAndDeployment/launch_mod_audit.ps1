@@ -23,7 +23,8 @@ if (!$ArmaPath) {
 if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyContinue)) {
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
-if (!$Mods.Count) {
+$stageDefaultDependencies=!$Mods.Count
+if ($stageDefaultDependencies) {
     $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')
     if ($WithZen) {$Mods+=Join-Path $ArmaPath '!Workshop/@Zeus Enhanced'}
 }
@@ -31,8 +32,20 @@ foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency 
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
+$launchMods=$Mods
+if ($stageDefaultDependencies) {
+    $launchMods=@()
+    foreach ($mod in $Mods) {
+        $stagedMod=Join-Path $runtime (Split-Path $mod -Leaf)
+        Copy-Item -LiteralPath $mod -Destination $stagedMod -Recurse
+        $workshopMetadata=Join-Path $stagedMod 'meta.cpp'
+        if (Test-Path -LiteralPath $workshopMetadata) {Remove-Item -LiteralPath $workshopMetadata -Force}
+        $launchMods+=$stagedMod
+    }
+}
 $manifest=Get-Content -Raw (Join-Path $runtime 'audit-manifest.json') | ConvertFrom-Json
-$manifest | Add-Member dependencies ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+$manifest | Add-Member dependencySources ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
+$manifest | Add-Member dependencies ($launchMods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member resolution @($ResolutionWidth,$ResolutionHeight)
 $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $runtime 'audit-manifest.json')
 if ($StageOnly) {Write-Output "Staged packaged audit: $runtime"; return}
@@ -55,7 +68,7 @@ localClient[]={"127.0.0.1"};
 persistent=1;
 class Missions {class Audit {template="$missionName.VR"; difficulty="Regular";};};
 "@ | Set-Content $config
-$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$Mods -join ';')
+$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
 function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interactive) {
     $quoted=$arguments | ForEach-Object {'"'+$_+'"'}
     # Background server/HC helpers stay hidden. The observer is an interactive game client:

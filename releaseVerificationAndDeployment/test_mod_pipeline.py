@@ -69,6 +69,9 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertIn('this batch is not valid', launcher)
         self.assertIn("$ServerOnly -and $Focus -ne 'dangerload'", launcher)
         self.assertIn('WAIT danger loader diagnostic entered WAIT_Audit.VR server-side', launcher)
+        self.assertIn('$stageDefaultDependencies=!$Mods.Count', launcher)
+        self.assertIn("Join-Path $stagedMod 'meta.cpp'", launcher)
+        self.assertIn("@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods", launcher)
 
     def test_observer_has_curator_on_join_and_respawn(self):
         server = (ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text()
