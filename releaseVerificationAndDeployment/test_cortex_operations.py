@@ -252,7 +252,7 @@ class CortexOperations(unittest.TestCase):
         self.assertTrue(engine_fsm.rstrip().endswith('/*%FSM</COMPILE>*/'))
         self.assertIn('/*%FSM<HEAD>*/',engine_fsm)
         self.assertIn('item0[]={"Start",0,250',engine_fsm)
-        self.assertIn('link46[]={10,43}; link47[]={43,1};',engine_fsm)
+        self.assertIn('link46[]={10,35}; link47[]={35,1};',engine_fsm)
         runtime_fsm=engine_fsm.split('class FSM',1)[1]
         self.assertEqual(12,runtime_fsm.count('itemno = '))
         self.assertEqual(24,runtime_fsm.count('itemno='))
@@ -556,6 +556,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_DangerEngineCanContinue',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRelease',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineRecycle',engine_fsm)
+        editor_head=engine_fsm.split('class FSM',1)[0]
+        editor_items=sorted({int(value) for value in re.findall(r'item(\d+)\[\]',editor_head)})
+        self.assertEqual(editor_items,list(range(len(editor_items))))
+        for source_item,target_item in re.findall(r'link\d+\[\]=\{(\d+),(\d+)\}',editor_head):
+            self.assertIn(int(source_item),editor_items)
+            self.assertIn(int(target_item),editor_items)
         self.assertNotIn('select _accepted',engine_fsm)
         self.assertIn('_mode=[_this,_selected] call WAIT_fnc_DangerEngineMode',engine_fsm)
         self.assertIn('class Interrupted',engine_fsm)
