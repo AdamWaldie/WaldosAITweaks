@@ -109,6 +109,7 @@
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
  * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
  * - WAIT_AIPass_StaticSupport_Enable (MISSION MAKER): Allows one uncommitted soldier to physically occupy a nearby useful empty static weapon during confirmed contact. Default true.
+ * - WAIT_AIPass_StaticDeploy_Enable (MISSION MAKER): Allows a compatible two-person bag team to physically assemble and occupy its carried static weapon. Default true.
  * - WAIT_AIPass_Hearing_Enable (MISSION MAKER): Coarse nearby-gunfire reports for eligible squad leaders; requires investigation. Default true.
  * - WAIT_Convoy_MountedFire_Enable (MISSION MAKER): Mounted crew targeting under existing ROE. Default true.
  * - WAIT_Convoy_Cover_Enable (MISSION MAKER): Short passenger movement clear of vehicles after a halt, using cover during contact. Default true.
@@ -388,6 +389,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_Danger_Enable", true], // Bounded danger events; one shared decision owner.
         ["WAIT_AIPass_DangerSmoke_Enable", true], // One generation-scoped carried smoke response; movement does not wait.
         ["WAIT_AIPass_StaticSupport_Enable", true], // One actor may occupy a nearby empty friendly static without holding squad movement.
+        ["WAIT_AIPass_StaticDeploy_Enable", true], // A compatible pair may physically assemble a carried static without holding squad movement.
         ["WAIT_AIPass_Hearing_Enable", true], // Nearby gunfire area reports, never target reveals.
         ["WAIT_AIPass_Vehicles_Enable", true], // BOOL: dismount under fire; damaged vehicles smoke and withdraw.
         ["WAIT_AIPass_DrivingAssist_Enable", true], // Sparse terrain-grade speed cap for ordinary AI ground vehicles; preserves native routes.

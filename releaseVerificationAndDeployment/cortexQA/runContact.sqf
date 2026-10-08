@@ -932,6 +932,85 @@ private _staticReleased=[{
 deleteGroup _staticGroup;
 deleteGroup _staticOpposition;
 
+// A carried support team must use the engine's real two-bag assembly path. The fixture supplies only
+// compatible backpacks and a natural hostile contact. It neither creates the resulting emplacement
+// nor calls the deployment helper. Acceptance requires the expected physical weapon, the original
+// primary-bag carrier in its real gunner seat, real fire and exact assignment release after contact.
+private _deployGroup=createGroup [east,true];
+private _deployOpposition=createGroup [west,true];
+{
+    _x setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _x setVariable ["acex_headless_blacklist",true,true];
+} forEach [_deployGroup,_deployOpposition];
+_deployOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
+_deployGroup setCombatMode "RED";
+private _deployUnits=[];
+for "_i" from 0 to 3 do {
+    private _unit=_deployGroup createUnit ["O_Soldier_F",[2740+(_i mod 2)*3,1360+floor (_i/2)*3,0],[],0,"NONE"];
+    _unit setDir 0;
+    _unit allowDamage false;
+    _unit setVariable ["acex_headless_blacklist",true,true];
+    _unit setVariable ["WAIT_CortexQA_Label",format ["CARRIED SUPPORT %1",_i+1],true];
+    _deployUnits pushBack _unit;
+};
+private _deployGunner=_deployUnits select 1;
+private _deployAssistant=_deployUnits select 2;
+removeBackpack _deployGunner;
+removeBackpack _deployAssistant;
+_deployGunner addBackpack "O_HMG_01_weapon_F";
+_deployAssistant addBackpack "O_HMG_01_support_F";
+private _deployExpected=getText (configFile >> "CfgVehicles" >> backpack _deployGunner >> "assembleInfo" >> "assembleTo");
+private _deployBases=getArray (configFile >> "CfgVehicles" >> backpack _deployGunner >> "assembleInfo" >> "base");
+if (_deployBases isEqualTo []) then {
+    private _baseText=getText (configFile >> "CfgVehicles" >> backpack _deployGunner >> "assembleInfo" >> "base");
+    if (_baseText != "") then {_deployBases=[_baseText]};
+};
+private _deployConfigValid=_deployExpected != "" && {backpack _deployAssistant in _deployBases};
+private _deployEnemy=_deployOpposition createUnit ["B_Soldier_F",[2740,1470,0],[],0,"NONE"];
+_deployEnemy allowDamage false;
+_deployEnemy disableAI "PATH";
+_deployEnemy setDir 180;
+_deployEnemy setVariable ["acex_headless_blacklist",true,true];
+_deployEnemy setVariable ["WAIT_CortexQA_Label","CARRIED SUPPORT TARGET",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_deployUnits+[_deployEnemy],true];
+[createHashMapFromArray [
+    ["WAIT_AIPass_StaticSupport_Enable",true],
+    ["WAIT_AIPass_StaticDeploy_Enable",true]
+]] call WAIT_fnc_CortexTuning;
+["Danger tactics: carried static deployment","A real compatible weapon team faces a naturally detected enemy. The pair must physically assemble the weapon, the primary-bag carrier must board its gunner seat and the real emplacement must fire without holding the rest of the squad.",getPosATL _deployGunner] call _phase;
+private _deployContact=[{(([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _deployEnemy} >= 0},35] call _wait;
+private _deployActive=[{
+    private _record=_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]];
+    count _record >= 10
+        && {(_record param [1,""]) == "ACTIVE"}
+        && {!isNull (_record param [7,objNull,[objNull]])}
+        && {typeOf (_record select 7) == _deployExpected}
+        && {gunner (_record select 7) == _deployGunner}
+},55] call _wait;
+private _deployRecord=_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]];
+private _deployedWeapon=_deployRecord param [7,objNull,[objNull]];
+if (!isNull _deployedWeapon) then {
+    _deployedWeapon setVariable ["WAIT_CortexQA_Shots",0];
+    _deployedWeapon addEventHandler ["Fired",{
+        params ["_weapon"];
+        _weapon setVariable ["WAIT_CortexQA_Shots",(_weapon getVariable ["WAIT_CortexQA_Shots",0])+1];
+    }];
+};
+private _deployFired=[{!isNull _deployedWeapon && {(_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0}},35] call _wait;
+["DANGER-static-deploy-config-prerequisite",_deployConfigValid,str [_deployExpected,_deployBases,backpack _deployAssistant]] call _check;
+["DANGER-static-deploy-physical-assembly",_deployContact && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner]] call _check;
+["DANGER-static-deploy-real-fire",_deployActive && {_deployFired},str [_deployedWeapon,_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]]] call _check;
+deleteVehicle _deployEnemy;
+private _deployReleased=[{
+    (_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]) isEqualTo []
+        && {isNull assignedVehicle _deployGunner}
+        && {vehicle _deployGunner == _deployGunner}
+},75] call _wait;
+["DANGER-static-deploy-contact-release",_deployActive && {_deployReleased},str [vehicle _deployGunner,assignedVehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]]] call _check;
+{deleteVehicle _x} forEach (_deployUnits+[_deployedWeapon]);
+deleteGroup _deployGroup;
+deleteGroup _deployOpposition;
+
 sleep 8;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach (_units+[_enemy]+_walls);

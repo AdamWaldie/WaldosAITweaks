@@ -140,6 +140,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |
 | `WAIT_AIPass_DangerSmoke_Enable` | `true` | One available soldier may throw carried smoke during severe finite danger. The current operation continues without waiting for it. |
 | `WAIT_AIPass_StaticSupport_Enable` | `true` | During confirmed contact, one uncommitted nonleader may physically occupy a nearby empty friendly static weapon. The squad does not wait for the mount. |
+| `WAIT_AIPass_StaticDeploy_Enable` | `true` | When no suitable emplacement exists, a compatible two-person bag team may physically assemble its carried weapon and occupy the real gunner seat without holding squad movement. |
 | `WAIT_AIPass_Hearing_Enable` | `true` | Nearby gunfire creates throttled approximate investigation reports, never target reveals. |
 | `WAIT_AIPass_Vehicles_Enable` | `true` | BOOL: dismount under fire; damaged vehicles smoke and withdraw. |
 | `WAIT_AIPass_NavalAssault_Enable` | `true` | BOOL: finite coastal boat approach and infantry landing; yields to external naval controller. |

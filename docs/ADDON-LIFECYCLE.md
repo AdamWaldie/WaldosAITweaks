@@ -166,6 +166,14 @@ assignment and a twenty-second physical boarding window. The group does not wait
 actors retain fire, manoeuvre, casualty replacement and withdrawal. Failure is recorded without a
 retry during that contact. CONTACT cleanup cancels only the exact WAIT assignment; Zeus or another
 external owner causes a command-free handover. WAIT never teleports an actor into the seat.
+WAIT_AIPass_StaticDeploy_Enable is a separate next-operation control, default true. If no
+usable emplacement exists, the same finite support opportunity may select one compatible primary
+weapon bag and base bag from uncommitted local AI. The pair physically moves to one of two bounded,
+dry, low-slope positions with a clear firing sector, uses the engine assembly action and gives the
+original carrier a real gunner assignment. The squad does not wait. Failure is recorded once for
+the contact episode; WAIT does not create a weapon, consume bags directly or force-seat the gunner.
+When contact ends, WAIT releases only its exact assignment and leaves the physical emplacement in
+the world. Finite disassembly and bag recovery remain an explicit outstanding parity step.
 `WAIT_AIPass_VehicleJink_Enable` is a next-operation control, default true. A slow, intact, crew-only
 armed ground vehicle may make one 25-second terrain-checked escape from a close hostile, hit or
 explosion generation. The response uses the shared operation and movement lease, covers 35-45 metres

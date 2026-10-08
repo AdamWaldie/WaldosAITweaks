@@ -676,6 +676,41 @@ class CortexOperations(unittest.TestCase):
         for forbidden in ['moveInGunner','call WAIT_fnc_CortexStaticSupport','call WAIT_fnc_CortexRestoreCalm']:
             self.assertNotIn(forbidden,audit)
 
+    def test_danger_static_deployment_is_finite_physical_and_owned(self):
+        deploy=source('cortexStaticDeployStep')
+        support=source('cortexStaticSupport')
+        restore=source('cortexRestoreCalm')
+        for marker in [
+            'WAIT_AIPass_StaticDeploy_Enable','assembleInfo','assembleTo','"primary") == 1',
+            '["PutBag",_assistant]','["Assemble",unitBackpack _assistant]',
+            'nearestObjects [_deployPos,[_expectedClass],8,true]',
+            'assignAsGunner _assembled','orderGetIn true',
+            'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
+            'lineIntersectsSurfaces','surfaceNormal _x'
+        ]:
+            self.assertIn(marker,deploy)
+        self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
+        self.assertNotIn('moveInGunner',deploy)
+        self.assertNotIn('createVehicle',deploy)
+        self.assertNotIn('setPos',deploy)
+        self.assertNotIn('while {',deploy)
+        self.assertNotIn('CortexQueueJob',deploy)
+        for marker in ['WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
+                       'orderGetIn false','unassignVehicle','_yieldToExternal']:
+            self.assertIn(marker,restore)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        for marker in [
+            'DANGER-static-deploy-config-prerequisite',
+            'DANGER-static-deploy-physical-assembly',
+            'DANGER-static-deploy-real-fire',
+            'DANGER-static-deploy-contact-release',
+            'O_HMG_01_weapon_F','O_HMG_01_support_F'
+        ]:
+            self.assertIn(marker,audit)
+        fixture=audit[audit.index('// A carried support team must use'):audit.index('sleep 8;',audit.index('// A carried support team must use'))]
+        for forbidden in ['call WAIT_fnc_CortexStaticDeployStep','moveInGunner','createVehicle [_deployExpected']:
+            self.assertNotIn(forbidden,fixture)
+
     def test_danger_action_owns_posture_without_owning_movement(self):
         reaction=source('dangerReact')
         self.assertIn('"MAINTAIN",""]',reaction)

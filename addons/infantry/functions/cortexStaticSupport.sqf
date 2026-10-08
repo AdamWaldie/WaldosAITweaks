@@ -1,7 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Give one otherwise uncommitted infantry actor a finite chance to occupy a nearby useful
- * empty static weapon during confirmed contact, without taking the squad's movement operation.
+ * empty static weapon during confirmed contact, without taking the squad's movement operation. If
+ * no existing emplacement is available, delegates compatible carried weapon bags to the finite
+ * physical deployment state.
  * Locality / Authority: Runs on the current group owner. It issues a gunner assignment only to one
  * local AI actor and never moves, creates, repairs, rearms, teleports or changes the static weapon.
  * Repeat/JIP: One contact-episode lease records the exact actor, weapon and assignment. A contact is
@@ -50,10 +52,14 @@ private _phase=toUpperANSI (_state getOrDefault ["phase","CALM"]);
 private _holdFire=combatMode _group in ["BLUE","GREEN"];
 if (!_enabled || {_phase != "CONTACT"} || {_holdFire} || {_enemies isEqualTo []} || {_external}) exitWith {
     [_external] call _release;
+    [_group,_state,[]] call WAIT_fnc_CortexStaticDeployStep;
     ["IDLE","YIELDED"] select _external
 };
 
 private _episode=_state getOrDefault ["phaseStart",time];
+if ((_group getVariable ["WAIT_Danger_StaticDeployment",[]]) isNotEqualTo []) exitWith {
+    [_group,_state,_enemies] call WAIT_fnc_CortexStaticDeployStep
+};
 if (count _lease >= 7) exitWith {
     _lease params ["_leaseEpisode","_actor","_weapon","_issuedAt","_deadline","_status","_startPosition"];
     if (_leaseEpisode != _episode || {isNull _actor} || {!alive _actor} || {!local _actor}
@@ -96,8 +102,9 @@ private _weapons=(nearestObjects [_anchor,["StaticWeapon"],75,true]) select {
         && {getNumber (configOf _x >> "side") in [_sideIndex,3]}
 };
 if (_weapons isEqualTo []) exitWith {
-    _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,"NO_WEAPON",serverTime],true];
-    "IDLE"
+    private _deploy=[_group,_state,_enemies] call WAIT_fnc_CortexStaticDeployStep;
+    _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,_deploy,serverTime],true];
+    _deploy
 };
 private _rankedWeapons=_weapons apply {[_anchor distance2D _x,_x]};
 _rankedWeapons sort true;

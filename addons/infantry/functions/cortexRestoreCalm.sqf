@@ -134,6 +134,34 @@ if (count _staticSupport >= 7) then {
 };
 _group setVariable ["WAIT_Danger_StaticSupport",nil,true];
 _group setVariable ["WAIT_Danger_StaticAttempt",nil,true];
+private _staticDeployment=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
+if (count _staticDeployment >= 10) then {
+    private _deployGunner=_staticDeployment param [2,objNull,[objNull]];
+    private _deployedWeapon=_staticDeployment param [7,objNull,[objNull]];
+    if (!isNull _deployGunner && {local _deployGunner}) then {
+        private _deployMove=_deployGunner getVariable ["WAIT_Cortex_ActorMove",[]];
+        if ((_deployMove param [0,""]) == "STATIC_DEPLOY") then {
+            _deployGunner setVariable ["WAIT_Cortex_ActorMove",nil];
+        };
+        if (!_yieldToExternal && {!isNull _deployedWeapon}
+            && {assignedVehicle _deployGunner == _deployedWeapon}) then {
+            [_deployGunner] orderGetIn false;
+            unassignVehicle _deployGunner;
+            if (vehicle _deployGunner == _deployedWeapon) then {
+                _deployGunner action ["GetOut",_deployedWeapon];
+            };
+        };
+    };
+    private _deployAssistant=_staticDeployment param [3,objNull,[objNull]];
+    if (!isNull _deployAssistant && {local _deployAssistant}) then {
+        private _assistantMove=_deployAssistant getVariable ["WAIT_Cortex_ActorMove",[]];
+        if ((_assistantMove param [0,""]) == "STATIC_DEPLOY") then {
+            _deployAssistant setVariable ["WAIT_Cortex_ActorMove",nil];
+        };
+    };
+};
+_group setVariable ["WAIT_Danger_StaticDeployment",nil,true];
+_group setVariable ["WAIT_Danger_StaticDeployAttempt",nil,true];
 private _vehicleJink=_state getOrDefault ["vehicleDangerJink",[]];
 private _jinkVehicle=_vehicleJink param [1,objNull,[objNull]];
 if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
