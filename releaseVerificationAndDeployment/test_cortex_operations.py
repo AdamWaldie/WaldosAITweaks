@@ -831,6 +831,22 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('private _friendsNear = allGroups',morale)
         self.assertNotIn('allGroups findIf',morale)
 
+    def test_fresh_heavy_armour_overmatch_withdraws_without_suicidal_manoeuvre(self):
+        """A rifle squad without usable AT must leave close armour to the finite withdrawal owner."""
+        morale=source('cortexMorale')
+        retreat=source('cortexRetreat')
+        for marker in ['private _armourIndex = _enemies findIf {',
+                       '((_enemies select _armourIndex) select 2) <= 10',
+                       '((_enemies select _armourIndex) select 3) <= 250',
+                       'waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]',
+                       '_state set ["withdrawReason","HEAVY_ARMOUR_NO_AT"]',
+                       '"RETREAT"']:
+            self.assertIn(marker,morale)
+        self.assertLess(morale.index('_state set ["withdrawReason","HEAVY_ARMOUR_NO_AT"]'),
+                        morale.index('private _pressure ='))
+        self.assertIn('_state getOrDefault ["withdrawReason","MORALE_WITHDRAWAL"]',retreat)
+        self.assertIn('[_group,_state,"RETREAT",_withdrawReason',retreat)
+
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
         medical=source('cortexMedicalStep')

@@ -12,7 +12,9 @@
  * (WAIT_fnc_CortexProfile): STEADY at moraleShaken or more, SHAKEN above moraleBroken, BROKEN below
  * it. A broken squad must recover 0.1 above moraleBroken before it counts as shaken again, so it
  * cannot flicker. With the shipped table, MILITIA breaks much sooner than ELITE.
- * Shaken squads do not start flank, assault or advance drills. Broken squads retreat; with
+ * A squad with no usable AT facing freshly known heavy armour inside 250 m withdraws immediately
+ * instead of entering the ordinary flank/advance/assault selector. An authored HOLD or SENTRY
+ * waypoint remains authoritative. Shaken squads do not start flank, assault or advance drills. Broken squads retreat; with
  * WAIT_AIPass_Surrender_Enable, a broken squad no larger than the profile's surrenderSurvivors, with
  * an enemy believed within 60 m and no friendly squad within 300 m, surrenders instead.
  * Morale inputs come from state the pass already holds; there are no allUnits scans.
@@ -55,10 +57,27 @@ private _leaderLost = [0, 1] select (!alive _contactLeader && {leader _group != 
 private _recent = {(_x select 2) <= 30} count _enemies;
 private _outnumbered = (((_recent / _count) - 1) max 0) min 2;
 private _hasAT = _alive findIf {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
-private _armour = [0, 1] select (!_hasAT && {_enemies findIf {
+private _armourIndex = _enemies findIf {
     private _enemy = vehicle (_x select 0);
     (_enemy isKindOf "Tank" || {_enemy isKindOf "Wheeled_APC_F"}) && {(_x select 3) <= 400} && {(_x select 2) <= 30}
-} >= 0});
+};
+private _armour = [0, 1] select (!_hasAT && {_armourIndex >= 0});
+// Heavy armour at assault distance is tactical overmatch, not a slow morale adjustment. Without
+// a capable launcher, continuing into the ordinary manoeuvre selector makes riflemen charge a
+// vehicle they cannot defeat. Preserve explicit stationary mission intent and otherwise use the
+// existing finite withdrawal operation, which keeps native fire active and remains interruptible.
+private _waypointIndex=currentWaypoint _group;
+private _explicitHold=_waypointIndex < count waypoints _group
+    && {waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]};
+private _overmatched=!_hasAT && {_armourIndex >= 0}
+    && {((_enemies select _armourIndex) select 2) <= 10}
+    && {((_enemies select _armourIndex) select 3) <= 250}
+    && {!_explicitHold};
+_state set ["armourOvermatched",_overmatched];
+if (_overmatched && {(_state getOrDefault ["phase",""]) == "CONTACT"}) exitWith {
+    _state set ["withdrawReason","HEAVY_ARMOUR_NO_AT"];
+    "RETREAT"
+};
 private _pressure = 0.45 * (1 - _count / _peak) + 0.2 * _suppression + 0.1 * _leaderLost
     + 0.15 * (_outnumbered / 2) + 0.2 * _armour + 0.1 * _wounds - 0.3 * (_courage - 0.5);
 // Cohesion (AI Tuning): above 1 squads take more before they break, below 1 they break sooner.

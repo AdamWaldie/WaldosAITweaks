@@ -28,7 +28,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | GRENADE - Grenade avoidance | 1 | 0 | 2 | `runReactions.sqf` | 2 | implemented_partial |
 | CIVILIAN - Civilian danger response and external ownership | 4 | 0 | 4 | `runReactions.sqf` | 0 | implemented_partial |
 | AT - Anti-armour and ammunition roles | 2 | 0 | 1 | `runFireControl.sqf` | 0 | implemented_partial |
-| VEH - Vehicle engagement | 4 | 0 | 6 | `runGunnery.sqf`, `runNaval.sqf`, `runVehicleDrills.sqf` | 1 | implemented_partial |
+| VEH - Vehicle engagement | 4 | 0 | 7 | `runGunnery.sqf`, `runNaval.sqf`, `runVehicleDrills.sqf` | 1 | implemented_partial |
 | DISMOUNT - Contact passenger dismount | 1 | 0 | 2 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | REMOUNT - Contact passenger remount | 1 | 0 | 1 | `runVehicleDrills.sqf` | 0 | implemented_partial |
 | WITHDRAW - Damaged vehicle withdrawal | 1 | 0 | 1 | `runVehicleDrills.sqf` | 1 | implemented_partial |
@@ -214,15 +214,15 @@ Feature cases: **65**. Required variant categories: **14**.
 
 ### AT - Anti-armour and ammunition roles
 
-**Expected:** Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot.
+**Expected:** Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot. A squad with no AT physically withdraws from fresh close heavy armour instead of starting an assault, advance or flank, while an authored HOLD or SENTRY remains authoritative.
 
-**Automation and open work:** runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. Not executed. Backblast obstruction, owner transfer and cancellation variants remain outstanding.
+**Automation and open work:** runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. A separate natural-detection fixture now requires a four-rifleman squad with no launcher to publish HEAVY_ARMOUR_NO_AT, acquire the common finite WITHDRAW operation, travel at least 30 m, increase separation from the APC by at least 20 m and create no manoeuvre drill. Saved, not executed. Authored HOLD/SENTRY physical preservation, backblast obstruction, owner transfer and cancellation variants remain outstanding.
 
 ### VEH - Vehicle engagement
 
 **Expected:** Only eligible mounted groups receive changes. Boats make a finite shallow-water approach, unload infantry onto dry ground, retain operating crew and restore authored orders; the parent gate and external owner release all controls.
 
-**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued. A fresh DETECTED generation after primary-gunner loss now requires an existing dedicated AI commander to change internally to the gunner seat while the driver remains in place; no crew is spawned or moved directly into a seat. An exact armed or armoured vehicle may accept one short terrain-checked danger jink only when it is slow, fully crew-only, outside convoy control and has no existing movement owner; the saved real-danger physical fixture first proves the disabled state, then requires a generation-owned jink, at least 20 metres of physical travel and complete crew retention. It has not yet been executed against a packaged candidate.
+**Automation and open work:** runGunnery.sqf retains disabled stationary control and enabled physical AT standoff. runNaval.sqf adds separate and combined crew/passenger landings on a bounded real coastline search, requiring physical water travel, dismount, dry egress, crew retention and finite cleanup. Naval fixture is saved but unexecuted; varied coast, owner migration, Zeus interruption and specialist-loaded arms remain queued. A fresh DETECTED generation after primary-gunner loss now requires an existing dedicated AI commander to change internally to the gunner seat while the driver remains in place; no crew is spawned or moved directly into a seat. An exact armed or armoured vehicle may accept one short terrain-checked danger jink only when it is slow, fully crew-only, outside convoy control and has no existing movement owner; the saved real-danger physical fixture first proves the disabled state, then requires a generation-owned jink, at least 20 metres of physical travel and complete crew retention. It has not yet been executed against a packaged candidate. A stopped tracked fighting vehicle now has disabled/enabled natural-contact cases requiring a generation-owned hull-orientation operation, physical alignment within 20 degrees, less than 8 metres of travel and full crew retention. Saved, not yet executed.
 
 ### DISMOUNT - Contact passenger dismount
 

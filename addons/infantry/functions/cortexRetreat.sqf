@@ -187,7 +187,11 @@ if (!_resuming) then {
         };
     };
 };
-[_group,_state,"RETREAT",["MORALE_WITHDRAWAL","OWNERSHIP_RESUME"] select _resuming,time-_elapsed,_resuming] call WAIT_fnc_CortexSetPhase;
+private _withdrawReason=if (_resuming) then {"OWNERSHIP_RESUME"} else {
+    _state getOrDefault ["withdrawReason","MORALE_WITHDRAWAL"]
+};
+_state deleteAt "withdrawReason";
+[_group,_state,"RETREAT",_withdrawReason,time-_elapsed,_resuming] call WAIT_fnc_CortexSetPhase;
 if (!_resuming) then {missionNamespace setVariable ["WAIT_AIPass_Retreats", (missionNamespace getVariable ["WAIT_AIPass_Retreats", 0]) + 1]};
 if (missionNamespace getVariable ["WAIT_AIPass_Debug", false]) then {diag_log format ["[WAIT] %1 RETREAT to %2", _group, _point]};
 true

@@ -214,9 +214,9 @@ Feature cases: **65**. Required variant categories: **14**.
 
 ### AT - Anti-armour and ammunition roles
 
-**Expected:** Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot.
+**Expected:** Capable gunner engages the appropriate target; unsafe backblast and unsupported ammunition prevent the scripted shot. A squad with no AT physically withdraws from fresh close heavy armour instead of starting an assault, advance or flank, while an authored HOLD or SENTRY remains authoritative.
 
-**Automation and open work:** runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. Not executed. Backblast obstruction, owner transfer and cancellation variants remain outstanding.
+**Automation and open work:** runFireControl.sqf adds real visible-armour hold-fire and Cortex targeting plus actual launcher-shot checks. A separate natural-detection fixture now requires a four-rifleman squad with no launcher to publish HEAVY_ARMOUR_NO_AT, acquire the common finite WITHDRAW operation, travel at least 30 m, increase separation from the APC by at least 20 m and create no manoeuvre drill. Saved, not executed. Authored HOLD/SENTRY physical preservation, backblast obstruction, owner transfer and cancellation variants remain outstanding.
 
 ### VEH - Vehicle engagement
 
