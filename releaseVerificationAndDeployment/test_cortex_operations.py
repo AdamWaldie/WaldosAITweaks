@@ -5327,9 +5327,13 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('deliveryCommitted',controller)
         self.assertIn('attackShotBaseline',controller)
         self.assertIn('if (_turret isEqualTo [-1]) then {_pilot}',controller)
+        self.assertIn('assignedTarget _x isEqualTo _ownedTarget',controller)
         self.assertIn('_x doTarget objNull',controller)
         self.assertIn('_x doWatch objNull',controller)
-        self.assertIn('_group reveal [_fireTarget,4]',controller)
+        self.assertNotIn('_group reveal [_fireTarget,4]',controller)
+        handover_cleanup=controller.split('if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {',1)[1].split('if (!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"])) then {',1)[0]
+        self.assertNotIn('doTarget objNull',handover_cleanup)
+        self.assertNotIn('doWatch objNull',handover_cleanup)
         self.assertIn('_operator doFire _fireTarget',controller)
         self.assertNotIn('_operator doFire _target',controller)
         self.assertNotIn('_operator commandTarget _target',controller)
@@ -5442,8 +5446,8 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('(crew _aircraft) doFollow leader _handoverGroup',controller)
         self.assertNotIn('_handoverPilot commandMove _handoverPosition',controller)
         self.assertNotIn('_handoverPilot setDestination [_handoverPosition',controller)
-        self.assertIn('_x commandTarget objNull',controller)
-        self.assertEqual(controller.count('_x commandTarget objNull'),1)
+        self.assertIn('assignedTarget _x isEqualTo _ownedTarget',controller)
+        self.assertNotIn('_x commandTarget objNull',controller)
         self.assertNotIn('_handoverPilot doFollow leader _handoverGroup',controller)
         self.assertNotIn('(driver _aircraft) doMove _handoverPosition',controller)
         self.assertNotIn('(crew _aircraft) doFollow leader _group',controller)
@@ -5465,7 +5469,7 @@ class CortexOperations(unittest.TestCase):
         # MOVE point Z as a dependable flight profile. Direct handover may clear that persistent
         # hint once from Zeus' selected destination, but must never become a polling controller.
         self.assertEqual(controller.count('_aircraft flyInHeight (_stageAltitudes select _stageIndex)'),1)
-        handover=controller.split('if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {',1)[1].split('};\n        if (_resume)',1)[0]
+        handover=controller.split('if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {',1)[1].split('// On an ordinary finite end',1)[0]
         self.assertEqual(handover.count('_aircraft flyInHeight'),1)
         self.assertIn('private _handoverHeight=if (count _handoverPosition >= 3',handover)
         self.assertIn('_aircraft flyInHeight [_handoverHeight,false]',handover)

@@ -258,7 +258,8 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         controller = src('cortexAirAttack')
         self.assertNotIn('(crew _aircraft) commandTarget objNull;', controller)
         self.assertNotIn('(crew _aircraft) doFollow leader _resumeGroup;', controller)
-        self.assertIn('_x commandTarget objNull}} forEach crew _aircraft;', controller)
+        self.assertIn('assignedTarget _x isEqualTo _ownedTarget', controller)
+        self.assertIn('_x doTarget objNull;', controller)
         self.assertIn('_x doFollow leader _resumeGroup}} forEach crew _aircraft;', controller)
 
 class AddonSettingLifecycleContracts(unittest.TestCase):

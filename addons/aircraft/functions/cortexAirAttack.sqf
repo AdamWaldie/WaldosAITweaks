@@ -9,7 +9,8 @@
  * It flies physical route legs, presents the live target only to the retained weapon operator, records real
  * non-countermeasure shots and requests finite approach/departure countermeasures. Every pattern
  * uses a compatible loaded weapon and opens fire only inside a live range and alignment envelope.
- * On attack entry the selected living operator receives one native reveal/target instruction.
+ * On attack entry the selected living operator receives one native target instruction using only
+ * knowledge the aircraft group already possessed when the finite plan was selected.
  * Fixed-wing pilots prosecute the object-attached native attack order. Once the live delivery basket
  * is valid, Cortex issues one bounded native doFire request to the selected pilot; independently
  * aimed turrets use fireAtTarget. This joins route geometry to the engine's weapon FSM instead of
@@ -94,16 +95,11 @@ private _finish={
         if (!isNull _finishPilot && {alive _finishPilot}) then {
             {_finishPilot enableAI _x} forEach (_job getOrDefault ["lateralPilotFeatures",[]]);
         };
-        // Direct Zeus input owns the aircraft immediately. Retire only Cortex target commands,
-        // restore the native attack policy, reselect the authenticated waypoint and leave. A timed
+        // Direct Zeus input owns the aircraft immediately. Do not clear target or watch state here:
+        // the curator or external controller may have replaced it before this scheduled cleanup ran.
+        // Restore the native attack policy, reselect the authenticated waypoint and leave. A timed
         // guard was observed to suppress the new route for 90 seconds and violated this boundary.
         if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {
-            {if (alive _x && {!isPlayer _x}) then {_x doTarget objNull; _x doWatch objNull}}
-                forEach crew _aircraft;
-            // commandTarget and doFollow are unit commands. Applying either to the crew array
-            // silently fails, leaving a native attack target or post-run formation command behind
-            // after Zeus has taken ownership.
-            {if (alive _x && {!isPlayer _x}) then {_x commandTarget objNull}} forEach crew _aircraft;
             private _handoverPilot=driver _aircraft;
             private _handoverGroup=group _handoverPilot;
             private _snapshot=_handoverGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
@@ -160,6 +156,21 @@ private _finish={
                 behaviour _handoverPilot,unitCombatMode _handoverPilot,currentCommand _handoverPilot,
                 "ZEUS_IMMEDIATE_HANDOVER",expectedDestination _handoverPilot
             ],true];
+        };
+        // On an ordinary finite end, retire only the exact hostile WAIT assigned and only while no
+        // player, curator or specialist has claimed the group. A newer target survives cleanup.
+        if (!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"])) then {
+            private _ownedTarget=_job getOrDefault ["fireTarget",objNull];
+            private _cleanupExternal=[_finishGroup] call WAIT_fnc_CortexExternalTakeover
+                || {[_finishGroup] call WAIT_fnc_CortexZeusHeld};
+            if (!_cleanupExternal && {!isNull _ownedTarget}) then {
+                {
+                    if (alive _x && {!isPlayer _x} && {assignedTarget _x isEqualTo _ownedTarget}) then {
+                        _x doTarget objNull;
+                        _x doWatch objNull;
+                    };
+                } forEach crew _aircraft;
+            };
         };
         if (_resume) then {
             private _resumePosition=_job getOrDefault ["resumePosition",[]];
@@ -618,10 +629,9 @@ if (_stage == "ATTACK") then {
         _job set ["weaponSelected",true];
     };
     if (!isNull _operator && {alive _operator} && {!(_job getOrDefault ["targetCommanded",false])}) then {
-        // A MOVE leg alone never asks the engine weapon FSM to prosecute the contact. Reveal only
-        // the already selected hostile at attack entry, then let the retained operator and native
-        // flight model solve the shot. This runs once and is cleared during every handover path.
-        _group reveal [_fireTarget,4];
+        // A MOVE leg alone never asks the engine weapon FSM to prosecute the contact. Retain the
+        // group's existing knowledge and let the selected operator and native flight model solve the
+        // shot; manufacturing maximum knowledge here made every attack unrealistically precise.
         _aircraft doWatch _fireTarget;
         _aircraft doTarget _fireTarget;
         _operator doWatch _fireTarget;
