@@ -326,6 +326,20 @@ private _observerCover=[{
         && {_observerWingman distance2D _observerStart >= 2}
 },18] call _wait;
 ["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
+private _observerGenerationClosed=[{
+    (_observerGroup getVariable ["WAIT_Danger_FSM",[]]) isEqualTo []
+        && {(_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]]) isEqualTo []}
+        && {(_observerGroup getVariable ["WAIT_Danger_VehicleContext",[]]) isEqualTo []}
+        && {(_observerGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
+        && {(_observerGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+},12] call _wait;
+["DANGER-natural-finish-identity-cleared",_observerCover && {_observerGenerationClosed},str [
+    _observerGroup getVariable ["WAIT_Danger_FSM",[]],
+    _observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],
+    _observerGroup getVariable ["WAIT_Danger_VehicleContext",[]],
+    _observerGroup getVariable ["WAIT_Danger_Response",[]],
+    _observerGroup getVariable ["WAIT_Danger_Action",[]]
+]] call _check;
 deleteVehicle _observerGrenade;
 deleteVehicle _observerWall;
 {deleteVehicle _x} forEach [_observerLeader,_observerWingman];
