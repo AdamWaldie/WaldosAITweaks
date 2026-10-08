@@ -1536,7 +1536,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (call _mayIssueMovement) then {',garrison)
         self.assertIn('private _openedDoor = if (call _mayIssueMovement)',garrison)
         self.assertIn('[_group] call WAIT_fnc_CortexExternalTakeover',reserve)
-        self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x doMove _position;'))
+        self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x setVariable ["WAIT_AIPass_DefendPos"'))
+        self.assertNotIn('_x doMove _position;',reserve)
+        self.assertIn('[_group,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
 
     def test_garrison_duck_handlers_yield_to_a_later_external_owner(self):
         """Suppression callbacks must not alter the posture of a Zeus or specialist-owned unit."""
@@ -1651,13 +1653,29 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('forEach [0.65,0.35,0]',reserve)
         self.assertIn('surfaceNormal _position',reserve)
         text=source('cortexDefendApplyLocal')
-        self.assertIn('_routes pushBack [_x,getPosATL _x,time,0]',text)
+        self.assertIn('_routes pushBack [_x,getPosATL _x,time,0,_routeGeneration]',text)
+        self.assertIn('WAIT_AIPass_DefendRouteGeneration',text)
+        self.assertIn('if (_fullApply) then {_actors=+units _group}',text)
+        self.assertIn('forEach (_job get "actors")',text)
         self.assertIn('_unit distance2D _lastPosition >= 1',text)
         self.assertIn('time-_lastProgress >= 15',text)
         self.assertIn('_retries < 3',text)
         self.assertIn('_unit doMove (_assignment select 0)',text)
         self.assertNotIn('_unit setDestination',text)
         self.assertNotIn('["deadline", time + 90]',text)
+
+    def test_defence_reserve_reinforcement_does_not_replan_the_established_line(self):
+        apply=source('cortexDefendApplyLocal')
+        reserve=source('cortexDefendStep')
+        release=source('cortexDefendRelease')
+        self.assertIn('["_actors",[],[[]]]',apply)
+        self.assertIn('private _fullApply=_actors isEqualTo []',apply)
+        self.assertIn('if (_fullApply || {_generation <= 0}) then {',apply)
+        self.assertIn('forEach _actors',apply)
+        self.assertNotIn('_group setVariable ["WAIT_AIPass_DefendApplied", false]',reserve)
+        self.assertNotIn('_x doMove _position',reserve)
+        self.assertIn('[_group,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
+        self.assertIn('WAIT_AIPass_DefendRouteGeneration',release)
 
     def test_clearance_renews_safety_lease_only_on_observed_progress(self):
         text=source('cortexClearBuilding')+source('buildingOperationStep')

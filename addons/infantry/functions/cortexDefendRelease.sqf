@@ -53,6 +53,7 @@ if (isNull _leader) then {_leader=leader _group};
     _x setVariable ["WAIT_AIPass_DefendPos", nil, true];
     _x setVariable ["WAIT_AIPass_DefendFailed",nil,true];
     _x setVariable ["WAIT_AIPass_DefendHolding", nil];
+    _x setVariable ["WAIT_AIPass_DefendRouteGeneration",nil];
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_Defend", nil, true];
 _group setVariable ["WAIT_AIPass_DefendApplied", nil];
