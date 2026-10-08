@@ -73,6 +73,19 @@ if (_selected isEqualTo []) exitWith {
 _group setVariable ["WAIT_Danger_LastAssessment",+_selected];
 _selected params ["_cause","_position","_observedAt"];
 private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
+// A concrete native task is an ownership boundary, not a tactical response mode. The engine FSM may
+// record the event and perform its observation-only FORCED state, but the assessment layer must not
+// publish a group response, wake the tactical brain or retain an older WAIT posture. Otherwise a
+// soldier boarding, healing, rearming or joining can be pulled into CONTACT by the same event that
+// correctly classified that task as authoritative.
+if (_action == "FORCED") exitWith {
+    [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
+    _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_Action",nil,true];
+    private _forcedBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _forcedBrain > 0) then {_forcedBrain deleteAt "responsiveUntil"};
+    -1
+};
 // This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
 // respond on its already-owned scheduler cycle while retaining route, operation and external ownership.
 private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["SCREAM",1.5],["DETECTED",1.5],["GUNFIRE",1]];

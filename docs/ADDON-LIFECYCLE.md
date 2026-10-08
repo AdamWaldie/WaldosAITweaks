@@ -166,8 +166,8 @@ Its responsibility map is deliberately narrow:
 | `IMMEDIATE` | Apply one exactly-owned weak stance for a hit, explosion or suppression. The existing group-brain tick may move one genuinely idle exposed actor to nearby physical cover; it does not start another worker. |
 | `HIDE` | Treat casualty and scream evidence as mobile awareness. It may use a finite crouch but cannot request cover movement from those causes. |
 | `ENGAGE` | Require a living hostile source. Native knowledge and the existing group brain retain targeting, firing, suppression, CQB and manoeuvre ownership. |
-| `VEHICLE` | Record and wake only. The finite vehicle layer owns safe stopping, eligible passenger exit, withdrawal and gunnery under their separate gates. |
-| `FORCED` | Yield to fleeing or a concrete boarding, action, healing, rearm or join task; WAIT records the observation but issues no posture or movement command. Native `ATTACK` remains eligible because Arma also uses it for autonomous combat. |
+| `VEHICLE` | Record a bounded vehicle-safety wake only. The finite vehicle layer may stop for eligible passenger exit; infantry CONTACT, withdrawal, gunnery and manoeuvre still require their own gates and native target knowledge. |
+| `FORCED` | Yield to fleeing or a concrete boarding, action, healing, rearm or join task. The local engine FSM records the observation, while the group assessment clears any older WAIT response and publishes no tactical wake, posture or movement command. Native `ATTACK` remains eligible because Arma also uses it for autonomous combat. |
 | release | Restore only the exact stance or cover lease still owned by this FSM generation. A newer order is never overwritten. |
 
 The engine states themselves never issue a destination, target or firing command. Forced commands, player/Zeus control,

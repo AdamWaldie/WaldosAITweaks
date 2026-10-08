@@ -135,6 +135,47 @@ missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
 deleteGroup _closeGroup;
 
+// A concrete native boarding task must remain the movement owner through a real danger event. The
+// fixture waits for the engine GET IN command before detonating the grenade, then requires WAIT's
+// FORCED branch to remain observation-only while the soldier physically reaches the assigned seat.
+// No WAIT response, phase, target, movement or synthetic danger is written by this test.
+private _forcedGroup=createGroup [east,true];
+_forcedGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_forcedGroup setVariable ["acex_headless_blacklist",true,true];
+_forcedGroup setCombatMode "BLUE";
+private _forcedUnit=_forcedGroup createUnit ["O_Soldier_F",[2360,1350,0],[],0,"NONE"];
+_forcedUnit allowDamage false;
+_forcedUnit setVariable ["acex_headless_blacklist",true,true];
+_forcedUnit setVariable ["WAIT_CortexQA_Label","FORCED BOARDING OWNER",true];
+private _forcedVehicle=createVehicle ["O_Truck_03_transport_F",[2390,1350,0],[],0,"NONE"];
+_forcedVehicle allowDamage false;
+_forcedVehicle setDir 270;
+_forcedUnit assignAsCargo _forcedVehicle;
+[_forcedUnit] orderGetIn true;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_forcedUnit,_forcedVehicle],true];
+["Danger FSM: native boarding ownership","The soldier has an ordinary engine GET IN task before a real grenade detonates. WAIT must observe FORCED, never publish infantry tactical authority, and allow physical boarding to finish.",getPosATL _forcedVehicle] call _phase;
+private _forcedReady=[{toUpperANSI (currentCommand _forcedUnit) == "GET IN"},10] call _wait;
+private _forcedModesBefore=((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["FORCED",0];
+private _forcedTransitionCount=count (_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+private _forcedGrenade=createVehicle ["GrenadeHand",(getPosATL _forcedUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _forcedNoHandoff=[{
+    private _stats=_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    private _modes=_stats getOrDefault ["modes",createHashMap];
+    (_modes getOrDefault ["FORCED",0]) > _forcedModesBefore
+        && {(_forcedGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
+        && {(_forcedGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+        && {((_forcedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+},12] call _wait;
+private _forcedBoarded=[{vehicle _forcedUnit == _forcedVehicle},35] call _wait;
+private _forcedTransitions=(_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_forcedTransitionCount];
+private _forcedNeverContact=_forcedTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0;
+["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedNeverContact},
+    str [currentCommand _forcedUnit,vehicle _forcedUnit,_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_forcedTransitions]] call _check;
+deleteVehicle _forcedGrenade;
+deleteVehicle _forcedUnit;
+deleteVehicle _forcedVehicle;
+deleteGroup _forcedGroup;
+
 deleteVehicle _dangerCoverWall;
 deleteVehicle _reflexUnit;
 deleteGroup _reflexGroup;

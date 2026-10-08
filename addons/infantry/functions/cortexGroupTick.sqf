@@ -215,6 +215,12 @@ private _dangerAction=_group getVariable ["WAIT_Danger_Action",[]];
 private _dangerActionName=if (count _dangerAction == 5
     && {(_dangerAction select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
     && {time < (_dangerAction select 3)}) then {_dangerAction select 0} else {""};
+// Observation, mounted safety and infantry tactical authority are separate. A vehicle hit can stop
+// for its passengers without authorising an on-foot CONTACT operation; a concrete native FORCED task
+// receives neither. This defensive FORCED exclusion also protects an older packaged response during
+// a same-frame task handover even though DangerStep normally clears it before this tick.
+private _dangerTactical=_dangerActive && {!(_dangerActionName in ["FORCED","VEHICLE"])};
+private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
 // their reported position as a physical threat sent soldiers away from bodies or voices and made
 // harmless evidence look like suppression. Only immediate hazards may own this cover reflex.
@@ -304,7 +310,7 @@ private _nearTier = _nearest <= _farRange;
 // only this already-scheduled group decision while the finite response lease is live, so combat
 // logic can use existing engine knowledge immediately without adding a global combat scan or a
 // second route/movement owner.
-private _tacticalTier=_nearTier || _dangerActive;
+private _tacticalTier=_nearTier || _dangerTactical;
 private _delay = switch (true) do {
     case (_nearest <= (["WAIT_AIPass_NearRange", 1000] call _get)): {["WAIT_AIPass_TickNear", 4] call _get};
     case (_nearTier): {["WAIT_AIPass_TickMid", 8] call _get};
@@ -323,6 +329,12 @@ private _visible = _enemies select {(_x select 2) <= 10};
 // immediate finite response and local safety layers, but it is never sufficient authority for a
 // route, support request, artillery request or target-specific weapon order.
 private _hasTargetKnowledge = _enemies isNotEqualTo [];
+// Run only the bounded vehicle/passenger safety slice for a targetless mounted danger event. With an
+// empty enemy list CortexVehicles exits immediately after its safe-stop/dismount handshake, so this
+// cannot select a target, withdrawal, standoff or infantry phase.
+if (_dangerVehicleSafety && {["WAIT_AIPass_Vehicles_Enable",true] call _get}) then {
+    [_group,_state,[]] call WAIT_fnc_CortexVehicles;
+};
 private _garrisoned = (_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo [];
 private _defending = (_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo [];
 private _ordered = _garrisoned || {_defending} || {_group getVariable ["WAIT_AIPass_ClearBuilding", false]};
@@ -372,7 +384,7 @@ if (_remount isNotEqualTo []) then {
 private _contactDelay = if (_tacticalTier) then {["WAIT_AIPass_TickContact", 2] call _get} else {_delay};
 // A local danger event wakes this existing job. Do not wait for the distance-tier cadence before
 // it re-evaluates native knowledge, but do not create an additional job or issue movement here.
-if (_dangerActive) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
+if (_dangerTactical || {_dangerVehicleSafety}) then {_contactDelay=_contactDelay min 0.5; _delay=_delay min 0.5};
 
 private _areaMode = _state getOrDefault ["areaInvestigation",""];
 if (_areaMode != "" && {(!([_group,"WAIT_AIPass_Investigate_Enable",true] call WAIT_fnc_CortexFeatureEnabled))
@@ -529,7 +541,7 @@ switch (_state get "phase") do {
         // suppression or hostile near-fire response delayed withdrawal, support and cleanup until a
         // separate visual contact arrived. Enter the same finite CONTACT state now; native knowledge
         // remains the only source of enemies and target positions.
-        if (_dangerActive || {_visible isNotEqualTo []}) exitWith {call _beginContact};
+        if (_dangerTactical || {_visible isNotEqualTo []}) exitWith {call _beginContact};
         private _area = _group getVariable ["WAIT_AIPass_AreaReport",[]];
         if (_area isNotEqualTo [] && {serverTime >= (_area select 2)}) then {_group setVariable ["WAIT_AIPass_AreaReport",nil,true]; _area = []};
         private _investigationPreference=[_group, "investigateChance"] call WAIT_fnc_CortexProfile;
