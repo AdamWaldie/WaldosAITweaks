@@ -2367,6 +2367,13 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(expected,text)
             self.assertNotIn(rejected,text)
 
+    def test_danger_recycle_never_substitutes_exact_hostile_position(self):
+        recycle=source("dangerEngineRecycle")
+        self.assertIn('private _position=_actor getHideFrom _source',recycle)
+        self.assertIn('if (_position isEqualTo [0,0,0]) exitWith {[]}',recycle)
+        self.assertNotIn('_position=getPosATL _source',recycle)
+        self.assertIn('getPosATL _actor',recycle)
+
     def test_group_ticks_use_low_cost_zero_mean_jitter(self):
         tick=source("cortexGroupTick")
         self.assertIn('private _cadence = _delay / _reaction;',tick)

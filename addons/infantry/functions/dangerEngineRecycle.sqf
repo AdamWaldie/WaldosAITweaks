@@ -43,8 +43,12 @@ switch (_mode) do {
 if (!_follow) exitWith {[]};
 
 private _position=_actor getHideFrom _source;
-if (_position isEqualTo [0,0,0]) then {_position=getPosATL _source};
-if (count _position == 2) then {_position pushBack ((getPosATL _source) select 2)};
+// Recycling may retain only the engine's believed geometry. Falling back to the source object's
+// exact live position manufactures precision at the moment native memory is no longer usable and
+// lets a stale finite response outlive genuine knowledge. End this actor response instead; normal
+// EnemyDetected/knowledge intake will wake the shared group brain again after a real reacquisition.
+if (_position isEqualTo [0,0,0]) exitWith {[]};
+if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
 if (count _position != 3) exitWith {[]};
 
 private _stats=_group getVariable ['WAIT_Danger_EngineStats',createHashMap];

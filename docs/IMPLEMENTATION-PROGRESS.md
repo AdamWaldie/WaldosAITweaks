@@ -160,6 +160,12 @@ FiredNear hearing and convoy damage intake retain hostile vehicle, aircraft and 
 instead of evaluating a possibly empty object group. Static regressions pass; mixed-platform physical
 acceptance remains queued.
 
+Danger recycling now requires a usable engine-believed position on every finite follow-up. Loss of that
+position ends the actor response instead of substituting the hostile object's exact live coordinates;
+normal native detection can wake the group again after a genuine reacquisition. Two-dimensional believed
+positions inherit only the observing actor's local height, never target precision. Static validation is
+required; physical lost-knowledge/reacquisition acceptance remains queued.
+
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
 Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the
