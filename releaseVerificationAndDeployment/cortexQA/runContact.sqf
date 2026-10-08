@@ -55,6 +55,46 @@ deleteGroup _disabledGroup;
 private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
 ["DANGER-live-gate-reenabled",_enabledReady] call _check;
 
+// A live CBA change must also retire a response which already owns a weak actor stance. This is
+// distinct from starting disabled: the engine FSM has physically reacted, so cleanup must prove
+// exact restoration rather than merely showing that no callback was accepted.
+private _liveDisableGroup=createGroup [east,true];
+_liveDisableGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_liveDisableGroup setVariable ["acex_headless_blacklist",true,true];
+_liveDisableGroup setCombatMode "BLUE";
+private _liveDisableUnit=_liveDisableGroup createUnit ["O_Soldier_F",[2280,1350,0],[],0,"NONE"];
+_liveDisableUnit allowDamage false;
+_liveDisableUnit setUnitPos "AUTO";
+_liveDisableUnit setVariable ["acex_headless_blacklist",true,true];
+_liveDisableUnit setVariable ["WAIT_CortexQA_Label","DANGER LIVE DISABLE",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_liveDisableUnit],true];
+["Danger FSM: live gate cleanup","A real explosion first creates a finite WAIT stance. Danger is then disabled while that lease is active; the soldier must return to AUTO immediately without waiting for natural expiry.",getPosATL _liveDisableUnit] call _phase;
+private _liveDisableGrenade=createVehicle ["GrenadeHand",(getPosATL _liveDisableUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _liveDisableReacted=[{
+    (_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
+        && {stance _liveDisableUnit in ["CROUCH","PRONE"]}
+},10] call _wait;
+[createHashMapFromArray [["WAIT_AIPass_Danger_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _liveDisableReleased=[{
+    !(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])
+        && {(_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
+        && {(_liveDisableUnit getVariable ["WAIT_Danger_EngineResponse",[]]) isEqualTo []}
+        && {toUpperANSI (unitPos _liveDisableUnit) == "AUTO"}
+        && {(_liveDisableGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
+},10] call _wait;
+["DANGER-live-disable-exact-stance-release",_liveDisableReacted && {_liveDisableReleased},str [
+    unitPos _liveDisableUnit,
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]],
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineResponse",[]],
+    _liveDisableGroup getVariable ["WAIT_Danger_Response",[]]
+]] call _check;
+deleteVehicle _liveDisableGrenade;
+deleteVehicle _liveDisableUnit;
+deleteGroup _liveDisableGroup;
+[createHashMapFromArray [["WAIT_AIPass_Danger_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _liveDisableReenabled=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
+["DANGER-live-disable-reenabled",_liveDisableReenabled] call _check;
+
 // BLUE is an explicit authored hold-fire instruction. With the live danger gate enabled, a real
 // explosion must still reach the engine FSM and may produce a finite actor stance, but it cannot
 // promote fire discipline or enter the group tactical state.

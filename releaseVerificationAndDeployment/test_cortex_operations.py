@@ -255,6 +255,7 @@ class CortexOperations(unittest.TestCase):
         action=source('dangerActionSelect')
         setup=source('dangerSetup')
         scheduler=source('cortexSchedulerTick')
+        contact_fixture=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
         self.assertIn('!local _group',request)
         self.assertIn('{local _group}',setup)
         self.assertIn('select [0,16]',request)
@@ -454,6 +455,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_release)
         self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',setup)
         self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',source('cortexReleaseGroup'))
+        self.assertIn('DANGER-live-disable-exact-stance-release',contact_fixture)
+        self.assertIn('DANGER-live-disable-reenabled',contact_fixture)
         for text in [engine_mode,engine_act,engine_continue]:
             self.assertIn('WAIT_fnc_CortexCombatEffective',text)
         self.assertIn('toUpperANSI (unitPos _actor) != _applied',engine_release)
