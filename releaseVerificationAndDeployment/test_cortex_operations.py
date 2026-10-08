@@ -251,13 +251,23 @@ class CortexOperations(unittest.TestCase):
         self.assertTrue(engine_fsm.startswith('/*%FSM<COMPILE "scriptedFSM.cfg, Danger">*/'))
         self.assertTrue(engine_fsm.rstrip().endswith('/*%FSM</COMPILE>*/'))
         self.assertIn('/*%FSM<HEAD>*/',engine_fsm)
-        self.assertIn('item0[]={"Start",0,250',engine_fsm)
-        self.assertIn('link46[]={10,35}; link47[]={35,1};',engine_fsm)
+        self.assertRegex(engine_fsm,r'item0\[\]\s*=\s*\{"Start",0,250')
+        self.assertRegex(engine_fsm,r'link46\[\]\s*=\s*\{10,35\};')
+        self.assertRegex(engine_fsm,r'link47\[\]\s*=\s*\{35,1\};')
+        self.assertIn('/*%FSM<STATE "Start">*/',engine_fsm)
+        self.assertIn('/*%FSM<STATEINIT',engine_fsm)
+        self.assertIn('/*%FSM<CONDITION',engine_fsm)
         runtime_fsm=engine_fsm.split('class FSM',1)[1]
-        self.assertEqual(12,runtime_fsm.count('itemno = '))
-        self.assertEqual(24,runtime_fsm.count('itemno='))
-        self.assertEqual(12,runtime_fsm.count('precondition = "";'))
-        self.assertEqual(24,runtime_fsm.count('precondition="";'))
+        self.assertEqual(36,len(re.findall(r'\bitemno\s*=\s*\d+;',runtime_fsm)))
+        self.assertEqual(36,len(re.findall(r'\bprecondition\s*=',runtime_fsm)))
+        editor_items=[int(value) for value in re.findall(r'item(\d+)\[\]\s*=',engine_fsm.split('class FSM',1)[0])]
+        self.assertEqual(list(range(36)),editor_items)
+        editor_links=[tuple(map(int,values)) for values in re.findall(r'link\d+\[\]\s*=\s*\{(\d+),(\d+)\}',engine_fsm.split('class FSM',1)[0])]
+        self.assertTrue(editor_links)
+        self.assertTrue(all(source_id in editor_items and target_id in editor_items for source_id,target_id in editor_links))
+        engine_source=(ROOT/'addons/infantry/fsm/danger.bifsm').read_text()
+        self.assertIn('InitCode=',engine_source)
+        self.assertIn('Condition=',engine_source)
         request=source('dangerRequest')
         step=source('dangerStep')
         selection=source('dangerSelect')
@@ -293,7 +303,6 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_state deleteAt "wakeAt"',scheduler)
         self.assertIn('getOrDefault ["wakeAt",_dueAt]',scheduler)
         self.assertIn('getOrDefault ["responsiveUntil",-1]',scheduler)
-        import re
         for body in [engine,engine_act,engine_continue,engine_mode,engine_select,request,step,selection,setup]:
             body=re.sub(r"/\*.*?\*/|//[^\n]*", "", body, flags=re.DOTALL)
             for forbidden in [' reveal ', ' doMove ', ' doTarget ', 'allUnits', 'allGroups', 'CortexQueueJob']:

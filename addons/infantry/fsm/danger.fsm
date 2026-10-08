@@ -1,201 +1,511 @@
 /*%FSM<COMPILE "scriptedFSM.cfg, Danger">*/
 /*%FSM<HEAD>*/
 /*
-item0[]={"Start",0,250,0.000000,0.000000,100.000000,50.000000,0.000000,"Start"};
-item1[]={"Dispatch",2,250,0.000000,150.000000,100.000000,200.000000,0.000000,"Dispatch"};
-item2[]={"Forced",2,250,-300.000000,300.000000,-200.000000,350.000000,0.000000,"Forced"};
-item3[]={"Vehicle",2,250,-150.000000,300.000000,-50.000000,350.000000,0.000000,"Vehicle"};
-item4[]={"Immediate",2,250,0.000000,300.000000,100.000000,350.000000,0.000000,"Immediate"};
-item5[]={"Hide",2,250,150.000000,300.000000,250.000000,350.000000,0.000000,"Hide"};
-item6[]={"Engage",2,250,300.000000,300.000000,400.000000,350.000000,0.000000,"Engage"};
-item7[]={"Assess",2,250,450.000000,300.000000,550.000000,350.000000,0.000000,"Assess"};
-item8[]={"Waiting",2,250,75.000000,500.000000,175.000000,550.000000,0.000000,"Waiting"};
-item9[]={"Recycle",2,250,-25.000000,650.000000,75.000000,700.000000,0.000000,"Recycle"};
-item10[]={"Queued",2,250,175.000000,650.000000,275.000000,700.000000,0.000000,"Queued"};
-item11[]={"Finished",1,250,75.000000,800.000000,175.000000,850.000000,0.000000,"Finished"};
-item12[]={"Release",4,218,-300.000000,75.000000,-200.000000,125.000000,3.000000,"Release"};
-item13[]={"Forced",4,218,-150.000000,75.000000,-50.000000,125.000000,2.000000,"Forced"};
-item14[]={"Vehicle",4,218,0.000000,75.000000,100.000000,125.000000,1.000000,"Vehicle"};
-item15[]={"Foot",4,218,150.000000,75.000000,250.000000,125.000000,0.000000,"Foot"};
-item16[]={"Immediate",4,218,-150.000000,225.000000,-50.000000,275.000000,3.000000,"Immediate"};
-item17[]={"Hide",4,218,0.000000,225.000000,100.000000,275.000000,2.000000,"Hide"};
-item18[]={"Engage",4,218,150.000000,225.000000,250.000000,275.000000,1.000000,"Engage"};
-item19[]={"Assess",4,218,300.000000,225.000000,400.000000,275.000000,0.000000,"Assess"};
-item20[]={"Wait",4,218,-300.000000,400.000000,-200.000000,450.000000,0.000000,"Wait"};
-item21[]={"Wait",4,218,-150.000000,400.000000,-50.000000,450.000000,0.000000,"Wait"};
-item22[]={"Wait",4,218,0.000000,400.000000,100.000000,450.000000,0.000000,"Wait"};
-item23[]={"Wait",4,218,150.000000,400.000000,250.000000,450.000000,0.000000,"Wait"};
-item24[]={"Wait",4,218,300.000000,400.000000,400.000000,450.000000,0.000000,"Wait"};
-item25[]={"Wait",4,218,450.000000,400.000000,550.000000,450.000000,0.000000,"Wait"};
-item26[]={"Interrupted",4,218,-75.000000,575.000000,25.000000,625.000000,4.000000,"Interrupted"};
-item27[]={"Saturated",4,218,75.000000,575.000000,175.000000,625.000000,2.000000,"Saturated"};
-item28[]={"Done",4,218,225.000000,575.000000,325.000000,625.000000,0.000000,"Done"};
-item29[]={"Interrupted",4,218,-150.000000,725.000000,-50.000000,775.000000,3.000000,"Interrupted"};
-item30[]={"Drain",4,218,0.000000,725.000000,100.000000,775.000000,1.000000,"Drain"};
-item31[]={"Done",4,218,150.000000,725.000000,250.000000,775.000000,0.000000,"Done"};
-item32[]={"Release",4,218,300.000000,725.000000,400.000000,775.000000,3.000000,"Release"};
-item33[]={"Forced",4,218,450.000000,725.000000,550.000000,775.000000,2.000000,"Forced"};
-item34[]={"Vehicle",4,218,600.000000,725.000000,700.000000,775.000000,1.000000,"Vehicle"};
-item35[]={"Foot",4,218,750.000000,725.000000,850.000000,775.000000,0.000000,"Foot"};
-version=1;
-link0[]={0,12}; link1[]={12,11};
-link2[]={0,13}; link3[]={13,2};
-link4[]={0,14}; link5[]={14,3};
-link6[]={0,15}; link7[]={15,1};
-link8[]={1,16}; link9[]={16,4};
-link10[]={1,17}; link11[]={17,5};
-link12[]={1,18}; link13[]={18,6};
-link14[]={1,19}; link15[]={19,7};
-link16[]={2,20}; link17[]={20,8};
-link18[]={3,21}; link19[]={21,8};
-link20[]={4,22}; link21[]={22,8};
-link22[]={5,23}; link23[]={23,8};
-link24[]={6,24}; link25[]={24,8};
-link26[]={7,25}; link27[]={25,8};
-link28[]={8,26}; link29[]={26,11};
-link30[]={8,27}; link31[]={27,10};
-link32[]={8,28}; link33[]={28,9};
-link34[]={9,29}; link35[]={29,11};
-link36[]={9,30}; link37[]={30,10};
-link38[]={9,31}; link39[]={31,11};
-link40[]={10,32}; link41[]={32,11};
-link42[]={10,33}; link43[]={33,2};
-link44[]={10,34}; link45[]={34,3};
-link46[]={10,35}; link47[]={35,1};
-globals[]={0.000000,0,0,0,0,640,480,1,48,6316128,1,-400.000000,900.000000,1100.000000,-200.000000,933,876,1};
-window[]={2,-1,-1,-1,-1,0,0,1280,720,3,933};
+item0[] = {"Start",0,250,0.000000,0.000000,100.000000,50.000000,0.000000,"Start"};
+item1[] = {"Dispatch",2,250,0.000000,150.000000,100.000000,200.000000,0.000000,"Dispatch"};
+item2[] = {"Forced",2,250,-300.000000,300.000000,-200.000000,350.000000,0.000000,"Forced"};
+item3[] = {"Vehicle",2,250,-150.000000,300.000000,-50.000000,350.000000,0.000000,"Vehicle"};
+item4[] = {"Immediate",2,250,0.000000,300.000000,100.000000,350.000000,0.000000,"Immediate"};
+item5[] = {"Hide",2,250,150.000000,300.000000,250.000000,350.000000,0.000000,"Hide"};
+item6[] = {"Engage",2,250,300.000000,300.000000,400.000000,350.000000,0.000000,"Engage"};
+item7[] = {"Assess",2,250,450.000000,300.000000,550.000000,350.000000,0.000000,"Assess"};
+item8[] = {"Waiting",2,250,75.000000,500.000000,175.000000,550.000000,0.000000,"Waiting"};
+item9[] = {"Recycle",2,250,-25.000000,650.000000,75.000000,700.000000,0.000000,"Recycle"};
+item10[] = {"Queued",2,250,175.000000,650.000000,275.000000,700.000000,0.000000,"Queued"};
+item11[] = {"Finished",1,250,75.000000,800.000000,175.000000,850.000000,0.000000,"Finished"};
+item12[] = {"Release",4,218,-300.000000,75.000000,-200.000000,125.000000,3.000000,"Release"};
+item13[] = {"Forced",4,218,-150.000000,75.000000,-50.000000,125.000000,2.000000,"Forced"};
+item14[] = {"Vehicle",4,218,0.000000,75.000000,100.000000,125.000000,1.000000,"Vehicle"};
+item15[] = {"Foot",4,218,150.000000,75.000000,250.000000,125.000000,0.000000,"Foot"};
+item16[] = {"Immediate",4,218,-150.000000,225.000000,-50.000000,275.000000,3.000000,"Immediate"};
+item17[] = {"Hide",4,218,0.000000,225.000000,100.000000,275.000000,2.000000,"Hide"};
+item18[] = {"Engage",4,218,150.000000,225.000000,250.000000,275.000000,1.000000,"Engage"};
+item19[] = {"Assess",4,218,300.000000,225.000000,400.000000,275.000000,0.000000,"Assess"};
+item20[] = {"Wait",4,218,-300.000000,400.000000,-200.000000,450.000000,0.000000,"Wait"};
+item21[] = {"Wait",4,218,-150.000000,400.000000,-50.000000,450.000000,0.000000,"Wait"};
+item22[] = {"Wait",4,218,0.000000,400.000000,100.000000,450.000000,0.000000,"Wait"};
+item23[] = {"Wait",4,218,150.000000,400.000000,250.000000,450.000000,0.000000,"Wait"};
+item24[] = {"Wait",4,218,300.000000,400.000000,400.000000,450.000000,0.000000,"Wait"};
+item25[] = {"Wait",4,218,450.000000,400.000000,550.000000,450.000000,0.000000,"Wait"};
+item26[] = {"Interrupted",4,218,-75.000000,575.000000,25.000000,625.000000,4.000000,"Interrupted"};
+item27[] = {"Saturated",4,218,75.000000,575.000000,175.000000,625.000000,2.000000,"Saturated"};
+item28[] = {"Done",4,218,225.000000,575.000000,325.000000,625.000000,0.000000,"Done"};
+item29[] = {"Interrupted",4,218,-150.000000,725.000000,-50.000000,775.000000,3.000000,"Interrupted"};
+item30[] = {"Drain",4,218,0.000000,725.000000,100.000000,775.000000,1.000000,"Drain"};
+item31[] = {"Done",4,218,150.000000,725.000000,250.000000,775.000000,0.000000,"Done"};
+item32[] = {"Release",4,218,300.000000,725.000000,400.000000,775.000000,3.000000,"Release"};
+item33[] = {"Forced",4,218,450.000000,725.000000,550.000000,775.000000,2.000000,"Forced"};
+item34[] = {"Vehicle",4,218,600.000000,725.000000,700.000000,775.000000,1.000000,"Vehicle"};
+item35[] = {"Foot",4,218,750.000000,725.000000,850.000000,775.000000,0.000000,"Foot"};
+link0[] = {0,12};
+link1[] = {12,11};
+link2[] = {0,13};
+link3[] = {13,2};
+link4[] = {0,14};
+link5[] = {14,3};
+link6[] = {0,15};
+link7[] = {15,1};
+link8[] = {1,16};
+link9[] = {16,4};
+link10[] = {1,17};
+link11[] = {17,5};
+link12[] = {1,18};
+link13[] = {18,6};
+link14[] = {1,19};
+link15[] = {19,7};
+link16[] = {2,20};
+link17[] = {20,8};
+link18[] = {3,21};
+link19[] = {21,8};
+link20[] = {4,22};
+link21[] = {22,8};
+link22[] = {5,23};
+link23[] = {23,8};
+link24[] = {6,24};
+link25[] = {24,8};
+link26[] = {7,25};
+link27[] = {25,8};
+link28[] = {8,26};
+link29[] = {26,11};
+link30[] = {8,27};
+link31[] = {27,10};
+link32[] = {8,28};
+link33[] = {28,9};
+link34[] = {9,29};
+link35[] = {29,11};
+link36[] = {9,30};
+link37[] = {30,10};
+link38[] = {9,31};
+link39[] = {31,11};
+link40[] = {10,32};
+link41[] = {32,11};
+link42[] = {10,33};
+link43[] = {33,2};
+link44[] = {10,34};
+link45[] = {34,3};
+link46[] = {10,35};
+link47[] = {35,1};
+globals[] = {0.000000,0,0,0,0,640,480,1,48,6316128,1,-400.000000,900.000000,1100.000000,-200.000000,933,876,1};
+window[] = {2,-1,-1,-1,-1,0,0,1280,720,3,933};
 *//*%FSM</HEAD>*/
 class FSM
 {
-    fsmName = "Danger";
-    class States
-    {
-        class Start
+        fsmName = "Danger";
+        class States
         {
-            name = "Start";
-            itemno = 0;
-            init = "_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
-            precondition = "";
-            class Links
-            {
-                class Release {itemno=12; priority=3; to="Finished"; precondition=""; condition="_mode == ""RELEASE"""; action="";};
-                class Forced {itemno=13; priority=2; to="Forced"; precondition=""; condition="_mode == ""FORCED"""; action="";};
-                class Vehicle {itemno=14; priority=1; to="Vehicle"; precondition=""; condition="_mode == ""VEHICLE"""; action="";};
-                class Foot {itemno=15; priority=0; to="Dispatch"; precondition=""; condition="true"; action="";};
-            };
+                /*%FSM<STATE "Start">*/
+                class Start
+                {
+                        name = "Start";
+                        itemno = 0;
+                        init = /*%FSM<STATEINIT""">*/"_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Release">*/
+                                class Release
+                                {
+                                        itemno = 12;
+                                        priority = 3.000000;
+                                        to="Finished";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""RELEASE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Forced">*/
+                                class Forced
+                                {
+                                        itemno = 13;
+                                        priority = 2.000000;
+                                        to="Forced";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""FORCED"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Vehicle">*/
+                                class Vehicle
+                                {
+                                        itemno = 14;
+                                        priority = 1.000000;
+                                        to="Vehicle";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""VEHICLE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Foot">*/
+                                class Foot
+                                {
+                                        itemno = 15;
+                                        priority = 0.000000;
+                                        to="Dispatch";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Dispatch">*/
+                class Dispatch
+                {
+                        name = "Dispatch";
+                        itemno = 1;
+                        init = /*%FSM<STATEINIT""">*/""/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Immediate">*/
+                                class Immediate
+                                {
+                                        itemno = 16;
+                                        priority = 3.000000;
+                                        to="Immediate";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""IMMEDIATE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Hide">*/
+                                class Hide
+                                {
+                                        itemno = 17;
+                                        priority = 2.000000;
+                                        to="Hide";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""HIDE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Engage">*/
+                                class Engage
+                                {
+                                        itemno = 18;
+                                        priority = 1.000000;
+                                        to="Engage";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""ENGAGE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Assess">*/
+                                class Assess
+                                {
+                                        itemno = 19;
+                                        priority = 0.000000;
+                                        to="Assess";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Forced">*/
+                class Forced
+                {
+                        name = "Forced";
+                        itemno = 2;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 20;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Vehicle">*/
+                class Vehicle
+                {
+                        name = "Vehicle";
+                        itemno = 3;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 21;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Immediate">*/
+                class Immediate
+                {
+                        name = "Immediate";
+                        itemno = 4;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 22;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Hide">*/
+                class Hide
+                {
+                        name = "Hide";
+                        itemno = 5;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 23;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Engage">*/
+                class Engage
+                {
+                        name = "Engage";
+                        itemno = 6;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 24;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Assess">*/
+                class Assess
+                {
+                        name = "Assess";
+                        itemno = 7;
+                        init = /*%FSM<STATEINIT""">*/"_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Wait">*/
+                                class Wait
+                                {
+                                        itemno = 25;
+                                        priority = 0.000000;
+                                        to="Waiting";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Waiting">*/
+                class Waiting
+                {
+                        name = "Waiting";
+                        itemno = 8;
+                        init = /*%FSM<STATEINIT""">*/""/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Interrupted">*/
+                                class Interrupted
+                                {
+                                        itemno = 26;
+                                        priority = 4.000000;
+                                        to="Finished";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"!([_this] call WAIT_fnc_DangerEngineCanContinue)"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Saturated">*/
+                                class Saturated
+                                {
+                                        itemno = 27;
+                                        priority = 2.000000;
+                                        to="Queued";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"count _queue > 3"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Done">*/
+                                class Done
+                                {
+                                        itemno = 28;
+                                        priority = 0.000000;
+                                        to="Recycle";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"time >= _deadline"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Recycle">*/
+                class Recycle
+                {
+                        name = "Recycle";
+                        itemno = 9;
+                        init = /*%FSM<STATEINIT""">*/"_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Interrupted">*/
+                                class Interrupted
+                                {
+                                        itemno = 29;
+                                        priority = 3.000000;
+                                        to="Finished";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"!([_this] call WAIT_fnc_DangerEngineCanContinue)"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Drain">*/
+                                class Drain
+                                {
+                                        itemno = 30;
+                                        priority = 1.000000;
+                                        to="Queued";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"count _queue > 0"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Done">*/
+                                class Done
+                                {
+                                        itemno = 31;
+                                        priority = 0.000000;
+                                        to="Finished";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Queued">*/
+                class Queued
+                {
+                        name = "Queued";
+                        itemno = 10;
+                        init = /*%FSM<STATEINIT""">*/"_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                                /*%FSM<LINK "Release">*/
+                                class Release
+                                {
+                                        itemno = 32;
+                                        priority = 3.000000;
+                                        to="Finished";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""RELEASE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Forced">*/
+                                class Forced
+                                {
+                                        itemno = 33;
+                                        priority = 2.000000;
+                                        to="Forced";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""FORCED"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Vehicle">*/
+                                class Vehicle
+                                {
+                                        itemno = 34;
+                                        priority = 1.000000;
+                                        to="Vehicle";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"_mode == ""VEHICLE"""/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                                /*%FSM<LINK "Foot">*/
+                                class Foot
+                                {
+                                        itemno = 35;
+                                        priority = 0.000000;
+                                        to="Dispatch";
+                                        precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"true"/*%FSM</CONDITION""">*/;
+                                        action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
+                                };
+                                /*%FSM</LINK>*/
+                        };
+                };
+                /*%FSM</STATE>*/
+                /*%FSM<STATE "Finished">*/
+                class Finished
+                {
+                        name = "Finished";
+                        itemno = 11;
+                        init = /*%FSM<STATEINIT""">*/"[_this] call WAIT_fnc_DangerEngineRelease;"/*%FSM</STATEINIT""">*/;
+                        precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
+                        class Links
+                        {
+                        };
+                };
+                /*%FSM</STATE>*/
         };
-        class Dispatch
+        initState="Start";
+        finalStates[] =
         {
-            name = "Dispatch";
-            itemno = 1;
-            init = "";
-            precondition = "";
-            class Links
-            {
-                class Immediate {itemno=16; priority=3; to="Immediate"; precondition=""; condition="_mode == ""IMMEDIATE"""; action="";};
-                class Hide {itemno=17; priority=2; to="Hide"; precondition=""; condition="_mode == ""HIDE"""; action="";};
-                class Engage {itemno=18; priority=1; to="Engage"; precondition=""; condition="_mode == ""ENGAGE"""; action="";};
-                class Assess {itemno=19; priority=0; to="Assess"; precondition=""; condition="true"; action="";};
-            };
+                "Finished",
         };
-        class Forced
-        {
-            name = "Forced";
-            itemno = 2;
-            init = "_deadline=time+([_this,""FORCED"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=20; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Vehicle
-        {
-            name = "Vehicle";
-            itemno = 3;
-            init = "_deadline=time+([_this,""VEHICLE"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=21; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Immediate
-        {
-            name = "Immediate";
-            itemno = 4;
-            init = "_deadline=time+([_this,""IMMEDIATE"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=22; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Hide
-        {
-            name = "Hide";
-            itemno = 5;
-            init = "_deadline=time+([_this,""HIDE"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=23; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Engage
-        {
-            name = "Engage";
-            itemno = 6;
-            init = "_deadline=time+([_this,""ENGAGE"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=24; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Assess
-        {
-            name = "Assess";
-            itemno = 7;
-            init = "_deadline=time+([_this,""ASSESS"",_selected] call WAIT_fnc_DangerEngineAct);";
-            precondition = "";
-            class Links {class Wait {itemno=25; priority=0; to="Waiting"; precondition=""; condition="true"; action="";};};
-        };
-        class Waiting
-        {
-            name = "Waiting";
-            itemno = 8;
-            init = "";
-            precondition = "";
-            class Links
-            {
-                class Interrupted {itemno=26; priority=4; to="Finished"; precondition=""; condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action="";};
-                class Saturated {itemno=27; priority=2; to="Queued"; precondition=""; condition="count _queue > 3"; action="";};
-                class Done {itemno=28; priority=0; to="Recycle"; precondition=""; condition="time >= _deadline"; action="";};
-            };
-        };
-        class Recycle
-        {
-            name = "Recycle";
-            itemno = 9;
-            init = "_followUp=[_this,_mode,_selected] call WAIT_fnc_DangerEngineRecycle; if (_followUp isNotEqualTo []) then {_queue pushBack _followUp};";
-            precondition = "";
-            class Links
-            {
-                class Interrupted {itemno=29; priority=3; to="Finished"; precondition=""; condition="!([_this] call WAIT_fnc_DangerEngineCanContinue)"; action="";};
-                class Drain {itemno=30; priority=1; to="Queued"; precondition=""; condition="count _queue > 0"; action="";};
-                class Done {itemno=31; priority=0; to="Finished"; precondition=""; condition="true"; action="";};
-            };
-        };
-        class Queued
-        {
-            name = "Queued";
-            itemno = 10;
-            init = "_records=+(_queue select [0,12]); _queue=[]; _selected=[_records] call WAIT_fnc_DangerEngineSelect; _mode=[_this,_selected] call WAIT_fnc_DangerEngineMode; _accepted=[_this,_records,_mode] call WAIT_fnc_DangerEngineSubmit;";
-            precondition = "";
-            class Links
-            {
-                class Release {itemno=32; priority=3; to="Finished"; precondition=""; condition="_mode == ""RELEASE"""; action="";};
-                class Forced {itemno=33; priority=2; to="Forced"; precondition=""; condition="_mode == ""FORCED"""; action="";};
-                class Vehicle {itemno=34; priority=1; to="Vehicle"; precondition=""; condition="_mode == ""VEHICLE"""; action="";};
-                class Foot {itemno=35; priority=0; to="Dispatch"; precondition=""; condition="true"; action="";};
-            };
-        };
-        class Finished
-        {
-            name = "Finished";
-            itemno = 11;
-            init = "[_this] call WAIT_fnc_DangerEngineRelease;";
-            precondition = "";
-            class Links {};
-        };
-    };
-    initState = "Start";
-    finalStates[] = {"Finished"};
 };
 /*%FSM</COMPILE>*/
