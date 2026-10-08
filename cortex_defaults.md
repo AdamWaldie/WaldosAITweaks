@@ -187,8 +187,8 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_Investigate_Enable` | `true` | BOOL: squads check out enemies they know about but have not seen. |
 | `WAIT_AIPass_Investigate_Range` | `300` | METRES: how far away a known enemy may be to be investigated. |
 | `WAIT_AIPass_Investigate_Seconds` | `60` | SECONDS: investigation time limit. |
-| `WAIT_AIPass_Assault_Enable` | `true` | BOOL: a flank can finish with a grenade and a rush on the enemy position. |
-| `WAIT_AIPass_Assault_Range` | `80` | METRES: the enemy must be this close to the flanking element to assault. |
+| `WAIT_AIPass_Assault_Enable` | `true` | BOOL: paired-element clear-through after manoeuvre or directly against a fresh close threat. |
+| `WAIT_AIPass_Assault_Range` | `80` | METRES: maximum transition range for a final assault; fresh known contacts inside 60 m may enter the same paired-element assault directly. |
 | `WAIT_AIPass_Advance_Enable` | `true` | BOOL: pinned squads with somewhere to go push a team forward in bounds. |
 | `WAIT_AIPass_Advance_MinContactSeconds` | `0` | SECONDS: optional confirmed-contact delay before an advance is considered. |
 | `WAIT_AIPass_Advance_Cooldown` | `20` | SECONDS: after an advance ends before the squad may start another. |

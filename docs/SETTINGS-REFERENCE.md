@@ -82,7 +82,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_AIPass_Flank_Enable` | Flanking | CHECKBOX | true | [] | NEXT_OPERATION | Half the squad flanks in covered bounds while the rest suppresses. |
 | `WAIT_AIPass_StreetCrossing_Enable` | Street crossing | CHECKBOX | true | [] | NEXT_OPERATION | Flanking squads stop at roads, throw smoke and cross in one bound. |
-| `WAIT_AIPass_Assault_Enable` | Final assault | CHECKBOX | true | [] | NEXT_OPERATION | A flank can finish with a grenade and a rush on the enemy position. |
+| `WAIT_AIPass_Assault_Enable` | Final assault | CHECKBOX | true | [] | NEXT_OPERATION | An eligible manoeuvre finishes with a paired-element clear-through; a fresh known threat already inside ordinary manoeuvre range can start it directly. |
 | `WAIT_AIPass_Advance_Enable` | Bounding advance | CHECKBOX | true | [] | NEXT_OPERATION | Squads in a long firefight push a fire team towards their waypoint in covered bounds. |
 | `WAIT_AIPass_Advance_MinContactSeconds` | Advance contact delay | SLIDER | 0 | [0, 300, 0] | NEXT_OPERATION | Optional seconds of confirmed contact before a bounding advance may begin. The default is zero because knowledge, morale, range, actor and avenue checks already decide whether the manoeuvre is viable. |
 | `WAIT_AIPass_Advance_Cooldown` | Advance repeat delay | SLIDER | 20 | [0, 180, 0] | NEXT_OPERATION | Seconds after an advance ends before the same squad may start another. This is shorter than the flank delay so a squad can continue progressing in successive tactical bounds without immediately restarting a finished drill. |

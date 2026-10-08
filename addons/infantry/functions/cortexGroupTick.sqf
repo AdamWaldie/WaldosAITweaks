@@ -754,7 +754,8 @@ switch (_state get "phase") do {
             if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement}) then {
                 [_group, _state, _enemies,
                     ["WAIT_AIPass_Flank_Enable", true] call _get,
-                    ["WAIT_AIPass_Advance_Enable", true] call _get
+                    ["WAIT_AIPass_Advance_Enable", true] call _get,
+                    ["WAIT_AIPass_Assault_Enable", true] call _get
                 ] call WAIT_fnc_CortexTacticalStart;
             };
             if (["WAIT_AIPass_AmmoShare_Enable", true] call _get) then {[_group, _state] call WAIT_fnc_CortexAmmoShare};

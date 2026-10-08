@@ -49,7 +49,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | GARRISON - Garrison and dynamic AO | 1 | 0 | 3 | `runServer.sqf`, `runBuildingComparison.sqf` | 1 | implemented_partial |
 | FLARES - Aircraft countermeasures | 1 | 0 | 2 | `runAircraft.sqf` | 2 | implemented_partial |
 | INVESTIGATE - Known-area investigation | 3 | 0 | 2 | `runSupport.sqf` | 0 | implemented_partial |
-| ASSAULT - Final assault | 2 | 0 | 0 | `runCombat.sqf` | 3 | implemented_partial |
+| ASSAULT - Final assault | 2 | 0 | 1 | `runCombat.sqf` | 3 | implemented_partial |
 | ADVANCE - Bounding advance | 3 | 0 | 2 | `runCombat.sqf` | 2 | implemented_partial |
 | COORD - Coordinated assault | 1 | 0 | 13 | `runCoordinated.sqf` | 10 | implemented_partial |
 | STANCE - Cover stance | 1 | 0 | 1 | `runReactions.sqf` | 0 | implemented_partial |
@@ -346,7 +346,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 ### ASSAULT - Final assault
 
-**Expected:** After an eligible advance or flank, troops approach the reported objective, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate the covering element. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.
+**Expected:** After an eligible advance or flank, or immediately against an already-close fresh threat, troops approach the reported objective in paired elements, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.
 
 **Automation and open work:** runCombat.sqf: actual approach proximity, physical crossing by each Advance element, complete squad/support consolidation, independent FiredMan grenade deployment and no movement into a live frag. FLANK-GRENADE, ADVANCE-GRENADE with a single first-element carrier, and FLANK-ZEUS-CONSOLIDATE are additive cases. All new stages await live acceptance in runtime 142945.
 

@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Locality / Authority: Executes on the caller; world changes are limited to locally owned objects or groups, or to server-published state, as guarded below.
  * Repeat/JIP: Repeat calls recompute or update the same bounded state; public state is replayable to JIP where this function publishes it.
- * Advances a running drill (flank or bounding advance) by one step: issue a bound, wait for arrival,
+ * Advances a running drill (flank, bounding advance, direct assault or coordinated bound) by one step: issue a bound, wait for arrival,
  * pause and overwatch, cross streets under smoke, and finish by holding the ground won or assaulting.
  *
  * Bounds: each member gets his own spot, spread across a shallow line facing the last known enemy position. A slot on
@@ -168,7 +168,11 @@ private _supportValid=_support && {count _supportRole == 5}
     && {(_supportRole select 2) == "MOVE"}
     && {_state getOrDefault ["assaulting",false]};
 private _gate=if (_support) then {"WAIT_AIPass_CoordinatedAssault_Enable"} else {
-    ["WAIT_AIPass_Flank_Enable","WAIT_AIPass_Advance_Enable"] select ((_drill getOrDefault ["type","FLANK"]) == "ADVANCE")
+    switch (_drill getOrDefault ["type","FLANK"]) do {
+        case "ADVANCE": {"WAIT_AIPass_Advance_Enable"};
+        case "ASSAULT": {"WAIT_AIPass_Assault_Enable"};
+        default {"WAIT_AIPass_Flank_Enable"};
+    }
 };
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active", false])
     || {if (_support) then {!_supportValid} else {(_state getOrDefault ["phase",""]) != "CONTACT"}}

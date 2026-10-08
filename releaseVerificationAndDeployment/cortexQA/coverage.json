@@ -1073,8 +1073,8 @@
     {
       "id": "ASSAULT",
       "title": "Final assault",
-      "setup": "Complete a real flank into assault range with and without grenades/friendlies near the enemy.",
-      "expected": "After an eligible advance or flank, troops approach the reported objective, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate the covering element. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.",
+      "setup": "Complete a real flank or advance into assault range, and begin from a fresh known hostile inside the ordinary manoeuvre minimum range, with and without grenades/friendlies near the enemy.",
+      "expected": "After an eligible advance or flank, or immediately against an already-close fresh threat, troops approach the reported objective in paired elements, optionally deploy a carried grenade safely, clear through beyond the objective, and consolidate. Require physical travel and cohesion; flags, accepted orders and controller completion alone are insufficient. Zeus and gate changes must release owned state.",
       "settings": [
         "WAIT_AIPass_Assault_Enable",
         "WAIT_AIPass_Assault_Range"
@@ -1089,7 +1089,9 @@
       "executable_sources": [
         "runCombat.sqf"
       ],
-      "production_sources": []
+      "production_sources": [
+        "addons/infantry/functions/cortexAssaultStart.sqf"
+      ]
     },
     {
       "id": "ADVANCE",

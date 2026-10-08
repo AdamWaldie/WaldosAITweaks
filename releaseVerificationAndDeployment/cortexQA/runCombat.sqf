@@ -8,7 +8,7 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACombat.sqf";
  */
 params ["_check","_phase","_wait"];
-private _cases = ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE","FLANK-YELLOW","FLANK-AWARE","ADVANCE-AWARE","FLANK","ADVANCE","ADVANCE-YELLOW","ADVANCE-CLOSE","ADVANCE-DISTANT","FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-BLOCKED","ADVANCE-BLOCKED","FLANK-GRENADE","FLANK-ZEUS-CONSOLIDATE","ADVANCE-GRENADE"];
+private _cases = ["ASSAULT-CLOSE","FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE","FLANK-YELLOW","FLANK-AWARE","ADVANCE-AWARE","FLANK","ADVANCE","ADVANCE-YELLOW","ADVANCE-CLOSE","ADVANCE-DISTANT","FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-BLOCKED","ADVANCE-BLOCKED","FLANK-GRENADE","FLANK-ZEUS-CONSOLIDATE","ADVANCE-GRENADE"];
 private _selected = missionNamespace getVariable ["WAIT_CortexQA_CombatCase",""];
 if (_selected != "" && {!(_selected in _cases)}) exitWith {["COMBAT-invalid-case",false,_selected] call _check};
 if (_selected != "") then {_cases = [_selected]};
@@ -17,8 +17,9 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     private _case = _x;
     private _blockage = _case in ["FLANK-BLOCKED","ADVANCE-BLOCKED"];
     private _handover = _case in ["FLANK-ZEUS","ADVANCE-ZEUS","FLANK-ZEUS-ROE","FLANK-ZEUS-CONSOLIDATE"];
-    private _mode = if ((_case find "FLANK") == 0) then {"FLANK"} else {"ADVANCE"};
-    private _enemyPosition = [1200,switch (_case) do {case "ADVANCE-YELLOW": {1450}; case "ADVANCE-AWARE": {1450}; case "ADVANCE-BLOCKED": {1450}; case "ADVANCE-ZEUS": {1450}; case "ADVANCE": {1450}; case "ADVANCE-DISTANT": {1550}; default {1350}},0];
+    private _directAssault=_case == "ASSAULT-CLOSE";
+    private _mode = if (_directAssault) then {"ASSAULT"} else {if ((_case find "FLANK") == 0) then {"FLANK"} else {"ADVANCE"}};
+    private _enemyPosition = [1200,switch (_case) do {case "ASSAULT-CLOSE": {1250}; case "ADVANCE-YELLOW": {1450}; case "ADVANCE-AWARE": {1450}; case "ADVANCE-BLOCKED": {1450}; case "ADVANCE-ZEUS": {1450}; case "ADVANCE": {1450}; case "ADVANCE-DISTANT": {1550}; default {1350}},0];
     private _advance = _mode == "ADVANCE";
     private _group = createGroup [east,true];
     private _enemyGroup = createGroup [west,true];
@@ -90,7 +91,7 @@ diag_log format ["WAIT CORTEX QA COMBAT SCOPE: %1",_cases];
     };
     [createHashMapFromArray [
         ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Aggression",2],
-        ["WAIT_AIPass_Flank_Enable",!_advance],["WAIT_AIPass_Advance_Enable",_advance],
+        ["WAIT_AIPass_Flank_Enable",!_advance && {!_directAssault}],["WAIT_AIPass_Advance_Enable",_advance],
         ["WAIT_AIPass_Assault_Enable",_case != "ADVANCE-CLOSE"],["WAIT_AIPass_Advance_MinContactSeconds",5],
         ["WAIT_AIPass_FireControl_Enable",!(_case in ["FLANK-NATIVE-FIRE","FLANK-YELLOW-NATIVE-FIRE"])],
         ["WAIT_AIPass_Morale_Enable",false],["WAIT_AIPass_Regroup_Enable",false],

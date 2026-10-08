@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Ends a drill (flank or bounding advance). Restores owned unit and group combat-mode overrides only
+ * Ends a drill (flank, bounding advance or direct assault). Restores owned unit and group combat-mode overrides only
  * while the current mode still matches the value Cortex applied; later external changes survive.
  *
  * Restores the leader attack-assignment setting and only the AI features the drill disabled. A drill that completed, or stopped because the
@@ -133,11 +133,19 @@ if (count _movementLease == 2 && {(_movementLease select 0) == "TACTICAL_DRILL"}
     [_group,"TACTICAL_DRILL",false] call WAIT_fnc_CortexOwnershipLease;
     _state deleteAt "movementLease";
 };
-private _cooldownName = ["WAIT_AIPass_Flank_Cooldown", "WAIT_AIPass_Advance_Cooldown"] select (_type == "ADVANCE");
-private _cooldownDefault = [90, 20] select (_type == "ADVANCE");
+private _cooldownName=switch (_type) do {
+    case "ADVANCE": {"WAIT_AIPass_Advance_Cooldown"};
+    case "ASSAULT": {"WAIT_AIPass_Assault_Cooldown"};
+    default {"WAIT_AIPass_Flank_Cooldown"};
+};
+private _cooldownDefault=switch (_type) do {case "ADVANCE": {20}; case "ASSAULT": {15}; default {90}};
 [_state, toLowerANSI _type, missionNamespace getVariable [_cooldownName, _cooldownDefault]] call WAIT_fnc_CortexCooldown;
 if (_reason == "COMPLETE") then {
-    private _counter = ["WAIT_AIPass_FlanksCompleted", "WAIT_AIPass_AdvancesCompleted"] select (_type == "ADVANCE");
-    missionNamespace setVariable [_counter, (missionNamespace getVariable [_counter, 0]) + 1];
+    private _counter=switch (_type) do {
+        case "ADVANCE": {"WAIT_AIPass_AdvancesCompleted"};
+        case "ASSAULT": {"WAIT_AIPass_AssaultsCompleted"};
+        default {"WAIT_AIPass_FlanksCompleted"};
+    };
+    missionNamespace setVariable [_counter,(missionNamespace getVariable [_counter,0])+1];
 };
 if (missionNamespace getVariable ["WAIT_AIPass_Debug", false]) then {diag_log format ["[WAIT] %1 %2 end reason=%3", _group, _type, _reason]};

@@ -2184,8 +2184,10 @@ class CortexOperations(unittest.TestCase):
 
     def test_advance_uses_its_own_shorter_repeat_cooldown(self):
         end=source('cortexFlankEnd')
-        self.assertIn('["WAIT_AIPass_Flank_Cooldown", "WAIT_AIPass_Advance_Cooldown"] select (_type == "ADVANCE")',end)
-        self.assertIn('[90, 20] select (_type == "ADVANCE")',end)
+        self.assertIn('case "ADVANCE": {"WAIT_AIPass_Advance_Cooldown"}',end)
+        self.assertIn('case "ADVANCE": {20}',end)
+        self.assertIn('default {"WAIT_AIPass_Flank_Cooldown"}',end)
+        self.assertIn('default {90}',end)
         self.assertIn('getVariable [_cooldownName, _cooldownDefault]',end)
 
     def test_coordinated_audit_ends_after_terminal_element_failures(self):
@@ -2599,7 +2601,11 @@ class CortexOperations(unittest.TestCase):
         selector=source('cortexTacticalStart')
         flank=source('cortexFlankStart')
         advance=source('cortexAdvanceStart')
+        assault=source('cortexAssaultStart')
         coordinated=source('cortexCoordinatedAssault')
+        self.assertIn('call WAIT_fnc_CortexAssaultStart',selector)
+        self.assertIn('(_enemies select 0) select 3) <= _closeRange',selector)
+        self.assertIn('(_enemies select 0) select 2) <= 10',selector)
         self.assertIn('private _hasForwardOrder = _waypointIndex < count waypoints _group',selector)
         self.assertIn('private _preferFlank = _flankEnabled && {!_advanceEnabled || {!_hasForwardOrder}}',selector)
         self.assertIn('if (!_started && {_advanceEnabled})',selector)
@@ -2608,10 +2614,27 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('random _totalWeight',selector)
         self.assertEqual(2,selector.count('call WAIT_fnc_CortexFlankStart'))
         self.assertEqual(2,selector.count('call WAIT_fnc_CortexAdvanceStart'))
+        self.assertIn('["type","ASSAULT"]',assault)
+        self.assertIn('["assaulting",true]',assault)
+        self.assertIn('[["_group",grpNull',assault)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',assault)
+        self.assertIn('call WAIT_fnc_OperationStart',assault)
+        self.assertIn('call WAIT_fnc_CortexDrillStart',assault)
+        self.assertNotIn('spawn',assault)
+        self.assertNotIn('addWaypoint',assault)
         self.assertNotIn('random 1 >= ([_group, "flankChance"]',flank)
         self.assertNotIn('random 1 >= ([_group, "advanceChance"]',advance)
         self.assertNotIn('coordinatedChance',coordinated)
         self.assertNotIn('random 1 >= ([_group, "coordinatedChance"]',coordinated)
+
+    def test_direct_assault_uses_its_own_live_gate_and_cleanup_accounting(self):
+        step=source('cortexFlankStep')
+        end=source('cortexFlankEnd')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        self.assertIn('class CortexAssaultStart',functions)
+        self.assertIn('case "ASSAULT": {"WAIT_AIPass_Assault_Enable"}',step)
+        self.assertIn('case "ASSAULT": {"WAIT_AIPass_Assault_Cooldown"}',end)
+        self.assertIn('case "ASSAULT": {"WAIT_AIPass_AssaultsCompleted"}',end)
 
     def test_shipped_profiles_retain_legacy_movement_keys_for_configuration_compatibility(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')
@@ -4481,7 +4504,7 @@ class CortexOperations(unittest.TestCase):
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text()
         self.assertIn('-transition-assault-no-idle-turn',qa)
         self.assertIn('_commitIndex+1 < count _caseTransitions',qa)
-        approach=step.split('case "ASSAULT": {')[1].split('case "CONSOLIDATE":')[0]
+        approach=step.rsplit('case "ASSAULT": {',1)[1].split('case "CONSOLIDATE":')[0]
         crossing=approach
         self.assertNotIn('if (!_queued) then {',approach)
         self.assertIn('_drill set ["index",(_drill get "index")+1]',crossing)

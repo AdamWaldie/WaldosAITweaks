@@ -219,6 +219,7 @@ class CfgFunctions {
             class CortexNavalAssault {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexNavalAssault.sqf";};
             class CortexNavalRelease {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexNavalRelease.sqf";};
             class CortexTacticalStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalStart.sqf";};
+            class CortexAssaultStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAssaultStart.sqf";};
             class CortexAdvanceStart {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAdvanceStart.sqf";};
             class CortexAmmoShare {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexAmmoShare.sqf";};
             class CortexCoordinatedAssault {file = "\z\waldo_ai_tweaks\addons\support\functions\cortexCoordinatedAssault.sqf";};

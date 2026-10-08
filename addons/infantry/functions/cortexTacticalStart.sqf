@@ -6,7 +6,9 @@
  * preserves the authored objective. A squad without such an order prefers a flank against its live
  * contact. The other enabled manoeuvre is tried immediately when the preferred one cannot satisfy
  * its actor, range, avenue, cooldown or safety gates. Behaviour profiles do not assign squads a
- * fixed movement pattern and no random permission roll can leave a capable squad idle. Feature
+ * fixed movement pattern and no random permission roll can leave a capable squad idle. A fresh
+ * hostile inside the flank/advance minimum range first enters the direct assault path, closing the
+ * former dead zone where every ordinary manoeuvre rejected the same contact. Feature
  * switches remain the explicit mission-maker controls. The selector adds no scheduler, terrain
  * scan or per-unit loop; the selected start function owns the finite movement it creates.
  *
@@ -21,6 +23,7 @@
  * 2: enemies <ARRAY> - current WAIT_fnc_CortexKnowledge result
  * 3: flank enabled <BOOL> - authoritative live feature gate (default true)
  * 4: advance enabled <BOOL> - authoritative live feature gate (default true)
+ * 5: assault enabled <BOOL> - authoritative live feature gate (default true)
  *
  * Return Value:
  * Boolean - true when either manoeuvre started
@@ -28,7 +31,7 @@
  * Current caller: WAIT_fnc_CortexGroupTick.
  *
  * Example:
- * private _started = [_group, _state, _enemies, true, true] call WAIT_fnc_CortexTacticalStart;
+ * private _started = [_group, _state, _enemies, true, true, true] call WAIT_fnc_CortexTacticalStart;
  * Result: Cortex follows the live objective/contact context and immediately tries the other viable
  * manoeuvre if the first cannot start.
  */
@@ -38,10 +41,20 @@ params [
     ["_state", createHashMap, [createHashMap]],
     ["_enemies", [], [[]]],
     ["_flankEnabled", true, [true]],
-    ["_advanceEnabled", true, [true]]
+    ["_advanceEnabled", true, [true]],
+    ["_assaultEnabled", true, [true]]
 ];
 if (isNull _group || {!local _group}) exitWith {false};
 
+if (!_flankEnabled && {!_advanceEnabled} && {!_assaultEnabled}) exitWith {false};
+private _started=false;
+private _closeRange=(missionNamespace getVariable ["WAIT_AIPass_Assault_Range",80]) min 60;
+if (_assaultEnabled && {_enemies isNotEqualTo []} && {
+    ((_enemies select 0) select 2) <= 10 && {((_enemies select 0) select 3) <= _closeRange}
+}) then {
+    _started=[_group,_state,_enemies] call WAIT_fnc_CortexAssaultStart;
+};
+if (_started) exitWith {true};
 if (!_flankEnabled && {!_advanceEnabled}) exitWith {false};
 private _waypointIndex = currentWaypoint _group;
 private _hasForwardOrder = _waypointIndex < count waypoints _group
@@ -49,7 +62,6 @@ private _hasForwardOrder = _waypointIndex < count waypoints _group
     && {waypointType [_group,_waypointIndex] in ["MOVE","SAD","DESTROY"]}
     && {leader _group distance2D waypointPosition [_group,_waypointIndex] > 80};
 private _preferFlank = _flankEnabled && {!_advanceEnabled || {!_hasForwardOrder}};
-private _started = false;
 if (_preferFlank) then {
     _started = [_group, _state, _enemies] call WAIT_fnc_CortexFlankStart;
     if (!_started && {_advanceEnabled}) then {
