@@ -56,6 +56,31 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     if (count _brain > 0) then {_brain deleteAt "responsiveUntil"};
     -1
 };
+// A concrete engine task can arrive after the selected danger event has already published a short
+// response lease. Recheck the exact observer retained by the last assessment instead of assuming
+// the current leader owns that task. This is an ownership handover: release WAIT's exact posture,
+// discard its pending observations and wake context, and leave the native command untouched.
+private _lastAssessment=_group getVariable ["WAIT_Danger_LastAssessment",[]];
+private _responseActor=_lastAssessment param [5,_actor,[objNull]];
+if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
+    || {group _responseActor != _group}) then {_responseActor=_actor};
+private _responseCommand=toUpperANSI (currentCommand _responseActor);
+if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
+    || {_responseCommand in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {
+    [_responseActor,"RELEASE"] call WAIT_fnc_DangerReact;
+    _group setVariable ["WAIT_Danger_Events",nil];
+    _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_Action",nil,true];
+    _group setVariable ["WAIT_Danger_Contact",nil,true];
+    _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
+    private _nativeBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
+    if (count _nativeBrain > 0) then {
+        _nativeBrain deleteAt "responsiveUntil";
+        _nativeBrain set ["wakeAt",time];
+        _nativeBrain set ["nextAt",time];
+    };
+    -1
+};
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
 _group setVariable ["WAIT_Danger_Events",[]];
 private _selected=[_events] call WAIT_fnc_DangerSelect;

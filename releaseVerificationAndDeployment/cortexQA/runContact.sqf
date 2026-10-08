@@ -431,6 +431,47 @@ deleteVehicle _forcedUnit;
 deleteVehicle _forcedVehicle;
 deleteGroup _forcedGroup;
 
+// A native order can also arrive after a real response is already active. This additive case first
+// proves physical engine-FSM delivery, then assigns an ordinary cargo seat. WAIT must release the
+// exact response actor promptly and the engine must finish boarding without a renewed tactical wake.
+private _interruptGroup=createGroup [east,true];
+_interruptGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_interruptGroup setVariable ["acex_headless_blacklist",true,true];
+_interruptGroup setCombatMode "BLUE";
+private _interruptUnit=_interruptGroup createUnit ["O_Soldier_F",[2420,1350,0],[],0,"NONE"];
+_interruptUnit allowDamage false;
+_interruptUnit setVariable ["acex_headless_blacklist",true,true];
+_interruptUnit setVariable ["WAIT_CortexQA_Label","ACTIVE DANGER TO NATIVE ORDER",true];
+private _interruptVehicle=createVehicle ["O_Truck_03_transport_F",[2450,1350,0],[],0,"NONE"];
+_interruptVehicle allowDamage false;
+_interruptVehicle setDir 270;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_interruptUnit,_interruptVehicle],true];
+["Danger FSM: live response interrupted by native order","A real grenade must first activate WAIT's finite response. A later ordinary GET IN task must then remove that response before the soldier physically boards, without WAIT reissuing movement.",getPosATL _interruptVehicle] call _phase;
+private _interruptSubmissionsBefore=(_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
+private _interruptGrenade=createVehicle ["GrenadeHand",(getPosATL _interruptUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _interruptDangerActive=[{
+    ((_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _interruptSubmissionsBefore
+        && {(_interruptGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
+        && {(_interruptGroup getVariable ["WAIT_Danger_Action",[]]) isNotEqualTo []}
+},12] call _wait;
+_interruptUnit assignAsCargo _interruptVehicle;
+[_interruptUnit] orderGetIn true;
+private _interruptCommandReady=[{toUpperANSI (currentCommand _interruptUnit) == "GET IN"},10] call _wait;
+private _interruptReleased=[{
+    (_interruptGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []
+        && {(_interruptGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
+        && {(_interruptGroup getVariable ["WAIT_Danger_VehicleContext",[]]) isEqualTo []}
+},5] call _wait;
+private _interruptBoarded=[{vehicle _interruptUnit == _interruptVehicle},35] call _wait;
+["DANGER-active-response-native-order-interrupt",_interruptDangerActive && {_interruptCommandReady}
+    && {_interruptReleased} && {_interruptBoarded},str [currentCommand _interruptUnit,vehicle _interruptUnit,
+    _interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
+    _interruptGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]]] call _check;
+deleteVehicle _interruptGrenade;
+deleteVehicle _interruptUnit;
+deleteVehicle _interruptVehicle;
+deleteGroup _interruptGroup;
+
 deleteVehicle _dangerCoverWall;
 deleteVehicle _reflexUnit;
 deleteGroup _reflexGroup;

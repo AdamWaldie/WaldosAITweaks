@@ -394,6 +394,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('group _actor != _group',action)
         self.assertIn('private _observer=_selected param [5,objNull,[objNull]];',source('dangerStep'))
         self.assertIn('private _sourceObserver=_selected param [6,_observer,[objNull]];',source('dangerStep'))
+        self.assertIn('private _responseActor=_lastAssessment param [5,_actor,[objNull]];',source('dangerStep'))
+        self.assertIn('_responseCommand in ["GET IN","ACTION","HEAL","REARM","JOIN"]',source('dangerStep'))
+        self.assertLess(source('dangerStep').index('private _responseActor=_lastAssessment'),source('dangerStep').index('private _events='))
         self.assertIn('_sourceObserver knowsAbout _source > 0',source('dangerStep'))
         self.assertIn("if (count _latest > 0 && {!(_group getVariable ['WAIT_AIPass_Managed',false])}",engine)
         self.assertIn('[_group,false,true] call WAIT_fnc_CortexIsEligible',engine)
@@ -477,6 +480,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('remoteControlled _actor',engine_continue)
         self.assertIn('WAIT_AIPass_ZeusHold',engine_continue)
         self.assertIn('WAIT_AIPass_ZeusWaypoints',engine_continue)
+        self.assertIn('behaviour _actor == "CARELESS"',engine_continue)
+        self.assertIn('fleeing _actor',engine_continue)
+        self.assertIn('toUpperANSI (currentCommand _actor) in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_continue)
         for expensive in ['units _group','allUnits','allGroups','CortexExternalTakeover','CortexExternalOwner','CortexZeusHeld','nearestObjects','nearEntities']:
             self.assertNotIn(expensive,engine_continue)
         mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]
@@ -5408,7 +5414,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_contact_transition_audit_requires_physical_search_and_resumption(self):
         text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
-        for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-authored-hold-fire-preserved','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-active-zeus-replacement','DANGER-leader-loss-physical-continuation','DANGER-forced-order-no-tactical-handoff']:
+        for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-authored-hold-fire-preserved','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-active-zeus-replacement','DANGER-leader-loss-physical-continuation','DANGER-forced-order-no-tactical-handoff','DANGER-active-response-native-order-interrupt']:
             self.assertIn(case,text)
         self.assertIn('[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
         disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
