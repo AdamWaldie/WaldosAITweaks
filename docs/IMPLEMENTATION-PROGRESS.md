@@ -1,3 +1,8 @@
+- Defend and medical movement now use the same single-owner native route contract. Defenders receive one
+  `doMove` and refresh it only after measured no-progress; medics no longer force a second destination or
+  reissue a healthy route every eight seconds. Native treatment remains finite and danger, Zeus or specialist
+  takeover still cancels it before another command. Static validation and exact-candidate packaging pass;
+  physical post arrival, aid completion and interruption acceptance remain pending.
 - Building clearance, traversal and garrison movement now follow the same single-owner command contract as
   tactical bounds. Every entrance, interior, retry, reassignment and egress leg uses one native `doMove`; the
   paired `setDestination` replans that could compete at doors and thresholds are removed. Garrison disables

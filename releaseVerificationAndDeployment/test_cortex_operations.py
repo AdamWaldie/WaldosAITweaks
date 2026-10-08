@@ -979,7 +979,8 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('medicalBackend',medical)
         self.assertIn('_medic action ["HealSoldier",_casualty]',medical)
         self.assertIn('_medic doMove getPosATL _casualty',medical)
-        self.assertIn('_medic setDestination [getPosATL _casualty,"LEADER PLANNED",true]',medical)
+        self.assertIn('_medic doMove getPosATL _casualty',medical)
+        self.assertNotIn('_medic setDestination',medical)
         self.assertNotIn('doHeal',medical)
         self.assertIn('WAIT_fnc_OperationStart',medical)
         self.assertIn('WAIT_fnc_OperationStep',medical)
@@ -1652,7 +1653,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit distance2D _lastPosition >= 1',text)
         self.assertIn('time-_lastProgress >= 15',text)
         self.assertIn('_retries < 3',text)
-        self.assertIn('_unit setDestination [_assignment select 0,"LEADER PLANNED",true]',text)
+        self.assertIn('_unit doMove (_assignment select 0)',text)
+        self.assertNotIn('_unit setDestination',text)
         self.assertNotIn('["deadline", time + 90]',text)
 
     def test_clearance_renews_safety_lease_only_on_observed_progress(self):

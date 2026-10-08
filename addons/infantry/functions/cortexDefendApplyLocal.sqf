@@ -6,8 +6,9 @@
  *
  * Runs on the original owner and again on any new owner (WAIT_fnc_CortexDiscover), because unit
  * orders are held by the owning machine. A job stops each soldier only on arrival and points him at
- * his sector. Each soldier has an independent physical-progress watchdog: measured travel renews
- * the lease, inactivity causes a bounded forced replan, and only exhausted replans record failure.
+ * his sector. Each route leg has one native doMove owner. Each soldier has an independent
+ * physical-progress watchdog: measured travel renews the lease, inactivity causes a bounded route
+ * refresh, and only exhausted refreshes record failure.
  * Scheduler delay and temporary Zeus ownership do not consume recovery attempts.
  * Locality and authority: call where the group is local.
  *
@@ -45,7 +46,6 @@ private _mayIssueMovement = {
         _routes pushBack [_x,getPosATL _x,time,0];
         if (_x distance2D (_assignment select 0) > 2 && {call _mayIssueMovement}) then {
             _x doMove (_assignment select 0);
-            _x setDestination [_assignment select 0,"LEADER PLANNED",true];
         };
     };
 } forEach units _group;
@@ -85,7 +85,6 @@ private _mayIssueMovement = {
                     if (time-_lastProgress >= 15) then {
                         if (_retries < 3 && {call _mayIssueMovement}) then {
                             _unit doMove (_assignment select 0);
-                            _unit setDestination [_assignment select 0,"LEADER PLANNED",true];
                             _route set [2,time];
                             _route set [3,_retries+1];
                         } else {
