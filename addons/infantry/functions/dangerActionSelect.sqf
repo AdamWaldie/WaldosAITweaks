@@ -44,5 +44,5 @@ if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]
 // A current operation has already committed a physical route and owns its restoration. A danger
 // event raises its priority but must not send the group back to an earlier reaction position.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"MAINTAIN"};
-if (_cause in ["HIT","EXPLOSION","SUPPRESSED","SCREAM","CASUALTY"]) exitWith {"HIDE"};
+if (_cause in ["HIT","EXPLOSION","SUPPRESSED","SCREAM","CASUALTY","BODY_FOUND"]) exitWith {"HIDE"};
 "ENGAGE"

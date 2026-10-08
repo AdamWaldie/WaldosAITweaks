@@ -159,6 +159,50 @@ deleteVehicle _casualtyActor;
 deleteVehicle _casualtySurvivor;
 deleteGroup _casualtyGroup;
 
+// Engine cause 6 is discovery of another body, not loss of a member from the observer's squad.
+// Keep the observer facing the actor before real damage is applied, then require WAIT's native FSM
+// bridge to preserve that distinction without an injected danger callback or target reveal.
+private _bodyObserverGroup=createGroup [east,true];
+_bodyObserverGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_bodyObserverGroup setVariable ["acex_headless_blacklist",true,true];
+_bodyObserverGroup setCombatMode "BLUE";
+private _bodyObserver=_bodyObserverGroup createUnit ["O_Soldier_F",[2310,1350,0],[],0,"NONE"];
+_bodyObserver allowDamage false;
+_bodyObserver setVariable ["acex_headless_blacklist",true,true];
+private _bodyGroup=createGroup [west,true];
+_bodyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_bodyGroup setVariable ["acex_headless_blacklist",true,true];
+private _bodyActor=_bodyGroup createUnit ["B_Soldier_F",[2318,1350,0],[],0,"NONE"];
+removeAllWeapons _bodyActor;
+_bodyActor disableAI "MOVE";
+_bodyActor setVariable ["acex_headless_blacklist",true,true];
+_bodyObserver setDir (_bodyObserver getDir _bodyActor);
+_bodyObserver setVariable ["WAIT_CortexQA_Label","OTHER-BODY OBSERVER",true];
+_bodyActor setVariable ["WAIT_CortexQA_Label","OTHER-GROUP BODY",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_bodyObserver,_bodyActor],true];
+private _bodyTransitionsBefore=count (_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
+["Danger FSM: other body is not squad casualty","A soldier faces a nearby actor from another group before that actor is killed by real damage. Native cause 6 must remain BODY_FOUND, never CASUALTY, and must not authorise CONTACT or movement.",getPosATL _bodyActor] call _phase;
+sleep 1;
+_bodyActor setDamage 1;
+private _bodyObserved=[{
+    private _stats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    "BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])
+},12] call _wait;
+sleep 2;
+private _bodyStats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _bodyLastCauses=_bodyStats getOrDefault ["lastCauses",[]];
+private _bodyTransitions=(_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_bodyTransitionsBefore];
+private _bodySeparated=_bodyObserved
+    && {!("CASUALTY" in _bodyLastCauses)}
+    && {_bodyTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0}
+    && {((_bodyObserverGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
+    && {combatMode _bodyObserverGroup == "BLUE"};
+["DANGER-other-body-distinct-alert",_bodySeparated,str [_bodyStats,_bodyTransitions,combatMode _bodyObserverGroup]] call _check;
+deleteVehicle _bodyActor;
+deleteVehicle _bodyObserver;
+deleteGroup _bodyGroup;
+deleteGroup _bodyObserverGroup;
+
 // CARELESS is an authored mission state and maps to RELEASE in the engine FSM. A real stimulus may
 // be observed for diagnostics, but it must be filtered before group submission in the same frame.
 private _releaseGroup=createGroup [east,true];

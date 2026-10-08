@@ -257,7 +257,7 @@ private _dangerTactical=_dangerActive
             || {_responseCause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName != "HIDE"}}};
 private _dangerAlert=_dangerActive && {
     combatMode _group in ["BLUE","GREEN"]
-    || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","SCREAM"]}
+    || {(_dangerResponse param [0,"",[""]]) in ["CASUALTY","BODY_FOUND","SCREAM"]}
     || {(_dangerResponse param [0,"",[""]]) in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {_dangerActionName == "HIDE"}}
 };
 private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};

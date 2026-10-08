@@ -166,6 +166,13 @@ normal native detection can wake the group again after a genuine reacquisition. 
 positions inherit only the observing actor's local height, never target precision. Static validation is
 required; physical lost-knowledge/reacquisition acceptance remains queued.
 
+Native casualty meanings now remain distinct through the complete engine-to-group handoff. Losing a member
+of the observer's own group retains `CASUALTY` priority for prompt survivor and role bookkeeping; discovering
+another body is a shorter `BODY_FOUND` alert. Neither cause fabricates an attacker, changes ROE, authorises
+CONTACT or issues movement. The contact audit now includes a real other-group death in front of the observer
+and requires the native cause to remain distinct. Static validation passes; packaged physical delivery remains
+queued.
+
 The persistent ground decision owner is now `groupTactics.fsm`, with semantic CALM, INVESTIGATE, CONTACT, SUPPORT, MANOEUVRE, ASSAULT, CLEAR, SECURITY, SEARCH, REGROUP and WITHDRAW states. Each state queues one bounded decision through the shared scheduler; scripted FSM state bodies do not perform geometry scans or wait on animations. The older group tick remains a bounded implementation callback during phase-by-phase extraction, rather than a second persistent worker.
 
 Its scheduler wait now has a bounded fifteen-second starvation watchdog. A delayed or lost due callback wakes the

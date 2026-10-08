@@ -26,7 +26,9 @@ if (isNull _group || {!local _group}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
-private _causeNames=['DETECTED','GUNFIRE','HIT','PROXIMITY','EXPLOSION','CASUALTY','CASUALTY','SCREAM','CANFIRE','SUPPRESSED','ASSESS'];
+// Preserve the engine distinction between losing a member of this group and finding another body.
+// Both are bounded alerts, but only the former may carry squad-casualty priority downstream.
+private _causeNames=['DETECTED','GUNFIRE','HIT','PROXIMITY','EXPLOSION','CASUALTY','BODY_FOUND','SCREAM','CANFIRE','SUPPRESSED','ASSESS'];
 private _latest=createHashMap;
 private _latestSource=createHashMap;
 private _latestExpiry=createHashMap;
