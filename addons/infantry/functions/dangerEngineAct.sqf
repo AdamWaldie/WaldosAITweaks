@@ -44,7 +44,10 @@ private _committedMover=count _operation > 0
 // short scripted stance. Direct commander stance orders have higher engine priority, while another
 // script or controller changing the scripted stance invalidates WAIT's exact lease on release.
 if (_mode == "IMMEDIATE") then {
-    private _hardCover=(getSuppression _actor > 0.55) || {_cause in [2,4]} || {currentCommand _actor == "STOP"};
+    // Visible fire, a direct hit, an explosion and a near round are immediate physical hazards.
+    // The group layer may grant one idle actor a bounded cover move; this actor-local reflex also
+    // lowers the profile immediately while that scheduled cover selection is pending.
+    private _hardCover=(getSuppression _actor > 0.55) || {_cause in [1,2,4,9]} || {currentCommand _actor == "STOP"};
     _desiredStance=["MIDDLE","DOWN"] select (_hardCover && {!_committedMover});
 };
 if (_mode == "HIDE") then {

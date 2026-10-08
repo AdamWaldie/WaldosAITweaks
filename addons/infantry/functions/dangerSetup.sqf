@@ -62,18 +62,21 @@ private _handler=_group addEventHandler ["EnemyDetected",{
     private _friendly=!isNull _targetGroup && {(side _observingGroup) getFriend (side _targetGroup) >= 0.6};
     private _spotters=(units _observingGroup) select {alive _x && {local _x} && {!isPlayer _x}};
     _spotters resize ((count _spotters) min 12);
+    private _knowerIndex=_spotters findIf {_x knowsAbout _target >= 1};
+    if (_friendly || {_knowerIndex < 0}) exitWith {};
     private _leader=leader _observingGroup;
-    private _observer=if (!isNull _leader && {alive _leader} && {local _leader}) then {_leader} else {
-        _spotters param [0,objNull]
-    };
-    if (isNull _observer || {_friendly} || {_spotters findIf {_x knowsAbout _target >= 1} < 0}) exitWith {};
+    // Prefer the leader only when the leader actually owns native knowledge of this target. A
+    // wingman can trigger EnemyDetected while the leader is behind cover; asking that unknowing
+    // leader for getHideFrom returns no usable geometry and used to discard the immediate wake.
+    private _observer=if (!isNull _leader && {alive _leader} && {local _leader}
+        && {_leader knowsAbout _target >= 1}) then {_leader} else {_spotters select _knowerIndex};
     private _contacts=_observingGroup getVariable ["WAIT_Danger_ObservedContacts",[]];
     _contacts=_contacts select {
-        _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull}
+        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
             && {alive (_x select 0)} && {(_x select 1) > time}
     };
     private _contactIndex=_contacts findIf {(_x select 0) == _target};
-    private _contact=[_target,time+10];
+    private _contact=[_target,time+10,_observer];
     if (_contactIndex >= 0) then {_contacts set [_contactIndex,_contact]} else {_contacts pushBack _contact};
     if (count _contacts > 8) then {_contacts=_contacts select ((count _contacts)-8)};
     _observingGroup setVariable ["WAIT_Danger_ObservedContacts",_contacts];

@@ -44,10 +44,11 @@
  * A squad riding as cargo in an AI-flown aircraft is handled by airborne insertion instead
  * (WAIT_fnc_CortexAirborneCheck) until it has parachuted and landed.
  *
- * Cadence (distance tiers measured to the nearest player): WAIT_AIPass_TickContact in
- * contact near players; WAIT_AIPass_TickNear within WAIT_AIPass_NearRange; WAIT_AIPass_TickMid
- * within WAIT_AIPass_FarRange; WAIT_AIPass_TickFar beyond. Beyond FarRange only the state ladder
- * and morale run; drills, fire control and support calls are skipped.
+ * Cadence (distance tiers measured to the nearest player): WAIT_AIPass_TickContact for a group with
+ * fresh native hostile knowledge or a finite danger response; WAIT_AIPass_TickNear within
+ * WAIT_AIPass_NearRange; WAIT_AIPass_TickMid within WAIT_AIPass_FarRange; WAIT_AIPass_TickFar
+ * beyond. A distant calm group remains cheap, while a distant group actually seeing an enemy uses
+ * the same bounded group decision path as nearby combat instead of pausing between 20-second scans.
  * In CONTACT near players, immediate posture, morale, stance and vehicle safety remain available
  * after a validated danger event. Target-dependent work (anti-armour, artillery, reinforcement,
  * coordination, flanking and advance) starts only after native knowledge contains an enemy. A hit
@@ -246,7 +247,7 @@ private _dangerVehicleSafety=_dangerActive && {_dangerActionName == "VEHICLE"};
 // Casualty and scream observations raise awareness but are not incoming-fire geometry. Treating
 // their reported position as a physical threat sent soldiers away from bodies or voices and made
 // harmless evidence look like suppression. Only immediate hazards may own this cover reflex.
-private _physicalCoverCause=(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED"];
+private _physicalCoverCause=(_dangerResponse param [0,"",[""]]) in ["HIT","EXPLOSION","SUPPRESSED","GUNFIRE"];
 if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
     [_group,_dangerCoverActor,_dangerResponse select 1,_dangerResponse select 4] call WAIT_fnc_DangerCoverStep;
 } else {
@@ -341,6 +342,18 @@ private _delay = switch (true) do {
 if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {[_group,false] call WAIT_fnc_CortexReleaseGroup; _delay};
 
 ([_group] call WAIT_fnc_CortexKnowledge) params ["_enemies", "_seenCount"];
+// Native hostile knowledge is the durable continuation of a short engine danger callback. The
+// danger FSM wakes the shared group brain immediately; once that finite record expires, a group
+// which is still seeing an enemy must retain combat cadence from its own engine knowledge. Without
+// this handoff a distant firefight fell back to the ordinary 20-second discovery cadence, producing
+// visible pauses between otherwise valid fire, manoeuvre and casualty decisions. This promotes only
+// the already-scheduled bounded group job, adds no scan or worker, and stops as soon as the engine's
+// five-second fresh-sighting window ends.
+private _nativeCombatResponsive=_seenCount > 0;
+_tacticalTier=_tacticalTier || {_nativeCombatResponsive};
+if (_nativeCombatResponsive) then {
+    _delay=_delay min (["WAIT_AIPass_TickContact",2] call _get);
+};
 // Naval delivery is a composable movement layer inside this existing group job. It runs before
 // state selection so an embarked passenger group waits for the crew's finite approach and a boat
 // crew cannot be given an infantry flank, retreat or investigation destination on land.
