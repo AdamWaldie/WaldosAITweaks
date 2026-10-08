@@ -88,6 +88,8 @@ deleteVehicle _disciplineGrenade;
     ["WAIT_AIPass_ContactReports_Enable",true],["WAIT_AIPass_Artillery_Enable",true],
     ["WAIT_AIPass_CoordinatedAssault_Enable",true]
 ]] call WAIT_fnc_CortexTuning;
+_disciplineGroup setBehaviourStrong "STEALTH";
+_disciplineUnit setUnitPos "AUTO";
 private _disciplineEnemyGroup=createGroup [west,true];
 _disciplineEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _disciplineEnemyGroup setVariable ["acex_headless_blacklist",true,true];
@@ -103,6 +105,10 @@ private _disciplineKnown=[{
     (([_disciplineGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _disciplineEnemy} >= 0
         && {(_disciplineGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
 },20] call _wait;
+private _disciplineLowProfile=[{
+    private _lease=_disciplineUnit getVariable ["WAIT_Danger_EngineStanceLease",[]];
+    count _lease >= 2 && {(_lease select 1) == "DOWN"}
+},12] call _wait;
 sleep 8;
 private _disciplineState=_disciplineGroup getVariable ["WAIT_AIPass_State",createHashMap];
 private _disciplineCooldowns=_disciplineState getOrDefault ["cooldowns",createHashMap];
@@ -114,6 +120,9 @@ private _disciplineNoTactics=(_disciplineGroup getVariable ["WAIT_Operation",cre
     && {!("artillery" in _disciplineCooldowns)};
 ["DANGER-known-contact-hold-fire-no-tactics",_disciplineKnown && {_disciplineNoTactics}
     && {combatMode _disciplineGroup == "BLUE"},str [combatMode _disciplineGroup,_disciplineGroup getVariable ["WAIT_Operation",createHashMap],_disciplineGroup getVariable ["WAIT_Cortex_SupportResponders",[]]]] call _check;
+["DANGER-stealth-hold-fire-low-profile",_disciplineLowProfile
+    && {combatMode _disciplineGroup == "BLUE"}
+    && {(_disciplineUnit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []},str [_disciplineLowProfile,unitPos _disciplineUnit,getPosATL _disciplineUnit,combatMode _disciplineGroup,_disciplineUnit getVariable ["WAIT_Cortex_ActorMove",[]]]] call _check;
 deleteVehicle _disciplineEnemy;
 deleteGroup _disciplineEnemyGroup;
 deleteVehicle _disciplineUnit;

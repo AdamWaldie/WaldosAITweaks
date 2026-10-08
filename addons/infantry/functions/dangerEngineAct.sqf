@@ -56,8 +56,21 @@ if (_mode == "HIDE") then {
     // this actor. Keep a mobile crouch unless native suppression itself justifies going prone.
     _desiredStance=["MIDDLE","DOWN"] select (!_committedMover && {getSuppression _actor > 0.45});
 };
-if (_mode == "ENGAGE" && {getSuppression _actor > 0.2} && {stance _actor == "STAND"}) then {
-    _desiredStance="MIDDLE";
+if (_mode == "ENGAGE") then {
+    // An authored stealth/hold-fire element should reduce its silhouette when it detects a real
+    // hostile instead of WAIT converting awareness into fire or movement authority. This remains a
+    // weak, expiring stance and is never applied to a committed mover.
+    private _stealthHold=behaviour _actor == "STEALTH"
+        && {combatMode _group in ["BLUE","GREEN"]}
+        && {abs (speed _actor) < 1}
+        && {!_committedMover};
+    if (_stealthHold) then {
+        _desiredStance="DOWN";
+    } else {
+        if (getSuppression _actor > 0.2 && {stance _actor == "STAND"}) then {
+            _desiredStance="MIDDLE";
+        };
+    };
 };
 
 if (_desiredStance != "") then {

@@ -602,6 +602,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_CoverLease',reflex_fixture)
         self.assertIn('WAIT_fnc_OperationStart',reflex_fixture)
         self.assertIn('WAIT_fnc_CortexGroupMove',reflex_fixture)
+        self.assertIn('DANGER-stealth-hold-fire-low-profile',contact_audit)
+        self.assertIn('_disciplineGroup setBehaviourStrong "STEALTH"',contact_audit)
+        self.assertIn('(_lease select 1) == "DOWN"',contact_audit)
+        self.assertIn('behaviour _actor == "STEALTH"',engine_act)
+        self.assertIn('combatMode _group in ["BLUE","GREEN"]',engine_act)
+        self.assertIn('!_committedMover',engine_act)
         group_tick=source('cortexGroupTick')
         observer_selection=group_tick.split('private _dangerAction=',1)[1].split('private _dangerActionName=',1)[0]
         self.assertIn('param [5,objNull,[objNull]]',observer_selection)
