@@ -2963,6 +2963,7 @@ class CortexOperations(unittest.TestCase):
         server=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         self.assertIn('cortexQATacticalAssessment.sqf',server)
         self.assertIn('"tacticalassessment"',server)
+        self.assertGreaterEqual(server.count('"dangerparity"'),3)
         self.assertIn('createVehicle ["B_APC_Wheeled_01_cannon_F"',qa)
         self.assertIn('createVehicle ["Land_Cargo_Tower_V1_F"',qa)
         self.assertIn('call WAIT_fnc_CortexKnowledge',qa)
