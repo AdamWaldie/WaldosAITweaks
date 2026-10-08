@@ -166,6 +166,12 @@ assignment and a twenty-second physical boarding window. The group does not wait
 actors retain fire, manoeuvre, casualty replacement and withdrawal. Failure is recorded without a
 retry during that contact. CONTACT cleanup cancels only the exact WAIT assignment; Zeus or another
 external owner causes a command-free handover. WAIT never teleports an actor into the seat.
+`WAIT_AIPass_VehicleJink_Enable` is a next-operation control, default true. A slow, intact, crew-only
+armed ground vehicle may make one 25-second terrain-checked escape from a close hostile, hit or
+explosion generation. The response uses the shared operation and movement lease, covers 35-45 metres
+and ends before ordinary route control resumes. It refuses convoy vehicles, passenger loads, foot
+elements, active movement, players, Zeus and specialist ownership. It never changes collision,
+velocity, damage or physical position directly.
 Arma loads WAIT's bounded danger FSM for the three soldier base classes. The engine supplies immediate cause,
 position, expiry, source and queued records; WAIT maps those into detected enemy, gunfire, hit, explosion,
 suppression, casualty and scream observations. One owner-local EnemyDetected observer separately retains only

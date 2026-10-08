@@ -3509,7 +3509,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_vehicle_combat_layer_preserves_other_movement_owners(self):
         vehicles=source('cortexVehicles')
-        self.assertIn('in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF"]',vehicles)
+        self.assertIn('in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"]',vehicles)
         self.assertIn('if (_vehicleOwnsLease) then',vehicles)
         self.assertIn('_activeVehicleMove = count _vehicleMove == 2',vehicles)
         non_vehicle=vehicles.split('} else {',1)[1].split('};',1)[0]
@@ -5627,8 +5627,33 @@ class CortexOperations(unittest.TestCase):
         for marker in ['vehicleDangerReaction','_dangerGeneration','WAIT_Danger_VehicleReaction',
                        'call WAIT_fnc_CortexLineOfFireClear','doSuppressiveFire _aimPosition']:
             self.assertIn(marker,danger)
+        suppression=danger.split('// An intact armed platform',1)[1].split('// Defensive smoke is independent',1)[0]
         for forbidden in ['CortexGroupMove','addWaypoint','forceSpeed','setVelocity']:
-            self.assertNotIn(forbidden,danger.split('// An intact armed platform',1)[1])
+            self.assertNotIn(forbidden,suppression)
+
+    def test_vehicle_danger_jink_is_short_generation_owned_and_subordinate(self):
+        registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        vehicles=source('cortexVehicles')
+        jink=source('cortexVehicleJink')
+        self.assertIn('class CortexVehicleJink',registry)
+        for marker in [
+            'WAIT_AIPass_VehicleJink_Enable','WAIT_Convoy_Active','CortexExternalTakeover',
+            'count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',
+            '(_state getOrDefault ["movementLease",[]]) isNotEqualTo []',
+            'fullCrew [_vehicle,"",false]','vehicle _x == _x','abs speed _vehicle > 25',
+            'WAIT_fnc_CortexSelectAvenue','["VEHICLE_JINK",time+25]',
+            'WAIT_fnc_OperationStart','WAIT_fnc_CortexGroupMove','WAIT_Danger_VehicleJink'
+        ]:
+            self.assertIn(marker,jink)
+        for forbidden in ['setPos','setVelocity','moveIn','allowDamage','disableCollisionWith','while {']:
+            self.assertNotIn(forbidden,jink)
+        self.assertIn('vehicleDangerJink',vehicles)
+        self.assertIn('_dangerCause in ["HIT","EXPLOSION"] || {_knownCloseThreat}',vehicles)
+        self.assertIn('["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"]',vehicles)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
+        for marker in ['DANGER-VEHICLE-jink-disabled','DANGER-VEHICLE-jink-operation-owned',
+                       'DANGER-VEHICLE-jink-physical-travel','DANGER-VEHICLE-jink-crew-retained']:
+            self.assertIn(marker,audit)
 
     def test_mounted_danger_recovers_a_lost_gunner_without_sacrificing_the_driver(self):
         registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')

@@ -367,7 +367,7 @@ private _featureNotes=createHashMapFromArray [
     ["GrenadeEvasion","Requires a qualifying live projectile and eligible observer. Check projectile handler, movement ownership and evasion release."],
     ["AntiArmour","Requires a known armoured threat, capable launcher/ammunition and clear backblast; targeting alone does not prove firing."],
     ["StaticSupport","Requires confirmed contact, an empty useful friendly emplacement within 75 m and one uncommitted nonleader. Inspect physical gunner-seat occupation, one-attempt status and continued movement by the rest of the squad."],
-    ["Vehicles","Inspect crew versus passengers, vehicle mobility and contact. Separate cargo squads retain their own order authority."],
+    ["Vehicles","Inspect crew versus passengers, vehicle mobility and contact. A danger jink requires a slow crew-only armed vehicle with no convoy or movement owner; separate cargo squads retain their own order authority."],
     ["ContactReports","Requires a deliverable report; jamming/voice range and freshness can prevent delivery. A radio inventory item is not required."],
     ["Reinforce","Requires an eligible idle helper and a report/request; inspect reservation, responding state and physical approach."],
     ["Artillery","Requires an explicitly assigned spotter and eligible same-side battery with range/ammunition. Inspect fire mission phase, warning and confirmed shots."],

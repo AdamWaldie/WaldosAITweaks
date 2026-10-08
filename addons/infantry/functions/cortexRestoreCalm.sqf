@@ -134,6 +134,14 @@ if (count _staticSupport >= 7) then {
 };
 _group setVariable ["WAIT_Danger_StaticSupport",nil,true];
 _group setVariable ["WAIT_Danger_StaticAttempt",nil,true];
+private _vehicleJink=_state getOrDefault ["vehicleDangerJink",[]];
+private _jinkVehicle=_vehicleJink param [1,objNull,[objNull]];
+if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+    private _jinkMarker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+    if (_jinkMarker param [1,grpNull,[grpNull]] == _group) then {
+        _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+    };
+};
 if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {behaviour _leader in ["COMBAT", "AWARE"]}) then {
     private _base = _state getOrDefault ["baseBehaviour", "AWARE"];
     // After a real firefight a squad stays alert rather than slinging weapons, as the engine does.
@@ -163,7 +171,7 @@ if (!_allowRemount) then {
 {_state deleteAt _x} forEach [
     "consolidateIssued", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
     "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];

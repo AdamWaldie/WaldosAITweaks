@@ -104,6 +104,7 @@
  * - WAIT_AIPass_VehicleDismount_Enable (MISSION MAKER): Routine passenger dismounting during vehicle contact drills. Default true.
  * - WAIT_AIPass_VehicleRemount_Enable (MISSION MAKER): Reboard recorded passengers on a normal return to CALM. Default true.
  * - WAIT_AIPass_VehicleWithdraw_Enable (MISSION MAKER): Damaged vehicle smoke and withdrawal. Default true.
+ * - WAIT_AIPass_VehicleJink_Enable (MISSION MAKER): One short terrain-checked escape for an intact crewed fighting vehicle under close or severe danger. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
  * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
@@ -372,6 +373,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_VehicleDismount_Enable", true], // Unloads capable passengers only when safely stopped on dry ground.
         ["WAIT_AIPass_VehicleRemount_Enable", true], // Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit.
         ["WAIT_AIPass_VehicleWithdraw_Enable", true], // Allows damaged vehicles to withdraw and use existing smoke.
+        ["WAIT_AIPass_VehicleJink_Enable", true], // One bounded escape by an eligible intact fighting vehicle.
         ["WAIT_AIPass_CoverValidation_Enable", true], // Adds bounded slope and body clearance checks to shared cover selection.
         ["WAIT_Convoy_DefaultSpeed", 30], // New convoy order speed; existing registrations retain selected values.
         ["WAIT_Convoy_DefaultSeparation", 30], // New convoy order centre spacing.

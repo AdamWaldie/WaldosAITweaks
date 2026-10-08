@@ -127,6 +127,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_VehicleDismount_Enable` | `true` | Unloads capable passengers only when safely stopped on dry ground. |
 | `WAIT_AIPass_VehicleRemount_Enable` | `true` | Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | `true` | Allows damaged vehicles to withdraw and use existing smoke. |
+| `WAIT_AIPass_VehicleJink_Enable` | `true` | Allows one short terrain-checked escape by an eligible intact fighting vehicle under close or severe danger. |
 | `WAIT_AIPass_DrivingAssist_Enable` | `true` | Applies a sparse terrain-grade speed cap to ordinary AI ground vehicles while preserving their native waypoint and route. Convoys use separate driving controls. |
 | `WAIT_AIPass_CoverValidation_Enable` | `true` | Adds bounded slope and body clearance checks to shared cover selection. |
 | `WAIT_Convoy_MountedFire_Enable` | `true` | WAIT assigns targets to weapon crew under existing ROE. Disable to leave targeting to another AI mod. |

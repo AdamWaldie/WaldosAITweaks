@@ -315,6 +315,7 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
     private _operationKey = switch (_movementOwner) do {
         case "VEHICLE_WITHDRAW": {"vehicleOperationGeneration"};
         case "VEHICLE_STANDOFF": {"vehicleOperationGeneration"};
+        case "VEHICLE_JINK": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
         case "SUPPORT_RALLY": {"supportOperationGeneration"};
         default {""};
@@ -323,6 +324,16 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         private _generation=_state getOrDefault [_operationKey,-1];
         if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
         _state deleteAt _operationKey;
+    };
+    if (_movementOwner == "VEHICLE_JINK") then {
+        private _jinkState=_state getOrDefault ["vehicleDangerJink",[]];
+        private _jinkVehicle=_jinkState param [1,objNull,[objNull]];
+        if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+            private _marker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+            if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+            };
+        };
     };
     if (_movementOwner != "") then {[_group,_movementOwner,false] call WAIT_fnc_CortexOwnershipLease};
     _state deleteAt "movementLease";
@@ -1049,4 +1060,3 @@ switch (_state get "phase") do {
 private _reaction = (missionNamespace getVariable ["WAIT_AIPass_ReactionSpeed", 1]) max 0.25;
 private _cadence = _delay / _reaction;
 (_cadence + random 0.7 - 0.35) max 0.5
-

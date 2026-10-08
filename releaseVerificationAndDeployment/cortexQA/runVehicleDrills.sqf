@@ -99,6 +99,56 @@ deleteVehicle _dangerProjectile;
 deleteGroup _dangerPassengerGroup;
 deleteGroup _dangerCrewGroup;
 
+// An armed crew-only vehicle receives the same real explosive danger twice. With the finite jink
+// disabled it must not acquire a WAIT route. Once enabled, the next native danger generation may
+// own one short terrain-checked escape. The fixture never injects danger, velocity or a destination.
+[createHashMapFromArray [
+    ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Danger_Enable",true],
+    ["WAIT_AIPass_Vehicles_Enable",true],["WAIT_AIPass_VehicleJink_Enable",false],
+    ["WAIT_AIPass_VehicleDismount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false],
+    ["WAIT_AIPass_VehicleGunnery_Enable",false]
+]] call WAIT_fnc_CortexTuning;
+private _jinkVehicle=createVehicle ["O_APC_Wheeled_02_rcws_v2_F",[1480,880,0],[],0,"NONE"];
+createVehicleCrew _jinkVehicle;
+_jinkVehicle allowDamage false;
+private _jinkGroup=group driver _jinkVehicle;
+[_jinkGroup] call _pin;
+_jinkGroup setCombatMode "BLUE";
+private _jinkCrew=crew _jinkVehicle;
+{_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["DANGER JINK CREW %1",_forEachIndex+1],true]} forEach _jinkCrew;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_jinkCrew,true];
+["Danger FSM: finite vehicle jink","A crew-only armed APC receives a real nearby explosion. Disabled, WAIT must not take movement. Enabled, one later danger generation may make a short physical terrain-checked escape while retaining every crew member.",getPosATL _jinkVehicle] call _phase;
+private _jinkReady=[{
+    missionNamespace getVariable ["WAIT_AIPass_Active",false]
+        && {_jinkGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {count _jinkCrew >= 2}
+},30] call _wait;
+private _jinkDisabledOrigin=getPosATL _jinkVehicle;
+private _jinkDisabledBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+sleep 6;
+private _jinkState=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
+private _jinkDisabledNoOwner=(_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) isEqualTo []
+    && {(_jinkState getOrDefault ["movementLease",[]]) param [0,""] != "VEHICLE_JINK"};
+["DANGER-VEHICLE-jink-disabled",_jinkReady && {_jinkDisabledNoOwner},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],_jinkState getOrDefault ["movementLease",[]],_jinkVehicle distance2D _jinkDisabledOrigin]] call _check;
+deleteVehicle _jinkDisabledBlast;
+[createHashMapFromArray [["WAIT_AIPass_VehicleJink_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _jinkOrigin=getPosATL _jinkVehicle;
+private _jinkBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+private _jinkOwned=[{
+    private _state=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
+    count (_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) == 4
+        && {(_state getOrDefault ["movementLease",[]]) param [0,""] == "VEHICLE_JINK"}
+},25] call _wait;
+private _jinkMoved=[{
+    _jinkVehicle distance2D _jinkOrigin >= 20
+},35] call _wait;
+private _jinkCrewRetained=_jinkCrew findIf {!alive _x || {vehicle _x != _jinkVehicle}} < 0;
+["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],(_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-jink-physical-travel",_jinkOwned && {_jinkMoved},str [_jinkOrigin,getPosATL _jinkVehicle,_jinkVehicle distance2D _jinkOrigin]] call _check;
+["DANGER-VEHICLE-jink-crew-retained",_jinkCrewRetained,str (_jinkCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;
+deleteVehicle _jinkBlast;
+{deleteVehicle _x} forEach (_jinkCrew+[_jinkVehicle]);
+deleteGroup _jinkGroup;
 // Empty and useful emplacements share the same real explosion stimulus. Only the empty exact
 // platform may release its crew: the armed emplacement must remain manned, and neither case may
 // manufacture a target or route. This exercises the static domain which ordinary driving cannot.

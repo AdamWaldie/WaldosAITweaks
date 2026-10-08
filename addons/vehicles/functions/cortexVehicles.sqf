@@ -29,7 +29,9 @@
  * A stopped or slow armed vehicle whose primary gunner has been lost may ask an existing dedicated
  * AI commander to change to that seat once for the exact DETECTED generation. The driver never moves.
  * An intact armed or armoured platform may also request its own smoke countermeasure once for a
- * hit, explosion or suppression generation. These finite reactions never change the vehicle route.
+ * hit, explosion or suppression generation. A slow, crew-only fighting vehicle may make one short,
+ * terrain-checked jink away from a close hostile or severe impact; convoy, passengers and any existing
+ * movement owner remain authoritative.
  * During sustained contact the AI gunner is pointed at the most dangerous
  * enemy seen in the last 15 s within 600 m: anti-tank infantry first, then armour, then anything
  * else, nearest first, held for 8 s. A fully mounted tank or APC that knows of an anti-tank soldier
@@ -52,7 +54,7 @@
  * 2: enemies <ARRAY> - from WAIT_fnc_CortexKnowledge
  *
  * Return Value:
- * Boolean - true while vehicle withdrawal or standoff owns group movement
+ * Boolean - true while vehicle withdrawal, standoff or danger jink owns group movement
  *
  * Example:
  * [_group, _state, _enemies] call WAIT_fnc_CortexVehicles;
@@ -65,7 +67,7 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 private _vehicleMove = _state getOrDefault ["movementLease",[]];
 private _activeVehicleMove = false;
 if (_vehicleMove isNotEqualTo []) then {
-    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF"];
+    private _vehicleOwnsLease = (_vehicleMove param [0,""]) in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK"];
     if (_vehicleOwnsLease) then {
         _activeVehicleMove = ((waypoints _group) findIf {
             (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
@@ -76,7 +78,18 @@ if (_vehicleMove isNotEqualTo []) then {
                 [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
                 _state deleteAt "vehicleOperationGeneration";
             };
-            [_group,_vehicleMove param [0,""],false] call WAIT_fnc_CortexOwnershipLease;
+            private _finishedOwner=_vehicleMove param [0,""];
+            if (_finishedOwner == "VEHICLE_JINK") then {
+                private _jinkState=_state getOrDefault ["vehicleDangerJink",[]];
+                private _jinkVehicle=_jinkState param [1,objNull,[objNull]];
+                if (!isNull _jinkVehicle && {local _jinkVehicle}) then {
+                    private _marker=_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]];
+                    if (_marker param [1,grpNull,[grpNull]] == _group) then {
+                        _jinkVehicle setVariable ["WAIT_Danger_VehicleJink",nil,true];
+                    };
+                };
+            };
+            [_group,_finishedOwner,false] call WAIT_fnc_CortexOwnershipLease;
             _state deleteAt "movementLease";
         };
     } else {
@@ -318,6 +331,20 @@ if (_dangerDismount isNotEqualTo []) then {
                     _state set ["vehicleDangerCountermeasure",[_dangerGeneration,_vehicle,_countermeasureFired,serverTime]];
                     _vehicle setVariable ["WAIT_Danger_VehicleCountermeasure",
                         [_dangerGeneration,effectiveCommander _vehicle,_dangerSource,serverTime,_countermeasureFired],true];
+                };
+                // A close hostile or severe incoming danger may justify one short escape by an
+                // otherwise intact fighting vehicle. The helper owns one 25-second operation and
+                // refuses convoys, passengers, foot elements and any existing movement owner.
+                private _jink=_state getOrDefault ["vehicleDangerJink",[]];
+                private _freshJinkGeneration=_dangerGeneration >= 0
+                    && {_jink param [0,-2,[0]] != _dangerGeneration};
+                if (_freshJinkGeneration && {_dangerProfile in ["ARMED","ARMOURED"]}
+                    && {_dangerCause in ["HIT","EXPLOSION"] || {_knownCloseThreat}}
+                    && {!(_emplacementUnsafe || {_disabledUnsafe})}) then {
+                    private _jinkStarted=[_group,_state,_vehicle,_dangerPosition,_dangerSource,_dangerGeneration]
+                        call WAIT_fnc_CortexVehicleJink;
+                    _state set ["vehicleDangerJink",[_dangerGeneration,_vehicle,_jinkStarted,serverTime]];
+                    if (_jinkStarted) then {_movementOwned=true};
                 };
                 // A useful static mortar answers the same real, known hostile through the finite
                 // artillery mission owner. The server revalidates locality, knowledge, allegiance,
