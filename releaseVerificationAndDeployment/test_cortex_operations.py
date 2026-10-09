@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_reverse_cleanup_sends_no_stop_into_external_control(self):
+        text=source('cortexVehicleReverseStep')
+        release=text.split('private _release={',1)[1].split('if (toUpperANSI _mode',1)[0]
+        self.assertIn('if (!([_group] call WAIT_fnc_CortexExternalTakeover)) then',release)
+        self.assertLess(release.index('WAIT_fnc_CortexExternalTakeover'),release.index('sendSimpleCommand'))
+        self.assertIn('setVariable ["WAIT_VehicleReverseOwner",nil,true]',release)
+
     def test_launcher_relocation_remains_mobile_under_immediate_danger(self):
         text=source('dangerEngineAct')
         actor=text.split('private _actorMove=',1)[1].split('// Forced orders',1)[0]

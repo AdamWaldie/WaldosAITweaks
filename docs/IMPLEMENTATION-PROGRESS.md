@@ -487,3 +487,7 @@ Finite anti-armour relocation and static-support approach reservations now parti
 engine danger committed-mover check. Repeated immediate danger retains a mobile weak posture
 instead of forcing a reserved launcher relocation prone. Reservation expiry still returns the
 actor to ordinary danger classification; physical movement-under-fire acceptance is pending.
+
+Tracked reverse release now suppresses STOP/STOPTURNING when external ownership has taken over,
+while retiring its exact old markers. A matching native command string alone cannot authorise
+cleanup over a newer Zeus/player/specialist order. Physical reverse interruption remains queued.

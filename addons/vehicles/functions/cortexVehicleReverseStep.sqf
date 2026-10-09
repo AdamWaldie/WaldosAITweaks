@@ -18,9 +18,13 @@ private _release={
         private _ownedVehicle=_record select 0;
         if (!isNull _ownedVehicle && {local _ownedVehicle}
             && {(_ownedVehicle getVariable ["WAIT_VehicleReverseOwner",[]]) isEqualTo [_group,_generation]}) then {
-            private _info=vehicleMoveInfo _ownedVehicle;
-            if ((_info param [1,""]) in ["LEFT","RIGHT"]) then {_ownedVehicle sendSimpleCommand "STOPTURNING"};
-            if ((_info param [0,""]) == "BACK") then {_ownedVehicle sendSimpleCommand "STOP"};
+            // Matching markers prove the old lease, not authority over a newer external order.
+            // Clear those markers on handover without sending driving commands into its owner.
+            if (!([_group] call WAIT_fnc_CortexExternalTakeover)) then {
+                private _info=vehicleMoveInfo _ownedVehicle;
+                if ((_info param [1,""]) in ["LEFT","RIGHT"]) then {_ownedVehicle sendSimpleCommand "STOPTURNING"};
+                if ((_info param [0,""]) == "BACK") then {_ownedVehicle sendSimpleCommand "STOP"};
+            };
             _ownedVehicle setVariable ["WAIT_VehicleReverseOwner",nil,true];
         };
         _group setVariable ["WAIT_VehicleReverse",nil,true];
