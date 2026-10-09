@@ -473,6 +473,12 @@ private _releaseInert=(_releaseStatsAfter getOrDefault ["acceptedRecords",0]) ==
     && {(_releaseGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
     && {behaviour _releaseUnit == "CARELESS"}
     && {_releaseTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0};
+["DANGER-release-mode-engine-stimulus",_releaseObserved,
+    str ["submissionsBefore",_releaseSubmissionsBefore,"statsAfter",_releaseStatsAfter,
+        "behaviour",behaviour _releaseUnit]] call _check;
+["DANGER-release-mode-preserved-state",_releaseInert,
+    str [_releaseStatsAfter,behaviour _releaseUnit,_releaseTransitions]] call _check;
+// Retain the combined acceptance: a silent engine cannot prove a successful exercised handover.
 ["DANGER-release-mode-no-tactical-handoff",_releaseObserved && {_releaseInert},str [_releaseStatsAfter,behaviour _releaseUnit,_releaseTransitions]] call _check;
 deleteVehicle _releaseGrenade;
 deleteVehicle _releaseUnit;

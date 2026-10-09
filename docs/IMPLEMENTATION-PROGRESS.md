@@ -508,3 +508,8 @@ Authored BLUE audit now measures retained ROE, actual zero shots and absence of 
 operation. A naturally sighted enemy entering CONTACT is awareness, not by itself permission to
 fire or move. The prior case contradicted the adjacent hold-fire awareness contract. Original
 failure evidence is retained; the corrected physical check has not run.
+
+CARELESS release audit now reports engine-stimulus delivery and preserved state separately,
+while retaining the original combined acceptance requirement. Empty submission evidence still
+fails the exercised handover; it is distinguished from a mutated behaviour or retained response.
+No missing-stimulus result is promoted to a behavioural pass. Physical retest remains pending.
