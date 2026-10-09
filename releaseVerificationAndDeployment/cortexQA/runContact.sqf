@@ -627,6 +627,12 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerW
     _observerSupportThree,_observerSupportFour,_observerSupportFive],true];
 ["Danger FSM: observer cover and squad readiness","A real explosion occurs beside the separated wingman. The native danger record must retain him as its observer, the one bounded cover move must move that same soldier rather than the distant leader, and four ordinary riflemen must lower profile before the squad's loaded AT gunner.",getPosATL _observerWingman] call _phase;
 sleep 2;
+// Native formation may have moved the separated wingman during setup. Align the disposable
+// wall with his actual stimulus location; never freeze or reset the tested actor to fake readiness.
+_observerStart=getPosATL _observerWingman;
+_observerWall setPosATL (_observerStart getPos [4,270]);
+["DANGER-observer-cover-fixture-range",_observerWingman distance2D _observerWall <= 18,
+    str [getPosATL _observerWingman,getPosATL _observerWall,currentCommand _observerWingman]] call _check;
 private _observerCoverBefore=(_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
 private _observerGrenade=[(getPosATL _observerWingman) getPos [7,90]] call _spawnRealGrenade;
 private _observerGroupHide=[{
