@@ -40,6 +40,9 @@
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_enemies", [], [[]]]];
 private _alive = (units _group) select {alive _x};
+// Infantry break/retreat/surrender issues group orders. Mounted safety belongs to the vehicle
+// and passenger controllers; lack of a carried launcher does not mean an armed crew is overmatched.
+if (_alive findIf {!isNull objectParent _x} >= 0) exitWith {""};
 private _count = count _alive;
 if (_count == 0) exitWith {""};
 private _peak = (_group getVariable ["WAIT_AIPass_PeakSize", _count]) max _count;

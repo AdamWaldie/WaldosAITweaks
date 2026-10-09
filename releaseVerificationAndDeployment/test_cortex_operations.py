@@ -6461,3 +6461,11 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"INSUFFICIENT_FIREPOWER"'))
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
+
+    def test_mounted_crews_do_not_receive_infantry_morale_or_reposition_orders(self):
+        morale=source('cortexMorale')
+        reposition=source('cortexTacticalReposition')
+        self.assertIn('if (_alive findIf {!isNull objectParent _x} >= 0) exitWith',morale)
+        self.assertLess(morale.index('!isNull objectParent'),morale.index('private _hasAT'))
+        self.assertIn('alive _x && {!isNull objectParent _x}',reposition)
+        self.assertLess(reposition.index('!isNull objectParent'),reposition.index('WAIT_fnc_OperationStart'))

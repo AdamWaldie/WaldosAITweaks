@@ -23,6 +23,8 @@ if (count (_state getOrDefault ["drill",createHashMap]) > 0
     || {(_state getOrDefault ["movementLease",[]]) isNotEqualTo []}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}) exitWith {false};
 
+// This is an infantry group destination, not a substitute vehicle escape controller.
+if ((units _group) findIf {alive _x && {!isNull objectParent _x}} >= 0) exitWith {false};
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (isNull _leader || {!alive _leader}) exitWith {false};
