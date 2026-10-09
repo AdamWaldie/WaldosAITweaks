@@ -33,7 +33,6 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
-    && {count _threat >= 2}
     && {_generation == (_group getVariable ["WAIT_Danger_Generation",0])}
     && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {[_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
@@ -96,9 +95,12 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_Cor
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {currentCommand _actor != ""}) exitWith {call _clearLease};
 _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot]];
+// The observation may end before native pathing reaches cover. Retain the committed move
+// independently, with a bounded travel allowance rather than a four-second universal cutoff.
+private _deadline=time+((2+(_origin distance2D _spot)/2) max 4 min 12);
 _actor doMove _spot;
-_actor setVariable ["WAIT_Cortex_ActorMove",["DANGER_COVER",+_spot,time+4]];
-_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,time+4,+_spot]];
+_actor setVariable ["WAIT_Cortex_ActorMove",["DANGER_COVER",+_spot,_deadline]];
+_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,_deadline,+_spot]];
 private _stats=_group getVariable ["WAIT_Danger_EngineStats",createHashMap];
 _stats set ["coverMoves",((_stats getOrDefault ["coverMoves",0])+1) min 100000];
 _stats set ["lastCoverActor",_actor];

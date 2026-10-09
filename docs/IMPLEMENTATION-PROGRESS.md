@@ -522,3 +522,9 @@ Cover discovery merges up to ten terrain objects and ten placed objects, ranks t
 bounded set by distance, then performs geometry checks on at most ten. Previously terrain
 insertion order could discard a closer placed wall. This changes candidate availability without
 increasing the geometry budget; mixed placed/terrain physical acceptance remains pending.
+
+Committed danger-cover movement now survives expiry of its short observation response, within
+a distance-derived 4–12 second travel allowance. Previously an empty current threat payload
+retired the approach after the roughly two-second reflex even before its movement timer ended.
+Live gates, generation, native tasks and successor operations still invalidate it. This preserves
+continuous intent without a new worker or repeated destination; physical arrival remains pending.

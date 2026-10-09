@@ -6462,6 +6462,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_committed_cover_outlives_expired_observation_with_bounded_travel(self):
+        text=source('dangerCoverStep')
+        retention=text.split('private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];',2)[-1].split('exitWith {true};',1)[0]
+        self.assertNotIn('count _threat',retention)
+        self.assertIn('max 4 min 12',text)
+        self.assertIn('["DANGER_COVER",+_spot,_deadline]',text)
+        self.assertIn('[_actor,_generation,_deadline,+_spot]',text)
+
     def test_cover_budget_ranks_placed_and_terrain_objects_together(self):
         text=source('cortexFindCover')
         self.assertIn('private _ranked=_objects apply',text)
