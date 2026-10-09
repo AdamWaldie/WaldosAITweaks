@@ -61,6 +61,11 @@ exit, WAIT attribution and driver retention in the `41da6a4` run. Passenger targ
 absent, as intended. Other passenger layouts, remount, replacement orders and migration remain
 independent acceptance cases; the corrected predicate does not establish them automatically.
 
+The stationary separate-passenger replacement-order case also passes physical boarding of
+the second truck and preservation of the replacement seat assignment in the `41da6a4` run.
+This demonstrates the explicit boarding-order handover for that layout; ordinary remount
+acceptance still needs the corrected enabled fixture gate.
+
 ## Earlier implementation work
 
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
