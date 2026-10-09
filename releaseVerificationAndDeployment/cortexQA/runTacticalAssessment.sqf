@@ -65,7 +65,7 @@ private _assessmentMatches = {
 };
 
 // An infantry group with no anti-armour weapon should retain native contact and fire-control
-// opportunities, but WAIT must not author a rifle assault against a protected vehicle.
+// opportunities, improve its position and seek support, but never rifle-assault protected armour.
 private _armourFixture=[[1700,1700,0],"TACTICAL ARMOUR RESTRAINT",6] call _newGroup;
 _armourFixture params ["_armourGroup","_armourActors"];
 private _armour=createVehicle ["B_APC_Wheeled_01_cannon_F",[1700,2020,0],[],0,"NONE"];
@@ -79,19 +79,23 @@ _armour setDir 180;
 _armour setVariable ["WAIT_CortexQA_Label","LIVE ARMOURED THREAT",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_armourActors+[_armour],true];
 private _armourOrigins=_armourActors apply {getPosATL _x};
-["Tactical assessment: armour restraint","Six riflemen face a live protected vehicle without anti-armour weapons. Native awareness and fire remain available, but WAIT must record ARMOUR_OVERMATCH and must not create a flank, advance or assault operation.",getPosATL leader _armourGroup] call _phase;
+["Tactical assessment: armour overmatch","Six riflemen face a live protected vehicle without anti-armour weapons. WAIT must make one short screened reposition, retain native engagement and support discovery, then reassess. It must not rifle-assault the vehicle or repeatedly fall back.",getPosATL leader _armourGroup] call _phase;
 private _armourContact=[{
     private _knowledge=[_armourGroup] call WAIT_fnc_CortexKnowledge;
     ((_knowledge select 0) findIf {vehicle (_x select 0) == _armour}) >= 0
 },35] call _wait;
-private _armourDecision=[{[_armourGroup,"HOLD","ARMOUR_OVERMATCH"] call _assessmentMatches},25] call _wait;
-sleep 8;
+private _armourDecision=[{[_armourGroup,"REPOSITION","ARMOUR_OVERMATCH","STARTED"] call _assessmentMatches},25] call _wait;
+private _armourProgress=[{
+    private _record=_armourGroup getVariable ["WAIT_Cortex_TacticalReposition",[]];
+    count _record >= 6 && {(_record select 0) == "MOVING"}
+        && {leader _armourGroup distance2D (_record select 4) >= 15}
+},35] call _wait;
 private _armourDrill=((_armourGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
 private _armourTravel=0;
 {_armourTravel=_armourTravel max ((_armourOrigins select _forEachIndex) distance2D (getPosATL _x))} forEach _armourActors;
 ["TACTICAL-armour-real-contact",_armourContact,str ([_armourGroup] call WAIT_fnc_CortexKnowledge)] call _check;
-["TACTICAL-armour-overmatch-hold",_armourDecision && {count _armourDrill == 0},str [_armourGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_armourDrill]] call _check;
-["TACTICAL-armour-no-WAIT-rifle-rush",_armourTravel < 30,format ["maximum travel=%1",_armourTravel]] call _check;
+["TACTICAL-armour-overmatch-reposition",_armourDecision && {_armourProgress} && {count _armourDrill == 0},str [_armourGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_armourGroup getVariable ["WAIT_Cortex_TacticalReposition",[]],_armourDrill]] call _check;
+["TACTICAL-armour-no-WAIT-rifle-rush",_armourTravel < 90,format ["maximum travel=%1",_armourTravel]] call _check;
 private _armourCrew=crew _armour;
 {deleteVehicle _x} forEach _armourCrew;
 deleteVehicle _armour;
@@ -135,8 +139,8 @@ deleteVehicle _orderVehicle;
 [_orderGroup] call _deleteGroupActors;
 deleteGroup _orderEnemyGroup;
 
-// An exposed elevated firing position should not produce an automatic uphill rush. A real actor is
-// placed on a physical tower position so native sight, fire and target knowledge remain evaluative.
+// An exposed elevated firing position should produce one lateral screened improvement rather than
+// an automatic uphill rush or indefinite idle. A real actor occupies a physical tower position.
 private _tower=createVehicle ["Land_Cargo_Tower_V1_F",[2000,2020,0],[],0,"NONE"];
 _tower setDir 0;
 private _towerPositions=(_tower buildingPos -1) select {(_x select 2) > ((getPosATL _tower select 2)+15)};
@@ -162,19 +166,23 @@ if (_elevatedReady) then {
     ["TACTICAL-elevated-fixture-geometry",_elevatedGeometry,str [_elevatedRange,_elevatedHeight,getPosATL leader _elevatedGroup,getPosATL _elevatedEnemy]] call _check;
     missionNamespace setVariable ["WAIT_CortexQA_Actors",_elevatedActors+[_elevatedEnemy],true];
     private _elevatedOrigins=_elevatedActors apply {getPosATL _x};
-    ["Tactical assessment: elevated restraint","A live hostile occupies a physical tower more than 300 metres away. On this exposed approach WAIT must retain native engagement, record ELEVATED_FIRE_POSITION and avoid authoring an uphill manoeuvre.",getPosATL leader _elevatedGroup] call _phase;
+    ["Tactical assessment: elevated threat","A live hostile occupies a physical tower more than 300 metres away. WAIT must make one lateral screened reposition, retain native engagement and then reassess instead of rushing uphill or remaining inert.",getPosATL leader _elevatedGroup] call _phase;
     private _elevatedContact=[{
         private _knowledge=[_elevatedGroup] call WAIT_fnc_CortexKnowledge;
         ((_knowledge select 0) findIf {(_x select 0) == _elevatedEnemy}) >= 0
     },45] call _wait;
-    private _elevatedDecision=[{_elevatedGeometry && {[_elevatedGroup,"HOLD","ELEVATED_FIRE_POSITION"] call _assessmentMatches}},30] call _wait;
-    sleep 8;
+    private _elevatedDecision=[{_elevatedGeometry && {[_elevatedGroup,"REPOSITION","ELEVATED_FIRE_POSITION","STARTED"] call _assessmentMatches}},30] call _wait;
+    private _elevatedProgress=[{
+        private _record=_elevatedGroup getVariable ["WAIT_Cortex_TacticalReposition",[]];
+        count _record >= 6 && {(_record select 0) == "MOVING"}
+            && {leader _elevatedGroup distance2D (_record select 4) >= 15}
+    },40] call _wait;
     private _elevatedDrill=((_elevatedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
     private _elevatedTravel=0;
     {_elevatedTravel=_elevatedTravel max ((_elevatedOrigins select _forEachIndex) distance2D (getPosATL _x))} forEach _elevatedActors;
     ["TACTICAL-elevated-real-contact",_elevatedContact,str ([_elevatedGroup] call WAIT_fnc_CortexKnowledge)] call _check;
-    ["TACTICAL-elevated-hold",_elevatedDecision && {count _elevatedDrill == 0},str [_elevatedGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_elevatedDrill]] call _check;
-    ["TACTICAL-elevated-no-WAIT-rush",_elevatedTravel < 30,format ["maximum travel=%1 shots=%2",_elevatedTravel,_elevatedActors apply {_x getVariable ["WAIT_CortexQA_Shots",0]}]] call _check;
+    ["TACTICAL-elevated-reposition",_elevatedDecision && {_elevatedProgress} && {count _elevatedDrill == 0},str [_elevatedGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_elevatedGroup getVariable ["WAIT_Cortex_TacticalReposition",[]],_elevatedDrill]] call _check;
+    ["TACTICAL-elevated-no-WAIT-rush",_elevatedTravel < 95,format ["maximum travel=%1 shots=%2",_elevatedTravel,_elevatedActors apply {_x getVariable ["WAIT_CortexQA_Shots",0]}]] call _check;
     [_elevatedGroup] call WAIT_fnc_CortexReleaseGroup;
     [_elevatedGroup] call _deleteGroupActors;
     {deleteVehicle _x} forEach units _elevatedEnemyGroup;

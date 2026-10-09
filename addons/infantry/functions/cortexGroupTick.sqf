@@ -323,6 +323,7 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         case "VEHICLE_ORIENT": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
         case "SUPPORT_RALLY": {"supportOperationGeneration"};
+        case "TACTICAL_REPOSITION": {"tacticalRepositionOperationGeneration"};
         default {""};
     };
     if (_operationKey != "") then {

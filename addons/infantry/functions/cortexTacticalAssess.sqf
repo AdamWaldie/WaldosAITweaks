@@ -40,7 +40,10 @@ private _foot=(units _group) select {
 };
 private _armedFoot=_foot select {primaryWeapon _x != ""};
 if (count _armedFoot < 2) exitWith {
+    _result set ["intent","REPOSITION"];
     _result set ["reason","INSUFFICIENT_FIREPOWER"];
+    _result set ["targetIndex",0];
+    _result set ["candidates",["REPOSITION"]];
     _result set ["evidence",[count _foot,count _armedFoot]];
     _result
 };
@@ -109,7 +112,9 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
     } else {
         if (_armourIndex >= 0 && {!_capableAT}) then {
             _selected=_armourIndex;
+            _intent="REPOSITION";
             _reason="ARMOUR_OVERMATCH";
+            _candidates=["REPOSITION"];
         } else {
             private _freshPosition=_manoeuvre findIf {
                 private _record=_enemies select _x;
@@ -124,9 +129,11 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
                     _candidates=["FLANK"];
                     if (_advanceEnabled) then {_candidates pushBack "ADVANCE"};
                 } else {
-                    // An exposed uphill rush is worse than retaining cover and native suppression.
-                    // Fire control and support discovery continue because HOLD takes no ownership.
+                    // An exposed uphill rush is worse than improving the firing position first.
+                    // The finite reposition retains native suppression and support discovery.
+                    _intent="REPOSITION";
                     _reason="ELEVATED_FIRE_POSITION";
+                    _candidates=["REPOSITION"];
                 };
             } else {
                 if (_fortifiedIndex >= 0 && {_flankEnabled}) then {

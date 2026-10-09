@@ -1002,9 +1002,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CortexTacticalAssess',selector)
 
     def test_autonomous_foot_manoeuvre_rejects_mobile_platform_contacts(self):
-        """Vehicle fire and anti-armour work must not also become a generic infantry route."""
+        """Vehicle contact may cause a finite safety reposition, but never a rifle assault route."""
         selector=source('cortexTacticalStart')
         assessment=source('cortexTacticalAssess')
+        reposition=source('cortexTacticalReposition')
         for marker in [
             'private _manoeuvre=[];',
             '_target isKindOf "CAManBase" && {isNull objectParent _target}',
@@ -1013,7 +1014,11 @@ class CortexOperations(unittest.TestCase):
             '"ARMOUR_OVERMATCH"'
         ]:
             self.assertIn(marker,assessment)
-        self.assertIn('if (_targetIndex < 0 || {_candidates isEqualTo []}) exitWith {false};',selector)
+        self.assertIn('case "REPOSITION"',selector)
+        self.assertIn('_reason == "ARMOUR_OVERMATCH"',reposition)
+        self.assertIn('_distance <= 120',reposition)
+        self.assertIn('call WAIT_fnc_CortexSelectAvenue',reposition)
+        self.assertNotIn('setPos',reposition)
 
     def test_medical_assistance_can_treat_a_wounded_leader_without_self_treatment(self):
         """Leader succession must not make a leader ineligible for aid or select a medic as their own patient."""
@@ -3015,6 +3020,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"INSUFFICIENT_FIREPOWER"',assessment)
         self.assertIn('"ELEVATED_FIRE_POSITION"',assessment)
         self.assertIn('"CONCEALED_ELEVATED_APPROACH"',assessment)
+        self.assertIn('"REPOSITION"',assessment)
+        self.assertIn('"NO_SAFE_MANOEUVRE"',selector)
+        self.assertIn('"MORALE_HANDOFF"',selector)
+        self.assertIn('"WEAPON_LAYER_HANDOFF"',selector)
+        self.assertIn('"NATIVE_CONTACT_HANDOFF"',selector)
+        self.assertIn('"NATIVE_REASSESS"',selector)
         combat=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombat.sqf').read_text(encoding='utf-8')
         self.assertIn('WAIT_Cortex_TacticalAssessment',combat)
         self.assertIn('-assessment-selected-intent',combat)
@@ -3036,6 +3047,27 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('random 1 >= ([_group, "advanceChance"]',advance)
         self.assertNotIn('coordinatedChance',coordinated)
         self.assertNotIn('random 1 >= ([_group, "coordinatedChance"]',coordinated)
+
+    def test_tactical_reposition_is_finite_generation_owned_and_yields_to_zeus(self):
+        reposition=source('cortexTacticalReposition')
+        selector=source('cortexTacticalStart')
+        tick=source('cortexGroupTick')
+        functions=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
+        for marker in [
+            'call WAIT_fnc_CortexIsEligible',
+            'call WAIT_fnc_CortexExternalTakeover',
+            'WAIT_Cortex_TacticalRepositionCooldown',
+            'call WAIT_fnc_OperationStart',
+            'call WAIT_fnc_CortexGroupMove',
+            '["movementLease",["TACTICAL_REPOSITION",time+30]]',
+        ]:
+            self.assertIn(marker,reposition)
+        self.assertIn('case "TACTICAL_REPOSITION": {"tacticalRepositionOperationGeneration"}',tick)
+        self.assertIn('class CortexTacticalReposition',functions)
+        self.assertIn('case "REPOSITION"',selector)
+        self.assertNotIn('spawn',reposition)
+        self.assertNotIn('while {',reposition)
+        self.assertNotIn('setPos',reposition)
 
     def test_direct_assault_uses_its_own_live_gate_and_cleanup_accounting(self):
         step=source('cortexFlankStep')
@@ -3059,9 +3091,11 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(qa.count('((_knowledge select 0) findIf'),3)
         self.assertNotIn('call WAIT_fnc_CortexKnowledge) select 0) findIf',qa)
         self.assertIn('WAIT_Cortex_TacticalAssessment',qa)
-        self.assertIn('"ARMOUR_OVERMATCH"',qa)
+        self.assertIn('"REPOSITION","ARMOUR_OVERMATCH","STARTED"',qa)
         self.assertIn('"AUTHORED_FORWARD_ORDER"',qa)
-        self.assertIn('"ELEVATED_FIRE_POSITION"',qa)
+        self.assertIn('"REPOSITION","ELEVATED_FIRE_POSITION","STARTED"',qa)
+        self.assertIn('TACTICAL-armour-overmatch-reposition',qa)
+        self.assertIn('TACTICAL-elevated-reposition',qa)
         self.assertIn('TACTICAL-authored-order-physical-progress',qa)
         self.assertNotIn('call WAIT_fnc_CortexTacticalAssess',qa)
         self.assertNotIn(' reveal ',qa)
