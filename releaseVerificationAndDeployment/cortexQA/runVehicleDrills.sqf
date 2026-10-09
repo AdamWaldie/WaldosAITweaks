@@ -484,9 +484,9 @@ deleteGroup _contactEnemyGroup;
 deleteGroup _contactCrewGroup;
 
 {
-_x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false]];
+_x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false],["_passengerCount",2]];
 private _layout = ["shared crew/passenger group","separate passenger squad"] select _separate;
-private _check = {params ["_id","_passed",["_detail",""]]; [(["","REPLACEMENT-"] select _replacementOrder)+(["","STATIONARY-"] select _stationary)+(["","NATIVE-"] select _nativeBaseline)+(["","FRESH-"] select _freshEnabled)+(["","SEPARATE-"] select _separate)+_id,_passed,_detail] call _recordVehicleCheck};
+private _check = {params ["_id","_passed",["_detail",""]]; [(["","LARGE-"] select (_passengerCount > 2))+(["","REPLACEMENT-"] select _replacementOrder)+(["","STATIONARY-"] select _stationary)+(["","NATIVE-"] select _nativeBaseline)+(["","FRESH-"] select _freshEnabled)+(["","SEPARATE-"] select _separate)+_id,_passed,_detail] call _recordVehicleCheck};
 [createHashMapFromArray [["WAIT_AIPass_Enable",!_nativeBaseline],["WAIT_AIPass_VehicleDismount_Enable",false],
     ["WAIT_AIPass_VehicleRemount_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _truck=createVehicle ["O_Truck_03_transport_F",[1900,1100,0],[],0,"NONE"];
@@ -503,7 +503,9 @@ _truck allowDamage false;
 private _passengerGroup = if (_separate) then {createGroup [east,true]} else {_group};
 [_passengerGroup] call _pin; _passengerGroup setCombatMode "BLUE";
 private _passengers=[];
-for "_i" from 0 to 1 do {
+private _seatCapacity=_truck emptyPositions "cargo";
+["DISMOUNT-fixture-cargo-capacity",_seatCapacity >= _passengerCount,str [_seatCapacity,_passengerCount]] call _check;
+for "_i" from 0 to (_passengerCount-1) do {
     private _unit=_passengerGroup createUnit ["O_Soldier_F",[1900+_i*3,1090,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["%1 | PASSENGER %2",_layout,_i+1],true];
@@ -664,7 +666,7 @@ private _remounted=[{_passengers findIf {!alive _x || {vehicle _x != _truck}} < 
 };
 {deleteVehicle _x} forEach (_passengers+_crew+_opponents+[_truck]); deleteGroup _group; if (_separate) then {deleteGroup _passengerGroup}; deleteGroup _enemyGroup;
 
-} forEach [[false,false,true],[true,false,true],[false,false],[true,false],[false,true],[true,true],[false,true,false,true],[true,true,false,true],[true,true,false,true,true]];
+} forEach [[false,false,true],[true,false,true],[false,false],[true,false],[false,true],[true,true],[false,true,false,true],[true,true,false,true],[true,true,false,true,true],[true,true,false,false,false,12],[true,true,false,true,false,12]];
 
 [createHashMapFromArray [["WAIT_AIPass_VehicleDismount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _armour=createVehicle ["O_APC_Tracked_02_cannon_F",[1900,1100,0],[],0,"NONE"];

@@ -466,3 +466,8 @@ physical acceptance remains pending. At most eight boarding records are consider
 Remount progress now publishes only remaining owned passengers when the set changes, preserving
 the original deadline. Boarded or reassigned passengers cannot crowd the vehicle owner's bounded
 boarding checks ahead of the remaining squad. Larger-squad physical boarding remains pending.
+
+Queued additive twelve-passenger separate-squad cases for unrestricted and stationary transport,
+with an explicit cargo-capacity prerequisite and distinct LARGE case IDs. Initial fixture seating
+is setup only; every judged exit/remount still uses the real production path and physical seat
+occupancy. Existing two-passenger/native/replacement comparisons are retained.
