@@ -107,6 +107,7 @@
  * - WAIT_AIPass_VehicleJink_Enable (MISSION MAKER): One short terrain-checked escape for an intact crewed fighting vehicle under close or severe danger. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
+ * - WAIT_AIPass_DangerObservation_Enable (MISSION MAKER): Enables position-only body/scream glances for idle infantry. Requires danger response. Default true.
  * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
  * - WAIT_AIPass_StaticSupport_Enable (MISSION MAKER): Allows one uncommitted soldier to physically occupy a nearby useful empty static weapon during confirmed contact. Default true.
  * - WAIT_AIPass_StaticDeploy_Enable (MISSION MAKER): Allows a compatible two-person bag team to physically assemble and occupy its carried static weapon. Default true.
@@ -388,6 +389,7 @@ createHashMapFromArray [
         ["WAIT_Convoy_ContactHalt_Enable", true], // Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.
         ["WAIT_Convoy_Unload_Enable", true], // Allows WAIT passenger unloading on halt. Operating crews remain aboard.
         ["WAIT_AIPass_Danger_Enable", true], // Bounded danger events; one shared decision owner.
+        ["WAIT_AIPass_DangerObservation_Enable", true], // Position-only idle alert observation.
         ["WAIT_AIPass_DangerSmoke_Enable", true], // One generation-scoped carried smoke response; movement does not wait.
         ["WAIT_AIPass_StaticSupport_Enable", true], // One actor may occupy a nearby empty friendly static without holding squad movement.
         ["WAIT_AIPass_StaticDeploy_Enable", true], // A compatible pair may physically assemble a carried static without holding squad movement.

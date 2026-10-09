@@ -572,3 +572,8 @@ observation/interruption acceptance remains pending.
 Alert observation uses only the position form of the native glance command. The object form
 fully reveals its target and is therefore excluded from WAIT observation. Native glance timing
 and cleanup are not established by static checks and remain physical acceptance requirements.
+
+Body/scream observation now has an independent default-on LIVE CBA gate under Contact. It
+requires danger response and uses the authoritative shared settings specification, with no
+separate runtime settings store. Disabled-state and native observation timing remain physical
+acceptance requirements.

@@ -52,6 +52,7 @@ if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
 // Use the position form only: an object argument would fully disclose that object.
 // Preserve committed movement and concrete native tasks; this never reveals an enemy.
 if (_mode == "HIDE" && {_cause in [5,6,7]} && {!_committedMover}
+    && {[_group,"WAIT_AIPass_DangerObservation_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {isNull objectParent _actor} && {currentCommand _actor == ""}) then {
     private _position=_record param [1,[],[[]]];
     if (count _position == 3 && {_position findIf {!(_x isEqualType 0)} < 0}) then {
