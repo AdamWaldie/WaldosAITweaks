@@ -6183,7 +6183,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('behaviour _releaseUnit == "CARELESS"',released)
         forced=text.split('// A concrete native boarding task',1)[1].split('deleteGroup _forcedGroup;',1)[0]
         self.assertIn('"acceptedRecords",0',forced)
-        self.assertIn('== _forcedAcceptedBefore',forced)
+        self.assertIn('!= _forcedAcceptedBefore',forced)
         for case in ['CONTACT-natural-reacquisition','TRANS-contact-postcontact-sequence','TRANS-search-contact-interruption','TRANS-search-physical-approach','TRANS-regroup-physical-cohesion','TRANS-calm-new-orders-physical-arrival','TRANS-no-old-search-order-resurrection']:
             self.assertIn(case,text)
         self.assertIn('_searchTravel >= 15 && {_searchApproach}',text)

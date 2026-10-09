@@ -817,7 +817,7 @@ private _forcedUnit=_forcedGroup createUnit ["O_Soldier_F",[2360,1350,0],[],0,"N
 _forcedUnit allowDamage false;
 _forcedUnit setVariable ["acex_headless_blacklist",true,true];
 _forcedUnit setVariable ["WAIT_CortexQA_Label","FORCED BOARDING OWNER",true];
-private _forcedVehicle=createVehicle ["O_Truck_03_transport_F",[2390,1350,0],[],0,"NONE"];
+private _forcedVehicle=createVehicle ["O_Truck_03_transport_F",[2440,1350,0],[],0,"NONE"];
 _forcedVehicle allowDamage false;
 _forcedVehicle setDir 270;
 _forcedUnit assignAsCargo _forcedVehicle;
@@ -837,11 +837,19 @@ private _forcedNoHandoff=[{
         && {(_forcedGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
         && {((_forcedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
 },12] call _wait;
-private _forcedBoarded=[{vehicle _forcedUnit == _forcedVehicle},35] call _wait;
+private _forcedTaskPreserved=true;
+private _forcedBoarded=[{
+    if (toUpperANSI currentCommand _forcedUnit == "GET IN") then {
+        private _stats=_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+        if ((_forcedGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []
+            || {(_stats getOrDefault ["acceptedRecords",0]) != _forcedAcceptedBefore}
+            || {((_forcedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CONTACT"}) then {_forcedTaskPreserved=false};
+    };
+    vehicle _forcedUnit == _forcedVehicle
+},35] call _wait;
 private _forcedTransitions=(_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_forcedTransitionCount];
 private _forcedNeverContact=_forcedTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0;
-["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedNeverContact}
-    && {((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0]) == _forcedAcceptedBefore},
+["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedTaskPreserved},
     str [currentCommand _forcedUnit,vehicle _forcedUnit,_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_forcedTransitions]] call _check;
 deleteVehicle _forcedGrenade;
 deleteVehicle _forcedUnit;
