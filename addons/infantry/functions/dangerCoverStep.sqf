@@ -97,6 +97,12 @@ private _away=(_origin getPos [7,_threat getDir _origin]);
 private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
 private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
 if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT"]}) exitWith {false};
+// A failed solid-cover search must not repeat every scheduler tick when visual fallback is disabled.
+// A newer danger generation permits a fresh assessment.
+if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}
+    && {!([_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {
+    ["NO_SCREEN"] call _clearLease
+};
 // One search per callback. A failed solid-cover pass permits a visual-only pass on the next
 // existing scheduler step; it never doubles the geometry work in the current callback.
 private _screenMode=if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}

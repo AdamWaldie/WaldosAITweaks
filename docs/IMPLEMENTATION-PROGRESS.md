@@ -588,3 +588,5 @@ Short valid cover moves are no longer rejected by a two-metre minimum. Negligibl
 is recorded separately and cannot trigger concealment fallback. The physical travel check now
 allows the same short approach; the separate committed-destination arrival case remains required.
 Nearby-cover outcome and movement precision are unproven until the queued physical batch runs.
+
+Danger cover searches now retire a failed solid-cover assessment when the visual fallback is disabled, rather than repeating geometry work on every callback. A new danger generation can reassess. This change requires physical disabled-state and renewed-danger checks; no game audit was launched.
