@@ -379,7 +379,18 @@ private _contactReady=[{
 ["DANGER-VEHICLE-contact-fixture-ready",_contactReady,str [_contactCrew,effectiveCommander _contactVehicle]] call _check;
 private _contactStatsBefore=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
 private _contactRecyclesBefore=_contactStatsBefore getOrDefault ["recycles",0];
+private _mountedDomainSeen=false;
+private _mountedDomainEvidence=[];
 private _mountedPersistent=[{
+    private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
+    private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
+    private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
+    if (count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
+        && {_action param [0,""] == "VEHICLE"} && {count _vehicleContext == 8}
+        && {(_vehicleContext select 0) == "ARMOURED"} && {(_vehicleContext select 1) == _contactVehicle}) then {
+        _mountedDomainSeen=true;
+        _mountedDomainEvidence=[+_assessment,+_action,+_vehicleContext];
+    };
     private _stats=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     private _actors=_stats getOrDefault ["vehicleRecycleActors",[]];
     private _commander=effectiveCommander _contactVehicle;
@@ -393,18 +404,10 @@ private _mountedPersistent=[{
         && {!isNull _commander}
         && {_commander knowsAbout _contactEnemy > 0}
 },30] call _wait;
-["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {
-        private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
-        private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
-        private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
-        count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
-            && {_action param [0,""] == "VEHICLE"}
-            && {count _vehicleContext == 8}
-            && {(_vehicleContext select 0) == "ARMOURED"}
-            && {(_vehicleContext select 1) == _contactVehicle}
-    },str [_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]],
-        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]],
-        _contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]],leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
+// A later legitimate foot observation may replace the latest group record. Require the exact
+// mounted handoff observed during the existing window, not a permanent vehicle-only group state.
+["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {_mountedDomainSeen},
+    str [_mountedDomainEvidence,leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
 // Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally

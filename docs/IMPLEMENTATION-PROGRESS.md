@@ -616,3 +616,5 @@ Carried-static retirement now preserves one owner-local evidence record: owner/e
 Carried deployment now captures the exact assistant bag before PutBag, then uses a finite DROPPING phase to observe native detachment before Assemble. Only the existing shared scheduler services it; the squad is not held. Missing/reassigned bags or drop timeout fail explicitly. Physical assembly/facing/fire/packing remain unproven.
 
 The enabled vehicle-orientation audit now explicitly records natural target knowledge before evaluating operation ownership. Detection absence leaves that behavioural acceptance unproven; no reveal or synthetic danger is added. This responds to engine detection limitations without treating missing observations as successful controller behaviour.
+
+Mixed-observer audit now samples exact commander/VEHICLE/ARMOURED/vehicle identity during its existing observation window. It no longer requires the latest group event to remain mounted after a legitimate foot-leader detection. All original mounted identity criteria are preserved; physical retest remains pending.
