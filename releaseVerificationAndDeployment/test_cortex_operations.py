@@ -462,7 +462,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _sourceObserver=_selected param [6,_observer,[objNull]];',source('dangerStep'))
         self.assertIn('private _activeAction=_group getVariable ["WAIT_Danger_Action",[]];',source('dangerStep'))
         self.assertIn('_activeAction param [5,_actor,[objNull]]',source('dangerStep'))
-        self.assertIn('_responseCommand in ["GET IN","ACTION","HEAL","REARM","JOIN"]',source('dangerStep'))
+        self.assertIn('_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]',source('dangerStep'))
         self.assertLess(source('dangerStep').index('private _activeAction=_group getVariable'),source('dangerStep').index('private _events='))
         self.assertIn('_sourceObserver knowsAbout _source > 0',source('dangerStep'))
         self.assertIn("if (count _latest > 0 && {!(_group getVariable ['WAIT_AIPass_Managed',false])}",engine)
@@ -499,7 +499,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_records select [0,12]',engine_select)
         self.assertIn('private _priorities=[2,1,9,4,3,6,3,5,8,7,0]',engine_select)
         self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
-        self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_mode)
+        self.assertIn('currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
         self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('checkAIFeature "MOVE"'))
         self.assertIn('(side _group) getFriend (side _source) < 0.6',engine_mode)
@@ -588,7 +588,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_AIPass_ZeusWaypoints',engine_continue)
         self.assertIn('behaviour _actor == "CARELESS"',engine_continue)
         self.assertIn('fleeing _actor',engine_continue)
-        self.assertIn('toUpperANSI (currentCommand _actor) in ["GET IN","ACTION","HEAL","REARM","JOIN"]',engine_continue)
+        self.assertIn('toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]',engine_continue)
         for expensive in ['units _group','allUnits','allGroups','CortexExternalTakeover','CortexExternalOwner','CortexZeusHeld','nearestObjects','nearEntities']:
             self.assertNotIn(expensive,engine_continue)
         mode_preflight=engine_mode.split('if (fleeing _actor',1)[0]
@@ -710,7 +710,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_Action',fsm)
         for contract in ['"RELEASE"','"FORCED"','"MAINTAIN"','"VEHICLE"','"HIDE"','"ENGAGE"']:
             self.assertIn(contract,action)
-        self.assertIn('currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]',action)
+        self.assertIn('currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]',action)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',action)
         self.assertIn('!isNull objectParent _actor',action)
         self.assertLess(action.index('currentCommand _actor in'),action.index('WAIT_Operation'))

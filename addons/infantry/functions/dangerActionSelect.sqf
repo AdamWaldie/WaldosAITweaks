@@ -32,7 +32,7 @@ if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
 // engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous
 // combat, and WAIT's response changes only a finite posture while native targeting and movement stay
 // authoritative. Zeus, players and declared external owners have already yielded above.
-if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+if (fleeing _actor || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 private _cause=_event select 0;
 // Detection, proximity, a firing opportunity and audible fire require the native-known hostile

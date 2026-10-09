@@ -32,7 +32,7 @@ if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
 // join or fleeing task interrupts before another WAIT stance or recycle. ATTACK deliberately remains
 // eligible because the engine also uses it for ordinary autonomous combat.
 if (behaviour _actor == "CARELESS" || {fleeing _actor}
-    || {toUpperANSI (currentCommand _actor) in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {false};
+    || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {false};
 
 // The full Zeus helper may inspect waypoints and update a timing cache. The danger FSM only needs
 // the cheap interruption edge: a new curator token, a known live hold, or curator-owned waypoints.

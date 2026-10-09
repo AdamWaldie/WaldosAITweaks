@@ -24,7 +24,7 @@ if (isNull _group || {!local _group}
 // ownership made the danger FSM observation-only for the exact actors already fighting. Zeus,
 // players and declared external owners have already yielded above; retain only commands which
 // represent a concrete boarding, action, treatment, supply or group-transfer task here.
-if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+if (fleeing _actor || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
 // Vehicle response is a domain handoff, not an infantry path request. Classify it before the
 // on-foot MOVE gate so an intentionally immobile static gunner, artillery crew or stopped vehicle
 // commander still publishes danger to the correct dedicated owner. No movement is issued here.
