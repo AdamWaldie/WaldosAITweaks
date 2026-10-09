@@ -6,7 +6,8 @@
  * to player, Zeus, specialist, native-command and WAIT-operation ownership before selecting or issuing movement.
  * Repeat/JIP: One group lease coalesces a danger burst. Each call either retains, releases or creates
  * one finite move. A locality or generation change retires it without restoring over newer work.
- * Arguments: 0 group <GROUP>; 1 actor <OBJECT>; 2 threat position <ARRAY>; 3 danger generation <NUMBER>.
+ * Arguments: 0 group <GROUP>; 1 actor <OBJECT>; 2 threat position <ARRAY>; 3 danger generation <NUMBER>;
+ * 4 release-only <BOOL>, false - retire the owned lease without recovery or new movement.
  * Return Value: Boolean - true while WAIT owns a finite danger-cover move, otherwise false.
  * Current callers: WAIT_fnc_CortexGroupTick.
  * Example: [group player,player,getPosATL player,1] call WAIT_fnc_DangerCoverStep;
@@ -14,7 +15,7 @@
 
 params [
     ["_group",grpNull,[grpNull]],["_actor",objNull,[objNull]],
-    ["_threat",[],[[]]],["_generation",-1,[0]]
+    ["_threat",[],[[]]],["_generation",-1,[0]],["_releaseOnly",false,[true]]
 ];
 private _clearLease={
     params [["_reason","RELEASED",[""]]];
@@ -32,7 +33,7 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
     || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
-if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
+if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
     && {count _moveProof == 3} && {(_moveProof select 0) == "DANGER_COVER"}
     && {(_moveProof select 1) distance2D (_lease select 3) <= 1}
@@ -46,6 +47,7 @@ if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
     && {isNull objectParent _actor}
+    && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
     && {currentCommand _actor in ["","MOVE"]}) exitWith {true};
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
@@ -56,11 +58,12 @@ if (count _lease >= 4) then {
             && {(_actorMove select 1) distance2D _leasedSpot <= 1}
             && {(_actorMove select 2) == _expires}) then {
             _leasedActor setVariable ["WAIT_Cortex_ActorMove",nil];
-            if (alive _leasedActor && {!isPlayer _leasedActor} && {group _leasedActor == _group}
+            if (!_releaseOnly && {alive _leasedActor} && {!isPlayer _leasedActor} && {group _leasedActor == _group}
                 && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
                 // Successful arrival is useful cover, not a reason to run back across exposure.
                 // Only a failed owned approach needs this bounded return-to-formation recovery.
                 && {_leasedActor distance2D _leasedSpot > 2}
+                && {_leasedActor checkAIFeature "MOVE"} && {_leasedActor checkAIFeature "PATH"}
                 && {((expectedDestination _leasedActor) select 0) distance2D _leasedSpot <= 1}
                 && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
@@ -72,6 +75,7 @@ if (count _lease >= 4) then {
     };
     _group setVariable ["WAIT_Danger_CoverLease",nil];
 };
+if (_releaseOnly) exitWith {["RELEASED"] call _clearLease};
 if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}

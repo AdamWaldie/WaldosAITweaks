@@ -92,7 +92,7 @@ if (local _group) then {
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _dangerCoverLease >= 2) then {
-        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;
+        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1,true] call WAIT_fnc_DangerCoverStep;
     };
     private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};

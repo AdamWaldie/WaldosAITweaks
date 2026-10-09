@@ -590,3 +590,7 @@ allows the same short approach; the separate committed-destination arrival case 
 Nearby-cover outcome and movement precision are unproven until the queued physical batch runs.
 
 Danger cover searches now retire a failed solid-cover assessment when the visual fallback is disabled, rather than repeating geometry work on every callback. A new danger generation can reassess. This change requires physical disabled-state and renewed-danger checks; no game audit was launched.
+
+Danger-cover retention and failed-approach recovery now require both native MOVE and PATH to remain enabled. Disabling either retires the lease without issuing return-to-formation movement. Physical external-disablement checks remain pending.
+
+Group release now explicitly retires danger-cover leases through release-only mode. It cannot retain a still-valid cover lease or issue return-to-formation movement during handover. Physical lifecycle acceptance remains pending.
