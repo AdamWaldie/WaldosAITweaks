@@ -292,11 +292,15 @@ private _dismountAtThreat = {
                     && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
             } >= 0 || {
                 private _boarding=_passengerGroup getVariable ["WAIT_Cortex_Remount",[]];
-                count _boarding == 2 && {serverTime < (_boarding select 0)}
+                _boarding isEqualType [] && {count _boarding == 2}
+                    && {(_boarding select 0) isEqualType 0} && {(_boarding select 1) isEqualType []}
+                    && {serverTime < (_boarding select 0)} && {(_boarding select 0) <= serverTime+60}
                     && {!_movementOwned} && {_enemies isEqualTo []}
                     && {!([_passengerGroup] call WAIT_fnc_CortexExternalTakeover)}
                     && {[_passengerGroup,"WAIT_AIPass_VehicleRemount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
                     && {((_boarding select 1) select [0,8]) findIf {
+                        if !(_x isEqualType [] && {count _x == 2}
+                            && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}) exitWith {false};
                         _x params ["_unit","_originalVehicle"];
                         !isNull _unit && {alive _unit} && {group _unit == _passengerGroup}
                             && {_originalVehicle == _vehicle} && {isNull objectParent _unit}

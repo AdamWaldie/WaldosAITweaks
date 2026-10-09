@@ -6462,6 +6462,16 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cross_group_boarding_hold_is_bounded_and_preserves_vehicle_ownership(self):
+        vehicles=source('cortexVehicles')
+        boarding=vehicles.split('private _boarding=_passengerGroup getVariable',1)[1].split('if (_valid)',1)[0]
+        for required in ['isEqualType []','serverTime+60','!_movementOwned','_enemies isEqualTo []',
+                         'WAIT_fnc_CortexExternalTakeover','select [0,8]','_unit distance2D _vehicle <= 100',
+                         'assignedVehicle _unit == _vehicle']:
+            self.assertIn(required,boarding)
+        tick=source('cortexGroupTick')
+        self.assertIn('(serverTime+30) min _deadline',tick)
+
     def test_carried_static_retirement_yields_to_successor_operation(self):
         text=source('cortexStaticDeployStep')
         retirement=text.split('private _retire={',1)[1].split('private _enabled=',1)[0]
