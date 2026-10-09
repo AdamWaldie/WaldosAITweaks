@@ -1,3 +1,38 @@
+## Current acceptance boundary
+
+The completed `dangerparity` run used clean commit `24bdee3`. Its server reported 69 findings:
+39 danger, 24 passenger/vehicle, four tactical and two withdrawal cases. The client completed
+with zero client findings. These results contradict broad behavioural acceptance; client success
+does not establish server-side AI behaviour. Some compound failures include unmet stimulus or
+contact prerequisites and must be traced from those prerequisites before changing a controller.
+
+The next staged candidate is clean commit `99cd423`, package fingerprint
+`34169aa437f716a580ec13f0812472a355f01a194a547bbac6cbe1fa38217050`.
+It is staged for `dangerparity` at 3840×2160 with CBA and the optional curator integration.
+It has not run. The full static build passed 504 tests, SQF/config checks, settings parity,
+performance-pattern checks, FSM validation and eight-PBO packaging. Frame-time overhead,
+physical behaviour, JIP and headless acceptance remain unproven by these gates.
+
+Changes awaiting that physical batch:
+
+- Armour overmatch, exposed elevated threats, insufficient firepower and shaken morale can start
+  one finite screened reposition. Close protected armour inside 120 metres can invoke withdrawal;
+  normal overmatch retains native combat and reassessment. Same-threat cooldown limits route churn.
+- Aircraft overmatch without live AA can select concealment, while a viable fresh ground fight
+  keeps priority. The new fixture verifies armed aircraft, crew, ammunition and flight velocity.
+- Failed manoeuvre selection has an explicit reposition/native-reassessment handoff rather than
+  an unexplained HOLD. Reposition completion requires physical destination arrival.
+- Vehicle withdrawal, standoff, jink and artillery relocation require destination arrival; lease
+  expiry elsewhere reports INCOMPLETE. This reporting correction does not prove recovery works.
+- Zeus waypoint ownership releases when the authored chain finishes instead of retaining a
+  120-second grace period. Direct edits retain the configured hold. During a Zeus chain, WAIT's
+  present eligibility gate still yields its whole group controller; native combat remains available.
+  Selective nonmovement WAIT assistance during that chain has not been implemented or accepted.
+- Native danger entry records now precede eligibility rejection. Live-disable audit evidence
+  distinguishes actual reflex delivery from subsequent cleanup, while retaining the combined check.
+
+## Earlier implementation work
+
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
   release helper. Disabling the feature or releasing a group therefore restores a still-owned weak
   stance for each local observer, while Zeus or specialist takeover only discards WAIT's lease and
