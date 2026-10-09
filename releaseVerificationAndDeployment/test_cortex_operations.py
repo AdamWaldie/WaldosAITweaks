@@ -538,7 +538,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_actor doMove _spot',danger_cover)
         self.assertNotIn('while {',danger_cover)
         self.assertNotIn('CortexQueueJob',danger_cover)
-        self.assertIn('count _threat >= 2',danger_cover)
+        self.assertIn('if (count _threat < 2) exitWith',danger_cover)
         self.assertIn('WAIT_Danger_CoverLease',source('cortexReleaseGroup'))
         group_hide=source('dangerGroupHideStep')
         for marker in ['WAIT_Danger_GroupHideLeases','WAIT_Danger_Generation','WAIT_Operation',
