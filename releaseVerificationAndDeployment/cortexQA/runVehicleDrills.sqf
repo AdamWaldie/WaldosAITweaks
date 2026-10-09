@@ -515,6 +515,9 @@ _truck addEventHandler ["GetOut",{
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
     private _records=_state getOrDefault ["dismounted",[]];
     private _issued=_records findIf {(_x select 0) == _unit && {(_x select 1) == _vehicle}} >= 0;
+    if (!isNull _unit && {alive _unit} && {_role == "cargo" || {_role == "turret"}}) then {
+        _unit setVariable ["WAIT_CortexQA_PhysicalExit",[_vehicle,abs speed _vehicle,_issued,serverTime]];
+    };
     diag_log format ["WAIT CORTEX QA PASSENGER EXIT|unit=%1 role=%2 turret=%3 group=%4 phase=%5 cortexIssued=%6 dismountEnabled=%7 speed=%8 command=%9 assigned=%10",
         netId _unit,_role,_turret,_group,_state getOrDefault ["phase",""],_issued,
         [_group,"WAIT_AIPass_VehicleDismount_Enable",true] call WAIT_fnc_CortexFeatureEnabled,
@@ -598,7 +601,12 @@ private _dismounted=[{
     // Require all living passengers physically on foot, rather than still inside the carrier.
     _passengers findIf {!alive _x || {vehicle _x != _x}} < 0
 },35] call _wait;
-["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,format ["peakSpeed=%1 stationaryRequested=%2",_peakExitSpeed,_stationary]] call _check;
+private _exitEvidence=_passengers apply {_x getVariable ["WAIT_CortexQA_PhysicalExit",[]]};
+_safeStopObserved=_exitEvidence isNotEqualTo [] && {_exitEvidence findIf {
+    count _x != 4 || {(_x select 0) != _truck} || {(_x select 1) >= 1}
+} < 0};
+["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,
+    format ["observedVehiclePeak=%1 stationaryRequested=%2 physicalExits=%3",_peakExitSpeed,_stationary,_exitEvidence]] call _check;
 if (_stationary) then {["DISMOUNT-fixture-stationary-held",_peakExitSpeed < 1,format ["peakSpeed=%1; movement invalidates the stationary comparison",_peakExitSpeed]] call _check};
 ["DISMOUNT-contact-physical-exit",_contactSeen && {_enabledStartedMounted} && {_dismounted},format ["startedMounted=%1 endedDismounted=%2",_enabledStartedMounted,_dismounted]] call _check;
 private _recorded=([_passengerGroup] call WAIT_fnc_CortexGroupState) getOrDefault ["dismounted",[]];

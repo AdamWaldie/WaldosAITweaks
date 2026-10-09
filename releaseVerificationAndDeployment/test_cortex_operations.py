@@ -6142,6 +6142,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_driverDetected && {_enabledStartedMounted} && {_dismounted} && {_ownedExit}',text)
         self.assertNotIn('_crewSees && {!_separate || {_passengersSee}}',text)
         self.assertIn('_crewSees},30] call _wait;',text)
+        self.assertIn('WAIT_CortexQA_PhysicalExit',text)
+        self.assertIn('[_vehicle,abs speed _vehicle,_issued,serverTime]',text)
+        self.assertIn('(_x select 1) >= 1',text)
         passenger_setup=text[text.index('[["WAIT_AIPass_Enable",!_nativeBaseline]'):text.index('private _truck=createVehicle',text.index('[["WAIT_AIPass_Enable",!_nativeBaseline]'))]
         self.assertIn('["WAIT_AIPass_VehicleRemount_Enable",true]',passenger_setup)
         self.assertIn('DISMOUNT-contact-physical-exit',text)
