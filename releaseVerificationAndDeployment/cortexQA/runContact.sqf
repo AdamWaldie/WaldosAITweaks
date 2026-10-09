@@ -104,15 +104,26 @@ private _killWithRealProjectile={
     private _weaponState=weaponState _source;
     _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
     private _deadline=diag_tickTime+2;
+    private _nextRetry=diag_tickTime+0.5;
+    private _attempts=1;
     waitUntil {
         sleep 0.02;
+        // A selected muzzle can precede the native firing animation's readiness. Retry only
+        // this excluded fixture, at most four attempts, and stop once an actual shot exists.
+        if (isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull])
+            && {_attempts < 4} && {diag_tickTime >= _nextRetry}) then {
+            private _retryState=weaponState _source;
+            _source forceWeaponFire [_retryState param [1,_rifle],_retryState param [2,"Single"]];
+            _attempts=_attempts+1;
+            _nextRetry=diag_tickTime+0.5;
+        };
         !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
     };
     private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
     if (isNull _projectile) exitWith {
-        diag_log format ["WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile; local=%1 simulation=%2 currentWeapon=%3 before=%4 after=%5 modes=%6 behaviour=%7 combatMode=%8",
+        diag_log format ["WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile; local=%1 simulation=%2 currentWeapon=%3 before=%4 after=%5 modes=%6 behaviour=%7 combatMode=%8 attempts=%9 canFire=%10 fireFeature=%11 animation=%12",
             local _source,simulationEnabled _source,currentWeapon _source,_weaponState,weaponState _source,
-            getArray (configFile >> "CfgWeapons" >> _rifle >> "modes"),behaviour _source,combatMode _sourceGroup];
+            getArray (configFile >> "CfgWeapons" >> _rifle >> "modes"),behaviour _source,combatMode _sourceGroup,_attempts,canFire _source,_source checkAIFeature "FIREWEAPON",animationState _source];
         deleteVehicle _source;
         deleteGroup _sourceGroup;
         objNull

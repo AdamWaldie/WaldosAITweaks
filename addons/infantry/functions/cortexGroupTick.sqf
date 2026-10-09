@@ -1120,7 +1120,20 @@ switch (_state get "phase") do {
         private _furthest = 0;
         {_furthest = _furthest max (_x distance2D _leader)} forEach _members;
         private _closed = _reserved isEqualTo [] && {_gathered == count _members};
-        private _expired = _now - (_state get "phaseStart") > (["WAIT_AIPass_PostContact_RegroupSeconds", 30] call _get);
+        private _regroupBudget=["WAIT_AIPass_PostContact_RegroupSeconds",30] call _get;
+        private _elapsed=_now-(_state get "phaseStart");
+        // Slow native travel is not a stall. Give recent measured progress a bounded grace,
+        // preserving the committed destination and the original timeout for stopped actors.
+        private _progressing=_eligible findIf {
+            private _key=netId _x;
+            if (_key == "") then {_key=str _x};
+            private _record=_routes getOrDefault [_key,[]];
+            count _record == 4 && {_now-(_record select 2) <= 6}
+                && {abs (speed _x) > 0.5}
+                && {((expectedDestination _x) select 0) distance2D (_record select 0) <= 1}
+        } >= 0;
+        private _expired=_elapsed > _regroupBudget
+            && {!_progressing || {_elapsed > (_regroupBudget+(_regroupBudget min 30))}};
         private _status = if (_closed) then {"COHESIVE"} else {["CONSOLIDATING", "INCOMPLETE"] select _expired};
         private _snapshot = [_status, _gathered, count _members, round _furthest];
         if (_snapshot isNotEqualTo (_group getVariable ["WAIT_Cortex_Consolidation", []])) then {
