@@ -412,3 +412,9 @@ direct takeover, creates the ordinary replacement waypoint, then snapshots its e
 position through the production waypoint handover. It asserts that snapshot before judging
 travel. Earlier replacement/resurrection failures remain recorded but do not isolate a production
 curator-event defect. Retest is queued while game audits are paused.
+
+The gunner recovery fixture used a platform which supplied no dedicated commander; the live
+failure payload recorded commander null while the driver remained in its original seat. It now
+uses the three-seat tracked APC and explicitly asserts distinct driver/gunner/commander roles.
+The earlier prerequisite-dependent driver assertion cannot establish a driver reassignment bug.
+Real commander-to-gunner recovery remains unproven until the corrected physical case runs.

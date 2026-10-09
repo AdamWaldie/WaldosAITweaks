@@ -326,7 +326,7 @@ deleteGroup _armedStaticGroup;
     ["WAIT_AIPass_VehicleRemount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false],
     ["WAIT_AIPass_VehicleGunnery_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
-private _contactVehicle=createVehicle ["O_APC_Wheeled_02_rcws_v2_F",[1650,1050,0],[],0,"NONE"];
+private _contactVehicle=createVehicle ["O_APC_Tracked_02_cannon_F",[1650,1050,0],[],0,"NONE"];
 createVehicleCrew _contactVehicle;
 _contactVehicle allowDamage false;
 _contactVehicle setDir 0;
@@ -448,6 +448,9 @@ private _recoveryCommander=commander _contactVehicle;
 private _recoveryPrerequisite=!isNull _recoveryDriver && {!isNull _lostGunner}
     && {!isNull _recoveryCommander} && {_recoveryDriver != _recoveryCommander}
     && {_lostGunner != _recoveryCommander};
+["DANGER-VEHICLE-recovery-crew-prerequisite",_recoveryPrerequisite,
+    str [typeOf _contactVehicle,_recoveryDriver,_lostGunner,_recoveryCommander,
+        fullCrew [_contactVehicle,"",false]]] call _check;
 // Retire the first contact and let the real casualty response finish before presenting the fresh
 // target. Otherwise the deliberately stronger casualty lease can consume a simultaneous DETECTED
 // record without replacing its action, which would test priority coalescing rather than crew recovery.

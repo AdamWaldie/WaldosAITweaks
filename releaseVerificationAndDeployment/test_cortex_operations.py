@@ -5988,7 +5988,7 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(text.count('call _spawnRealGrenade'),6)
         self.assertNotIn('attackTarget',text)
         self.assertIn('abs speed _dangerTruck > 5',text)
-        self.assertIn('O_APC_Wheeled_02_rcws_v2_F',text)
+        self.assertIn('O_APC_Tracked_02_cannon_F',text)
         self.assertIn('effectiveCommander _contactVehicle',text)
         self.assertIn('count _actors == 1',text)
         self.assertIn('WAIT_Danger_VehicleReaction',text)
@@ -6461,6 +6461,12 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"INSUFFICIENT_FIREPOWER"'))
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
+
+    def test_gunner_recovery_fixture_requires_a_dedicated_commander(self):
+        text=(ROOT / 'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()
+        self.assertIn('private _contactVehicle=createVehicle ["O_APC_Tracked_02_cannon_F"',text)
+        self.assertIn('DANGER-VEHICLE-recovery-crew-prerequisite',text)
+        self.assertIn('_lostGunner != _recoveryCommander',text)
 
     def test_withdrawal_audit_snapshots_the_existing_replacement_waypoint(self):
         text=(ROOT / 'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()
