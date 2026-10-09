@@ -418,3 +418,9 @@ failure payload recorded commander null while the driver remained in its origina
 uses the three-seat tracked APC and explicitly asserts distinct driver/gunner/commander roles.
 The earlier prerequisite-dependent driver assertion cannot establish a driver reassignment bug.
 Real commander-to-gunner recovery remains unproven until the corrected physical case runs.
+
+Cover candidate geometry now intersects the threat-away ray with rotated object bounds rather
+than using a capped circular half-diagonal. Candidates must remain within the requested search
+radius and still pass existing slope, occupancy, clearance and ballistic screening checks.
+This repairs a geometric rejection risk for rectangular/long objects; physical cover acceptance
+across terrain and building models remains pending.

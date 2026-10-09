@@ -6462,6 +6462,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cover_candidate_uses_rotated_bounds_and_stays_in_search_radius(self):
+        text=source('cortexFindCover')
+        self.assertIn('_object worldToModel _threat',text)
+        self.assertIn('_object modelToWorld',text)
+        self.assertIn('_edge min ((_half select _axis)/_component)',text)
+        self.assertIn('_candidate distance2D _position <= _radius',text)
+        self.assertNotIn('min 8) + 0.8',text)
+
     def test_gunner_recovery_fixture_requires_a_dedicated_commander(self):
         text=(ROOT / 'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()
         self.assertIn('private _contactVehicle=createVehicle ["O_APC_Tracked_02_cannon_F"',text)
