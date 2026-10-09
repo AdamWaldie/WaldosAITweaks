@@ -90,7 +90,16 @@ private _killWithRealProjectile={
     private _rifle=primaryWeapon _source;
     _source selectWeapon _rifle;
     _source setAmmo [_rifle,30];
-    sleep 0.25;
+    // Selection is asynchronous on a newly spawned actor. A fixed quarter-second delay could
+    // capture an empty muzzle/mode and never fire, falsely failing every later casualty check.
+    private _readyDeadline=diag_tickTime+5;
+    waitUntil {
+        sleep 0.05;
+        private _readyState=weaponState _source;
+        (currentWeapon _source == _rifle && {(_readyState param [1,""]) != ""}
+            && {(_readyState param [2,""]) != ""} && {(_readyState param [4,0]) > 0})
+            || {diag_tickTime >= _readyDeadline}
+    };
     private _weaponState=weaponState _source;
     _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
     private _deadline=diag_tickTime+2;
