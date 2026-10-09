@@ -929,11 +929,15 @@ private _orderedSequence=(["SECURITY","SEARCH","REGROUP","CALM"] findIf {!(_x in
 ["TRANS-contact-postcontact-sequence",_contactBeforeRemoval && {_orderedSequence} && {_calm},str _sequence] call _check;
 private _phaseHistory=_group getVariable ["WAIT_Cortex_PhaseTransitions",[]];
 private _publishedPhases=_phaseHistory apply {_x param [2,""]};
-private _publishedOrder=("SECURITY" in _publishedPhases) && {"SEARCH" in _publishedPhases}
-    && {"REGROUP" in _publishedPhases} && {"CALM" in _publishedPhases}
-    && {(_publishedPhases find "SECURITY") < (_publishedPhases find "SEARCH")}
-    && {(_publishedPhases find "SEARCH") < (_publishedPhases find "REGROUP")}
-    && {(_publishedPhases find "REGROUP") < (_publishedPhases find "CALM")};
+// The ledger normally contains its initial CALM entry and may contain an interrupted first search.
+// Compare the first valid ordered subsequence instead of comparing every phase with the earliest
+// CALM in history, which incorrectly fails a complete SECURITY -> SEARCH -> REGROUP -> CALM cycle.
+private _publishedSecurity=_publishedPhases find "SECURITY";
+private _publishedSearch=_publishedPhases findIf {_forEachIndex > _publishedSecurity && {_x == "SEARCH"}};
+private _publishedRegroup=_publishedPhases findIf {_forEachIndex > _publishedSearch && {_x == "REGROUP"}};
+private _publishedCalm=_publishedPhases findIf {_forEachIndex > _publishedRegroup && {_x == "CALM"}};
+private _publishedOrder=_publishedSecurity >= 0 && {_publishedSearch > _publishedSecurity}
+    && {_publishedRegroup > _publishedSearch} && {_publishedCalm > _publishedRegroup};
 private _latestPhase=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
 ["TRANS-published-phase-ledger",_calm && {_publishedOrder} && {count _phaseHistory <= 32}
     && {(_latestPhase param [2,""]) == "CALM"},str _phaseHistory] call _check;

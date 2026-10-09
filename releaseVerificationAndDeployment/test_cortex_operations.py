@@ -6098,6 +6098,8 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_state set ["phase"',text)
         self.assertIn('TRANS-published-phase-ledger',text)
         self.assertIn('WAIT_Cortex_PhaseTransitions',text)
+        self.assertIn('private _publishedSecurity=_publishedPhases find "SECURITY"',text)
+        self.assertIn('_forEachIndex > _publishedRegroup && {_x == "CALM"}',text)
         self.assertIn('count _phaseHistory <= 32',text)
         self.assertNotIn('call WAIT_fnc_CortexRestoreCalm',text)
 
