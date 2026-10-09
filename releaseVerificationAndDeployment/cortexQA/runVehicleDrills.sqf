@@ -194,7 +194,12 @@ private _jinkMoved=[{
     _jinkVehicle distance2D _jinkOrigin >= 20
 },35] call _wait;
 private _jinkCrewRetained=_jinkCrew findIf {!alive _x || {vehicle _x != _jinkVehicle}} < 0;
-["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],(_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleDangerJink",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["dangerDismount",[]],
+    _jinkGroup getVariable ["WAIT_Danger_VehicleContext",[]],_jinkGroup getVariable ["WAIT_Operation",createHashMap],
+    [_jinkGroup] call WAIT_fnc_CortexExternalTakeover,speed _jinkVehicle]] call _check;
 ["DANGER-VEHICLE-jink-physical-travel",_jinkOwned && {_jinkMoved},str [_jinkOrigin,getPosATL _jinkVehicle,_jinkVehicle distance2D _jinkOrigin]] call _check;
 ["DANGER-VEHICLE-jink-crew-retained",_jinkCrewRetained,str (_jinkCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;
 deleteVehicle _jinkBlast;
