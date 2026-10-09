@@ -42,16 +42,22 @@ if (_regroup isNotEqualTo []) exitWith {
         private _actorMove = _unit getVariable ["WAIT_Cortex_ActorMove",[]];
         private _ownsEvasion = count _actorMove == 3 && {(_actorMove select 0) == "GRENADE_EVASION"}
             && {(_actorMove select 1) distance2D _spot <= 1};
-        if (_ownsEvasion && {local _unit} && {group _unit == _group} && {vehicle _unit == _unit}
-            && {[_unit] call WAIT_fnc_CortexCombatEffective}
-            && {_unit checkAIFeature "PATH"}
-            && {[_group] call WAIT_fnc_CortexIsEligible}
-            && {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isEqualTo _hold}
-            && {((expectedDestination _unit) select 0) distance2D _spot <= 1}) then {
-            private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
-            if (!(_unit in (_drill getOrDefault ["units",[]])) && {alive leader _group}) then {
-                _unit doFollow (leader _group);
+        if (_ownsEvasion && {local _unit}) then {
+            private _stillOurs=group _unit == _group && {vehicle _unit == _unit}
+                && {[_unit] call WAIT_fnc_CortexCombatEffective}
+                && {_unit checkAIFeature "PATH"}
+                && {[_group] call WAIT_fnc_CortexIsEligible}
+                && {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isEqualTo _hold}
+                && {((expectedDestination _unit) select 0) distance2D _spot <= 1};
+            if (_stillOurs) then {
+                private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+                if (!(_unit in (_drill getOrDefault ["units",[]])) && {alive leader _group}) then {
+                    _unit doFollow (leader _group);
+                };
             };
+            // The six-second marker is WAIT bookkeeping, not engine ownership. Clear it even when
+            // native AI or Zeus changed the destination; only the exact-destination branch above
+            // may issue a follow command over the expiring evasion.
             _unit setVariable ["WAIT_Cortex_ActorMove",nil];
         };
     } forEach _regroup;

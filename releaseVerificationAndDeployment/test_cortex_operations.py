@@ -3494,9 +3494,10 @@ class CortexOperations(unittest.TestCase):
     def test_grenade_evasion_regroup_does_not_overwrite_new_actions(self):
         text=source('cortexGrenadeCheck')
         callback=text.split('params ["_unit","_group","_spot","_hold"];')[1].split('private _grenade =',1)[0]
-        for guard in ['GRENADE_EVASION','group _unit != _group','vehicle _unit != _unit','WAIT_fnc_CortexCombatEffective','WAIT_AIPass_ZeusHold','expectedDestination _unit','_unit in (_drill']:
-            normalized=callback.replace('group _unit == _group','group _unit != _group').replace('vehicle _unit == _unit','vehicle _unit != _unit')
-            self.assertLess(normalized.index(guard),normalized.index('doFollow'))
+        for guard in ['GRENADE_EVASION','group _unit == _group','vehicle _unit == _unit','WAIT_fnc_CortexCombatEffective','WAIT_AIPass_ZeusHold','expectedDestination _unit','_unit in (_drill']:
+            self.assertLess(callback.index(guard),callback.index('doFollow'))
+        self.assertLess(callback.index('doFollow'),callback.index('setVariable ["WAIT_Cortex_ActorMove",nil]'))
+        self.assertIn('if (_ownsEvasion && {local _unit}) then {',callback)
         self.assertIn('setVariable ["WAIT_Cortex_ActorMove",["GRENADE_EVASION"',text)
         self.assertIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
         self.assertIn('setVariable ["WAIT_Cortex_ActorMove",nil]',callback)
