@@ -548,3 +548,8 @@ Queued an independent active cover handover fixture: a genuine production lease 
 before an ordinary replacement doMove, then exact lease retirement and physical replacement
 arrival are measured separately. No cover record or operation is injected. Missing cover
 prerequisites fail the case. This supplements post-release movement and remains unrun.
+
+Passenger stop acquisition and release now publish the saved/owned forced-speed pair. Previously
+the old owner alone knew the pre-stop speed, so a new owner could retain a zero cap after request
+expiry. Commands remain vehicle-owner local and restoration still requires exact current-speed
+ownership. Actual stop/boarding HC migration remains queued for physical acceptance.

@@ -244,7 +244,7 @@ private _dismountAtThreat = {
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
         if (_commandsVehicle && {local _vehicle}) then {
             if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
-                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0]];
+                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0],true];
             };
             if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
         };
@@ -312,7 +312,7 @@ private _dismountAtThreat = {
     if (_valid) then {
         if (_saved isEqualTo []) then {
             _saved=[getForcedSpeed _vehicle,0];
-            _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved];
+            _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved,true];
         };
         if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
     } else {
@@ -321,7 +321,7 @@ private _dismountAtThreat = {
             && {_ownedStop >= 0} && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
             _vehicle forceSpeed (_saved param [0,-1]);
         };
-        _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil,true];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };
 } forEach _vehicles;

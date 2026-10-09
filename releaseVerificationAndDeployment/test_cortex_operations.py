@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_passenger_stop_saved_speed_survives_owner_migration(self):
+        text=source('cortexVehicles')
+        self.assertIn('setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0],true]',text)
+        self.assertIn('setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved,true]',text)
+        self.assertIn('setVariable ["WAIT_Cortex_DismountForcedSpeed",nil,true]',text)
+        self.assertIn('abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1',text)
+
     def test_group_hide_release_respects_actor_transfer_and_vehicle_domain(self):
         text=source('dangerGroupHideStep')
         release=text.split('private _release={',1)[1].split('if (!_active',1)[0]
