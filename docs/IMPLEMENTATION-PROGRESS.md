@@ -434,3 +434,8 @@ Active danger-cover lease retention now rechecks current generation, live featur
 external ownership, operation ownership, mounted state and native command before returning
 active. A previously valid timer no longer masks a newer order or disabled response. Physical
 interruption and cleanup acceptance remain queued while audits are paused.
+
+Danger-cover cleanup now requires the exact actor-move deadline and current expected destination
+before returning a nonleader to formation. Living local membership, on-foot state and absence of
+player/external/operation ownership remain required. A replacement native MOVE destination is
+preserved even when the command name matches the old move. Physical new-order retest is pending.

@@ -47,9 +47,13 @@ if (count _lease >= 4) then {
         private _actorMove=_leasedActor getVariable ["WAIT_Cortex_ActorMove",[]];
         if (local _leasedActor && {count _actorMove == 3}
             && {(_actorMove select 0) == "DANGER_COVER"}
-            && {(_actorMove select 1) distance2D _leasedSpot <= 1}) then {
+            && {(_actorMove select 1) distance2D _leasedSpot <= 1}
+            && {(_actorMove select 2) == _expires}) then {
             _leasedActor setVariable ["WAIT_Cortex_ActorMove",nil];
-            if (_leasedActor != leader _group && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
+            if (alive _leasedActor && {!isPlayer _leasedActor} && {group _leasedActor == _group}
+                && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
+                && {((expectedDestination _leasedActor) select 0) distance2D _leasedSpot <= 1}
+                && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
                 && {!([_group] call WAIT_fnc_CortexZeusHeld)}
                 && {currentCommand _leasedActor in ["","MOVE"]}) then {

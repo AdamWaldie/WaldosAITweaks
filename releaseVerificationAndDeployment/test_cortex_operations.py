@@ -6462,6 +6462,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cover_cleanup_preserves_replaced_native_destination(self):
+        text=source('dangerCoverStep')
+        cleanup=text.split('if (count _lease >= 4) then {',1)[1].split('_group setVariable ["WAIT_Danger_CoverLease",nil];',1)[0]
+        self.assertIn('(_actorMove select 2) == _expires',cleanup)
+        self.assertIn('((expectedDestination _leasedActor) select 0) distance2D _leasedSpot <= 1',cleanup)
+        self.assertIn('group _leasedActor == _group',cleanup)
+        self.assertLess(cleanup.index('expectedDestination'),cleanup.index('doFollow'))
+
     def test_cover_retention_rechecks_live_authority_before_returning_active(self):
         text=source('dangerCoverStep')
         retention=text.split('private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];',2)[-1].split('exitWith {true};',1)[0]
