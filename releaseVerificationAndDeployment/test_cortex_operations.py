@@ -6462,6 +6462,12 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cover_arrival_does_not_force_return_into_exposure(self):
+        text=source('dangerCoverStep')
+        cleanup=text.split('if (count _lease >= 4) then {',1)[1].split('_group setVariable ["WAIT_Danger_CoverLease",nil];',1)[0]
+        self.assertIn('_leasedActor distance2D _leasedSpot > 2',cleanup)
+        self.assertLess(cleanup.index('_leasedActor distance2D _leasedSpot > 2'),cleanup.index('doFollow'))
+
     def test_remount_progress_removes_completed_passengers_without_extending_deadline(self):
         text=source('cortexGroupTick')
         self.assertIn('if (_pending isNotEqualTo _passengers)',text)

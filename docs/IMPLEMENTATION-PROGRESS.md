@@ -471,3 +471,9 @@ Queued additive twelve-passenger separate-squad cases for unrestricted and stati
 with an explicit cargo-capacity prerequisite and distinct LARGE case IDs. Initial fixture seating
 is setup only; every judged exit/remount still uses the real production path and physical seat
 occupancy. Existing two-passenger/native/replacement comparisons are retained.
+
+Successful danger-cover arrival no longer issues a return-to-leader order during lease expiry.
+The actor retires its cover reservation at the useful physical position for native combat or
+later assessment. Only a failed still-owned approach can request guarded formation recovery.
+This removes an explicit backtracking command; native formation behaviour and physical outcomes
+still require retest. No persistent hold or movement suppression is added.

@@ -52,6 +52,9 @@ if (count _lease >= 4) then {
             _leasedActor setVariable ["WAIT_Cortex_ActorMove",nil];
             if (alive _leasedActor && {!isPlayer _leasedActor} && {group _leasedActor == _group}
                 && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
+                // Successful arrival is useful cover, not a reason to run back across exposure.
+                // Only a failed owned approach needs this bounded return-to-formation recovery.
+                && {_leasedActor distance2D _leasedSpot > 2}
                 && {((expectedDestination _leasedActor) select 0) distance2D _leasedSpot <= 1}
                 && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
