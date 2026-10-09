@@ -57,12 +57,14 @@ private _toward=_origin getDir _threatPos;
 private _away=_threatPos getDir _origin;
 private _range=switch (_reason) do {
     case "ELEVATED_FIRE_POSITION": {45};
+    case "AIR_OVERMATCH": {50};
     case "INSUFFICIENT_FIREPOWER": {30};
     case "MORALE_SHAKEN": {30};
     default {40};
 };
 private _headings=switch (_reason) do {
     case "ELEVATED_FIRE_POSITION": {[_toward+90,_toward-90,_away+45,_away-45]};
+    case "AIR_OVERMATCH": {[_toward+90,_toward-90,_away+45,_away-45,_away]};
     case "INSUFFICIENT_FIREPOWER": {[_away+45,_away-45,_toward+90,_toward-90]};
     case "MORALE_SHAKEN": {[_toward+90,_toward-90,_away+45,_away-45]};
     default {[_away+35,_away-35,_toward+90,_toward-90,_away]};

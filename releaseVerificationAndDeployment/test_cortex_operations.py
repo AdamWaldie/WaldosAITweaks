@@ -3026,6 +3026,14 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"COVERED_APPROACH"',assessment)
         self.assertIn('"MORALE_NOT_STEADY"',assessment)
         self.assertIn('"MORALE_SHAKEN"',assessment)
+        self.assertIn('"AIR_OVERMATCH"',assessment)
+        self.assertIn('"AA" in ([_x] call WAIT_fnc_CortexCapabilities)',assessment)
+        self.assertIn('_platform isKindOf "Air"',assessment)
+        tactical_qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runTacticalAssessment.sqf').read_text()
+        for marker in ['TACTICAL-air-fixture-ready','TACTICAL-air-real-contact',
+                       'TACTICAL-air-overmatch-reposition','TACTICAL-air-no-WAIT-chase',
+                       'B_Heli_Attack_01_F','setVelocityModelSpace','magazinesAllTurrets']:
+            self.assertIn(marker,tactical_qa)
         self.assertIn('"INSUFFICIENT_FIREPOWER"',assessment)
         self.assertIn('"ELEVATED_FIRE_POSITION"',assessment)
         self.assertIn('"CONCEALED_ELEVATED_APPROACH"',assessment)

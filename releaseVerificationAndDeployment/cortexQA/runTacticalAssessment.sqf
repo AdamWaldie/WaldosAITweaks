@@ -103,6 +103,58 @@ deleteVehicle _armour;
 [_armourGroup] call _deleteGroupActors;
 deleteGroup _armourEnemyGroup;
 
+// A squad without a live AA launcher should seek concealment from a genuinely armed, airborne
+// threat and reassess. The aircraft fixture proves crew, ammunition, flight state and velocity
+// before the tactical result is judged; this is not an unarmed or stationary proxy.
+private _airFixture=[[1700,2300,0],"TACTICAL AIR RESTRAINT",6] call _newGroup;
+_airFixture params ["_airGroup","_airActors"];
+private _aircraft=createVehicle ["B_Heli_Attack_01_F",[1700,3200,180],[],0,"FLY"];
+createVehicleCrew _aircraft;
+private _airEnemyGroup=group effectiveCommander _aircraft;
+_airEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_airEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_aircraft allowDamage false;
+_aircraft setDir 180;
+_aircraft setVelocityModelSpace [0,55,0];
+_aircraft flyInHeight 180;
+{_x allowDamage false; _x setVariable ["acex_headless_blacklist",true,true]} forEach crew _aircraft;
+_aircraft setVariable ["WAIT_CortexQA_Label","LIVE ARMED AIR THREAT",true];
+private _airArmed=(weapons _aircraft) findIf {
+    private _weapon=_x;
+    (magazinesAllTurrets _aircraft) findIf {
+        private _magazine=_x select 0;
+        _magazine in compatibleMagazines _weapon && {(_x select 2) > 0}
+    } >= 0
+} >= 0;
+private _airReady=count crew _aircraft > 0 && {_airArmed} && {isEngineOn _aircraft}
+    && {(getPosATL _aircraft select 2) > 100} && {speed _aircraft > 20};
+["TACTICAL-air-fixture-ready",_airReady,str [typeOf _aircraft,count crew _aircraft,weapons _aircraft,magazinesAllTurrets _aircraft,getPosATL _aircraft,speed _aircraft]] call _check;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",_airActors+[_aircraft],true];
+private _airOrigins=_airActors apply {getPosATL _x};
+["Tactical assessment: air overmatch","Six riflemen without live AA face an armed aircraft already flying inside the tactical envelope. WAIT must seek concealment laterally, retain native awareness and reassess. It must not stand exposed, chase the aircraft or automatically withdraw from the battle.",getPosATL leader _airGroup] call _phase;
+private _airContact=[{
+    private _knowledge=[_airGroup] call WAIT_fnc_CortexKnowledge;
+    ((_knowledge select 0) findIf {vehicle (_x select 0) == _aircraft}) >= 0
+},40] call _wait;
+private _airDecision=[{[_airGroup,"REPOSITION","AIR_OVERMATCH","STARTED"] call _assessmentMatches},30] call _wait;
+private _airProgress=[{
+    private _record=_airGroup getVariable ["WAIT_Cortex_TacticalReposition",[]];
+    count _record >= 6 && {(_record select 0) in ["MOVING","COMPLETE"]}
+        && {leader _airGroup distance2D (_record select 4) >= 15}
+},40] call _wait;
+private _airDrill=((_airGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
+private _airTravel=0;
+{_airTravel=_airTravel max ((_airOrigins select _forEachIndex) distance2D (getPosATL _x))} forEach _airActors;
+["TACTICAL-air-real-contact",_airContact,str ([_airGroup] call WAIT_fnc_CortexKnowledge)] call _check;
+["TACTICAL-air-overmatch-reposition",_airReady && {_airDecision} && {_airProgress} && {count _airDrill == 0},str [_airGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_airGroup getVariable ["WAIT_Cortex_TacticalReposition",[]],_airDrill]] call _check;
+["TACTICAL-air-no-WAIT-chase",_airTravel < 110,format ["maximum travel=%1",_airTravel]] call _check;
+private _airCrew=crew _aircraft;
+{deleteVehicle _x} forEach _airCrew;
+deleteVehicle _aircraft;
+[_airGroup] call WAIT_fnc_CortexReleaseGroup;
+[_airGroup] call _deleteGroupActors;
+deleteGroup _airEnemyGroup;
+
 // The same class of contact must not veto a valid authored forward order. The objective remains
 // authoritative and the live vehicle supplies fire context while the group physically advances.
 private _orderFixture=[[1850,1700,0],"TACTICAL AUTHORED ADVANCE",6] call _newGroup;

@@ -57,6 +57,7 @@ if (count _armedFoot < 2) exitWith {
     _result
 };
 private _capableAT=_foot findIf {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
+private _capableAA=_foot findIf {"AA" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
 private _houses=(getPosATL _leader) getEnvSoundController "houses";
 private _trees=(getPosATL _leader) getEnvSoundController "trees";
 private _forest=(getPosATL _leader) getEnvSoundController "forest";
@@ -64,6 +65,7 @@ private _concealment=(_houses+_trees+(_forest*0.5)) min 1;
 private _closeRange=(missionNamespace getVariable ["WAIT_AIPass_Assault_Range",80]) min 60;
 private _manoeuvre=[];
 private _armourIndex=-1;
+private _airIndex=-1;
 private _elevatedIndex=-1;
 private _fortifiedIndex=-1;
 {
@@ -75,6 +77,8 @@ private _fortifiedIndex=-1;
         private _platform=vehicle _target;
         if (_armourIndex < 0 && {_distance <= 450}
             && {_platform isKindOf "Tank" || {_platform isKindOf "Wheeled_APC_F"}}) then {_armourIndex=_forEachIndex};
+        if (_airIndex < 0 && {_distance <= 1200} && {_platform isKindOf "Air"}
+            && {isEngineOn _platform || {speed _platform > 5}}) then {_airIndex=_forEachIndex};
         if (_target isKindOf "CAManBase" && {isNull objectParent _target}
             || {_platform isKindOf "StaticWeapon"}) then {
             _manoeuvre pushBack _forEachIndex;
@@ -98,6 +102,10 @@ private _closePosition=_manoeuvre findIf {
         && {(_record param [2,1e9,[0]]) <= 10}
         && {(_record param [3,1e9,[0]]) >= 12}
         && {(_record param [3,1e9,[0]]) <= _closeRange}
+};
+private _freshPosition=_manoeuvre findIf {
+    private _record=_enemies select _x;
+    (_record param [3,0,[0]]) >= 60 && {(_record param [2,1e9,[0]]) <= 10}
 };
 if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
     _selected=_manoeuvre select _closePosition;
@@ -125,10 +133,12 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
             _reason="ARMOUR_OVERMATCH";
             _candidates=["REPOSITION"];
         } else {
-            private _freshPosition=_manoeuvre findIf {
-                private _record=_enemies select _x;
-                (_record param [3,0,[0]]) >= 60 && {(_record param [2,1e9,[0]]) <= 10}
-            };
+            if (_airIndex >= 0 && {!_capableAA} && {_freshPosition < 0}) then {
+                _selected=_airIndex;
+                _intent="REPOSITION";
+                _reason="AIR_OVERMATCH";
+                _candidates=["REPOSITION"];
+            } else {
             if (_freshPosition >= 0) then {_selected=_manoeuvre select _freshPosition};
             if (_elevatedIndex >= 0) then {
                 _selected=_elevatedIndex;
@@ -175,6 +185,7 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
                     };
                 };
             };
+            };
         };
     };
 };
@@ -182,5 +193,5 @@ _result set ["intent",_intent];
 _result set ["reason",_reason];
 _result set ["targetIndex",_selected];
 _result set ["candidates",_candidates];
-_result set ["evidence",[count _foot,count _armedFoot,_capableAT,_concealment,_armourIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
+_result set ["evidence",[count _foot,count _armedFoot,_capableAT,_capableAA,_concealment,_armourIndex,_airIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
 _result
