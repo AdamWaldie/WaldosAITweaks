@@ -4,8 +4,9 @@
  * Marks an AI group as under Zeus control so the Smart AI Pass steps back from it.
  *
  * Called on the curator's own machine by the handlers WAIT_fnc_CortexZeusWatchLocal installs. Any
- * control interaction holds it for WAIT_AIPass_ZeusHoldSeconds (default 120): opening attributes,
- * moving a unit, or editing its waypoints. Plain selection does not cancel behaviour, allowing
+ * direct control interaction holds it for WAIT_AIPass_ZeusHoldSeconds (default 120): opening
+ * attributes or moving a unit. A waypoint owns WAIT movement and tactical planning only until the
+ * authored waypoint chain finishes. Plain selection does not cancel behaviour, allowing
  * curators to inspect active squads. Dependent jobs stop issuing commands once the hold reaches
  * their owner. The marker immediately asks the current group owner to release Cortex state, avoiding
  * a scheduler-delay race with the curator's replacement order. A waypoint event snapshots the
@@ -47,6 +48,7 @@ if (!_waypoints && {time - (_group getVariable ["WAIT_AIPass_ZeusMarkedAt", -1e6
 _group setVariable ["WAIT_AIPass_ZeusMarkedAt", time];
 private _hold=[random 1e6, missionNamespace getVariable ["WAIT_AIPass_ZeusHoldSeconds", 120]];
 _group setVariable ["WAIT_AIPass_ZeusHold", _hold, true];
+_group setVariable ["WAIT_AIPass_ZeusControlKind",["DIRECT","WAYPOINT"] select _waypoints,true];
 if (_waypoints) then {
     if (_waypointIndex < 0) then {_waypointIndex=currentWaypoint _group};
     private _groupWaypoints=waypoints _group;
@@ -70,6 +72,7 @@ if (_waypoints) then {
     // A later attributes/object edit supersedes any earlier waypoint event. Clearing the snapshot
     // prevents an old route being reused during this newer, non-waypoint Zeus takeover.
     _group setVariable ["WAIT_Cortex_ZeusOrderSnapshot",nil,true];
+    _group setVariable ["WAIT_AIPass_ZeusWaypoints",false,true];
 };
 if (_waypoints && {!(_group getVariable ["WAIT_AIPass_ZeusWaypoints", false])}) then {
     _group setVariable ["WAIT_AIPass_ZeusWaypoints", true, true];

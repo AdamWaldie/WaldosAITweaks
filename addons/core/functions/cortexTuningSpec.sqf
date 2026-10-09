@@ -124,7 +124,7 @@ private _spec = [
     ["WAIT_AIPass_EngageRange", "Engagement range (m)", "Known enemies within this range of a squad leader are acted on.", "SLIDER", [200, 1500, 0], 800, "PROFILE", "NEXT_OPERATION"],
     ["WAIT_AIPass_Flank_MaxRange", "Flank range (m)", "Enemies farther than this are not flanked.", "SLIDER", [100, 800, 0], 400, "MOVEMENT", "NEXT_OPERATION"],
     ["WAIT_AIPass_Morale_RetreatDistance", "Retreat distance (m)", "How far a broken squad falls back.", "SLIDER", [50, 500, 0], 200, "MORALE", "NEXT_OPERATION"],
-    ["WAIT_AIPass_ZeusHoldSeconds", "Zeus hold (s)", "How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it.", "SLIDER", [0, 600, 0], 120, "PROFILE", "NEXT_OPERATION"],
+    ["WAIT_AIPass_ZeusHoldSeconds", "Zeus direct-control hold (s)", "How long WAIT leaves a squad alone after Zeus directly edits it or opens its attributes. Zeus waypoints own movement until their chain finishes and then release immediately. Selecting a squad for inspection does not interrupt it.", "SLIDER", [0, 600, 0], 120, "PROFILE", "NEXT_OPERATION"],
     // Support
     ["WAIT_AIPass_ContactReports_Radius", "Radio report range (m)", "How far squads pass sightings by radio.", "SLIDER", [0, 1500, 0], 500, "COMMS", "NEXT_OPERATION"],
     ["WAIT_Cortex_CombinedArms_AirRange", "Aircraft support range (m)", "How far a radio-linked aircraft may accept a fresh combined-arms opportunity. This is independent of the shorter squad report radius.", "SLIDER", [500, 10000, 0], 4000, "COORD", "NEXT_OPERATION"],

@@ -23,7 +23,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Cohesion` | Cohesion | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How much punishment squads take before morale breaks. Above 1 they hold longer, below 1 they break sooner. |
 | `WAIT_AIPass_ReactionSpeed` | Reaction speed | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How often squads re-assess. Above 1 they react faster and use more server time; below 1 slower. |
 | `WAIT_AIPass_EngageRange` | Engagement range (m) | SLIDER | 800 | [200, 1500, 0] | NEXT_OPERATION | Known enemies within this range of a squad leader are acted on. |
-| `WAIT_AIPass_ZeusHoldSeconds` | Zeus hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it. |
+| `WAIT_AIPass_ZeusHoldSeconds` | Zeus direct-control hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long WAIT leaves a squad alone after Zeus directly edits it or opens its attributes. Zeus waypoints own movement until their chain finishes and then release immediately. Selecting a squad for inspection does not interrupt it. |
 
 ### 03 Performance
 
