@@ -29,6 +29,17 @@ private _retire={
     if (count _record >= 10) then {
         private _gunner=_record param [2,objNull,[objNull]];
         private _assistant=_record param [3,objNull,[objNull]];
+        private _destination=_record param [5,[],[[]]];
+        private _actors=[_gunner,_assistant] apply {
+            if (isNull _x) then {[]} else {
+                [netId _x,getPosATL _x,currentCommand _x,
+                    if (count _destination >= 2) then {_x distance2D _destination} else {-1},
+                    backpack _x,vehicle _x]
+            }
+        };
+        _group setVariable ["WAIT_Danger_StaticDeployEnd",[serverTime,clientOwner,
+            _group getVariable ["WAIT_AIPass_Epoch",0],_record select 0,_record select 1,
+            _record select 6,+_destination,_actors,_commandFree]];
         private _handler=_record param [10,-1,[0]];
         if (!isNull _gunner && {local _gunner}) then {
             if (_handler >= 0) then {_gunner removeEventHandler ["WeaponDisassembled",_handler]};

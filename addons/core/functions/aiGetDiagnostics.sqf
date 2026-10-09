@@ -576,6 +576,14 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _transitionHealthy=serverTime < _transitionDeadline && {_transitionGateOpen} && {_transitionCurrent == _transitionPhase};
         _checks pushBack ["ai",format ["cortex-transition-ownership-%1",netId _group],["ERROR","LOADED"] select _transitionHealthy,format ["group=%1 intentPhase=%2 currentPhase=%3 source=%4 gateOpen=%5 ageSeconds=%6 secondsRemaining=%7 teamAlive=%8 target=%9. A durable transition exists only to resume INVESTIGATE or SEARCH after locality migration; it must not survive its gate, deadline or phase.",groupId _group,_transitionPhase,_transitionCurrent,_transitionSource,_transitionGateOpen,(serverTime-_transitionStarted) max 0,(_transitionDeadline-serverTime) max 0,{alive _x} count _transitionTeam,_transitionTarget]];
     };
+    private _staticEnd=_group getVariable ["WAIT_Danger_StaticDeployEnd",[]];
+    if (count _staticEnd == 9) then {
+        _checks pushBack ["ai",format ["danger-static-deploy-end-%1",netId _group],"LOADED",
+            format ["group=%1 endAgeSeconds=%2 observedOwner=%3 observedEpoch=%4 episode=%5 lastPhase=%6 deadline=%7 destination=%8 actorEvidence=%9 commandFree=%10. Last owner-local retirement only; actor evidence is ID, position, native command, distance, backpack and vehicle. It does not prove assembly, firing or packing.",
+                groupId _group,(serverTime-(_staticEnd select 0)) max 0,_staticEnd select 1,
+                _staticEnd select 2,_staticEnd select 3,_staticEnd select 4,_staticEnd select 5,
+                _staticEnd select 6,_staticEnd select 7,_staticEnd select 8]];
+    };
     private _coverEnd=_group getVariable ["WAIT_Danger_CoverEnd",[]];
     if (count _coverEnd == 9) then {
         _checks pushBack ["ai",format ["danger-cover-end-%1",netId _group],"LOADED",
