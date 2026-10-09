@@ -25,7 +25,10 @@ private _release={
     if (!_external) then {
         {
             _x params ["_unit","_prior","_applied"];
-            if (!isNull _unit && {local _unit} && {toUpperANSI (unitPos _unit) == _applied}) then {
+            if (!isNull _unit && {alive _unit} && {local _unit} && {!isPlayer _unit}
+                && {group _unit == _group} && {isNull objectParent _unit}
+                && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+                && {toUpperANSI (unitPos _unit) == _applied}) then {
                 _unit setUnitPosWeak _prior;
             };
         } forEach _leases;
@@ -54,7 +57,9 @@ if (_leases isNotEqualTo []) exitWith {
     } forEach _leases;
     private _valid=_leases select {
         _x params ["_unit","_prior","_applied","_leaseGeneration"];
-        !isNull _unit && {alive _unit} && {local _unit} && {group _unit == _group}
+        !isNull _unit && {alive _unit} && {local _unit} && {!isPlayer _unit}
+            && {group _unit == _group} && {isNull objectParent _unit}
+            && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
             && {_leaseGeneration == _generation} && {toUpperANSI (unitPos _unit) == _applied}
     };
     if (count _valid != count _leases) then {

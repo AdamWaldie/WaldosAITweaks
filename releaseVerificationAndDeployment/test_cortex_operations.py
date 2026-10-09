@@ -6462,6 +6462,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_group_hide_release_respects_actor_transfer_and_vehicle_domain(self):
+        text=source('dangerGroupHideStep')
+        release=text.split('private _release={',1)[1].split('if (!_active',1)[0]
+        for gate in ['group _unit == _group','isNull objectParent _unit','!isPlayer _unit',
+                     'WAIT_fnc_CompatibilityExternalControl']:
+            self.assertIn(gate,release)
+        self.assertLess(release.index('group _unit == _group'),release.index('setUnitPosWeak'))
+
     def test_cover_retention_requires_exact_actor_marker_and_native_destination(self):
         text=source('dangerCoverStep')
         retention=text.split('private _moveProof=',1)[1].split('exitWith {true};',1)[0]

@@ -533,3 +533,8 @@ Cover lease retention now requires its exact actor marker, deadline and native e
 destination. An unmarked replacement doMove can end the old reservation immediately even
 when its command name remains MOVE. Successful arrival and guarded cleanup retain their prior
 semantics. New-order physical acceptance is still pending.
+
+Group-hide release and retained leases now require the living local nonplayer actor to remain
+in the original group and on foot, with no specialist runtime ownership. Transfers and boarding
+retire the old proof rather than restoring a prior group posture into the new domain. Physical
+transfer/boarding cleanup remains queued.
