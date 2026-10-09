@@ -576,6 +576,14 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _transitionHealthy=serverTime < _transitionDeadline && {_transitionGateOpen} && {_transitionCurrent == _transitionPhase};
         _checks pushBack ["ai",format ["cortex-transition-ownership-%1",netId _group],["ERROR","LOADED"] select _transitionHealthy,format ["group=%1 intentPhase=%2 currentPhase=%3 source=%4 gateOpen=%5 ageSeconds=%6 secondsRemaining=%7 teamAlive=%8 target=%9. A durable transition exists only to resume INVESTIGATE or SEARCH after locality migration; it must not survive its gate, deadline or phase.",groupId _group,_transitionPhase,_transitionCurrent,_transitionSource,_transitionGateOpen,(serverTime-_transitionStarted) max 0,(_transitionDeadline-serverTime) max 0,{alive _x} count _transitionTeam,_transitionTarget]];
     };
+    private _crewDecision=_group getVariable ["WAIT_Danger_CrewRecoveryDecision",[]];
+    if (count _crewDecision == 8) then {
+        _checks pushBack ["ai",format ["danger-crew-recovery-refusal-%1",netId _group],"LOADED",
+            format ["group=%1 ageSeconds=%2 observedOwner=%3 generation=%4 refusal=%5 cause=%6 speed=%7 nativeCommand=%8 nativeKnowledge=%9. Last owner-local refusal; a seat-change request and physical recovery are separate acceptance requirements.",
+                groupId _group,(serverTime-(_crewDecision select 0)) max 0,_crewDecision select 1,
+                _crewDecision select 2,_crewDecision select 3,_crewDecision select 4,
+                _crewDecision select 5,_crewDecision select 6,_crewDecision select 7]];
+    };
     private _staticEnd=_group getVariable ["WAIT_Danger_StaticDeployEnd",[]];
     if (count _staticEnd == 9) then {
         _checks pushBack ["ai",format ["danger-static-deploy-end-%1",netId _group],"LOADED",
