@@ -55,6 +55,7 @@ _group setVariable ["WAIT_Cortex_TacticalAssessment",[
 ],true];
 if (_targetIndex < 0 || {_candidates isEqualTo []}) exitWith {
     private _handoff=switch (_reason) do {
+        case "VEHICLE_DOMAIN": {"VEHICLE_LAYER_HANDOFF"};
         case "MORALE_NOT_STEADY": {"MORALE_HANDOFF"};
         case "NO_MANOEUVRE_TARGET": {"WEAPON_LAYER_HANDOFF"};
         case "NO_VIABLE_CONTACT": {"NATIVE_CONTACT_HANDOFF"};

@@ -25,6 +25,20 @@ if (isNull _group || {!local _group} || {_enemies isEqualTo []}) exitWith {_resu
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (isNull _leader || {!alive _leader}) exitWith {_result};
+// Group manoeuvres issue group destinations. A fully mounted group or operating crew mixed with
+// foot soldiers must retain the vehicle domain; zero infantry rifles is not lost vehicle firepower.
+private _members=units _group;
+private _hasFoot=_members findIf {alive _x && {isNull objectParent _x}} >= 0;
+private _hasCrew=_members findIf {
+    private _platform=objectParent _x;
+    alive _x && {!isNull _platform}
+        && {_x in [driver _platform,gunner _platform,commander _platform]}
+} >= 0;
+if (!_hasFoot || {_hasCrew}) exitWith {
+    _result set ["reason","VEHICLE_DOMAIN"];
+    _result set ["evidence",[_hasFoot,_hasCrew]];
+    _result
+};
 private _moraleState=_state getOrDefault ["moraleState","STEADY"];
 if (_moraleState == "BROKEN") exitWith {
     _result set ["reason","MORALE_NOT_STEADY"];

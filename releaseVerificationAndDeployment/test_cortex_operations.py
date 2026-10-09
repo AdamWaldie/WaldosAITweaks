@@ -6453,3 +6453,11 @@ class CortexOperations(unittest.TestCase):
         for intent in ['STATIC_DEPLOY','STATIC_PACK','DANGER_COVER','GRENADE_EVASION']:
             self.assertIn('"'+intent+'"',actor)
         self.assertLess(actor.index('_committedMover=true'),actor.index('if (_mode == "IMMEDIATE")'))
+
+    def test_infantry_assessment_does_not_take_mounted_vehicle_destinations(self):
+        assess=source('cortexTacticalAssess')
+        start=source('cortexTacticalStart')
+        self.assertIn('if (!_hasFoot || {_hasCrew}) exitWith',assess)
+        self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"INSUFFICIENT_FIREPOWER"'))
+        self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
+        self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
