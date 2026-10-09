@@ -926,6 +926,12 @@ private _forcedBoarded=[{
 },35] call _wait;
 private _forcedTransitions=(_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_forcedTransitionCount];
 private _forcedNeverContact=_forcedTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0;
+["DANGER-forced-order-native-command-prerequisite",_forcedReady,
+    str [currentCommand _forcedUnit,assignedVehicle _forcedUnit]] call _check;
+["DANGER-forced-order-danger-handover",_forcedReady && {_forcedNoHandoff} && {_forcedTaskPreserved},
+    str [_forcedReady,_forcedNoHandoff,_forcedTaskPreserved,_forcedTransitions]] call _check;
+["DANGER-forced-order-physical-boarding",_forcedReady && {_forcedBoarded},
+    str [vehicle _forcedUnit,_forcedVehicle,currentCommand _forcedUnit]] call _check;
 ["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedTaskPreserved},
     str [currentCommand _forcedUnit,vehicle _forcedUnit,_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_forcedTransitions]] call _check;
 deleteVehicle _forcedGrenade;
