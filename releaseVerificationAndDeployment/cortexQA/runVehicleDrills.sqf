@@ -484,7 +484,8 @@ deleteGroup _contactCrewGroup;
 _x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false]];
 private _layout = ["shared crew/passenger group","separate passenger squad"] select _separate;
 private _check = {params ["_id","_passed",["_detail",""]]; [(["","REPLACEMENT-"] select _replacementOrder)+(["","STATIONARY-"] select _stationary)+(["","NATIVE-"] select _nativeBaseline)+(["","FRESH-"] select _freshEnabled)+(["","SEPARATE-"] select _separate)+_id,_passed,_detail] call _recordVehicleCheck};
-[createHashMapFromArray [["WAIT_AIPass_Enable",!_nativeBaseline],["WAIT_AIPass_VehicleDismount_Enable",false]]] call WAIT_fnc_CortexTuning;
+[createHashMapFromArray [["WAIT_AIPass_Enable",!_nativeBaseline],["WAIT_AIPass_VehicleDismount_Enable",false],
+    ["WAIT_AIPass_VehicleRemount_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _truck=createVehicle ["O_Truck_03_transport_F",[1900,1100,0],[],0,"NONE"];
 createVehicleCrew _truck;
 // Additive safe-stop comparison; keep the original unrestricted fixtures intact.
