@@ -405,3 +405,10 @@ owner, so these results alone cannot prove an owner boundary was crossed. The ne
 records the source owner, chooses a different available HC and requires a distinct owner for
 resume/physical-continuation acceptance. This retains the observed movement evidence without
 promoting an unproven migration claim.
+
+The withdrawal Zeus fixture marked a waypoint event before adding the replacement waypoint,
+allowing its snapshot to capture the retiring WAIT route. The fixture now releases through a
+direct takeover, creates the ordinary replacement waypoint, then snapshots its exact index and
+position through the production waypoint handover. It asserts that snapshot before judging
+travel. Earlier replacement/resurrection failures remain recorded but do not isolate a production
+curator-event defect. Retest is queued while game audits are paused.

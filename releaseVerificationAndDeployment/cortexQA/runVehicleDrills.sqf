@@ -847,7 +847,9 @@ if (_hcOwners isNotEqualTo []) then {
     ["WITHDRAW-MIGRATION-crew-retained",_migrateCrew findIf {!alive _x || {vehicle _x != _migrateArmour}} < 0,str (_migrateCrew apply {vehicle _x})] call _check;
 
     ["Vehicle withdrawal: Zeus replacement","Zeus now replaces the resumed withdrawal. The APC must release RETREAT, drive to the new marker under the replacement waypoint and remain there without reviving the old withdrawal.",[2420,1100,0]] call _phase;
-    [_migrateGroup,true] call WAIT_fnc_CortexZeusMark;
+    // Direct takeover releases the old operation first. A waypoint event can only snapshot
+    // a waypoint which already exists; marking the old WAIT route is not a replacement order.
+    [_migrateGroup,false] call WAIT_fnc_CortexZeusMark;
     private _released=[{
         (_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CALM"
             && {(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []}
@@ -858,6 +860,11 @@ if (_hcOwners isNotEqualTo []) then {
     _replacementWP setWaypointType "MOVE";
     _replacementWP setWaypointCompletionRadius 8;
     _migrateGroup setCurrentWaypoint _replacementWP;
+    [_migrateGroup,true,_replacementWP select 1] call WAIT_fnc_CortexZeusMark;
+    private _zeusSnapshot=_migrateGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
+    ["WITHDRAW-MIGRATION-zeus-exact-order",count _zeusSnapshot == 7
+        && {(_zeusSnapshot select 1) distance2D _replacement < 1}
+        && {(_zeusSnapshot select 5) == (_replacementWP select 1)},str _zeusSnapshot] call _check;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _migrateCrew;
     private _replacementArrived=[{_migrateArmour distance2D _replacement <= 22},100] call _wait;
     ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},str getPosATL _migrateArmour] call _check;

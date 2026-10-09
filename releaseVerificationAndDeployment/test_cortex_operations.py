@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_withdrawal_audit_snapshots_the_existing_replacement_waypoint(self):
+        text=(ROOT / 'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text()
+        self.assertIn('[_migrateGroup,false] call WAIT_fnc_CortexZeusMark;',text)
+        self.assertLess(text.index('_migrateGroup setCurrentWaypoint _replacementWP;'),
+                        text.index('[_migrateGroup,true,_replacementWP select 1]'))
+        self.assertIn('WITHDRAW-MIGRATION-zeus-exact-order',text)
+
     def test_tracked_reverse_lease_survives_without_a_forward_waypoint(self):
         text=source('cortexVehicles')
         self.assertIn('private _reverseActive=_movementOwner == "VEHICLE_WITHDRAW"',text)
