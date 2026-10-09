@@ -768,6 +768,8 @@ class CortexOperations(unittest.TestCase):
             'nearestObjects [_deployPos,[_expectedClass],8,true]',
             'assignAsGunner _assembled','orderGetIn true',
             'local _assembled','crew _assembled isEqualTo []',
+            'gunner _assembled == _gunner',
+            'count _sector >= 2 && {crew _assembled isEqualTo []}',
             '_assembled setDir (_assembled getDir _sector)',
             '_assistantBag,-1,+_targetPos]',
             'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',

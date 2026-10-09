@@ -132,11 +132,12 @@ if (count _record >= 10) exitWith {
     if (_status == "ASSEMBLING") exitWith {
         private _matches=nearestObjects [_deployPos,[_expectedClass],8,true];
         private _assembled=_matches param [0,objNull,[objNull]];
-        if (!isNull _assembled && {alive _assembled} && {simulationEnabled _assembled} && {local _assembled} && {crew _assembled isEqualTo []}) then {
+        if (!isNull _assembled && {alive _assembled} && {simulationEnabled _assembled} && {local _assembled}
+            && {crew _assembled isEqualTo [] || {gunner _assembled == _gunner && {crew _assembled findIf {_x != _gunner} < 0}}}) then {
             // Orient the newly assembled empty emplacement once, before boarding. Native turret aiming
             // cannot compensate for a base facing outside its traverse arc. Never rotate an occupied weapon.
             private _sector=_record param [11,[],[[]]];
-            if (count _sector >= 2) then {_assembled setDir (_assembled getDir _sector)};
+            if (count _sector >= 2 && {crew _assembled isEqualTo []}) then {_assembled setDir (_assembled getDir _sector)};
             _gunner assignAsGunner _assembled;
             [_gunner] orderGetIn true;
             _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",getPosATL _assembled,time+20]];
