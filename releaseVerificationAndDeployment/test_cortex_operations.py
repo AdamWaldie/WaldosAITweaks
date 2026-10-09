@@ -6469,7 +6469,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!_committedMover',observation)
         self.assertIn('currentCommand _actor == ""',observation)
         self.assertIn('glanceAt',observation)
-        for forbidden in ['doMove','doTarget','doWatch','reveal','setCombatMode']:
+        self.assertNotIn('glanceAt _observed',observation)
+        self.assertIn('glanceAt _position',observation)
+        for forbidden in ['doMove','doTarget','doWatch','_actor reveal','setCombatMode']:
             self.assertNotIn(forbidden,observation.replace('reveals',''))
 
     def test_rejected_vehicle_escape_does_not_consume_withdrawal_or_smoke(self):

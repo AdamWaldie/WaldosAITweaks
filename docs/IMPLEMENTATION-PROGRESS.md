@@ -564,8 +564,11 @@ checks as normal release. A newly boarded or activated specialist actor cannot r
 posture restoration through the separate generation-change branch. Physical combined handover
 remains pending; staged cb648d7 predates this incremental repair.
 
-Idle on-foot body/scream reactions now use a finite native glance toward the supplied object
-or valid observation position. Committed movers and concrete native tasks do not receive it.
+Idle on-foot body/scream reactions now use a finite native glance toward the valid observation position. Committed movers and concrete native tasks do not receive it.
 No target knowledge, fire authority, persistent watch or movement operation is created. This
 adds alert observation depth but does not complete body assessment or danger parity; physical
 observation/interruption acceptance remains pending.
+
+Alert observation uses only the position form of the native glance command. The object form
+fully reveals its target and is therefore excluded from WAIT observation. Native glance timing
+and cleanup are not established by static checks and remain physical acceptance requirements.
