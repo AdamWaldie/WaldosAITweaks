@@ -543,3 +543,8 @@ Added physical cover-destination arrival and subsequent ordinary native move cas
 isolated danger fixture. They require captured production cover geometry and actual arrival,
 not travel alone. The subsequent order checks post-release control; it does not replace the
 separate active-interruption acceptance requirement. Both cases remain unrun.
+
+Queued an independent active cover handover fixture: a genuine production lease is required
+before an ordinary replacement doMove, then exact lease retirement and physical replacement
+arrival are measured separately. No cover record or operation is injected. Missing cover
+prerequisites fail the case. This supplements post-release movement and remains unrun.

@@ -554,6 +554,39 @@ private _coverReplacementArrived=[{_reflexUnit distance2D _coverReplacement <= 3
     str [_coverReplacement,getPosATL _reflexUnit,currentCommand _reflexUnit]] call _check;
 deleteVehicle _grenade;
 
+// Independent active handover: only production-selected cover can establish the prerequisite.
+private _coverInterruptGroup=createGroup [east,true];
+_coverInterruptGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_coverInterruptGroup setVariable ["acex_headless_blacklist",true,true];
+_coverInterruptGroup setCombatMode "BLUE";
+private _coverInterruptUnit=_coverInterruptGroup createUnit ["O_Soldier_F",[2300,1353,0],[],0,"NONE"];
+_coverInterruptUnit allowDamage false;
+_coverInterruptUnit setUnitPos "AUTO";
+_coverInterruptUnit setVariable ["acex_headless_blacklist",true,true];
+_coverInterruptUnit setVariable ["WAIT_CortexQA_Label","ACTIVE COVER HANDOVER",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_coverInterruptUnit],true];
+["Danger cover: active native replacement","A real explosion must first create a production cover move. An ordinary replacement doMove must then retire that lease and reach its own destination without WAIT returning to the old cover route.",getPosATL _coverInterruptUnit] call _phase;
+private _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90]] call _spawnRealGrenade;
+private _coverInterruptStarted=[{
+    private _lease=_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]];
+    count _lease == 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
+},16] call _wait;
+["DANGER-cover-active-replacement-prerequisite",_coverInterruptStarted,
+    str (_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]])] call _check;
+private _coverInterruptDestination=(getPosATL _coverInterruptUnit) getPos [25,0];
+_coverInterruptUnit doMove _coverInterruptDestination;
+private _coverInterruptReleased=[{
+    (_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []
+        && {(_coverInterruptUnit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+},5] call _wait;
+private _coverInterruptArrived=[{_coverInterruptUnit distance2D _coverInterruptDestination <= 3},30] call _wait;
+["DANGER-cover-active-replacement-physical",_coverInterruptStarted && {_coverInterruptReleased} && {_coverInterruptArrived},
+    str [_coverInterruptDestination,getPosATL _coverInterruptUnit,currentCommand _coverInterruptUnit,
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+deleteVehicle _coverInterruptGrenade;
+deleteVehicle _coverInterruptUnit;
+deleteGroup _coverInterruptGroup;
+
 // Prove a multi-member group preserves the native observer through the group-budgeted cover pass.
 // The leader is deliberately too far away and path-disabled to receive or steal the physical move;
 // a real explosion beside the wingman must make that same wingman take the single bounded cover leg.
