@@ -74,7 +74,8 @@ private _killWithRealProjectile={
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
     _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
-    _sourceGroup setCombatMode "BLUE";
+    // Only the excluded stimulus firer may discharge the captured round. Tested groups retain ROE.
+    _sourceGroup setCombatMode "RED";
     private _sourcePosition=(getPosATL _actor) getPos [100,0];
     private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
     _source allowDamage false;
