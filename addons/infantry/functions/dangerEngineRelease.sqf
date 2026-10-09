@@ -20,14 +20,20 @@ _actor setVariable ["WAIT_Danger_EngineResponse",nil];
 private _lease=_actor getVariable ["WAIT_Danger_EngineStanceLease",[]];
 if (count _lease < 3) exitWith {false};
 _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
-if (!local _actor || {!alive _actor} || {isPlayer _actor}) exitWith {false};
+private _evidence={
+    params ["_reason"];
+    _actor setVariable ["WAIT_Danger_EngineReleaseEvidence",[serverTime,_reason,+_lease,unitPos _actor]];
+    false
+};
+if (!local _actor || {!alive _actor} || {isPlayer _actor}) exitWith {["LOST_ACTOR_AUTHORITY"] call _evidence};
 private _group=group _actor;
 if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {false};
+    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {["EXTERNAL_OWNER"] call _evidence};
 
 private _prior=toUpperANSI (_lease param [0,"AUTO",[""]]);
 private _applied=toUpperANSI (_lease param [1,"",[""]]);
-if (_applied == "" || {toUpperANSI (unitPos _actor) != _applied}) exitWith {false};
+if (_applied == "" || {toUpperANSI (unitPos _actor) != _applied}) exitWith {["STANCE_CHANGED"] call _evidence};
 if !(_prior in ["AUTO","UP","MIDDLE","DOWN"]) then {_prior="AUTO"};
 _actor setUnitPosWeak _prior;
+["RESTORED"] call _evidence;
 true

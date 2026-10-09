@@ -518,7 +518,7 @@ private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitio
     _reflexGroup getVariable ["WAIT_Danger_CoverDecision",[]],_reflexGroup getVariable ["WAIT_Danger_CoverBlockedContext",[]]]] call _check;
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
-    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
+    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions,_reflexUnit getVariable ["WAIT_Danger_EngineReleaseEvidence",[]]]] call _check;
 deleteVehicle _grenade;
 
 // Prove a multi-member group preserves the native observer through the group-budgeted cover pass.
