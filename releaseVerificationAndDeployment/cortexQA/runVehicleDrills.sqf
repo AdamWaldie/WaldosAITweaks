@@ -12,6 +12,17 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf";
  */
 params ["_check","_phase","_wait"];
+// Give audit grenades a short physical fall. A projectile created on or just above the terrain may
+// be removed without producing Arma's native explosion-danger event, which invalidates every
+// downstream vehicle assertion while making the controller appear inert.
+private _spawnRealGrenade={
+    params [["_position",[0,0,0],[[]]]];
+    private _spawn=+_position;
+    _spawn set [2,(_spawn param [2,0]) + 2];
+    private _grenade=createVehicle ["GrenadeHand",_spawn,[],0,"CAN_COLLIDE"];
+    _grenade setVelocity [0,0,-4];
+    _grenade
+};
 [createHashMapFromArray [
     ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
@@ -67,7 +78,7 @@ private _dangerReady=[{
 },45] call _wait;
 ["DANGER-VEHICLE-fixture-moving",_dangerReady,str [speed _dangerTruck,getPosATL _dangerTruck]] call _check;
 private _dangerStart=getPosATL _dangerTruck;
-private _dangerProjectile=createVehicle ["GrenadeHand",_dangerStart vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _dangerProjectile=[_dangerStart vectorAdd [6,0,0]] call _spawnRealGrenade;
 private _dangerSubmitted=false;
 private _dangerLease=false;
 private _dangerStopped=false;
@@ -87,7 +98,7 @@ private _dangerOwnedExit=_dangerPassengers findIf {
 } < 0;
 private _dangerDriver=driver _dangerTruck;
 private _dangerAssignedTarget=assignedTarget _dangerDriver;
-private _dangerAttackTarget=attackTarget (_dangerDriver);
+private _dangerAttackTarget=attackTarget _dangerDriver;
 private _dangerNoTarget=isNull _dangerAssignedTarget && {isNull _dangerAttackTarget};
 private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []
     && {(_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) != "RETREAT"};
@@ -127,7 +138,7 @@ private _jinkReady=[{
         && {count _jinkCrew >= 2}
 },30] call _wait;
 private _jinkDisabledOrigin=getPosATL _jinkVehicle;
-private _jinkDisabledBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+private _jinkDisabledBlast=[_jinkVehicle modelToWorld [7,0,0]] call _spawnRealGrenade;
 sleep 6;
 private _jinkState=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
 private _jinkDisabledNoOwner=(_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) isEqualTo []
@@ -136,7 +147,7 @@ private _jinkDisabledNoOwner=(_jinkVehicle getVariable ["WAIT_Danger_VehicleJink
 deleteVehicle _jinkDisabledBlast;
 [createHashMapFromArray [["WAIT_AIPass_VehicleJink_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _jinkOrigin=getPosATL _jinkVehicle;
-private _jinkBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+private _jinkBlast=[_jinkVehicle modelToWorld [7,0,0]] call _spawnRealGrenade;
 private _jinkOwned=[{
     private _state=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
     count (_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) == 4
@@ -244,18 +255,18 @@ private _staticReady=[{
         && {_armedStaticGroup getVariable ["WAIT_AIPass_Managed",false]}
         && {!someAmmo _emptyStatic} && {someAmmo _armedStatic}
 },30] call _wait;
-private _emptyBlast=createVehicle ["GrenadeHand",(getPosATL _emptyStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
-private _armedBlast=createVehicle ["GrenadeHand",(getPosATL _armedStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _emptyBlast=[(getPosATL _emptyStatic) vectorAdd [6,0,0]] call _spawnRealGrenade;
+private _armedBlast=[(getPosATL _armedStatic) vectorAdd [6,0,0]] call _spawnRealGrenade;
 private _emptyReleased=[{
     _emptyStaticCrew findIf {alive _x && {vehicle _x == _emptyStatic}} < 0
 },30] call _wait;
 private _armedRetained=_armedStaticCrew findIf {!alive _x || {vehicle _x != _armedStatic}} < 0;
 private _staticNoTargets=(_emptyStaticCrew+_armedStaticCrew) findIf {
-    !isNull (assignedTarget _x) || {!isNull (attackTarget (_x))}
+    !isNull (assignedTarget _x) || {!isNull (attackTarget _x)}
 } < 0;
 ["DANGER-STATIC-empty-crew-released",_staticReady && {_emptyReleased},str [_emptyStatic getVariable ["WAIT_Danger_AbandonReason",[]],_emptyStaticCrew apply {vehicle _x}]] call _check;
 ["DANGER-STATIC-useful-crew-retained",_staticReady && {_armedRetained},str [_armedStatic getVariable ["WAIT_Danger_AbandonReason",[]],_armedStaticCrew apply {vehicle _x}]] call _check;
-["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget (_x),currentCommand _x]})] call _check;
+["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget _x,currentCommand _x]})] call _check;
 deleteVehicle _emptyBlast;
 deleteVehicle _armedBlast;
 {deleteVehicle _x} forEach (_emptyStaticCrew+_armedStaticCrew+[_emptyStatic,_armedStatic]);
@@ -376,7 +387,7 @@ private _vehicleReaction=_contactVehicle getVariable ["WAIT_Danger_VehicleReacti
 // A real explosive stimulus must permit one defensive smoke request without replacing the route or
 // gunner response. The Fired event proves physical launcher use; the generation record proves that
 // repeated danger ticks did not manufacture a persistent countermeasure worker.
-createVehicle ["GrenadeHand",_contactVehicle modelToWorld [6,0,0],[],0,"CAN_COLLIDE"];
+[_contactVehicle modelToWorld [6,0,0]] call _spawnRealGrenade;
 private _dangerCountermeasure=[{
     (_contactVehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0]) > 0
         && {count (_contactVehicle getVariable ["WAIT_Danger_VehicleCountermeasure",[]]) == 5}

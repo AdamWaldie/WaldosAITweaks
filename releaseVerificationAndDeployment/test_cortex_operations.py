@@ -5906,6 +5906,10 @@ class CortexOperations(unittest.TestCase):
                      'DANGER-STATIC-no-invented-combat']:
             self.assertIn(item,text)
         self.assertIn('createVehicle ["GrenadeHand"',text)
+        self.assertIn('private _spawnRealGrenade={',text)
+        self.assertIn('_grenade setVelocity [0,0,-4]',text)
+        self.assertGreaterEqual(text.count('call _spawnRealGrenade'),6)
+        self.assertNotIn('attackTarget (',text)
         self.assertIn('abs speed _dangerTruck > 5',text)
         self.assertIn('O_APC_Wheeled_02_rcws_v2_F',text)
         self.assertIn('effectiveCommander _contactVehicle',text)
