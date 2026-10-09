@@ -12,12 +12,12 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf";
  */
 params ["_check","_phase","_wait"];
-// Use an engine-fired grenade rather than an unattributed createVehicle projectile. Capturing the
+// Use an engine-fired hostile grenade rather than an unattributed createVehicle projectile. Capturing the
 // real FiredMan projectile preserves native shot ownership and danger delivery while the audit only
 // relocates the physical shot into the isolated fixture. The excluded firer is cleaned after fuse.
 private _spawnRealGrenade={
     params [["_position",[0,0,0],[[]]]];
-    private _sourceGroup=createGroup [east,true];
+    private _sourceGroup=createGroup [west,true];
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
     _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -25,8 +25,9 @@ private _spawnRealGrenade={
     private _sourcePosition=+_position;
     _sourcePosition set [2,0];
     _sourcePosition=_sourcePosition getPos [80,0];
-    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    private _source=_sourceGroup createUnit ["B_Soldier_F",_sourcePosition,[],0,"NONE"];
     _source allowDamage false;
+    _source hideObjectGlobal true;
     _source disableAI "MOVE";
     _source disableAI "TARGET";
     _source disableAI "AUTOTARGET";

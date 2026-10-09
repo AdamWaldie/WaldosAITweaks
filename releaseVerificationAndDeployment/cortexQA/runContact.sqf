@@ -13,13 +13,13 @@
  */
 params ["_check","_phase","_wait"];
 // A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
-// native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
+// native danger queue. Fire a real hand grenade from an excluded hostile actor, capture the
 // engine-created projectile, then place that already-attributed shot above the fixture. WAIT state
 // is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
 // after the engine has delivered the explosion.
 private _spawnRealGrenade={
     params [["_position",[0,0,0],[[]]]];
-    private _sourceGroup=createGroup [east,true];
+    private _sourceGroup=createGroup [west,true];
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
     _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -27,8 +27,9 @@ private _spawnRealGrenade={
     private _sourcePosition=+_position;
     _sourcePosition set [2,0];
     _sourcePosition=_sourcePosition getPos [80,0];
-    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    private _source=_sourceGroup createUnit ["B_Soldier_F",_sourcePosition,[],0,"NONE"];
     _source allowDamage false;
+    _source hideObjectGlobal true;
     _source disableAI "MOVE";
     _source disableAI "TARGET";
     _source disableAI "AUTOTARGET";
@@ -86,6 +87,10 @@ private _killWithRealProjectile={
         params ["_unit","","","","","","_projectile"];
         _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
     }];
+    private _rifle=primaryWeapon _source;
+    _source selectWeapon _rifle;
+    _source setAmmo [_rifle,30];
+    sleep 0.25;
     private _weaponState=weaponState _source;
     _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
     private _deadline=diag_tickTime+2;
@@ -1176,7 +1181,10 @@ _deployEnemy setVariable ["WAIT_CortexQA_Label","CARRIED SUPPORT TARGET",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_deployUnits+[_deployEnemy],true];
 [createHashMapFromArray [
     ["WAIT_AIPass_StaticSupport_Enable",true],
-    ["WAIT_AIPass_StaticDeploy_Enable",true]
+    ["WAIT_AIPass_StaticDeploy_Enable",true],
+    ["WAIT_AIPass_PostContact_Enable",true],
+    ["WAIT_AIPass_PostContact_LostSeconds",3],
+    ["WAIT_AIPass_PostContact_SecuritySeconds",20]
 ]] call WAIT_fnc_CortexTuning;
 ["Danger tactics: carried static deployment","A real compatible weapon team faces a naturally detected enemy. The pair must physically assemble the weapon, the primary-bag carrier must board its gunner seat and the real emplacement must fire without holding the rest of the squad.",getPosATL _deployGunner] call _phase;
 private _deployContact=[{(([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _deployEnemy} >= 0},35] call _wait;

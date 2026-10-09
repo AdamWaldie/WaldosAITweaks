@@ -798,6 +798,8 @@ class CortexOperations(unittest.TestCase):
         fixture=audit[audit.index('// A carried support team must use'):audit.index('sleep 8;',audit.index('// A carried support team must use'))]
         for forbidden in ['call WAIT_fnc_CortexStaticDeployStep','moveInGunner','createVehicle [_deployExpected']:
             self.assertNotIn(forbidden,fixture)
+        for setting in ['WAIT_AIPass_PostContact_Enable','WAIT_AIPass_PostContact_LostSeconds','WAIT_AIPass_PostContact_SecuritySeconds']:
+            self.assertIn(setting,fixture)
 
     def test_danger_action_owns_posture_without_owning_movement(self):
         reaction=source('dangerReact')
@@ -5177,9 +5179,8 @@ class CortexOperations(unittest.TestCase):
         serverAudit=(ROOT/'releaseVerificationAndDeployment/auditMission/initServer.sqf').read_text(encoding='utf-8')
         self.assertIn('skipLobby=1;',description)
         self.assertIn('player="PLAYER COMMANDER"',mission)
-        self.assertIn('addOns[]={"A3_Characters_F_BLUFOR","A3_Map_VR"}',mission)
-        self.assertIn('addOnsAuto[]={"A3_Characters_F_BLUFOR","A3_Map_VR"}',mission)
-        self.assertNotIn('"A3_Characters_F",',mission)
+        self.assertIn('addOns[]={"A3_Characters_F","A3_Characters_F_BLUFOR","A3_Map_VR"}',mission)
+        self.assertIn('addOnsAuto[]={"A3_Characters_F","A3_Characters_F_BLUFOR","A3_Map_VR"}',mission)
         self.assertIn('_observer assignCurator _curator;',serverAudit)
         self.assertIn('WAIT AUDIT OBSERVER ZEUS READY',serverAudit)
         self.assertIn('skips role selection and assigns the sole observer Zeus slot automatically',launcher)
@@ -5909,6 +5910,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('addEventHandler ["FiredMan"',text)
         self.assertIn('forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"]',text)
         self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
+        self.assertIn('private _sourceGroup=createGroup [west,true]',text)
+        self.assertIn('_source hideObjectGlobal true',text)
         self.assertIn('_grenade setVelocity [0,0,-4]',text)
         self.assertGreaterEqual(text.count('call _spawnRealGrenade'),6)
         self.assertNotIn('attackTarget',text)
@@ -6071,6 +6074,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('addEventHandler ["FiredMan"',text)
         self.assertIn('forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"]',text)
         self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
+        self.assertIn('private _sourceGroup=createGroup [west,true]',text)
+        self.assertIn('_source hideObjectGlobal true',text)
+        self.assertIn('_source setAmmo [_rifle,30]',text)
         self.assertIn('_spawn set [2,(_spawn param [2,0]) + 2]',text)
         self.assertIn('_grenade setVelocity [0,0,-4]',text)
         disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
