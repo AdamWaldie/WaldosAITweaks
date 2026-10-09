@@ -179,6 +179,12 @@ private _liveDisableReacted=[{
     (_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _liveDisableUnit in ["CROUCH","PRONE"]}
 },10] call _wait;
+["DANGER-live-disable-real-reflex",_liveDisableReacted,str [
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineEntry",[]],
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]],
+    stance _liveDisableUnit,
+    _liveDisableGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]
+]] call _check;
 [createHashMapFromArray [["WAIT_AIPass_Danger_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _liveDisableReleased=[{
     !(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])
@@ -188,6 +194,7 @@ private _liveDisableReleased=[{
         && {(_liveDisableGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
 },10] call _wait;
 ["DANGER-live-disable-exact-stance-release",_liveDisableReacted && {_liveDisableReleased},str [
+    ["reflexDelivered",_liveDisableReacted,"released",_liveDisableReleased],
     unitPos _liveDisableUnit,
     _liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]],
     _liveDisableUnit getVariable ["WAIT_Danger_EngineResponse",[]],
