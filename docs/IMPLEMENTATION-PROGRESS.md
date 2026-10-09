@@ -381,3 +381,9 @@ delivery, no-knowledge contact behaviour and expiry back through the post-contac
 - Garrison movement now releases formation with `doStop` only on the initial ownership handoff. A stalled-route retry, alternate entrance or replacement position issues one `doMove` without first injecting another STOP command, while physical arrival still establishes the intended hold. This removes a systematic pause from every recovery branch without weakening bounded retries or external-owner checks. Static/package validation and multi-building physical acceptance remain required.
 - The packaged `dangerparity` run from commit `744cf13` proved that the tactical-contact fixtures had acquired real native knowledge, but three wait predicates still returned false because their inline `findIf` expressions were parsed ambiguously. Each predicate now stores the documented `[contacts, seenCount]` result first and explicitly compares the completed contact search with zero. This prevents a successful contact from consuming the entire wait window, allowing armour and elevated-position policy to be judged at the intended initial geometry instead of after native AI has already closed hundreds of metres.
 - The same run also exposed an older vehicle-audit parenthesis error. That expression is already corrected in the current candidate by commit `4dc740a`; the next packaged batch must confirm both audit repairs before any tactical result is promoted.
+
+Separate passenger remount evidence: candidate e5fbdd6 physically remounted the stationary
+separate-group passengers with both original groups retained. The moving separate-group case
+still failed. Remount retirement now records contact, authored order, external ownership,
+disabled state, resolution/reassignment or deadline, with pending vehicle speed, distance and
+assignment. This is diagnostic evidence for the remaining failure, not a behavioural fix or pass.

@@ -551,7 +551,26 @@ if (_remount isNotEqualTo []) then {
                 unassignVehicle _unit;
             };
         } forEach _pending;
-        if (!_cancel && {_pending isNotEqualTo []}) then {diag_log format ["[WAIT] Remount incomplete group=%1 passengers=%2",_group,_pending]};
+        private _reason = if (_visible isNotEqualTo [] || {_dangerActive}) then {"CONTACT"} else {
+            if (_ordered) then {"ORDERED"} else {
+                if (!([] call _mayIssueMovement)) then {"EXTERNAL_OWNER"} else {
+                    if (_cancel) then {"DISABLED"} else {
+                        if (_pending isEqualTo []) then {"RESOLVED_OR_REASSIGNED"} else {"DEADLINE"}
+                    }
+                }
+            }
+        };
+        // Record this finite transition, not a polling stream. Speed and assignment distinguish
+        // unavailable boarding geometry from contact, external orders and actual seat completion.
+        private _evidence = _pending apply {
+            _x params ["_unit","_vehicle"];
+            [netId _unit,netId _vehicle,abs speed _vehicle,_unit distance2D _vehicle,
+                netId assignedVehicle _unit,currentCommand _unit]
+        };
+        _state set ["lastRemountEnd",[serverTime,_reason,_evidence]];
+        if (_pending isNotEqualTo []) then {
+            diag_log format ["[WAIT] Remount ended group=%1 reason=%2 evidence=%3",_group,_reason,_evidence];
+        };
         _group setVariable ["WAIT_Cortex_Remount",nil,true];
     } else {
         {
