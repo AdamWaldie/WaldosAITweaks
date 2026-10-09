@@ -308,6 +308,15 @@ private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLea
             _state getOrDefault ["assaulting",false]
                 && {(_state getOrDefault ["supportToken",""]) != ""}
         };
+        case "VEHICLE_ORIENT": {
+            private _vehicle=(_state getOrDefault ["vehicleDangerOrient",[]]) param [1,objNull,[objNull]];
+            private _marker=if (isNull _vehicle) then {[]} else {_vehicle getVariable ["WAIT_Danger_VehicleOrient",[]]};
+            private _target=_marker param [2,[],[[]]];
+            count _marker == 5 && {(_marker param [1,grpNull]) == _group}
+                && {serverTime < (_marker param [3,0])} && {count _target >= 2}
+                && {alive _vehicle} && {canMove _vehicle}
+                && {private _relative=_vehicle getRelDir _target; _relative > 20 && {_relative < 340}}
+        };
         default {
             (waypoints _group) findIf {
                 (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
@@ -330,6 +339,15 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         private _generation=_state getOrDefault [_operationKey,-1];
         private _movementResult="COMPLETE";
         private _movementReason=_movementOwner+"_FINISHED";
+        if (_movementOwner == "VEHICLE_ORIENT") then {
+            private _vehicle=(_state getOrDefault ["vehicleDangerOrient",[]]) param [1,objNull,[objNull]];
+            private _marker=if (isNull _vehicle) then {[]} else {_vehicle getVariable ["WAIT_Danger_VehicleOrient",[]]};
+            private _target=_marker param [2,[],[[]]];
+            private _aligned=!isNull _vehicle && {alive _vehicle} && {count _target >= 2}
+                && {private _relative=_vehicle getRelDir _target; _relative <= 20 || {_relative >= 340}};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _aligned;
+            _movementReason=["VEHICLE_ORIENT_TIMEOUT","VEHICLE_ORIENT_ALIGNED"] select _aligned;
+        };
         if (_movementOwner in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","ARTILLERY_SCOOT"]) then {
             private _intent=_group getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
             private _position=_intent getOrDefault ["position",[]];
