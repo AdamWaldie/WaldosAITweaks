@@ -5,7 +5,8 @@
  * The candidate sits outside the
  * object's rotated horizontal bounds on the side away from the threat, and it is accepted only if a
  * line-of-fire ray from the threat's eye height to the candidate's chest height is blocked. Candidates inside the object's bounds or under its roof are rejected. Trees, rocks, walls, fences, hides and buildings count;
- * bushes do not (they conceal but do not stop rounds). The engine's `findCover` is not implemented in
+ * bushes do not in default COVER mode (they conceal but do not stop rounds).
+ * Explicit CONCEALMENT mode accepts visual screening only and never claims ballistic protection. The engine's `findCover` is not implemented in
  * Arma 3, so this is scripted.
  * Locality and authority: read-only; callable anywhere.
  *
@@ -16,24 +17,32 @@
  * 3: reserved <ARRAY> - ATL positions already taken by squad-mates (optional, default: [])
  *
  * 4: group <GROUP> - optional grpNull, supplies per-group feature exclusions.
+ * 5: screening mode <STRING, COVER>; CONCEALMENT tests visual screening instead of ballistic cover.
  * Repeat/JIP: read-only; candidates are recalculated only when a caller requests a search.
  * Return Value:
- * Array - [coverPosATL, found <BOOL>]; the original position when no cover qualifies
+ * Array - [screenedPosATL, found <BOOL>] for the selected mode; original position when none qualifies
  *
  * Example:
  * ([_boundPoint, _enemyPos, 12, _taken] call WAIT_fnc_CortexFindCover) params ["_spot", "_found"];
  * Result: a nearby spot with solid cover between it and the enemy, if one exists.
  *
- * Current callers: WAIT_fnc_CortexFlankStep, WAIT_fnc_CortexGrenadeCheck and WAIT_fnc_CortexAntiArmour.
+ * Current callers: WAIT_fnc_CortexFlankStep, WAIT_fnc_CortexGrenadeCheck, WAIT_fnc_CortexAntiArmour and WAIT_fnc_DangerCoverStep.
  */
 
-params [["_position", [], [[]]], ["_threat", [], [[]]], ["_radius", 12, [0]], ["_reserved", [], [[]]], ["_group",grpNull,[grpNull]]];
+params [["_position", [], [[]]], ["_threat", [], [[]]], ["_radius", 12, [0]], ["_reserved", [], [[]]], ["_group",grpNull,[grpNull]],["_mode","COVER",[""]]];
 if (count _position < 2 || {count _threat < 2}) exitWith {[_position, false]};
 _radius = (_radius max 1) min 25;
 private _validate = [_group,"WAIT_AIPass_CoverValidation_Enable",true] call WAIT_fnc_CortexFeatureEnabled;
-private _objects = nearestTerrainObjects [_position, ["TREE", "SMALL TREE", "ROCK", "ROCKS", "WALL", "FENCE", "HIDE", "BUILDING", "HOUSE"], _radius, true, true];
+_mode=toUpperANSI _mode;
+if !(_mode in ["COVER","CONCEALMENT"]) then {_mode="COVER"};
+private _terrainTypes=if (_mode == "CONCEALMENT") then {["BUSH","TREE","SMALL TREE","HIDE"]} else {
+    ["TREE","SMALL TREE","ROCK","ROCKS","WALL","FENCE","HIDE","BUILDING","HOUSE"]
+};
+private _objects = nearestTerrainObjects [_position, _terrainTypes, _radius, true, true];
 if (count _objects > 10) then {_objects resize 10};
-private _placed=(nearestObjects [_position, ["House", "Wall", "Strategic"], _radius, true]) select [0,10];
+private _placed=if (_mode == "COVER") then {
+    (nearestObjects [_position, ["House", "Wall", "Strategic"], _radius, true]) select [0,10]
+} else {[]};
 {_objects pushBackUnique _x} forEach _placed;
 // Rank both sources together before the geometry budget. Appending placed cover after terrain
 // and truncating immediately could discard a nearby wall behind ten more distant trees.
@@ -82,7 +91,8 @@ private _result = [];
         // would hit the enemy soldier (or his own cover) and make every spot look covered.
         private _rayStart = _threatASL vectorAdd ((_threatASL vectorFromTo _endASL) vectorMultiply 2);
         private _blocked = terrainIntersectASL [_threatASL, _endASL]
-            || {(lineIntersectsSurfaces [_rayStart, _endASL, objNull, objNull, true, 1, "FIRE", "GEOM"]) isNotEqualTo []};
+            || {(lineIntersectsSurfaces [_rayStart, _endASL, objNull, objNull, true, 1, ["FIRE","VIEW"] select (_mode == "CONCEALMENT"),
+                ["GEOM","NONE"] select (_mode == "CONCEALMENT")]) isNotEqualTo []};
         if (_blocked) then {_result = [_candidate, true]};
     };
     if (_result isNotEqualTo []) exitWith {};

@@ -577,3 +577,9 @@ Body/scream observation now has an independent default-on LIVE CBA gate under Co
 requires danger response and uses the authoritative shared settings specification, with no
 separate runtime settings store. Disabled-state and native observation timing remain physical
 acceptance requirements.
+
+Danger cover now permits a separately gated visual-concealment fallback after solid cover fails.
+The next shared callback performs the visual-only query; each callback retains the ten-object
+geometry limit. Shared callers default to ballistic COVER mode. A failed concealment pass ends
+that actor/generation search instead of cycling both searches. Decision evidence labels the
+selected mode. Physical visual screening, disabled state and frame-time cost remain unproven.

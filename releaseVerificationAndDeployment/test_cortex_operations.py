@@ -6462,6 +6462,18 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_concealment_is_explicit_and_separate_from_ballistic_cover(self):
+        cover=source('cortexFindCover')
+        self.assertIn('["_mode","COVER",[""]]',cover)
+        self.assertIn('["FIRE","VIEW"] select (_mode == "CONCEALMENT")',cover)
+        self.assertIn('["GEOM","NONE"] select (_mode == "CONCEALMENT")',cover)
+        danger=source('dangerCoverStep')
+        self.assertEqual(danger.count('call WAIT_fnc_CortexFindCover'),1)
+        self.assertIn('"NO_VALID_COVER"',danger)
+        self.assertIn('"NO_SCREEN"',danger)
+        self.assertIn('WAIT_AIPass_DangerConcealment_Enable',danger)
+        self.assertIn('+_spot,_screenMode',danger)
+
     def test_alert_observation_is_finite_and_preserves_committed_movement(self):
         text=source('dangerEngineAct')
         observation=text.split('// Body and scream observations deserve',1)[1].split('// Forced orders',1)[0]

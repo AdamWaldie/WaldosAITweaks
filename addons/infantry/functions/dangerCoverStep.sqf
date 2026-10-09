@@ -41,6 +41,8 @@ if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
     && {_generation == (_group getVariable ["WAIT_Danger_Generation",0])}
     && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {[_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+    && {((_group getVariable ["WAIT_Danger_CoverDecision",[]]) param [5,"COVER"]) != "CONCEALMENT"
+        || {[_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled}}
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
     && {isNull objectParent _actor}
@@ -92,14 +94,23 @@ if (count _threat < 2) exitWith {call _clearLease};
 if (count _threat == 2) then {_threat pushBack ((getPosATL _actor) select 2)};
 private _origin=getPosATL _actor;
 private _away=(_origin getPos [7,_threat getDir _origin]);
-private _cover=[_away,_threat,8,[],_group] call WAIT_fnc_CortexFindCover;
+private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
+private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
+if (_sameSearch && {(_decision select 0) == "NO_SCREEN"}) exitWith {false};
+// One search per callback. A failed solid-cover pass permits a visual-only pass on the next
+// existing scheduler step; it never doubles the geometry work in the current callback.
+private _screenMode=if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}
+    && {[_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
+    "CONCEALMENT"
+} else {"COVER"};
+private _cover=[_away,_threat,8,[],_group,_screenMode] call WAIT_fnc_CortexFindCover;
 _cover params ["_spot","_found"];
 if (!_found || {count _spot < 2} || {_spot distance2D _origin < 2}
-    || {_spot distance2D _origin > 18}) exitWith {["NO_VALID_COVER"] call _clearLease};
+    || {_spot distance2D _origin > 18}) exitWith {[["NO_VALID_COVER","NO_SCREEN"] select (_screenMode == "CONCEALMENT")] call _clearLease};
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {currentCommand _actor != ""}) exitWith {call _clearLease};
-_group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot]];
+_group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot,_screenMode]];
 // The observation may end before native pathing reaches cover. Retain the committed move
 // independently, with a bounded travel allowance rather than a four-second universal cutoff.
 private _deadline=time+((2+(_origin distance2D _spot)/2) max 4 min 12);
