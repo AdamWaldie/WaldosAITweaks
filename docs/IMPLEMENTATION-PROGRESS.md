@@ -66,6 +66,11 @@ the second truck and preservation of the replacement seat assignment in the `41d
 This demonstrates the explicit boarding-order handover for that layout; ordinary remount
 acceptance still needs the corrected enabled fixture gate.
 
+The subsequent `e5fbdd6` packaged run passes vehicle-jink ownership and physical travel
+(about 21 metres). Its refusal context shows a later danger generation yielding to the existing
+movement operation rather than replacing it. This is one flat-terrain, crew-only APC case;
+blocked routes, mixed vehicles, interruption and performance acceptance remain separate.
+
 ## Earlier implementation work
 
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
