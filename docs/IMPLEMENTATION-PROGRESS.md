@@ -387,3 +387,8 @@ separate-group passengers with both original groups retained. The moving separat
 still failed. Remount retirement now records contact, authored order, external ownership,
 disabled state, resolution/reassignment or deadline, with pending vehicle speed, distance and
 assignment. This is diagnostic evidence for the remaining failure, not a behavioural fix or pass.
+
+Infantry support reservation now rejects groups containing living operating vehicle crews,
+even when three or more dismounts are available. This closes the group-rally authority gap
+without disabling vehicle-domain support or independent passenger squads. Static regression
+coverage is present; mixed-group physical acceptance remains pending.

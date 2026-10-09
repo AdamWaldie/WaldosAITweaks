@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_support_rally_does_not_capture_operating_vehicle_crews(self):
+        text=source('cortexSupportApply')
+        self.assertIn('private _operatingCrew = (units _group) findIf',text)
+        self.assertIn('_x in [driver _platform,gunner _platform,commander _platform]',text)
+        self.assertIn('&& {!_operatingCrew} && {count _footFit >= 3}',text)
+        self.assertLess(text.index('&& {!_operatingCrew}'),text.index('call WAIT_fnc_OperationStart'))
+
     def test_mounted_crews_do_not_receive_infantry_morale_or_reposition_orders(self):
         morale=source('cortexMorale')
         reposition=source('cortexTacticalReposition')
