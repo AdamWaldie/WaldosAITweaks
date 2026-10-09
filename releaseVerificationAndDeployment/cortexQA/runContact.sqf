@@ -371,6 +371,7 @@ _casualtyGroup setCombatMode "BLUE";
 private _casualtySurvivor=_casualtyGroup createUnit ["O_Soldier_F",[2280,1350,0],[],0,"NONE"];
 private _casualtyActor=_casualtyGroup createUnit ["O_Soldier_F",[2283,1350,0],[],0,"NONE"];
 _casualtySurvivor allowDamage false;
+_casualtySurvivor setDir (_casualtySurvivor getDir _casualtyActor);
 {_x setVariable ["acex_headless_blacklist",true,true]} forEach [_casualtySurvivor,_casualtyActor];
 _casualtySurvivor setVariable ["WAIT_CortexQA_Label","CASUALTY ALERT SURVIVOR",true];
 _casualtyActor setVariable ["WAIT_CortexQA_Label","REAL SAME-GROUP CASUALTY",true];

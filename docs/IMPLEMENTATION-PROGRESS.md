@@ -513,3 +513,7 @@ CARELESS release audit now reports engine-stimulus delivery and preserved state 
 while retaining the original combined acceptance requirement. Empty submission evidence still
 fails the exercised handover; it is distinguished from a mutated behaviour or retained response.
 No missing-stimulus result is promoted to a behavioural pass. Physical retest remains pending.
+
+Same-group casualty fixture now faces its observer toward the victim before the physical shot.
+Native casualty danger requires observed death or body discovery; proximity alone is not that
+prerequisite. Engine delivery and no-contact acceptance remain pending physical retest.
