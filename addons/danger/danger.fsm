@@ -125,7 +125,7 @@ class FSM
                 {
                         name = "Start_Danger";
                         itemno = 0;
-                        init = /*%FSM<STATEINIT""">*/"_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _selected=[]; _mode=""ASSESS""; _accepted=false; _deadline=time;"/*%FSM</STATEINIT""">*/;
+                        init = /*%FSM<STATEINIT""">*/"_this setVariable [""WAIT_Danger_EngineEntry"",[time,_dangerCause,_dangerPos,_dangerUntil,(_this getVariable [""WAIT_Danger_EngineEntryCount"",0])+1]]; _this setVariable [""WAIT_Danger_EngineEntryCount"",((_this getVariable [""WAIT_Danger_EngineEntryCount"",0])+1) min 100000]; _queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]; _selected=[]; _mode=""ASSESS""; _accepted=false; _deadline=time;"/*%FSM</STATEINIT""">*/;
                         precondition = /*%FSM<STATEPRECONDITION""">*/""/*%FSM</STATEPRECONDITION""">*/;
                         class Links
                         {

@@ -491,7 +491,10 @@ private _released=[{
 },12] call _wait;
 private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0;
 private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]];
-["DANGER-native-targetless-explosion",_nativeStimulus,str (_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-native-targetless-explosion",_nativeStimulus,str [
+    _reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
+    (units _reflexGroup) apply {[_x,_x getVariable ["WAIT_Danger_EngineEntry",[]],local _x,currentCommand _x,behaviour _x]}
+]] call _check;
 ["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
 ["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
