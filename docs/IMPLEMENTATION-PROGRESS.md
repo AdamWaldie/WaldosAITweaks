@@ -392,3 +392,9 @@ Infantry support reservation now rejects groups containing living operating vehi
 even when three or more dismounts are available. This closes the group-rally authority gap
 without disabling vehicle-domain support or independent passenger squads. Static regression
 coverage is present; mixed-group physical acceptance remains pending.
+
+Tracked withdrawal in candidate e5fbdd6 failed physical reverse and escape distance while smoke
+and crew retention passed. Inspection found vehicle lease retirement still required a tagged
+waypoint even during the waypoint-free native reverse leg. The lease now recognises only a
+matching generation/epoch, local live vehicle, owner marker and unexpired reverse record.
+Physical retest remains required; a valid record alone does not establish reverse movement.

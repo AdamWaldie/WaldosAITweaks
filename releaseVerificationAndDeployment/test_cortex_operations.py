@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_tracked_reverse_lease_survives_without_a_forward_waypoint(self):
+        text=source('cortexVehicles')
+        self.assertIn('private _reverseActive=_movementOwner == "VEHICLE_WITHDRAW"',text)
+        self.assertIn('_activeVehicleMove = _reverseActive ||',text)
+        self.assertIn('(_reverse select 2) == (_group getVariable ["WAIT_AIPass_Epoch",0])',text)
+        self.assertIn('WAIT_VehicleReverseOwner',text)
+
     def test_support_rally_does_not_capture_operating_vehicle_crews(self):
         text=source('cortexSupportApply')
         self.assertIn('private _operatingCrew = (units _group) findIf',text)

@@ -86,9 +86,20 @@ if (_vehicleMove isNotEqualTo []) then {
                 && {private _relative=_orientVehicle getRelDir _targetPosition; _relative > 20 && {_relative < 340}}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
         } else {
-            _activeVehicleMove = ((waypoints _group) findIf {
+            private _reverse=_group getVariable ["WAIT_VehicleReverse",[]];
+            private _reverseVehicle=_reverse param [0,objNull,[objNull]];
+            private _reverseActive=_movementOwner == "VEHICLE_WITHDRAW"
+                && {count _reverse == 9}
+                && {(_reverse select 1) == (_state getOrDefault ["vehicleOperationGeneration",-1])}
+                && {(_reverse select 2) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+                && {time < (_reverse select 5)}
+                && {!isNull _reverseVehicle} && {local _reverseVehicle} && {alive _reverseVehicle}
+                && {(_reverseVehicle getVariable ["WAIT_VehicleReverseOwner",[]]) isEqualTo [_group,_reverse select 1]};
+            // A native reverse leg intentionally has no forward waypoint. Its matching finite
+            // record is movement evidence; GroupTick owns its progress and fallback checks.
+            _activeVehicleMove = _reverseActive || {((waypoints _group) findIf {
                 (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
-            } >= 0) && {time < (_vehicleMove select 1)};
+            } >= 0) && {time < (_vehicleMove select 1)}};
         };
         if (!_activeVehicleMove) then {
             private _finishedOwner=_vehicleMove param [0,""];
