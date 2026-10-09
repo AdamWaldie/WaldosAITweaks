@@ -477,3 +477,8 @@ The actor retires its cover reservation at the useful physical position for nati
 later assessment. Only a failed still-owned approach can request guarded formation recovery.
 This removes an explicit backtracking command; native formation behaviour and physical outcomes
 still require retest. No persistent hold or movement suppression is added.
+
+WAIT diagnostics now display the last owner-local remount retirement reason, age and pending
+actor/vehicle speed-distance-assignment evidence beside existing active ownership checks.
+The view identifies locality and does not present stored intent or historical HC observations
+as physical boarding completion. No recurring diagnostic scan was added.

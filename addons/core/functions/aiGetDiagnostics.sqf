@@ -576,6 +576,13 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _transitionHealthy=serverTime < _transitionDeadline && {_transitionGateOpen} && {_transitionCurrent == _transitionPhase};
         _checks pushBack ["ai",format ["cortex-transition-ownership-%1",netId _group],["ERROR","LOADED"] select _transitionHealthy,format ["group=%1 intentPhase=%2 currentPhase=%3 source=%4 gateOpen=%5 ageSeconds=%6 secondsRemaining=%7 teamAlive=%8 target=%9. A durable transition exists only to resume INVESTIGATE or SEARCH after locality migration; it must not survive its gate, deadline or phase.",groupId _group,_transitionPhase,_transitionCurrent,_transitionSource,_transitionGateOpen,(serverTime-_transitionStarted) max 0,(_transitionDeadline-serverTime) max 0,{alive _x} count _transitionTeam,_transitionTarget]];
     };
+    private _remountEnd=_state getOrDefault ["lastRemountEnd",[]];
+    if (count _remountEnd == 3) then {
+        _checks pushBack ["ai",format ["cortex-remount-end-%1",netId _group],"LOADED",
+            format ["group=%1 currentOwner=%2 observedLocally=%3 endAgeSeconds=%4 reason=%5 pendingEvidence=%6. Evidence fields are actor ID, vehicle ID, speed, distance, assignment ID and native command. This is the last owner-local retirement observation, not proof of boarding success or a replicated HC history.",
+                groupId _group,groupOwner _group,local _group,(serverTime-(_remountEnd select 0)) max 0,
+                _remountEnd select 1,_remountEnd select 2]];
+    };
     private _supportLease=_group getVariable ["WAIT_AIPass_SupportLease",[]];
     private _supportToken=_state getOrDefault ["supportToken",""];
     private _supportRole=_group getVariable ["WAIT_Cortex_SupportRole",[]];
