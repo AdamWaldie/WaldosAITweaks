@@ -107,7 +107,8 @@ _threat=+_threat;
 if (count _threat < 2) exitWith {call _clearLease};
 if (count _threat == 2) then {_threat pushBack ((getPosATL _actor) select 2)};
 private _origin=getPosATL _actor;
-private _away=(_origin getPos [7,_threat getDir _origin]);
+// Search around the current actor, including after grenade evasion. An away-offset centre
+// excluded useful nearby side cover before its threat screening could be evaluated.
 private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
 private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
 if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT"]}) exitWith {false};
@@ -123,7 +124,7 @@ private _screenMode=if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"
     && {[_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
     "CONCEALMENT"
 } else {"COVER"};
-private _cover=[_away,_threat,8,[],_group,_screenMode] call WAIT_fnc_CortexFindCover;
+private _cover=[_origin,_threat,18,[],_group,_screenMode] call WAIT_fnc_CortexFindCover;
 _cover params ["_spot","_found"];
 // A small valid move can put the actor behind nearby cover. Treat negligible displacement
 // separately; it is not evidence that solid cover failed and should not trigger concealment.
