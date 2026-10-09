@@ -38,6 +38,14 @@ if (_cycle >= _maxCycles) exitWith {
     private _stats=_group getVariable ['WAIT_Danger_EngineStats',createHashMap];
     _stats set ['boundedRecycleEnds',((_stats getOrDefault ['boundedRecycleEnds',0])+1) min 100000];
     _stats set ['lastRecycleCycles',_cycle];
+    // Per-mode evidence prevents a later zero-cycle IMMEDIATE record from erasing proof that the
+    // same actor's ENGAGE or VEHICLE bridge reached its finite budget under continuous native fire.
+    private _endsByMode=_stats getOrDefault ['boundedRecycleEndsByMode',createHashMap];
+    _endsByMode set [_mode,((_endsByMode getOrDefault [_mode,0])+1) min 100000];
+    _stats set ['boundedRecycleEndsByMode',_endsByMode];
+    private _cyclesByMode=_stats getOrDefault ['lastRecycleCyclesByMode',createHashMap];
+    _cyclesByMode set [_mode,_cycle];
+    _stats set ['lastRecycleCyclesByMode',_cyclesByMode];
     _group setVariable ['WAIT_Danger_EngineStats',_stats];
     []
 };

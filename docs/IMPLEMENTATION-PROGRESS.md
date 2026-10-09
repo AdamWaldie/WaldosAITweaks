@@ -89,7 +89,7 @@ The [delivery goal](DELIVERY-GOAL.md) defines the required release outcome and t
 
 - Coordinated final bounds now require a COMPLETE owner result; PARTIAL progress yields a turn without falsely retiring the squad's unfinished assault objective.
 - Drill eligibility is checked before combat/speed mutations; ownership loss releases the drill without ordering formation return or holding troops against replacement commands. Physical interruption acceptance is pending.
-- Audit observer launch explicitly selects its resolution config and 3840x2160 command-line dimensions. Curator assignment is corrected; fresh VR entry and observer Zeus use were visibly verified. Reassignment after respawn is implemented and remains a separate pending physical check.
+- Audit observer launch explicitly selects its resolution config and 3840x2160 command-line dimensions. Curator assignment is corrected; fresh VR entry and observer Zeus use were previously verified. Runtime `20261009-131702-138` later proved that mission entry and Zeus readiness alone do not guarantee an interactive client window: the client reached VR in its RPT but was not visible to the operator. The launcher now requires a visible Arma window, restores and foregrounds it before accepting the batch, and rechecks visibility after observer Zeus is ready. Reassignment after respawn and the new visible-window gate remain pending physical checks.
 
 ## Order of implementation
 

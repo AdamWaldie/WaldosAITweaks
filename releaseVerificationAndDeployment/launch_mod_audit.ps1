@@ -8,6 +8,7 @@ param(
     [int]$ResolutionWidth=3840,
     [int]$ResolutionHeight=2160,
     [ValidateRange(30,600)][int]$ClientReadyTimeoutSeconds=180,
+    [ValidateRange(10,120)][int]$ClientWindowTimeoutSeconds=60,
     [ValidateRange(0,2)][int]$HeadlessClients=2,
     [switch]$WithZen,
     [switch]$ServerOnly,
@@ -74,7 +75,35 @@ function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interacti
     # Background server/HC helpers stay hidden. The observer is an interactive game client:
     # it must expose its lobby/window so mission entry and physical behaviour can be verified.
     $auditWindowStyle = if ($Interactive) {'Normal'} else {'Hidden'}
-    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WindowStyle $auditWindowStyle -PassThru
+    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WorkingDirectory $ArmaPath -WindowStyle $auditWindowStyle -PassThru
+}
+if (-not ('WaitAuditWindow' -as [type])) {
+    Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class WaitAuditWindow {
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+'@
+}
+function Show-AuditClientWindow([System.Diagnostics.Process]$Process,[int]$TimeoutSeconds) {
+    $windowDeadline=(Get-Date).AddSeconds($TimeoutSeconds)
+    $windowHandle=[IntPtr]::Zero
+    while ((Get-Date) -lt $windowDeadline -and !$Process.HasExited) {
+        $Process.Refresh()
+        $windowHandle=$Process.MainWindowHandle
+        if ($windowHandle -ne [IntPtr]::Zero -and [WaitAuditWindow]::IsWindowVisible($windowHandle)) {break}
+        Start-Sleep -Milliseconds 250
+    }
+    if ($windowHandle -eq [IntPtr]::Zero -or !$([WaitAuditWindow]::IsWindowVisible($windowHandle))) {
+        throw "Arma audit client did not expose a visible window within $TimeoutSeconds seconds. The batch is not considered launched."
+    }
+    # SW_RESTORE also handles a client which Windows opened minimized behind another application.
+    [WaitAuditWindow]::ShowWindowAsync($windowHandle,9) | Out-Null
+    [WaitAuditWindow]::SetForegroundWindow($windowHandle) | Out-Null
+    return $windowHandle
 }
 $serverProfile=Join-Path $runtime 'server'
 $server=Start-AuditProcess 'arma3server_x64.exe' @('-noBattlEye','-autoInit','-netlog',"-port=$Port","-config=$config","-profiles=$serverProfile",$modArg)
@@ -111,9 +140,10 @@ resolutionH=$ResolutionHeight;
 Windowed=1;
 "@ | Set-Content (Join-Path $clientProfile 'Arma3.cfg')
 $clientConfig=Join-Path $clientProfile 'Arma3.cfg'
-$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
+$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-world=empty','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight","-windowWidth=$ResolutionWidth","-windowHeight=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
 $processes+=$client.Id
 @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
+$clientWindowHandle=Show-AuditClientWindow $client $ClientWindowTimeoutSeconds
 $clientDeadline=(Get-Date).AddSeconds($ClientReadyTimeoutSeconds)
 $observerReady=$false
 while ((Get-Date) -lt $clientDeadline -and !$client.HasExited -and !$server.HasExited) {
@@ -127,4 +157,10 @@ while ((Get-Date) -lt $clientDeadline -and !$client.HasExited -and !$server.HasE
 if (!$observerReady) {
     throw "Client did not enter WAIT_Audit.VR with observer Zeus within $ClientReadyTimeoutSeconds seconds. Inspect $runtime; this batch is not valid and its processes have been left available for inspection."
 }
-Write-Output "WAIT batch entered WAIT_Audit.VR. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"
+$client.Refresh()
+if ($client.MainWindowHandle -eq [IntPtr]::Zero -or !$([WaitAuditWindow]::IsWindowVisible($client.MainWindowHandle))) {
+    throw "Client entered WAIT_Audit.VR but its interactive window is no longer visible. Inspect $runtime; this batch is not valid."
+}
+[WaitAuditWindow]::ShowWindowAsync($client.MainWindowHandle,9) | Out-Null
+[WaitAuditWindow]::SetForegroundWindow($client.MainWindowHandle) | Out-Null
+Write-Output "WAIT batch entered WAIT_Audit.VR in a visible ${ResolutionWidth}x${ResolutionHeight} client window. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"

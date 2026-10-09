@@ -612,6 +612,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn("case 'ENGAGE': {2}",engine_recycle)
         self.assertIn("case 'VEHICLE': {3}",engine_recycle)
         self.assertIn('boundedRecycleEnds',engine_recycle)
+        self.assertIn("['boundedRecycleEndsByMode',_endsByMode]",engine_recycle)
+        self.assertIn("['lastRecycleCyclesByMode',_cyclesByMode]",engine_recycle)
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ', 'allUnits', 'allGroups']:
             self.assertNotIn(forbidden,engine_recycle)
         self.assertIn('first-contactBootstraps=',diagnostics)
@@ -625,7 +627,7 @@ class CortexOperations(unittest.TestCase):
         contact_audit=(ROOT/'releaseVerificationAndDeployment'/'cortexQA'/'runContact.sqf').read_text(encoding='utf-8')
         self.assertIn('"BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])',contact_audit)
         self.assertIn('DANGER-other-body-distinct-alert',contact_audit)
-        self.assertIn('_bodyActor setDamage 1;',contact_audit)
+        self.assertIn('[_bodyActor] call _killWithRealProjectile',contact_audit)
         self.assertNotIn('call WAIT_fnc_DangerEngineSubmit',contact_audit)
         self.assertIn('WAIT_Danger_EngineStanceLease',diagnostics)
         self.assertIn('server-local stance leases=',diagnostics)
@@ -673,7 +675,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('DANGER-natural-finish-identity-cleared',reflex_fixture)
         self.assertIn('DANGER-close-contact-finite-reflex-handoff',reflex_fixture)
         self.assertIn('getOrDefault ["boundedRecycleEnds",0]',reflex_fixture)
-        self.assertIn('getOrDefault ["lastRecycleCycles",-1]) == 2',reflex_fixture)
+        self.assertIn('getOrDefault ["boundedRecycleEndsByMode",createHashMap]',reflex_fixture)
+        self.assertIn('getOrDefault ["lastRecycleCyclesByMode",createHashMap]',reflex_fixture)
+        self.assertIn('getOrDefault ["ENGAGE",-1]) == 2',reflex_fixture)
         self.assertIn('WAIT_Danger_LastAssessment',reflex_fixture)
         self.assertIn('WAIT_Danger_VehicleContext',reflex_fixture)
         self.assertIn('Land_CncWall4_F',reflex_fixture)
@@ -2273,6 +2277,9 @@ class CortexOperations(unittest.TestCase):
                        'winW=$ResolutionWidth;','winH=$ResolutionHeight;',
                        'resolutionW=$ResolutionWidth;','resolutionH=$ResolutionHeight;',
                        '"-x=$ResolutionWidth"','"-y=$ResolutionHeight"',
+                       '"-windowWidth=$ResolutionWidth"','"-windowHeight=$ResolutionHeight"',
+                       'Show-AuditClientWindow $client $ClientWindowTimeoutSeconds',
+                       '[WaitAuditWindow]::IsWindowVisible($client.MainWindowHandle)',
                        "'-noBattlEye'", "'-showScriptErrors'", 'sole observer Zeus slot automatically']:
             self.assertIn(marker,launcher)
         self.assertIn("$auditWindowStyle = if ($Interactive) {'Normal'} else {'Hidden'}",launcher)
@@ -6054,13 +6061,18 @@ class CortexOperations(unittest.TestCase):
         for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-authored-hold-fire-preserved','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-active-zeus-replacement','DANGER-leader-loss-physical-continuation','DANGER-forced-order-no-tactical-handoff','DANGER-active-response-native-order-interrupt']:
             self.assertIn(case,text)
         self.assertIn('[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
+        self.assertIn('private _spawnRealGrenade={',text)
+        self.assertIn('_spawn set [2,(_spawn param [2,0]) + 2]',text)
+        self.assertIn('_grenade setVelocity [0,0,-4]',text)
         disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
-        self.assertIn('createVehicle ["GrenadeHand"',disabled)
+        self.assertIn('call _spawnRealGrenade',disabled)
         self.assertIn('["WAIT_AIPass_Danger_Enable",false]',disabled)
         self.assertIn('["WAIT_AIPass_Danger_Enable",true]',disabled)
         self.assertNotIn('call WAIT_fnc_DangerEngineSubmit',disabled)
         casualty=text.split('// A real same-group death',1)[1].split('// Prove the engine-loaded FSM',1)[0]
-        self.assertIn('_casualtyActor setDamage 1',casualty)
+        self.assertIn('[_casualtyActor] call _killWithRealProjectile',casualty)
+        self.assertIn('private _bodyGroup=createGroup [east,true]',casualty)
+        self.assertIn('[_bodyActor] call _killWithRealProjectile',casualty)
         self.assertIn('getOrDefault ["HIDE",0]',casualty)
         self.assertIn('== "CALM"',casualty)
         self.assertIn('combatMode _casualtyGroup == "BLUE"',casualty)

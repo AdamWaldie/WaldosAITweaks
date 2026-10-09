@@ -12,6 +12,29 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf";
  */
 params ["_check","_phase","_wait"];
+// Arma does not reliably arm a hand grenade created exactly on the terrain surface. Give every
+// explosion fixture a short physical fall so the engine, rather than the audit, creates danger
+// cause 4. The returned projectile may already be deleted by its fuse when cleanup runs.
+private _spawnRealGrenade={
+    params [["_position",[0,0,0],[[]]]];
+    private _spawn=+_position;
+    _spawn set [2,(_spawn param [2,0]) + 2];
+    private _grenade=createVehicle ["GrenadeHand",_spawn,[],0,"CAN_COLLIDE"];
+    _grenade setVelocity [0,0,-4];
+    _grenade
+};
+// Scripted setDamage does not necessarily enter a nearby soldier's engine danger queue. This
+// helper creates actual ballistic damage without inventing an attacker or calling WAIT callbacks.
+private _killWithRealProjectile={
+    params [["_actor",objNull,[objNull]]];
+    if (isNull _actor) exitWith {objNull};
+    private _impact=eyePos _actor vectorAdd [0,0,-0.25];
+    private _origin=_impact vectorAdd [-2,0,0];
+    private _projectile=createVehicle ["B_127x99_Ball",[0,0,1000],[],0,"CAN_COLLIDE"];
+    _projectile setPosASL _origin;
+    _projectile setVelocity ((_impact vectorDiff _origin) vectorMultiply 450);
+    _projectile
+};
 [createHashMapFromArray [
     ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Regroup_Enable",false],
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
@@ -38,7 +61,7 @@ private _disabledReady=[{!(missionNamespace getVariable ["WAIT_AIPass_Danger_Ena
 private _disabledOrigin=getPosATL _disabledUnit;
 private _disabledTransitionsBefore=count (_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: disabled physical stimulus","A real grenade detonates beside this isolated soldier while Danger response is disabled. Native animation is allowed, but WAIT must not take stance, cover, response or CONTACT ownership.",_disabledOrigin] call _phase;
-private _disabledGrenade=createVehicle ["GrenadeHand",_disabledOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _disabledGrenade=[_disabledOrigin getPos [7,90]] call _spawnRealGrenade;
 sleep 4;
 private _disabledTransitions=(_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disabledTransitionsBefore];
 private _disabledInert=(_disabledUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
@@ -69,7 +92,7 @@ _liveDisableUnit setVariable ["acex_headless_blacklist",true,true];
 _liveDisableUnit setVariable ["WAIT_CortexQA_Label","DANGER LIVE DISABLE",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_liveDisableUnit],true];
 ["Danger FSM: live gate cleanup","A real explosion first creates a finite WAIT stance. Danger is then disabled while that lease is active; the soldier must return to AUTO immediately without waiting for natural expiry.",getPosATL _liveDisableUnit] call _phase;
-private _liveDisableGrenade=createVehicle ["GrenadeHand",(getPosATL _liveDisableUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _liveDisableGrenade=[(getPosATL _liveDisableUnit) getPos [7,90]] call _spawnRealGrenade;
 private _liveDisableReacted=[{
     (_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _liveDisableUnit in ["CROUCH","PRONE"]}
@@ -110,7 +133,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disciplineUnit],true];
 private _disciplineStatsBefore=(_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _disciplineTransitionsBefore=count (_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE and never begin CONTACT.",getPosATL _disciplineUnit] call _phase;
-private _disciplineGrenade=createVehicle ["GrenadeHand",(getPosATL _disciplineUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _disciplineGrenade=[(getPosATL _disciplineUnit) getPos [7,90]] call _spawnRealGrenade;
 private _disciplineObserved=[{
     ((_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _disciplineStatsBefore
 },12] call _wait;
@@ -245,7 +268,8 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_casualtySurvivor,_casualt
 private _casualtyHideBefore=((_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0];
 private _casualtyTransitionsBefore=count (_casualtyGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: casualty alert is not contact","One soldier is killed by real damage beside his squad-mate. The survivor may take a finite local hide posture, but WAIT must not invent an attacker, change group combat posture or enter CONTACT.",getPosATL _casualtyActor] call _phase;
-_casualtyActor setDamage 1;
+private _casualtyProjectile=[_casualtyActor] call _killWithRealProjectile;
+private _casualtyKilled=[{!alive _casualtyActor},5] call _wait;
 private _casualtyObserved=[{
     private _stats=_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     ((_stats getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0]) > _casualtyHideBefore
@@ -257,7 +281,8 @@ private _casualtyNoContact=_casualtyTransitions findIf {(_x param [2,""]) == "CO
     && {(_casualtyGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
     && {combatMode _casualtyGroup == "BLUE"}
     && {(([_casualtyGroup] call WAIT_fnc_CortexKnowledge) select 0) isEqualTo []};
-["DANGER-casualty-alert-no-contact",_casualtyObserved && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
+["DANGER-casualty-alert-no-contact",_casualtyKilled && {_casualtyObserved} && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
+deleteVehicle _casualtyProjectile;
 deleteVehicle _casualtyActor;
 deleteVehicle _casualtySurvivor;
 deleteGroup _casualtyGroup;
@@ -272,10 +297,10 @@ _bodyObserverGroup setCombatMode "BLUE";
 private _bodyObserver=_bodyObserverGroup createUnit ["O_Soldier_F",[2310,1350,0],[],0,"NONE"];
 _bodyObserver allowDamage false;
 _bodyObserver setVariable ["acex_headless_blacklist",true,true];
-private _bodyGroup=createGroup [west,true];
+private _bodyGroup=createGroup [east,true];
 _bodyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _bodyGroup setVariable ["acex_headless_blacklist",true,true];
-private _bodyActor=_bodyGroup createUnit ["B_Soldier_F",[2318,1350,0],[],0,"NONE"];
+private _bodyActor=_bodyGroup createUnit ["O_Soldier_F",[2318,1350,0],[],0,"NONE"];
 removeAllWeapons _bodyActor;
 _bodyActor disableAI "MOVE";
 _bodyActor setVariable ["acex_headless_blacklist",true,true];
@@ -286,7 +311,8 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_bodyObserver,_bodyActor],
 private _bodyTransitionsBefore=count (_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: other body is not squad casualty","A soldier faces a nearby actor from another group before that actor is killed by real damage. Native cause 6 must remain BODY_FOUND, never CASUALTY, and must not authorise CONTACT or movement.",getPosATL _bodyActor] call _phase;
 sleep 1;
-_bodyActor setDamage 1;
+private _bodyProjectile=[_bodyActor] call _killWithRealProjectile;
+private _bodyKilled=[{!alive _bodyActor},5] call _wait;
 private _bodyObserved=[{
     private _stats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     "BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])
@@ -295,13 +321,14 @@ sleep 2;
 private _bodyStats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
 private _bodyLastCauses=_bodyStats getOrDefault ["lastCauses",[]];
 private _bodyTransitions=(_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_bodyTransitionsBefore];
-private _bodySeparated=_bodyObserved
+private _bodySeparated=_bodyKilled && {_bodyObserved}
     && {!("CASUALTY" in _bodyLastCauses)}
     && {_bodyTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0}
     && {((_bodyObserverGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
     && {combatMode _bodyObserverGroup == "BLUE"};
 ["DANGER-other-body-distinct-alert",_bodySeparated,str [_bodyStats,_bodyTransitions,combatMode _bodyObserverGroup]] call _check;
 deleteVehicle _bodyActor;
+deleteVehicle _bodyProjectile;
 deleteVehicle _bodyObserver;
 deleteGroup _bodyGroup;
 deleteGroup _bodyObserverGroup;
@@ -323,7 +350,7 @@ private _releaseSubmissionsBefore=_releaseStatsBefore getOrDefault ["submissions
 private _releaseAcceptedBefore=_releaseStatsBefore getOrDefault ["acceptedRecords",0];
 private _releaseTransitionsBefore=count (_releaseGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: authored CARELESS release","A real grenade detonates near an invulnerable CARELESS soldier. WAIT may record the engine stimulus, but must discard it before group planning and preserve the authored state.",getPosATL _releaseUnit] call _phase;
-private _releaseGrenade=createVehicle ["GrenadeHand",(getPosATL _releaseUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _releaseGrenade=[(getPosATL _releaseUnit) getPos [7,90]] call _spawnRealGrenade;
 private _releaseObserved=[{
     ((_releaseGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _releaseSubmissionsBefore
 },12] call _wait;
@@ -363,7 +390,7 @@ private _reflexStart=getPosATL _reflexUnit;
 ["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _coverMovesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
-private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _grenade=[(getPosATL _reflexUnit) getPos [7,90]] call _spawnRealGrenade;
 private _nativeStimulus=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
 },12] call _wait;
@@ -426,7 +453,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerW
 ["Danger FSM: observer cover and squad readiness","A real explosion occurs beside the separated wingman. The native danger record must retain him as its observer, the one bounded cover move must move that same soldier rather than the distant leader, and four ordinary riflemen must lower profile before the squad's loaded AT gunner.",getPosATL _observerWingman] call _phase;
 sleep 2;
 private _observerCoverBefore=(_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
-private _observerGrenade=createVehicle ["GrenadeHand",(getPosATL _observerWingman) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _observerGrenade=[(getPosATL _observerWingman) getPos [7,90]] call _spawnRealGrenade;
 private _observerGroupHide=[{
     private _leases=_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]];
     private _leasedActors=_leases apply {_x param [0,objNull]};
@@ -505,7 +532,7 @@ _smokeWaypoint setWaypointSpeed "FULL";
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_smokeUnit],true];
 ["Danger FSM: non-blocking smoke","The moving soldier has one carried smoke grenade. A real explosion must trigger one physical smoke throw while his ordinary waypoint remains authoritative; he must continue to the destination rather than waiting on the throw.",_smokeDestination] call _phase;
 private _smokeMoving=[{_smokeUnit distance2D _smokeStart >= 4},20] call _wait;
-private _smokeGrenade=createVehicle ["GrenadeHand",(getPosATL _smokeUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _smokeGrenade=[(getPosATL _smokeUnit) getPos [7,90]] call _spawnRealGrenade;
 private _smokeThrown=[{(_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0]) == 1},18] call _wait;
 private _smokeArrived=[{_smokeUnit distance2D _smokeDestination < 7},55] call _wait;
 private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
@@ -529,7 +556,7 @@ _reflexUnit setVariable ["WAIT_CortexQA_Target",_movementDestination,true];
 ["Danger FSM: movement continuity","The soldier now follows a committed WAIT route through another real explosion. The danger reflex may crouch, but it must not request prone, replace the route or stop physical progress.",_movementDestination] call _phase;
 private _movementStarted=[{_reflexUnit distance2D _movementStart >= 4},20] call _wait;
 private _movementStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _movementGrenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _movementGrenade=[(getPosATL _reflexUnit) getPos [7,90]] call _spawnRealGrenade;
 private _movementDanger=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _movementStatsBefore
 },12] call _wait;
@@ -582,8 +609,11 @@ _closeShots=missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0];
 ["DANGER-close-contact-physical-persistence",_closePersistent,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
 private _finiteReflexHandoff=[{
     private _stats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    private _endsByMode=_stats getOrDefault ["boundedRecycleEndsByMode",createHashMap];
+    private _cyclesByMode=_stats getOrDefault ["lastRecycleCyclesByMode",createHashMap];
     (_stats getOrDefault ["boundedRecycleEnds",0]) > _boundedRecycleEndsBefore
-        && {(_stats getOrDefault ["lastRecycleCycles",-1]) == 2}
+        && {(_endsByMode getOrDefault ["ENGAGE",0]) > 0}
+        && {(_cyclesByMode getOrDefault ["ENGAGE",-1]) == 2}
         && {_reflexUnit knowsAbout _closeTarget > 0}
         && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
 },12] call _wait;
@@ -600,7 +630,7 @@ _reflexGroup setCombatMode "YELLOW";
 _reflexGroup setBehaviourStrong "AWARE";
 private _zeusOrigin=getPosATL _reflexUnit;
 private _zeusStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _zeusGrenade=createVehicle ["GrenadeHand",_zeusOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _zeusGrenade=[_zeusOrigin getPos [7,90]] call _spawnRealGrenade;
 private _zeusDangerActive=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _zeusStatsBefore
         && {(_reflexGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
@@ -643,7 +673,7 @@ _lostLeader setVariable ["WAIT_CortexQA_Label","DANGER LEADER CASUALTY",true];
 _newLeader setVariable ["WAIT_CortexQA_Label","DANGER SURVIVING ANCHOR",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_lostLeader,_newLeader],true];
 private _leaderLossStatsBefore=(_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _leaderLossGrenade=createVehicle ["GrenadeHand",(getPosATL _lostLeader) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _leaderLossGrenade=[(getPosATL _lostLeader) getPos [7,90]] call _spawnRealGrenade;
 private _leaderDangerActive=[{
     ((_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _leaderLossStatsBefore
         && {(_leaderLossGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
@@ -694,7 +724,7 @@ private _forcedReady=[{toUpperANSI (currentCommand _forcedUnit) == "GET IN"},10]
 private _forcedModesBefore=((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["FORCED",0];
 private _forcedAcceptedBefore=(_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
 private _forcedTransitionCount=count (_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
-private _forcedGrenade=createVehicle ["GrenadeHand",(getPosATL _forcedUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _forcedGrenade=[(getPosATL _forcedUnit) getPos [7,90]] call _spawnRealGrenade;
 private _forcedNoHandoff=[{
     private _stats=_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     private _modes=_stats getOrDefault ["modes",createHashMap];
@@ -731,7 +761,7 @@ _interruptVehicle setDir 270;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_interruptUnit,_interruptVehicle],true];
 ["Danger FSM: live response interrupted by native order","A real grenade must first activate WAIT's finite response. A later ordinary GET IN task must then remove that response before the soldier physically boards, without WAIT reissuing movement.",getPosATL _interruptVehicle] call _phase;
 private _interruptSubmissionsBefore=(_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _interruptGrenade=createVehicle ["GrenadeHand",(getPosATL _interruptUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _interruptGrenade=[(getPosATL _interruptUnit) getPos [7,90]] call _spawnRealGrenade;
 private _interruptDangerActive=[{
     ((_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _interruptSubmissionsBefore
         && {(_interruptGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
