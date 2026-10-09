@@ -503,3 +503,8 @@ The cheap actor compatibility gate now matches the same specialist animation pre
 full classifier, covering animation-only activation during a danger wait. It reads one actor's
 animation without configuration or group scans. Static regression checks cover the bounded gate;
 actual specialist activation/release and its performance cost still need packaged acceptance.
+
+Authored BLUE audit now measures retained ROE, actual zero shots and absence of a manoeuvre
+operation. A naturally sighted enemy entering CONTACT is awareness, not by itself permission to
+fire or move. The prior case contradicted the adjacent hold-fire awareness contract. Original
+failure evidence is retained; the corrected physical check has not run.

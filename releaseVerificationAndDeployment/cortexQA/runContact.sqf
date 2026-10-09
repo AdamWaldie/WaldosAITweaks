@@ -221,7 +221,7 @@ private _liveDisableReenabled=[{missionNamespace getVariable ["WAIT_AIPass_Dange
 
 // BLUE is an explicit authored hold-fire instruction. With the live danger gate enabled, a real
 // explosion must still reach the engine FSM and may produce a finite actor stance, but it cannot
-// promote fire discipline or enter the group tactical state.
+// promote fire discipline or authorise a manoeuvre. Native awareness remains valid.
 private _disciplineGroup=createGroup [east,true];
 _disciplineGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _disciplineGroup setVariable ["acex_headless_blacklist",true,true];
@@ -230,10 +230,15 @@ private _disciplineUnit=_disciplineGroup createUnit ["O_Soldier_F",[2270,1350,0]
 _disciplineUnit allowDamage false;
 _disciplineUnit setVariable ["acex_headless_blacklist",true,true];
 _disciplineUnit setVariable ["WAIT_CortexQA_Label","AUTHORED HOLD FIRE",true];
+_disciplineUnit setVariable ["WAIT_CortexQA_HoldShots",0];
+private _disciplineFired=_disciplineUnit addEventHandler ["FiredMan",{
+    params ["_unit"];
+    _unit setVariable ["WAIT_CortexQA_HoldShots",(_unit getVariable ["WAIT_CortexQA_HoldShots",0])+1];
+}];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disciplineUnit],true];
 private _disciplineStatsBefore=(_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _disciplineTransitionsBefore=count (_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
-["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE and never begin CONTACT.",getPosATL _disciplineUnit] call _phase;
+["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE, fire no shot and create no manoeuvre operation. Native contact awareness is permitted.",getPosATL _disciplineUnit] call _phase;
 private _disciplineGrenade=[(getPosATL _disciplineUnit) getPos [7,90]] call _spawnRealGrenade;
 private _disciplineObserved=[{
     ((_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _disciplineStatsBefore
@@ -241,7 +246,11 @@ private _disciplineObserved=[{
 sleep 4;
 private _disciplineTransitions=(_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disciplineTransitionsBefore];
 ["DANGER-authored-hold-fire-preserved",_disciplineObserved && {combatMode _disciplineGroup == "BLUE"}
-    && {_disciplineTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0},str [combatMode _disciplineGroup,_disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+    && {(_disciplineUnit getVariable ["WAIT_CortexQA_HoldShots",0]) == 0}
+    && {count (_disciplineGroup getVariable ["WAIT_Operation",createHashMap]) == 0},
+    str [combatMode _disciplineGroup,_disciplineUnit getVariable ["WAIT_CortexQA_HoldShots",0],
+        _disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+_disciplineUnit removeEventHandler ["FiredMan",_disciplineFired];
 deleteVehicle _disciplineGrenade;
 // Contact awareness is still useful under an explicit hold-fire order, but it must not silently
 // become permission for WAIT fire, reinforcement, artillery or manoeuvre. Enable those gates for
