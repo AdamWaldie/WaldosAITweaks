@@ -96,7 +96,7 @@ private _origin=getPosATL _actor;
 private _away=(_origin getPos [7,_threat getDir _origin]);
 private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
 private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
-if (_sameSearch && {(_decision select 0) == "NO_SCREEN"}) exitWith {false};
+if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT"]}) exitWith {false};
 // One search per callback. A failed solid-cover pass permits a visual-only pass on the next
 // existing scheduler step; it never doubles the geometry work in the current callback.
 private _screenMode=if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}
@@ -105,7 +105,12 @@ private _screenMode=if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"
 } else {"COVER"};
 private _cover=[_away,_threat,8,[],_group,_screenMode] call WAIT_fnc_CortexFindCover;
 _cover params ["_spot","_found"];
-if (!_found || {count _spot < 2} || {_spot distance2D _origin < 2}
+// A small valid move can put the actor behind nearby cover. Treat negligible displacement
+// separately; it is not evidence that solid cover failed and should not trigger concealment.
+if (_found && {count _spot >= 2} && {_spot distance2D _origin < 0.6}) exitWith {
+    ["NO_DISPLACEMENT"] call _clearLease
+};
+if (!_found || {count _spot < 2}
     || {_spot distance2D _origin > 18}) exitWith {[["NO_VALID_COVER","NO_SCREEN"] select (_screenMode == "CONCEALMENT")] call _clearLease};
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}

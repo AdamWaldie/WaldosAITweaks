@@ -583,3 +583,8 @@ The next shared callback performs the visual-only query; each callback retains t
 geometry limit. Shared callers default to ballistic COVER mode. A failed concealment pass ends
 that actor/generation search instead of cycling both searches. Decision evidence labels the
 selected mode. Physical visual screening, disabled state and frame-time cost remain unproven.
+
+Short valid cover moves are no longer rejected by a two-metre minimum. Negligible displacement
+is recorded separately and cannot trigger concealment fallback. The physical travel check now
+allows the same short approach; the separate committed-destination arrival case remains required.
+Nearby-cover outcome and movement precision are unproven until the queued physical batch runs.

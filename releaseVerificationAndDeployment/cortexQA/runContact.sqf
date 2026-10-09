@@ -525,7 +525,7 @@ private _physicalCover=[{
     private _lease=_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _lease == 4 && {(_lease select 0) == _reflexUnit}) then {_coverGoal=+(_lease select 3)};
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
-        && {_reflexUnit distance2D _reflexStart >= 2}
+        && {_reflexUnit distance2D _reflexStart >= 0.6}
 },16] call _wait;
 private _released=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []

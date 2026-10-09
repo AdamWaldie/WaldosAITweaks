@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_nearby_valid_cover_is_not_misclassified_as_failed_screening(self):
+        text=source('dangerCoverStep')
+        self.assertIn('if (_found && {count _spot >= 2}',text)
+        self.assertIn('"NO_DISPLACEMENT"',text)
+        self.assertNotIn('_spot distance2D _origin < 2',text)
+        self.assertLess(text.index('"NO_DISPLACEMENT"] call'),text.index('if (!_found'))
+
     def test_concealment_is_explicit_and_separate_from_ballistic_cover(self):
         cover=source('cortexFindCover')
         self.assertIn('["_mode","COVER",[""]]',cover)
