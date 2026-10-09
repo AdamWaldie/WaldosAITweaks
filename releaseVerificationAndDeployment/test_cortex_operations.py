@@ -6462,6 +6462,15 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cheap_specialist_wait_gate_recognises_runtime_and_animation_ownership(self):
+        text=source('compatibilityExternalControl')
+        self.assertIn('IMS_IsUnitInvicibleScripted',text)
+        self.assertIn('IMS_ISAI',text)
+        self.assertIn('animationState _subject',text)
+        self.assertIn('_animation find "ims_" == 0',text)
+        self.assertNotIn('configOf',text)
+        self.assertNotIn('units ',text)
+
     def test_reverse_cleanup_sends_no_stop_into_external_control(self):
         text=source('cortexVehicleReverseStep')
         release=text.split('private _release={',1)[1].split('if (toUpperANSI _mode',1)[0]

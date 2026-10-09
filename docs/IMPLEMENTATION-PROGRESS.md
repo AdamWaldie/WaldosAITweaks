@@ -498,3 +498,8 @@ ownership read; config/faction classification remains outside this hot gate. Run
 recognition is not full compatibility acceptance: activation/release/animation handovers and
 ordinary group-member coexistence still need physical tests. Candidate aa23ee8 is separately
 staged at runtime-20261009-201916-298 and predates this new change; no game was launched.
+
+The cheap actor compatibility gate now matches the same specialist animation prefixes as the
+full classifier, covering animation-only activation during a danger wait. It reads one actor's
+animation without configuration or group scans. Static regression checks cover the bounded gate;
+actual specialist activation/release and its performance cost still need packaged acceptance.

@@ -34,3 +34,5 @@ if (isNull _subject) exitWith {false};
      "IMS_IsUnitInvicibleScripted","IMS_ISAI","IMS_EventHandler_Hit"] findIf {
         !isNil {_subject getVariable _x}
     } >= 0}
+|| {private _animation=toLowerANSI animationState _subject;
+    _animation find "ims_" == 0 || {_animation find "star_wars_fight" == 0}}
