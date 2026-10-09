@@ -520,7 +520,10 @@ private _physicalReflex=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _reflexUnit in ["CROUCH","PRONE"]}
 },8] call _wait;
+private _coverGoal=[];
 private _physicalCover=[{
+    private _lease=_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]];
+    if (count _lease == 4 && {(_lease select 0) == _reflexUnit}) then {_coverGoal=+(_lease select 3)};
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
         && {_reflexUnit distance2D _reflexStart >= 2}
 },16] call _wait;
@@ -541,6 +544,14 @@ private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitio
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
     str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions,_reflexUnit getVariable ["WAIT_Danger_EngineReleaseEvidence",[]]]] call _check;
+private _coverArrived=[{count _coverGoal == 3 && {_reflexUnit distance2D _coverGoal <= 2}},12] call _wait;
+["DANGER-cover-committed-destination-arrival",_nativeStimulus && {_physicalCover} && {_coverArrived},
+    str [_coverGoal,getPosATL _reflexUnit,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+private _coverReplacement=(getPosATL _reflexUnit) getPos [25,0];
+_reflexUnit doMove _coverReplacement;
+private _coverReplacementArrived=[{_reflexUnit distance2D _coverReplacement <= 3},30] call _wait;
+["DANGER-cover-post-release-native-order",_nativeStimulus && {_coverArrived} && {_coverReplacementArrived},
+    str [_coverReplacement,getPosATL _reflexUnit,currentCommand _reflexUnit]] call _check;
 deleteVehicle _grenade;
 
 // Prove a multi-member group preserves the native observer through the group-budgeted cover pass.

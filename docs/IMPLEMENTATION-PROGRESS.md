@@ -538,3 +538,8 @@ Group-hide release and retained leases now require the living local nonplayer ac
 in the original group and on foot, with no specialist runtime ownership. Transfers and boarding
 retire the old proof rather than restoring a prior group posture into the new domain. Physical
 transfer/boarding cleanup remains queued.
+
+Added physical cover-destination arrival and subsequent ordinary native move cases to the
+isolated danger fixture. They require captured production cover geometry and actual arrival,
+not travel alone. The subsequent order checks post-release control; it does not replace the
+separate active-interruption acceptance requirement. Both cases remain unrun.
