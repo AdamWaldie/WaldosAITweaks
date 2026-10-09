@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cover_retention_rechecks_live_authority_before_returning_active(self):
+        text=source('dangerCoverStep')
+        retention=text.split('private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];',2)[-1].split('exitWith {true};',1)[0]
+        for gate in ['WAIT_Danger_Generation','WAIT_AIPass_Active','WAIT_AIPass_Danger_Enable',
+                     'WAIT_fnc_CortexExternalTakeover','WAIT_Operation','objectParent _actor']:
+            self.assertIn(gate,retention)
+
     def test_group_hide_retires_old_generation_without_leaving_owned_stance(self):
         text=source('dangerGroupHideStep')
         section=text.split('if (_leases isNotEqualTo []) exitWith {',1)[1].split('private _valid=',1)[0]

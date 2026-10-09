@@ -33,7 +33,14 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
-    && {count _threat >= 2}) exitWith {true};
+    && {count _threat >= 2}
+    && {_generation == (_group getVariable ["WAIT_Danger_Generation",0])}
+    && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
+    && {[_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+    && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
+    && {isNull objectParent _actor}
+    && {currentCommand _actor in ["","MOVE"]}) exitWith {true};
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
     if (!isNull _leasedActor) then {

@@ -429,3 +429,8 @@ Group-hide generation replacement now restores an old unchanged weak stance befo
 its lease, only for local idle actors still in the group with no actor-level stance or movement
 owner. Previously the old posture could survive after its proof was discarded and become the
 next generation's baseline. Physical exact-posture cleanup remains queued for retest.
+
+Active danger-cover lease retention now rechecks current generation, live feature gates,
+external ownership, operation ownership, mounted state and native command before returning
+active. A previously valid timer no longer masks a newer order or disabled response. Physical
+interruption and cleanup acceptance remain queued while audits are paused.
