@@ -330,6 +330,15 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         private _generation=_state getOrDefault [_operationKey,-1];
         private _movementResult="COMPLETE";
         private _movementReason=_movementOwner+"_FINISHED";
+        if (_movementOwner in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","ARTILLERY_SCOOT"]) then {
+            private _intent=_group getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+            private _position=_intent getOrDefault ["position",[]];
+            private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+            private _arrived=count _position >= 2 && {!isNull _anchor}
+                && {vehicle _anchor distance2D _position <= (_intent getOrDefault ["radius",25])};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _arrived;
+            _movementReason=["MOVEMENT_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived;
+        };
         if (_movementOwner == "TACTICAL_REPOSITION") then {
             private _record=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
             private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;

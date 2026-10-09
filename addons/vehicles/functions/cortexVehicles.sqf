@@ -112,7 +112,13 @@ if (_vehicleMove isNotEqualTo []) then {
                             call WAIT_fnc_OperationRelease;
                     };
                 } else {
-                    [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                    private _intent=_group getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+                    private _position=_intent getOrDefault ["position",[]];
+                    private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+                    private _arrived=count _position >= 2 && {!isNull _anchor}
+                        && {vehicle _anchor distance2D _position <= (_intent getOrDefault ["radius",25])};
+                    [_group,_generation,["INCOMPLETE","COMPLETE"] select _arrived,
+                        ["VEHICLE_MOVE_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived] call WAIT_fnc_OperationRelease;
                 };
                 _state deleteAt "vehicleOperationGeneration";
             };

@@ -4552,7 +4552,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,"VEHICLE_WITHDRAW",_threat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart',vehicles)
         self.assertIn('[_group,"VEHICLE_STANDOFF",_atThreat,[],[_away],"MOVING"] call WAIT_fnc_OperationStart',vehicles)
         self.assertIn('["vehicleOperationGeneration",_operation get "generation"]',vehicles)
-        self.assertIn('[_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease',vehicles)
+        self.assertIn('["VEHICLE_MOVE_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived',vehicles)
+        self.assertIn('vehicle _anchor distance2D _position',vehicles)
+        self.assertIn('["MOVEMENT_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived',source('cortexGroupTick'))
         self.assertIn('_state deleteAt "vehicleOperationGeneration"',vehicles)
 
     def test_artillery_scoot_uses_a_finite_operation_and_group_cleanup(self):
