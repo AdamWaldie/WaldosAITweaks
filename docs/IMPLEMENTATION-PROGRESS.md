@@ -528,3 +528,8 @@ a distance-derived 4–12 second travel allowance. Previously an empty current thr
 retired the approach after the roughly two-second reflex even before its movement timer ended.
 Live gates, generation, native tasks and successor operations still invalidate it. This preserves
 continuous intent without a new worker or repeated destination; physical arrival remains pending.
+
+Cover lease retention now requires its exact actor marker, deadline and native expected
+destination. An unmarked replacement doMove can end the old reservation immediately even
+when its command name remains MOVE. Successful arrival and guarded cleanup retain their prior
+semantics. New-order physical acceptance is still pending.

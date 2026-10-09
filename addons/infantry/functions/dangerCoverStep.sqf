@@ -31,8 +31,13 @@ private _clearLease={
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
     || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
+private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (count _lease >= 4 && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
+    && {count _moveProof == 3} && {(_moveProof select 0) == "DANGER_COVER"}
+    && {(_moveProof select 1) distance2D (_lease select 3) <= 1}
+    && {(_moveProof select 2) == (_lease select 2)}
+    && {((expectedDestination _actor) select 0) distance2D (_lease select 3) <= 1}
     && {_generation == (_group getVariable ["WAIT_Danger_Generation",0])}
     && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {[_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
