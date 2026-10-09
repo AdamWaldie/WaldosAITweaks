@@ -398,3 +398,10 @@ and crew retention passed. Inspection found vehicle lease retirement still requi
 waypoint even during the waypoint-free native reverse leg. The lease now recognises only a
 matching generation/epoch, local live vehicle, owner marker and unexpired reverse record.
 Physical retest remains required; a valid record alone does not establish reverse movement.
+
+Withdrawal audit candidate e5fbdd6 reported HC resume, preserved origin, continued physical
+escape, no smoke replay and crew retention. The fixture did not record the immediately preceding
+owner, so these results alone cannot prove an owner boundary was crossed. The next candidate
+records the source owner, chooses a different available HC and requires a distinct owner for
+resume/physical-continuation acceptance. This retains the observed movement evidence without
+promoting an unproven migration claim.

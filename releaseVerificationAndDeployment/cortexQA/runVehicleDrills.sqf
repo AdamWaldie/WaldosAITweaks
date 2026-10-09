@@ -812,6 +812,14 @@ if (_hcOwners isNotEqualTo []) then {
     private _countermeasureAmmoBefore=[_migrateArmour] call _countermeasureAmmo;
     private _intentBefore=+(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]);
     private _startedAt=_intentBefore param [4,-1];
+    private _ownerBefore=groupOwner _migrateGroup;
+    // Automatic balancing may have adopted this group already. Test an actual boundary,
+    // not a successful no-op request to the owner it currently has.
+    private _otherOwners=_hcOwners select {_x != _ownerBefore};
+    if (_otherOwners isNotEqualTo []) then {_hcOwner=_otherOwners select 0};
+    private _realOwnerBoundary=_ownerBefore != _hcOwner;
+    ["WITHDRAW-MIGRATION-distinct-owner-prerequisite",_realOwnerBoundary,
+        str [_ownerBefore,_hcOwner,owner _migrateArmour]] call _check;
     private _handoffPosition=getPosATL _migrateArmour;
     private _handoffThreatDistance=_migrateArmour distance2D _migrateEnemy;
     _migrateGroup setVariable ["WAIT_Headless_ExcludeGroup",false,true];
@@ -824,7 +832,7 @@ if (_hcOwners isNotEqualTo []) then {
             && {(_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "RETREAT"}
             && {private _entry=_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]; count _entry == 5 && {(_entry select 3) == "VEHICLE_OWNERSHIP_RESUME"} && {(_entry select 4) == _hcOwner}}
     },40] call _wait;
-    ["WITHDRAW-MIGRATION-owner-resume",_migrationRequested && {_migrationAdopted},str [groupOwner _migrateGroup,owner _migrateArmour,_migrateCrew apply {owner _x},_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]]] call _check;
+    ["WITHDRAW-MIGRATION-owner-resume",_realOwnerBoundary && {_migrationRequested} && {_migrationAdopted},str [groupOwner _migrateGroup,owner _migrateArmour,_migrateCrew apply {owner _x},_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]]] call _check;
     private _intentAfter=+(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]);
     ["WITHDRAW-MIGRATION-start-preserved",_migrationAdopted && {count _intentAfter == 7}
         && {abs ((_intentAfter select 4)-_startedAt) < 0.25},str [_startedAt,_intentAfter]] call _check;
@@ -832,7 +840,7 @@ if (_hcOwners isNotEqualTo []) then {
         _migrateArmour distance2D _handoffPosition >= 12
             && {_migrateArmour distance2D _migrateEnemy >= _handoffThreatDistance+8}
     },45] call _wait;
-    ["WITHDRAW-MIGRATION-physical-continuation",_migrationAdopted && {_continued},str [_handoffPosition,getPosATL _migrateArmour,_handoffThreatDistance,_migrateArmour distance2D _migrateEnemy]] call _check;
+    ["WITHDRAW-MIGRATION-physical-continuation",_realOwnerBoundary && {_migrationAdopted} && {_continued},str [_handoffPosition,getPosATL _migrateArmour,_handoffThreatDistance,_migrateArmour distance2D _migrateEnemy]] call _check;
     sleep 6;
     private _countermeasureAmmoAfter=[_migrateArmour] call _countermeasureAmmo;
     ["WITHDRAW-MIGRATION-no-smoke-replay",_initialSmoke && {_countermeasureAmmoAfter == _countermeasureAmmoBefore},str [_smokeBefore,_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0],_countermeasureAmmoBefore,_countermeasureAmmoAfter]] call _check;
