@@ -462,3 +462,7 @@ and external ownership. Crew contact or active vehicle movement ownership reject
 hold. Passenger owners refresh requests only within the remount deadline; boarding, reassignment
 or expiry removes eligibility. This repairs the missing cooperation path but moving remount
 physical acceptance remains pending. At most eight boarding records are considered per vehicle.
+
+Remount progress now publishes only remaining owned passengers when the set changes, preserving
+the original deadline. Boarded or reassigned passengers cannot crowd the vehicle owner's bounded
+boarding checks ahead of the remaining squad. Larger-squad physical boarding remains pending.

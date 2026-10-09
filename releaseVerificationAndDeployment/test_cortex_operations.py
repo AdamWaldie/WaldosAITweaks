@@ -6462,6 +6462,11 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_remount_progress_removes_completed_passengers_without_extending_deadline(self):
+        text=source('cortexGroupTick')
+        self.assertIn('if (_pending isNotEqualTo _passengers)',text)
+        self.assertIn('setVariable ["WAIT_Cortex_Remount",[_deadline,+_pending],true]',text)
+
     def test_cross_group_boarding_hold_is_bounded_and_preserves_vehicle_ownership(self):
         vehicles=source('cortexVehicles')
         boarding=vehicles.split('private _boarding=_passengerGroup getVariable',1)[1].split('if (_valid)',1)[0]

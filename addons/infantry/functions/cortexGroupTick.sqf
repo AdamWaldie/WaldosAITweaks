@@ -573,6 +573,11 @@ if (_remount isNotEqualTo []) then {
         };
         _group setVariable ["WAIT_Cortex_Remount",nil,true];
     } else {
+        // Publish progress only when membership changes. Completed/reassigned passengers must
+        // not consume the vehicle owner's bounded boarding window ahead of remaining actors.
+        if (_pending isNotEqualTo _passengers) then {
+            _group setVariable ["WAIT_Cortex_Remount",[_deadline,+_pending],true];
+        };
         {
             _x params ["_unit","_vehicle"];
             // Boarding needs the vehicle owner's cooperation too. Keep the request bounded
