@@ -197,6 +197,7 @@ private _jinkCrewRetained=_jinkCrew findIf {!alive _x || {vehicle _x != _jinkVeh
 ["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],
     (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
     (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleDangerJink",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleJinkRefusal",[]],
     (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["dangerDismount",[]],
     _jinkGroup getVariable ["WAIT_Danger_VehicleContext",[]],_jinkGroup getVariable ["WAIT_Operation",createHashMap],
     [_jinkGroup] call WAIT_fnc_CortexExternalTakeover,speed _jinkVehicle]] call _check;
