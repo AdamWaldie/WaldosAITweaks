@@ -3125,7 +3125,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('TACTICAL-authored-order-physical-progress',qa)
         self.assertNotIn('call WAIT_fnc_CortexTacticalAssess',qa)
         self.assertNotIn(' reveal ',qa)
-        self.assertNotIn('setPos',qa)
+        self.assertEqual(qa.count('setPos'),1)
+        self.assertIn('_aircraft setPosATL [1700,3200,180]',qa)
+        self.assertLess(qa.index('_aircraft setPosATL'),qa.index('private _airReady'))
+        self.assertIn('_airEnemyGroup addWaypoint [[1700,1800,180],0]',qa)
 
     def test_shipped_profiles_retain_legacy_movement_keys_for_configuration_compatibility(self):
         config=(ROOT/'addons/main/settings/aiConfig.sqf').read_text(encoding='utf-8')

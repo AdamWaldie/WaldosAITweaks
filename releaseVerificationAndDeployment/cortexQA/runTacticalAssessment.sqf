@@ -114,9 +114,15 @@ private _airEnemyGroup=group effectiveCommander _aircraft;
 _airEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 _airEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _aircraft allowDamage false;
+// FLY selects an engine spawn height; apply the intended initial fixture altitude explicitly.
+_aircraft setPosATL [1700,3200,180];
+_aircraft engineOn true;
 _aircraft setDir 180;
 _aircraft setVelocityModelSpace [0,55,0];
 _aircraft flyInHeight 180;
+private _airTransit=_airEnemyGroup addWaypoint [[1700,1800,180],0];
+_airTransit setWaypointType "MOVE";
+_airTransit setWaypointSpeed "NORMAL";
 {_x allowDamage false; _x setVariable ["acex_headless_blacklist",true,true]} forEach crew _aircraft;
 _aircraft setVariable ["WAIT_CortexQA_Label","LIVE ARMED AIR THREAT",true];
 private _airArmed=(weapons _aircraft) findIf {
