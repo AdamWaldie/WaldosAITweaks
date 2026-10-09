@@ -1236,6 +1236,8 @@ if (!isNull _deployedWeapon) then {
 private _deployFired=[{!isNull _deployedWeapon && {(_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0}},35] call _wait;
 ["DANGER-static-deploy-config-prerequisite",_deployConfigValid,str [_deployExpected,_deployBases,backpack _deployAssistant]] call _check;
 ["DANGER-static-deploy-physical-assembly",_deployReady && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner]] call _check;
+private _deployBearing=if (isNull _deployedWeapon) then {180} else {abs (((_deployedWeapon getRelDir _deployEnemy)+180) mod 360-180)};
+["DANGER-static-deploy-facing-sector",_deployActive && {_deployBearing <= 15},str [_deployedWeapon,_deployBearing]] call _check;
 ["DANGER-static-deploy-real-fire",_deployActive && {_deployFired},str [_deployedWeapon,_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]]] call _check;
 deleteVehicle _deployEnemy;
 private _deployReleased=[{

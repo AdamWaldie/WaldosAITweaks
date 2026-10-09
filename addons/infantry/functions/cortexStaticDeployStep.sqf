@@ -132,7 +132,11 @@ if (count _record >= 10) exitWith {
     if (_status == "ASSEMBLING") exitWith {
         private _matches=nearestObjects [_deployPos,[_expectedClass],8,true];
         private _assembled=_matches param [0,objNull,[objNull]];
-        if (!isNull _assembled && {alive _assembled} && {simulationEnabled _assembled}) then {
+        if (!isNull _assembled && {alive _assembled} && {simulationEnabled _assembled} && {local _assembled} && {crew _assembled isEqualTo []}) then {
+            // Orient the newly assembled empty emplacement once, before boarding. Native turret aiming
+            // cannot compensate for a base facing outside its traverse arc. Never rotate an occupied weapon.
+            private _sector=_record param [11,[],[[]]];
+            if (count _sector >= 2) then {_assembled setDir (_assembled getDir _sector)};
             _gunner assignAsGunner _assembled;
             [_gunner] orderGetIn true;
             _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",getPosATL _assembled,time+20]];
@@ -283,7 +287,7 @@ private _deadline=time+18;
     _x doMove _deployPos;
     _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_deployPos,_deadline]];
 } forEach [_gunner,_assistant];
-_record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1];
+_record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos];
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];
 "MOVING"
