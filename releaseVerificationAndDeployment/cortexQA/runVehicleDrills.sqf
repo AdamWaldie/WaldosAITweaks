@@ -587,7 +587,8 @@ private _safeStopObserved=false;
 private _dismounted=[{
     _peakExitSpeed=_peakExitSpeed max abs speed _truck;
     _safeStopObserved=_safeStopObserved || {abs speed _truck < 1};
-    _passengers findIf {!alive _x || {vehicle _x != _truck}} < 0
+    // Require all living passengers physically on foot, rather than still inside the carrier.
+    _passengers findIf {!alive _x || {vehicle _x != _x}} < 0
 },35] call _wait;
 ["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,format ["peakSpeed=%1 stationaryRequested=%2",_peakExitSpeed,_stationary]] call _check;
 if (_stationary) then {["DISMOUNT-fixture-stationary-held",_peakExitSpeed < 1,format ["peakSpeed=%1; movement invalidates the stationary comparison",_peakExitSpeed]] call _check};

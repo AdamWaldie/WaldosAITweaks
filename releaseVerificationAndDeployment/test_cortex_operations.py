@@ -5989,7 +5989,9 @@ class CortexOperations(unittest.TestCase):
         mounted=text.split('// A three-person armoured crew',1)[1].split('deleteGroup _contactCrewGroup;',1)[0]
         for forbidden in [' reveal ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' call WAIT_fnc_DangerEngineSubmit']:
             self.assertNotIn(forbidden,mounted)
-        self.assertNotIn('vehicle _x != _x',text)
+        dismount=text[text.index('private _dismounted=[{'):text.index('},35] call _wait;',text.index('private _dismounted=[{'))]
+        self.assertIn('vehicle _x != _x',dismount)
+        self.assertNotIn('vehicle _x != _truck',dismount)
 
     def test_mounted_danger_reacts_once_without_taking_route_ownership(self):
         text=source('cortexVehicles')
