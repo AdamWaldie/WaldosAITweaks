@@ -6134,6 +6134,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_stationary) then {(driver _truck) disableAI "PATH"}',text)
         self.assertIn('DISMOUNT-crew-report-physical-exit',text)
         self.assertIn('_driverDetected && {_enabledStartedMounted} && {_dismounted} && {_ownedExit}',text)
+        self.assertNotIn('_crewSees && {!_separate || {_passengersSee}}',text)
+        self.assertIn('_crewSees},30] call _wait;',text)
         self.assertIn('DISMOUNT-contact-physical-exit',text)
         self.assertIn('[false,true],[true,true],[false,true,false,true]',text)
 

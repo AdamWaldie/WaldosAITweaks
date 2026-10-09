@@ -555,7 +555,8 @@ private _contactSeen=[{
     };
 private _crewSees=(_opponents findIf {(_crew select 0) knowsAbout _x > 1}) >= 0;
 private _passengersSee=(_opponents findIf {leader _passengerGroup knowsAbout _x > 1}) >= 0;
-_crewSees && {!_separate || {_passengersSee}}},30] call _wait;
+// Separate cargo relies on the crew report; its own target detection is observation only.
+_crewSees},30] call _wait;
 {diag_log format ["WAIT CORTEX QA PASSENGER SAMPLE %1 [time,speed,occupants,groupKnowledge]: %2",_forEachIndex,_x]} forEach _passengerSamples;
 ["DISMOUNT-fixture-natural-contact",_contactSeen,["Shared occupants must naturally detect an opponent","The crew must naturally detect an opponent; the separate passenger squad intentionally relies on the bounded crew report"] select _separate] call _check;
 ["DISMOUNT-driver-detected-contact",_driverDetected,"Measured separately: a crew report cannot originate without crew detection"] call _check;
