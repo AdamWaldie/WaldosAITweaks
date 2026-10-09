@@ -424,3 +424,8 @@ than using a capped circular half-diagonal. Candidates must remain within the re
 radius and still pass existing slope, occupancy, clearance and ballistic screening checks.
 This repairs a geometric rejection risk for rectangular/long objects; physical cover acceptance
 across terrain and building models remains pending.
+
+Group-hide generation replacement now restores an old unchanged weak stance before dropping
+its lease, only for local idle actors still in the group with no actor-level stance or movement
+owner. Previously the old posture could survive after its proof was discarded and become the
+next generation's baseline. Physical exact-posture cleanup remains queued for retest.

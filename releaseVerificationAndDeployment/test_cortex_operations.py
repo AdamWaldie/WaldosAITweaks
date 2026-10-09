@@ -6462,6 +6462,15 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_group_hide_retires_old_generation_without_leaving_owned_stance(self):
+        text=source('dangerGroupHideStep')
+        section=text.split('if (_leases isNotEqualTo []) exitWith {',1)[1].split('private _valid=',1)[0]
+        self.assertIn('_leaseGeneration != _generation',section)
+        self.assertIn('_unit setUnitPosWeak _prior',section)
+        self.assertIn('WAIT_Danger_EngineStanceLease',section)
+        self.assertIn('WAIT_Cortex_ActorMove',section)
+        self.assertIn('currentCommand _unit == ""',section)
+
     def test_cover_candidate_uses_rotated_bounds_and_stays_in_search_radius(self):
         text=source('cortexFindCover')
         self.assertIn('_object worldToModel _threat',text)

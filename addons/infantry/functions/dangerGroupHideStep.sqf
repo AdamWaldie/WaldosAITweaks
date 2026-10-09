@@ -40,6 +40,18 @@ if (!_active || {_external}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _release};
 
 if (_leases isNotEqualTo []) exitWith {
+    {
+        _x params ["_unit","_prior","_applied","_leaseGeneration"];
+        // Generation replacement ends this finite posture. Dropping its record alone left
+        // the old weak stance behind and made the next generation capture it as its baseline.
+        if (_leaseGeneration != _generation && {!isNull _unit} && {alive _unit}
+            && {local _unit} && {group _unit == _group} && {currentCommand _unit == ""}
+            && {(_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
+            && {(_unit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+            && {toUpperANSI (unitPos _unit) == _applied}) then {
+            _unit setUnitPosWeak _prior;
+        };
+    } forEach _leases;
     private _valid=_leases select {
         _x params ["_unit","_prior","_applied","_leaseGeneration"];
         !isNull _unit && {alive _unit} && {local _unit} && {group _unit == _group}
