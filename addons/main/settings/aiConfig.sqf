@@ -373,6 +373,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_AntiArmour_Enable", true], // BOOL: best AT gunner engages known armour, clear of backblast.
         ["WAIT_AIPass_VehicleDismount_Enable", true], // Unloads capable passengers only when safely stopped on dry ground.
         ["WAIT_AIPass_VehicleRemount_Enable", true], // Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit.
+        ["WAIT_AIPass_VehicleReverse_Enable", true], // Tracked armour attempts one bounded threat-facing reverse leg.
         ["WAIT_AIPass_VehicleWithdraw_Enable", true], // Allows damaged vehicles to withdraw and use existing smoke.
         ["WAIT_AIPass_VehicleJink_Enable", true], // One bounded escape by an eligible intact fighting vehicle.
         ["WAIT_AIPass_CoverValidation_Enable", true], // Adds bounded slope and body clearance checks to shared cover selection.

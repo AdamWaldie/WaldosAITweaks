@@ -178,6 +178,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Vehicles_Enable` | Enable Cortex vehicle tactics | CHECKBOX | true | [] | NEXT_OPERATION | Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent. |
 | `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Armed crews make one safe immediate suppression response to a known danger source, then engage AT soldiers first, armour second and preserve distance from AT teams. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | Damage: withdraw mobile vehicle | CHECKBOX | true | [] | NEXT_OPERATION | Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke. |
+| `WAIT_AIPass_VehicleReverse_Enable` | Withdrawal: tracked reverse leg | CHECKBOX | true | [] | LIVE | Under damaged vehicle withdrawal, tracked armour attempts a short threat-facing reverse before native escape. Disabling releases the reverse command and retains the escape route. Wheeled vehicles retain forward escape. |
 | `WAIT_AIPass_VehicleJink_Enable` | Danger: short vehicle escape | CHECKBOX | true | [] | NEXT_OPERATION | Allows one intact crewed fighting vehicle to make a short terrain-checked escape from a close hostile, hit or explosion. Convoys, passenger loads and existing movement owners are excluded. |
 
 ### 03 Passengers

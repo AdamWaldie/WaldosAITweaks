@@ -31,6 +31,7 @@ if (toUpperANSI _mode == "RELEASE") exitWith {call _release};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 private _eligible=(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     && {[_group,"WAIT_AIPass_VehicleWithdraw_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+    && {[_group,"WAIT_AIPass_VehicleReverse_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {count _operation > 0} && {(_operation getOrDefault ["generation",-2]) == _generation}
     && {(_operation getOrDefault ["intent",""]) == "VEHICLE_WITHDRAW"}
     && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}

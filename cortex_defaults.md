@@ -126,6 +126,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_AntiArmour_Enable` | `true` | BOOL: best AT gunner engages known armour, clear of backblast. |
 | `WAIT_AIPass_VehicleDismount_Enable` | `true` | Unloads capable passengers only when safely stopped on dry ground. |
 | `WAIT_AIPass_VehicleRemount_Enable` | `true` | Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit. |
+| `WAIT_AIPass_VehicleReverse_Enable` | `true` | Tracked armour attempts one bounded threat-facing reverse leg; wheeled escape remains forward. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | `true` | Allows damaged vehicles to withdraw and use existing smoke. |
 | `WAIT_AIPass_VehicleJink_Enable` | `true` | Allows one short terrain-checked escape by an eligible intact fighting vehicle under close or severe danger. |
 | `WAIT_AIPass_DrivingAssist_Enable` | `true` | Applies a sparse terrain-grade speed cap to ordinary AI ground vehicles while preserving their native waypoint and route. Convoys use separate driving controls. |
