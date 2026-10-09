@@ -27,7 +27,10 @@ Changes awaiting that physical batch:
 - Zeus waypoint ownership releases when the authored chain finishes instead of retaining a
   120-second grace period. Direct edits retain the configured hold. During a Zeus chain, WAIT's
   present eligibility gate still yields its whole group controller; native combat remains available.
-  Selective nonmovement WAIT assistance during that chain has not been implemented or accepted.
+  Observation-only hearing is now retained during a waypoint chain, with direct edit, player,
+  remote-control, aircraft and specialist gates rechecked on each callback. It stores only uncertain
+  sound reports and cannot start movement or reveal a target. Broader selective combat assistance
+  and physical coexistence acceptance remain incomplete.
 - Native danger entry records now precede eligibility rejection. Live-disable audit evidence
   distinguishes actual reflex delivery from subsequent cleanup, while retaining the combined check.
 

@@ -68,7 +68,9 @@ private _spotters = [];
             [_group, true] call WAIT_fnc_CortexLocality;
         };
     } else {
-        [_group,true] call WAIT_fnc_CortexHearingLocal;
+        // Hearing decides observation eligibility independently of movement ownership. A Zeus
+        // waypoint can retain uncertain sound reports without waking this group controller.
+        [_group] call WAIT_fnc_CortexHearingLocal;
         [_group,true] call WAIT_fnc_DangerSetup;
         if (local _group && {_group getVariable ["WAIT_AIPass_Managed",false]}) then {
             [_group,true,"AIRCRAFT_DEDICATED"] call WAIT_fnc_CortexReleaseGroup;
