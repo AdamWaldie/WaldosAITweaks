@@ -576,6 +576,13 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _transitionHealthy=serverTime < _transitionDeadline && {_transitionGateOpen} && {_transitionCurrent == _transitionPhase};
         _checks pushBack ["ai",format ["cortex-transition-ownership-%1",netId _group],["ERROR","LOADED"] select _transitionHealthy,format ["group=%1 intentPhase=%2 currentPhase=%3 source=%4 gateOpen=%5 ageSeconds=%6 secondsRemaining=%7 teamAlive=%8 target=%9. A durable transition exists only to resume INVESTIGATE or SEARCH after locality migration; it must not survive its gate, deadline or phase.",groupId _group,_transitionPhase,_transitionCurrent,_transitionSource,_transitionGateOpen,(serverTime-_transitionStarted) max 0,(_transitionDeadline-serverTime) max 0,{alive _x} count _transitionTeam,_transitionTarget]];
     };
+    private _coverEnd=_group getVariable ["WAIT_Danger_CoverEnd",[]];
+    if (count _coverEnd == 9) then {
+        _checks pushBack ["ai",format ["danger-cover-end-%1",netId _group],"LOADED",
+            format ["group=%1 owner=%2 endAgeSeconds=%3 actor=%4 generation=%5 reason=%6 horizontalDistance=%7 verticalDistance=%8 destination=%9 observedOwner=%10 observedEpoch=%11. Last owner-local retirement observation only; destination proximity does not prove screening or replicated HC history.",
+                groupId _group,groupOwner _group,(time-(_coverEnd select 0)) max 0,_coverEnd select 1,
+                _coverEnd select 2,_coverEnd select 3,_coverEnd select 4,_coverEnd select 5,_coverEnd select 6,_coverEnd select 7,_coverEnd select 8]];
+    };
     private _remountEnd=_state getOrDefault ["lastRemountEnd",[]];
     if (count _remountEnd == 3) then {
         _checks pushBack ["ai",format ["cortex-remount-end-%1",netId _group],"LOADED",

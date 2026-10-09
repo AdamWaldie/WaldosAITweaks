@@ -52,6 +52,15 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {currentCommand _actor in ["","MOVE"]}) exitWith {true};
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
+    private _distance=if (isNull _leasedActor) then {-1} else {_leasedActor distance2D _leasedSpot};
+    private _height=if (isNull _leasedActor) then {-1} else {abs (((getPosATL _leasedActor) select 2)-(_leasedSpot param [2,0]))};
+    private _endReason=if (_releaseOnly) then {"RELEASED"} else {
+        if (!isNull _leasedActor && {alive _leasedActor} && {_distance <= 2} && {_height <= 1.5}) then {"AT_DESTINATION"} else {
+            ["INTERRUPTED","TIMEOUT"] select (time >= _expires)
+        }
+    };
+    // One owner-local observation, not an accumulating history or proof of effective screening.
+    _group setVariable ["WAIT_Danger_CoverEnd",[time,_leasedActor,_leasedGeneration,_endReason,_distance,_height,+_leasedSpot,clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]];
     if (!isNull _leasedActor) then {
         private _actorMove=_leasedActor getVariable ["WAIT_Cortex_ActorMove",[]];
         if (local _leasedActor && {count _actorMove == 3}
