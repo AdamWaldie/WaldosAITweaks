@@ -145,6 +145,8 @@ if (count _staticDeployment >= 10) then {
     private _packHandler=_staticDeployment param [10,-1,[0]];
     if (!isNull _deployGunner && {local _deployGunner}) then {
         if (_packHandler >= 0) then {_deployGunner removeEventHandler ["WeaponDisassembled",_packHandler]};
+        private _assemblyHandler=_staticDeployment param [12,-1,[0]];
+        if (_assemblyHandler >= 0) then {_deployGunner removeEventHandler ["WeaponAssembled",_assemblyHandler]};
         _deployGunner setVariable ["WAIT_Danger_StaticPackContext",nil];
         private _deployMove=_deployGunner getVariable ["WAIT_Cortex_ActorMove",[]];
         if ((_deployMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {

@@ -28,6 +28,8 @@ private _retire={
         private _handler=_record param [10,-1,[0]];
         if (!isNull _gunner && {local _gunner}) then {
             if (_handler >= 0) then {_gunner removeEventHandler ["WeaponDisassembled",_handler]};
+            private _assemblyHandler=_record param [12,-1,[0]];
+            if (_assemblyHandler >= 0) then {_gunner removeEventHandler ["WeaponAssembled",_assemblyHandler]};
             _gunner setVariable ["WAIT_Danger_StaticPackContext",nil];
         };
         [_gunner] call _clearActor;
@@ -120,11 +122,32 @@ if (count _record >= 10) exitWith {
             "FAILED"
         } else {
             if (_gunner distance2D _deployPos <= 3.5 && {_assistant distance2D _deployPos <= 3.5}) then {
-                _gunner action ["PutBag",_assistant];
-                _gunner action ["Assemble",unitBackpack _assistant];
+
+                private _assemblyHandler=_gunner addEventHandler ["WeaponAssembled",{
+                    params ["_actor","_assembled"];
+                    private _owner=group _actor;
+                    private _current=_owner getVariable ["WAIT_Danger_StaticDeployment",[]];
+                    if (local _actor && {local _owner} && {local _assembled}
+                        && {count _current >= 13} && {(_current select 12) == _thisEventHandler}
+                        && {(_current select 1) == "ASSEMBLING"}
+                        && {(_current select 2) == _actor} && {typeOf _assembled == (_current select 4)}
+                        && {crew _assembled isEqualTo []}
+                        && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}) then {
+                        private _sector=_current param [11,[],[[]]];
+                        if (count _sector >= 2) then {_assembled setDir (_assembled getDir _sector)};
+                    };
+                    _actor removeEventHandler ["WeaponAssembled",_thisEventHandler];
+                    if (count _current >= 13 && {(_current select 12) == _thisEventHandler}) then {
+                        _current set [12,-1];
+                        _owner setVariable ["WAIT_Danger_StaticDeployment",_current,true];
+                    };
+                }];
+                _record set [12,_assemblyHandler];
                 _record set [1,"ASSEMBLING"];
                 _record set [6,time+12];
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+                _gunner action ["PutBag",_assistant];
+                _gunner action ["Assemble",unitBackpack _assistant];
                 "ASSEMBLING"
             } else {"MOVING"}
         }
@@ -288,7 +311,7 @@ private _deadline=time+18;
     _x doMove _deployPos;
     _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_deployPos,_deadline]];
 } forEach [_gunner,_assistant];
-_record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos];
+_record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos,-1];
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];
 "MOVING"

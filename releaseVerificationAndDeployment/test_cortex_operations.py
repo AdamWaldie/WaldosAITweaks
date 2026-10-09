@@ -771,7 +771,7 @@ class CortexOperations(unittest.TestCase):
             'gunner _assembled == _gunner',
             'count _sector >= 2 && {crew _assembled isEqualTo []}',
             '_assembled setDir (_assembled getDir _sector)',
-            '_assistantBag,-1,+_targetPos]',
+            '_assistantBag,-1,+_targetPos,-1]',
             'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
             'lineIntersectsSurfaces','surfaceNormal _x',
             'crew _weapon isEqualTo [] && {vehicle _gunner == _gunner}',
