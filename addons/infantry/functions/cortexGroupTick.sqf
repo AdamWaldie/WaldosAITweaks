@@ -328,11 +328,21 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
     };
     if (_operationKey != "") then {
         private _generation=_state getOrDefault [_operationKey,-1];
-        if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
+        private _movementResult="COMPLETE";
+        private _movementReason=_movementOwner+"_FINISHED";
+        if (_movementOwner == "TACTICAL_REPOSITION") then {
+            private _record=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
+            private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+            private _arrived=count _record >= 8 && {(_record select 7) == _generation}
+                && {!isNull _anchor} && {_anchor distance2D (_record select 5) <= 12};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _arrived;
+            _movementReason=["REPOSITION_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived;
+        };
+        if (_generation >= 0) then {[_group,_generation,_movementResult,_movementReason] call WAIT_fnc_OperationRelease};
         if (_movementOwner == "TACTICAL_REPOSITION") then {
             private _reposition=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
             if (count _reposition >= 8 && {(_reposition select 7) == _generation}) then {
-                _reposition set [0,"COMPLETE"];
+                _reposition set [0,_movementResult];
                 _reposition pushBack serverTime;
                 _group setVariable ["WAIT_Cortex_TacticalReposition",_reposition,true];
             };

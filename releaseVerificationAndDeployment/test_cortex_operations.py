@@ -3080,7 +3080,9 @@ class CortexOperations(unittest.TestCase):
         ]:
             self.assertIn(marker,reposition)
         self.assertIn('case "TACTICAL_REPOSITION": {"tacticalRepositionOperationGeneration"}',tick)
-        self.assertIn('_reposition set [0,"COMPLETE"]',tick)
+        self.assertIn('_reposition set [0,_movementResult]',tick)
+        self.assertIn('_anchor distance2D (_record select 5) <= 12',tick)
+        self.assertIn('["INCOMPLETE","COMPLETE"] select _arrived',tick)
         self.assertIn('class CortexTacticalReposition',functions)
         self.assertIn('case "REPOSITION"',selector)
         self.assertNotIn('spawn',reposition)
@@ -4559,7 +4561,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,"ARTILLERY_SCOOT",_spot,[],[_spot],"MOVING"] call WAIT_fnc_OperationStart',scoot)
         self.assertIn('["artilleryScootOperationGeneration",_operation get "generation"]',scoot)
         self.assertIn('case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};',tick)
-        self.assertIn('[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease',tick)
+        self.assertIn('[_group,_generation,_movementResult,_movementReason] call WAIT_fnc_OperationRelease',tick)
 
     def test_convoy_recovers_only_the_same_unchanged_final_route(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
