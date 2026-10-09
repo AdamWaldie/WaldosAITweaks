@@ -76,6 +76,9 @@ _group setVariable ["WAIT_AIPass_Managed", nil];
 {_group setVariable [_x, nil]} forEach ["WAIT_AIPass_GarrisonApplied", "WAIT_AIPass_DefendApplied", "WAIT_AIPass_ClearApplied"];
 _group setVariable ["WAIT_AIPass_Adopted", _gained];
 if (!_gained || {!local _group}) exitWith {};
+// Observation-only hearing has its own eligibility boundary and may coexist with a curator
+// waypoint. Reinstall it on the new owner now instead of losing sound events until discovery.
+[_group] call WAIT_fnc_CortexHearingLocal;
 // Recovery is cancelled by adoption, not silently resumed from stale diagnostics.
 if ((_group getVariable ["WAIT_Cortex_DrillRecovery",[]]) isNotEqualTo []) then {
     _group setVariable ["WAIT_Cortex_DrillRecovery",["MIGRATED",[],-1],true];

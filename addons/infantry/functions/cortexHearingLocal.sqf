@@ -16,6 +16,7 @@ private _leader = leader _group;
 private _waypointObservation=(_group getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "WAYPOINT"
     && {_group getVariable ["WAIT_AIPass_ZeusWaypoints",false]};
 private _enabled = !_cleanup && {local _group} && {alive _leader} && {!isPlayer _leader}
+    && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
     && {[_group,_waypointObservation,true] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Hearing_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 if (_tracked isNotEqualTo [] && {!_enabled || {(_tracked select 0) != _leader}}) then {
     (_tracked select 0) removeEventHandler ["FiredNear",_tracked select 1];
