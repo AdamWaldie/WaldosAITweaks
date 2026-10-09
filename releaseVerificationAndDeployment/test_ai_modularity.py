@@ -209,9 +209,9 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
-        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', infantry)
+        self.assertIn('requiredAddons[] = {"cba_main"}', infantry)
         self.assertNotIn('fsmDanger =', infantry)
-        self.assertIn('requiredAddons[] = {"A3_Characters_F"}', danger)
+        self.assertIn('requiredAddons[] = {"cba_main"}', danger)
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
             self.assertIn('class '+base+': CAManBase', danger)
         self.assertEqual(danger.count('fsmDanger = "z\\wait\\danger\\danger.fsm"'),3)

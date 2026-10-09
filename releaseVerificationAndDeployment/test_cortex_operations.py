@@ -5911,7 +5911,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
         self.assertIn('_grenade setVelocity [0,0,-4]',text)
         self.assertGreaterEqual(text.count('call _spawnRealGrenade'),6)
-        self.assertNotIn('attackTarget (',text)
+        self.assertNotIn('attackTarget',text)
         self.assertIn('abs speed _dangerTruck > 5',text)
         self.assertIn('O_APC_Wheeled_02_rcws_v2_F',text)
         self.assertIn('effectiveCommander _contactVehicle',text)
