@@ -558,3 +558,8 @@ Vehicle withdrawal no longer consumes its contact-episode marker before route an
 acceptance. Failed selection/ownership is reconsidered after an eight-second vehicle-locality
 safe retry deadline. Smoke is requested on accepted withdrawal, not each rejected attempt.
 Blocked-route recovery and later acceptance remain pending physical testing.
+
+Group-hide generation retirement now uses the same nonplayer/on-foot/specialist ownership
+checks as normal release. A newly boarded or activated specialist actor cannot receive prior
+posture restoration through the separate generation-change branch. Physical combined handover
+remains pending; staged cb648d7 predates this incremental repair.

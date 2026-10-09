@@ -6589,6 +6589,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStanceLease',section)
         self.assertIn('WAIT_Cortex_ActorMove',section)
         self.assertIn('currentCommand _unit == ""',section)
+        self.assertIn('isNull objectParent _unit',section)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',section)
+        self.assertIn('!isPlayer _unit',section)
 
     def test_cover_candidate_uses_rotated_bounds_and_stays_in_search_radius(self):
         text=source('cortexFindCover')

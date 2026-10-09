@@ -48,7 +48,9 @@ if (_leases isNotEqualTo []) exitWith {
         // Generation replacement ends this finite posture. Dropping its record alone left
         // the old weak stance behind and made the next generation capture it as its baseline.
         if (_leaseGeneration != _generation && {!isNull _unit} && {alive _unit}
-            && {local _unit} && {group _unit == _group} && {currentCommand _unit == ""}
+            && {local _unit} && {!isPlayer _unit} && {group _unit == _group}
+            && {isNull objectParent _unit} && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+            && {currentCommand _unit == ""}
             && {(_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
             && {(_unit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
             && {toUpperANSI (unitPos _unit) == _applied}) then {
