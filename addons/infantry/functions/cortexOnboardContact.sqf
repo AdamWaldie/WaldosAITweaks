@@ -54,9 +54,14 @@ private _vehicles=[];
                 if (_owned findIf {(_x select 0) == _unit} < 0) then {_owned pushBack [_unit,_vehicle]};
                 _state set ["dismounted",_owned];
                 _state set ["onboardContactUntil",serverTime+30];
-                [_unit] orderGetIn false;
-                unassignVehicle _unit;
-                doGetOut _unit;
+                // Preserve the engine's in-progress exit animation/order. A later interrupted
+                // command may be retried on the next eligible tick, but healthy exits are not reissued.
+                if (toUpperANSI (currentCommand _unit) != "GET OUT"
+                    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
+                    [_unit] orderGetIn false;
+                    unassignVehicle _unit;
+                    doGetOut _unit;
+                };
             } forEach _cargo;
         };
     };

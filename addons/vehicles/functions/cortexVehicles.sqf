@@ -250,7 +250,7 @@ private _dismountAtThreat = {
                 _dismounted pushBack [_unit,_vehicle];
             };
             _state set ["dismounted", _dismounted];
-            if ([] call _mayIssueVehicle) then {
+            if ([] call _mayIssueVehicle && {toUpperANSI (currentCommand _unit) != "GET OUT"}) then {
                 [_unit] orderGetIn false;
                 unassignVehicle _unit;
                 doGetOut _unit;
