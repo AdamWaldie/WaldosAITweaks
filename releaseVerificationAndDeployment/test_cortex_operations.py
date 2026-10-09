@@ -6445,3 +6445,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_priorStance=_groupLease param [1,_currentStance',actor)
         self.assertIn('_groupLeases deleteAt _groupLeaseIndex',actor)
         self.assertLess(actor.index('_groupLeases deleteAt'),actor.index('_actor setUnitPosWeak'))
+
+    def test_actor_level_static_and_safety_moves_keep_mobile_danger_posture(self):
+        actor=source('dangerEngineAct')
+        self.assertIn('WAIT_Cortex_ActorMove',actor)
+        self.assertIn('(_actorMove param [2,-1,[0]]) > time',actor)
+        for intent in ['STATIC_DEPLOY','STATIC_PACK','DANGER_COVER','GRENADE_EVASION']:
+            self.assertIn('"'+intent+'"',actor)
+        self.assertLess(actor.index('_committedMover=true'),actor.index('if (_mode == "IMMEDIATE")'))

@@ -40,6 +40,14 @@ private _committedMover=count _operation > 0
     && {(_operation getOrDefault ["route",[]]) isNotEqualTo []}
     && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","MANOEUVRE","ASSAULT","MOVING","TRAVEL","WITHDRAW"]};
 
+// Some finite actor-level opportunities compose beside the group operation. Static deployment,
+// packing, cover and grenade evasion already own an exact destination and deadline; an immediate
+// danger response must not force these movers prone merely because they are not group participants.
+private _actorMove=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
+    && {(_actorMove param [0,"",[""]]) in ["STATIC_DEPLOY","STATIC_PACK","DANGER_COVER","GRENADE_EVASION"]}) then {
+    _committedMover=true;
+};
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
 // short scripted stance. Direct commander stance orders have higher engine priority, while another
