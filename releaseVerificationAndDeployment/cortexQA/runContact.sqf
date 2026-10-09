@@ -109,7 +109,9 @@ private _killWithRealProjectile={
     };
     private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
     if (isNull _projectile) exitWith {
-        diag_log "WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile";
+        diag_log format ["WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile; local=%1 simulation=%2 currentWeapon=%3 before=%4 after=%5 modes=%6 behaviour=%7 combatMode=%8",
+            local _source,simulationEnabled _source,currentWeapon _source,_weaponState,weaponState _source,
+            getArray (configFile >> "CfgWeapons" >> _rifle >> "modes"),behaviour _source,combatMode _sourceGroup];
         deleteVehicle _source;
         deleteGroup _sourceGroup;
         objNull

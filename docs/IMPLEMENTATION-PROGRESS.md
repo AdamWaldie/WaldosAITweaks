@@ -46,6 +46,12 @@ Changes under physical reassessment:
 - Native danger entry records now precede eligibility rejection. Live-disable audit evidence
   distinguishes actual reflex delivery from subsequent cleanup, while retaining the combined check.
 
+The subsequent corrected `41da6a4` run has now passed existing-static disabled state, physical
+seat occupation, real emplacement fire alongside squad fire, and contact cleanup. Those results
+support the empty-weapon selection correction only; carried deployment and broader danger parity
+remain separate acceptance cases. The rifle casualty fixture still reports no native projectile,
+so casualty response cannot be evaluated from those failed stimulus cases. Additional weapon-state
+and mode diagnostics are queued to establish the cause without changing casualty logic.
 ## Earlier implementation work
 
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
