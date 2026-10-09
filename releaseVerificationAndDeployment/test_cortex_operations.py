@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_rejected_vehicle_escape_does_not_consume_withdrawal_or_smoke(self):
+        text=source('cortexVehicles')
+        section=text.split('// A rejected route is not a completed withdrawal.',1)[1].split('// Gunner priorities',1)[0]
+        self.assertIn('serverTime+8,true',section)
+        self.assertLess(section.index('if (count _operation == 0)'),section.index('_withdrawn pushBackUnique'))
+        self.assertLess(section.index('if (count _operation == 0)'),section.index('WAIT_fnc_CortexFireCountermeasure'))
+
     def test_passenger_stop_saved_speed_survives_owner_migration(self):
         text=source('cortexVehicles')
         self.assertIn('setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0],true]',text)

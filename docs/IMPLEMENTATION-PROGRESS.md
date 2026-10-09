@@ -553,3 +553,8 @@ Passenger stop acquisition and release now publish the saved/owned forced-speed 
 the old owner alone knew the pre-stop speed, so a new owner could retain a zero cap after request
 expiry. Commands remain vehicle-owner local and restoration still requires exact current-speed
 ownership. Actual stop/boarding HC migration remains queued for physical acceptance.
+
+Vehicle withdrawal no longer consumes its contact-episode marker before route and operation
+acceptance. Failed selection/ownership is reconsidered after an eight-second vehicle-locality
+safe retry deadline. Smoke is requested on accepted withdrawal, not each rejected attempt.
+Blocked-route recovery and later acceptance remain pending physical testing.

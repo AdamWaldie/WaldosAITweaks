@@ -527,10 +527,11 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         } >= 0
     };
     if (_commandsVehicle && {_vehicle isKindOf "LandVehicle"} && {[_group, "WAIT_AIPass_VehicleWithdraw_Enable", true] call WAIT_fnc_CortexFeatureEnabled} && {local _vehicle} && {alive _vehicle} && {canMove _vehicle} && {!(_vehicle in _withdrawn)} && {_distance < 800}
+        && {serverTime >= (_vehicle getVariable ["WAIT_Cortex_WithdrawRetryAt",0])}
         && {damage _vehicle >= 0.5 || {!canFire _vehicle && {call _hasRealWeapon}}}) then {
-        _withdrawn pushBack _vehicle;
-        _state set ["withdrawn", _withdrawn];
-        [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
+        // A rejected route is not a completed withdrawal. Reconsider sparsely after geometry
+        // or ownership changes; no every-tick replanning or repeated smoke request.
+        _vehicle setVariable ["WAIT_Cortex_WithdrawRetryAt",serverTime+8,true];
         if ((units _group) findIf {alive _x && {vehicle _x == _x}} < 0) then {
             private _threat=(_enemies select 0) select 0;
             private _away=[_vehicle,_enemyPos,_threat,300] call _selectVehicleEscape;
@@ -539,6 +540,9 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
                 if (count _operation == 0) then {
                     [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
                 } else {
+                    _withdrawn pushBackUnique _vehicle;
+                    _state set ["withdrawn",_withdrawn];
+                    [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
                     private _reverse=[_group,_state,_vehicle,_enemyPos,"START",_operation get "generation"] call WAIT_fnc_CortexVehicleReverseStep;
                     if (_reverse != "REVERSE") then {[_group, _away, 40] call WAIT_fnc_CortexGroupMove};
                     _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
