@@ -77,6 +77,19 @@ if (_desiredStance != "") then {
     private _currentStance=toUpperANSI (unitPos _actor);
     private _lease=_actor getVariable ["WAIT_Danger_EngineStanceLease",[]];
     private _priorStance=_currentStance;
+    // A group-hide lease is another WAIT posture owner, not an external authored stance.
+    // Transfer its original baseline before the actor FSM acquires this soldier; otherwise the
+    // actor captures a temporary crouch/prone value and restores that value permanently later.
+    private _groupLeases=_group getVariable ["WAIT_Danger_GroupHideLeases",[]];
+    private _groupLeaseIndex=_groupLeases findIf {(_x param [0,objNull]) == _actor};
+    if (_groupLeaseIndex >= 0) then {
+        private _groupLease=_groupLeases select _groupLeaseIndex;
+        if (_currentStance == (_groupLease param [2,"",[""]])) then {
+            _priorStance=_groupLease param [1,_currentStance,[""]];
+        };
+        _groupLeases deleteAt _groupLeaseIndex;
+        _group setVariable ["WAIT_Danger_GroupHideLeases",_groupLeases];
+    };
     private _mayApply=true;
     if (count _lease >= 3) then {
         _priorStance=_lease param [0,_currentStance,[""]];

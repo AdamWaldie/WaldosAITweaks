@@ -6436,3 +6436,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_reverseResult in ["COMPLETE","FALLBACK"]',tick)
         for helper in ['operationCancel','operationRelease','cortexRestoreCalm','cortexLocality']:
             self.assertIn('WAIT_fnc_CortexVehicleReverseStep',source(helper))
+
+    def test_group_and_actor_danger_stance_owners_transfer_original_baseline(self):
+        group_hide=source('dangerGroupHideStep')
+        actor=source('dangerEngineAct')
+        self.assertIn('WAIT_Danger_EngineStanceLease',group_hide)
+        self.assertIn('_groupLeaseIndex=_groupLeases findIf',actor)
+        self.assertIn('_priorStance=_groupLease param [1,_currentStance',actor)
+        self.assertIn('_groupLeases deleteAt _groupLeaseIndex',actor)
+        self.assertLess(actor.index('_groupLeases deleteAt'),actor.index('_actor setUnitPosWeak'))

@@ -64,6 +64,7 @@ private _candidates=(units _group) select {
         && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
         && {currentCommand _x == ""}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+        && {(_x getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
 };
 // Preserve the squad's immediate anti-armour and anti-air answer. A low-profile danger response
 // must not select the only launcher-capable actor merely because that actor appears early in group
