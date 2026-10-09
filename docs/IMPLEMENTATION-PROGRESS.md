@@ -594,3 +594,5 @@ Danger cover searches now retire a failed solid-cover assessment when the visual
 Danger-cover retention and failed-approach recovery now require both native MOVE and PATH to remain enabled. Disabling either retires the lease without issuing return-to-formation movement. Physical external-disablement checks remain pending.
 
 Group release now explicitly retires danger-cover leases through release-only mode. It cannot retain a still-valid cover lease or issue return-to-formation movement during handover. Physical lifecycle acceptance remains pending.
+
+A failed solid-cover search now retains one four-second owner-local follow-up record, so brief danger expiry does not discard the visual-concealment assessment. The existing group callback consumes it once, with generation and ownership revalidation in the helper. Group release clears the record. Physical cadence and handover acceptance remain pending.

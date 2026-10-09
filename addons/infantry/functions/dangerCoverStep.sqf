@@ -20,6 +20,7 @@ params [
 private _clearLease={
     params [["_reason","RELEASED",[""]]];
     if (!isNull _group) then {
+        _group setVariable ["WAIT_Danger_CoverPending",nil];
         _group setVariable ["WAIT_Danger_CoverDecision",[_reason,time,_actor,_generation]];
         private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
         if (count _lease >= 2 && {(_lease select 0) isEqualTo _actor}
@@ -121,10 +122,17 @@ if (_found && {count _spot >= 2} && {_spot distance2D _origin < 0.6}) exitWith {
     ["NO_DISPLACEMENT"] call _clearLease
 };
 if (!_found || {count _spot < 2}
-    || {_spot distance2D _origin > 18}) exitWith {[["NO_VALID_COVER","NO_SCREEN"] select (_screenMode == "CONCEALMENT")] call _clearLease};
+    || {_spot distance2D _origin > 18}) exitWith {
+    [["NO_VALID_COVER","NO_SCREEN"] select (_screenMode == "CONCEALMENT")] call _clearLease;
+    if (_screenMode == "COVER" && {[_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) then {
+        _group setVariable ["WAIT_Danger_CoverPending",[_actor,_generation,+_threat,time+4]];
+    };
+    false
+};
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {currentCommand _actor != ""}) exitWith {call _clearLease};
+_group setVariable ["WAIT_Danger_CoverPending",nil];
 _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot,_screenMode]];
 // The observation may end before native pathing reaches cover. Retain the committed move
 // independently, with a bounded travel allowance rather than a four-second universal cutoff.

@@ -90,6 +90,7 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
 };
 if (local _group) then {
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
+    _group setVariable ["WAIT_Danger_CoverPending",nil];
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _dangerCoverLease >= 2) then {
         [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1,true] call WAIT_fnc_DangerCoverStep;

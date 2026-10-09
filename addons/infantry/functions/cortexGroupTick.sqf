@@ -275,6 +275,15 @@ if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) the
     if (count _coverLease >= 2) then {
         [_group,_coverLease select 0,[],_coverLease select 1] call WAIT_fnc_DangerCoverStep;
     };
+    // A failed solid-cover assessment may outlive the brief native danger observation.
+    // Service its one bounded follow-up through this existing callback, never a separate worker.
+    private _coverPending=_group getVariable ["WAIT_Danger_CoverPending",[]];
+    if (count _coverPending == 4) then {
+        _group setVariable ["WAIT_Danger_CoverPending",nil];
+        if (time < (_coverPending select 3)) then {
+            [_group,_coverPending select 0,_coverPending select 2,_coverPending select 1] call WAIT_fnc_DangerCoverStep;
+        };
+    };
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
 };
 // Smoke is a supporting reflex, never another movement phase. One unreserved local actor may throw
