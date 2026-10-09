@@ -563,3 +563,9 @@ Group-hide generation retirement now uses the same nonplayer/on-foot/specialist 
 checks as normal release. A newly boarded or activated specialist actor cannot receive prior
 posture restoration through the separate generation-change branch. Physical combined handover
 remains pending; staged cb648d7 predates this incremental repair.
+
+Idle on-foot body/scream reactions now use a finite native glance toward the supplied object
+or valid observation position. Committed movers and concrete native tasks do not receive it.
+No target knowledge, fire authority, persistent watch or movement operation is created. This
+adds alert observation depth but does not complete body assessment or danger parity; physical
+observation/interruption acceptance remains pending.

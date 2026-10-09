@@ -48,6 +48,21 @@ if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
     && {(_actorMove param [0,"",[""]]) in ["STATIC_DEPLOY","STATIC_PACK","DANGER_COVER","GRENADE_EVASION","ANTI_ARMOUR","STATIC_SUPPORT"]}) then {
     _committedMover=true;
 };
+// Body and scream observations deserve a visible finite assessment, not only a stance flag.
+// glanceAt expires natively, so it needs no persistent watch owner or restoration command.
+// Preserve committed movement and concrete native tasks; this never reveals an enemy.
+if (_mode == "HIDE" && {_cause in [5,6,7]} && {!_committedMover}
+    && {isNull objectParent _actor} && {currentCommand _actor == ""}) then {
+    private _observed=_record param [3,objNull,[objNull]];
+    private _position=_record param [1,[],[[]]];
+    if (!isNull _observed) then {
+        _actor glanceAt _observed;
+    } else {
+        if (count _position == 3 && {_position findIf {!(_x isEqualType 0)} < 0}) then {
+            _actor glanceAt _position;
+        };
+    };
+};
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
 // short scripted stance. Direct commander stance orders have higher engine priority, while another

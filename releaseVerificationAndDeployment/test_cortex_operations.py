@@ -6462,6 +6462,16 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_alert_observation_is_finite_and_preserves_committed_movement(self):
+        text=source('dangerEngineAct')
+        observation=text.split('// Body and scream observations deserve',1)[1].split('// Forced orders',1)[0]
+        self.assertIn('_cause in [5,6,7]',observation)
+        self.assertIn('!_committedMover',observation)
+        self.assertIn('currentCommand _actor == ""',observation)
+        self.assertIn('glanceAt',observation)
+        for forbidden in ['doMove','doTarget','doWatch','reveal','setCombatMode']:
+            self.assertNotIn(forbidden,observation.replace('reveals',''))
+
     def test_rejected_vehicle_escape_does_not_consume_withdrawal_or_smoke(self):
         text=source('cortexVehicles')
         section=text.split('// A rejected route is not a completed withdrawal.',1)[1].split('// Gunner priorities',1)[0]
