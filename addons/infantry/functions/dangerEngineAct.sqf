@@ -38,7 +38,7 @@ private _committedMover=count _operation > 0
     && {_actor in _participants}
     && {!(_actor in _unavailable)}
     && {(_operation getOrDefault ["route",[]]) isNotEqualTo []}
-    && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","MANOEUVRE","MOVING","TRAVEL","WITHDRAW"]};
+    && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","MANOEUVRE","ASSAULT","MOVING","TRAVEL","WITHDRAW"]};
 
 // Forced orders and vehicle crews already have an engine movement owner. Recording the response is
 // useful, but changing their posture would compete with that owner. Foot soldiers receive only a
