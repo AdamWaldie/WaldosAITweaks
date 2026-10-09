@@ -254,6 +254,10 @@ _orientTarget disableAI "PATH";
 _orientTarget setVariable ["WAIT_CortexQA_Label","DANGER ORIENT HOSTILE",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_orientCrew+[_orientTarget],true];
 private _orientOrigin=getPosATL _orientVehicle;
+private _orientKnown=[{(effectiveCommander _orientVehicle) knowsAbout _orientTarget > 0},20] call _wait;
+["DANGER-VEHICLE-orient-native-detection-prerequisite",_orientReady && {_orientKnown},
+    str [_orientCrew apply {[_x knowsAbout _orientTarget,_x targetKnowledge _orientTarget]},
+        getPosATL _orientVehicle,getPosATL _orientTarget]] call _check;
 private _orientOwned=[{
     count (_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]) == 5
         && {private _state=_orientGroup getVariable ["WAIT_AIPass_State",createHashMap];
@@ -264,7 +268,7 @@ private _orientAligned=[{
     _relative <= 20 || {_relative >= 340}
 },15] call _wait;
 private _orientCrewRetained=_orientCrew findIf {!alive _x || {vehicle _x != _orientVehicle}} < 0;
-["DANGER-VEHICLE-orient-operation-owned",_orientReady && {_orientOwned},str [_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]],(_orientGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-orient-operation-owned",_orientReady && {_orientKnown} && {_orientOwned},str [_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]],(_orientGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
 ["DANGER-VEHICLE-orient-physical-alignment",_orientOwned && {_orientAligned},str [getDir _orientVehicle,_orientVehicle getDir _orientTarget,_orientVehicle getRelDir _orientTarget]] call _check;
 ["DANGER-VEHICLE-orient-no-travel",_orientVehicle distance2D _orientOrigin < 8,str [_orientOrigin,getPosATL _orientVehicle,_orientVehicle distance2D _orientOrigin]] call _check;
 ["DANGER-VEHICLE-orient-crew-retained",_orientCrewRetained,str (_orientCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;

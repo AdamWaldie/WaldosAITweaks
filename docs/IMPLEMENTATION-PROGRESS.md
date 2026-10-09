@@ -614,3 +614,5 @@ Regroup now permits a bounded grace (at most thirty seconds, no more than the co
 Carried-static retirement now preserves one owner-local evidence record: owner/epoch, episode, last phase/deadline, destination, actor positions/native commands/distances/backpacks/vehicles and command-free handover. The 4531829 batch failed before assembly and consequently had no weapon for firing/facing/packing checks; the first failing phase remains unresolved.
 
 Carried deployment now captures the exact assistant bag before PutBag, then uses a finite DROPPING phase to observe native detachment before Assemble. Only the existing shared scheduler services it; the squad is not held. Missing/reassigned bags or drop timeout fail explicitly. Physical assembly/facing/fire/packing remain unproven.
+
+The enabled vehicle-orientation audit now explicitly records natural target knowledge before evaluating operation ownership. Detection absence leaves that behavioural acceptance unproven; no reveal or synthetic danger is added. This responds to engine detection limitations without treating missing observations as successful controller behaviour.
