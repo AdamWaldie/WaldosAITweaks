@@ -2109,9 +2109,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_group,true,_waypointID] call WAIT_fnc_CortexZeusMark',watch)
         self.assertIn('[_waypoint select 0,true,_waypoint select 1] call WAIT_fnc_CortexZeusMark',watch)
         held=source('cortexZeusHeld')
-        self.assertIn('if (_kind == "WAYPOINT") exitWith {',held)
+        self.assertIn('if (_kind == "WAYPOINT" && {_group getVariable ["WAIT_AIPass_ZeusWaypoints",false]}) exitWith {',held)
         self.assertIn('setVariable ["WAIT_AIPass_ZeusLocalUntil",-1]',held)
-        self.assertLess(held.index('if (_kind == "WAYPOINT") exitWith {'),
+        self.assertLess(held.index('if (_kind == "WAYPOINT"'),
                         held.rindex('time < (_group getVariable ["WAIT_AIPass_ZeusLocalUntil"'))
 
     def test_handover_visuals_do_not_keep_stale_rally_labels(self):

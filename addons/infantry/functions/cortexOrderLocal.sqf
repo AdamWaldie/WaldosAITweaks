@@ -24,7 +24,9 @@ private _reason = [_group,_order,_building] call WAIT_fnc_CortexOrderReason;
 if (_reason != "") exitWith {[_token,false,false,clientOwner,_reason] remoteExecCall ["WAIT_fnc_CortexOrderResult",2]};
 private _oldHold = _group getVariable ["WAIT_AIPass_ZeusHold",[]];
 private _oldWaypoints = _group getVariable ["WAIT_AIPass_ZeusWaypoints",false];
+private _oldControlKind = _group getVariable ["WAIT_AIPass_ZeusControlKind",""];
 if (_order in ["GARRISON", "DEFEND", "CLEAR", "AIRBORNE"]) then {
+    _group setVariable ["WAIT_AIPass_ZeusControlKind",nil,true];
     _group setVariable ["WAIT_AIPass_ZeusWaypoints", false, true];
     _group setVariable ["WAIT_AIPass_ZeusHold", [random 1e6, 0], true];
 };
@@ -50,6 +52,7 @@ if (_order in ["GARRISON", "DEFEND", "CLEAR", "AIRBORNE"]) then {
         case "RETURN": {
             if (isNull _group) exitWith {false};
             _group setVariable ["WAIT_AIPass_Exclude", nil, true];
+            _group setVariable ["WAIT_AIPass_ZeusControlKind",nil,true];
             _group setVariable ["WAIT_AIPass_ZeusWaypoints", false, true];
             // A zero-length token cancels any remaining Zeus hold on every machine.
             _group setVariable ["WAIT_AIPass_ZeusHold", [random 1e6, 0], true];
@@ -61,6 +64,7 @@ if (_order in ["GARRISON", "DEFEND", "CLEAR", "AIRBORNE"]) then {
     };
 
 if (!_accepted && {_order in ["GARRISON","DEFEND","CLEAR","AIRBORNE"]}) then {
+    _group setVariable ["WAIT_AIPass_ZeusControlKind",_oldControlKind,true];
     _group setVariable ["WAIT_AIPass_ZeusHold",_oldHold,true];
     _group setVariable ["WAIT_AIPass_ZeusWaypoints",_oldWaypoints,true];
 };

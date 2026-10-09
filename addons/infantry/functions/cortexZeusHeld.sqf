@@ -38,7 +38,7 @@ if (_token isNotEqualTo [] && {(_group getVariable ["WAIT_AIPass_ZeusSeenToken",
     _group setVariable ["WAIT_AIPass_ZeusLocalUntil", time + (_token select 1)];
 };
 private _kind=_group getVariable ["WAIT_AIPass_ZeusControlKind",["DIRECT","WAYPOINT"] select (_group getVariable ["WAIT_AIPass_ZeusWaypoints",false])];
-if (_kind == "WAYPOINT") exitWith {
+if (_kind == "WAYPOINT" && {_group getVariable ["WAIT_AIPass_ZeusWaypoints",false]}) exitWith {
     private _remaining=false;
     for "_index" from (currentWaypoint _group) to ((count waypoints _group)-1) do {
         if (!_remaining && {waypointDescription [_group,_index] != "WAIT AI PASS"}) then {_remaining=true};
