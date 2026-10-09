@@ -97,7 +97,9 @@ if (isNull _anchor) then {_anchor=leader _group};
 if (isNull _anchor) exitWith {"IDLE"};
 private _sideIndex=switch (side _group) do {case west:{1}; case east:{0}; case independent:{2}; default {3}};
 private _weapons=(nearestObjects [_anchor,["StaticWeapon"],75,true]) select {
-    alive _x && {simulationEnabled _x} && {canFire _x} && {someAmmo _x}
+    // canFire requires an operator and cannot qualify an empty emplacement.
+    alive _x && {simulationEnabled _x} && {damage _x < 0.9} && {someAmmo _x}
+        && {_x emptyPositions "gunner" > 0}
         && {crew _x isEqualTo []} && {locked _x < 2}
         && {getNumber (configOf _x >> "side") in [_sideIndex,3]}
 };

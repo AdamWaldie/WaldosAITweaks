@@ -726,11 +726,13 @@ class CortexOperations(unittest.TestCase):
 
     def test_danger_static_support_is_one_actor_and_one_attempt_per_contact(self):
         support=source('cortexStaticSupport')
+        self.assertNotIn('{canFire _x}',support)
+        self.assertIn('_x emptyPositions "gunner" > 0',support)
         group_tick=source('cortexGroupTick')
         restore=source('cortexRestoreCalm')
         for marker in [
             'WAIT_AIPass_StaticSupport_Enable','nearestObjects [_anchor,["StaticWeapon"],75,true]',
-            'crew _x isEqualTo []','canFire _x','someAmmo _x','_x != leader _group',
+            'crew _x isEqualTo []','damage _x < 0.9','someAmmo _x','_x != leader _group',
             'assignAsGunner _weapon','orderGetIn true','WAIT_Danger_StaticAttempt',
             'WAIT_Cortex_ActorMove",["STATIC_SUPPORT"','time+20'
         ]:
@@ -757,6 +759,8 @@ class CortexOperations(unittest.TestCase):
     def test_danger_static_deployment_is_finite_physical_and_owned(self):
         deploy=source('cortexStaticDeployStep')
         support=source('cortexStaticSupport')
+        self.assertNotIn('{canFire _x}',support)
+        self.assertIn('_x emptyPositions "gunner" > 0',support)
         restore=source('cortexRestoreCalm')
         for marker in [
             'WAIT_AIPass_StaticDeploy_Enable','assembleInfo','assembleTo','"primary") == 1',
