@@ -290,7 +290,20 @@ private _dismountAtThreat = {
                 private _role=_x select 1;
                 alive _unit && {group _unit == _passengerGroup}
                     && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
-            } >= 0};
+            } >= 0 || {
+                private _boarding=_passengerGroup getVariable ["WAIT_Cortex_Remount",[]];
+                count _boarding == 2 && {serverTime < (_boarding select 0)}
+                    && {!_movementOwned} && {_enemies isEqualTo []}
+                    && {!([_passengerGroup] call WAIT_fnc_CortexExternalTakeover)}
+                    && {[_passengerGroup,"WAIT_AIPass_VehicleRemount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {((_boarding select 1) select [0,8]) findIf {
+                        _x params ["_unit","_originalVehicle"];
+                        !isNull _unit && {alive _unit} && {group _unit == _passengerGroup}
+                            && {_originalVehicle == _vehicle} && {isNull objectParent _unit}
+                            && {_unit distance2D _vehicle <= 100}
+                            && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}
+                    } >= 0}
+            }};
     };
     if (_valid) then {
         if (_saved isEqualTo []) then {

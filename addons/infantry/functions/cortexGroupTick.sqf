@@ -575,6 +575,12 @@ if (_remount isNotEqualTo []) then {
     } else {
         {
             _x params ["_unit","_vehicle"];
+            // Boarding needs the vehicle owner's cooperation too. Keep the request bounded
+            // by this remount episode; its owner verifies the public passenger record.
+            if ([] call _mayIssueMovement && {local _unit} && {_unit distance2D _vehicle <= 100}) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",
+                    [_group,groupOwner _group,(serverTime+30) min _deadline],true];
+            };
             if ([] call _mayIssueMovement && {[_unit,_vehicle,true] call WAIT_fnc_CortexPassengerReady}) then {
                 // Preserve an in-progress boarding path; retry only a missing/interrupted order.
                 if (assignedVehicle _unit != _vehicle) then {_unit assignAsCargo _vehicle};

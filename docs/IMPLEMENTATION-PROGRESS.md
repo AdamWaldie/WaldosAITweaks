@@ -455,3 +455,10 @@ engine-policy PBOs or optional policy release layout currently exist. Runtime cr
 coefficients do not fulfil that locked delivery requirement. Policy design must preserve player
 projectile accuracy, remain restart-required and receive config plus physical acceptance before
 release inclusion. This is outstanding implementation, not an optional scope reduction.
+
+The passenger safe-stop handshake now also accepts a current bounded remount record, checked
+against original vehicle, surviving passenger membership, assignment, distance, feature state
+and external ownership. Crew contact or active vehicle movement ownership rejects this boarding
+hold. Passenger owners refresh requests only within the remount deadline; boarding, reassignment
+or expiry removes eligibility. This repairs the missing cooperation path but moving remount
+physical acceptance remains pending. At most eight boarding records are considered per vehicle.
