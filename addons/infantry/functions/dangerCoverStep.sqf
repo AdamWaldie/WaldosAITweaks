@@ -17,7 +17,9 @@ params [
     ["_threat",[],[[]]],["_generation",-1,[0]]
 ];
 private _clearLease={
+    params [["_reason","RELEASED",[""]]];
     if (!isNull _group) then {
+        _group setVariable ["WAIT_Danger_CoverDecision",[_reason,time,_actor,_generation]];
         private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
         if (count _lease >= 2 && {(_lease select 0) isEqualTo _actor}
             && {(_generation < 0) || {(_lease select 1) == _generation}}) then {
@@ -60,7 +62,13 @@ if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0
     || {!(_actor checkAIFeature "MOVE")} || {!(_actor checkAIFeature "PATH")}
     || {!isNull objectParent _actor} || {currentCommand _actor != ""}
-    || {(_actor getVariable ["WAIT_Cortex_ActorMove",[]]) isNotEqualTo []}) exitWith {call _clearLease};
+    || {(_actor getVariable ["WAIT_Cortex_ActorMove",[]]) isNotEqualTo []}) exitWith {
+    _group setVariable ["WAIT_Danger_CoverBlockedContext",[time,currentCommand _actor,
+        _actor checkAIFeature "MOVE",_actor checkAIFeature "PATH",
+        count (_group getVariable ["WAIT_Operation",createHashMap]),
+        _actor getVariable ["WAIT_Cortex_ActorMove",[]]]];
+    ["OWNERSHIP_OR_COMMAND"] call _clearLease
+};
 _threat=+_threat;
 if (count _threat < 2) exitWith {call _clearLease};
 if (count _threat == 2) then {_threat pushBack ((getPosATL _actor) select 2)};
@@ -69,10 +77,11 @@ private _away=(_origin getPos [7,_threat getDir _origin]);
 private _cover=[_away,_threat,8,[],_group] call WAIT_fnc_CortexFindCover;
 _cover params ["_spot","_found"];
 if (!_found || {count _spot < 2} || {_spot distance2D _origin < 2}
-    || {_spot distance2D _origin > 18}) exitWith {call _clearLease};
+    || {_spot distance2D _origin > 18}) exitWith {["NO_VALID_COVER"] call _clearLease};
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {currentCommand _actor != ""}) exitWith {call _clearLease};
+_group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot]];
 _actor doMove _spot;
 _actor setVariable ["WAIT_Cortex_ActorMove",["DANGER_COVER",+_spot,time+4]];
 _group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,time+4,+_spot]];

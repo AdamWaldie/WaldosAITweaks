@@ -512,7 +512,8 @@ private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitio
     (units _reflexGroup) apply {[_x,_x getVariable ["WAIT_Danger_EngineEntry",[]],local _x,currentCommand _x,behaviour _x]}
 ]] call _check;
 ["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
-["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]],
+    _reflexGroup getVariable ["WAIT_Danger_CoverDecision",[]],_reflexGroup getVariable ["WAIT_Danger_CoverBlockedContext",[]]]] call _check;
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
     str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;

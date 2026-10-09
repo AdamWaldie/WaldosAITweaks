@@ -51,7 +51,7 @@ private _origin=getPosATL _vehicle;
 private _awayBearing=_threatPosition getDir _origin;
 private _candidates=[];
 {
-    _candidates pushBack (_origin getPos [_x select 0,_awayBearing+(_x select 1)]);
+    _candidates pushBack [_origin getPos [_x select 0,_awayBearing+(_x select 1)]];
 } forEach [[35,0],[40,-30],[40,30],[45,-55],[45,55]];
 private _route=[_origin,_candidates,_threatPosition,[],_threat,"VEHICLE"] call WAIT_fnc_CortexSelectAvenue;
 if (_route isEqualTo []) exitWith {false};

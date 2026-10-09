@@ -6001,6 +6001,10 @@ class CortexOperations(unittest.TestCase):
         registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
         vehicles=source('cortexVehicles')
         jink=source('cortexVehicleJink')
+        self.assertIn('_candidates pushBack [_origin getPos [_x select 0,_awayBearing+(_x select 1)]]',jink)
+        avenue=source('cortexSelectAvenue')
+        self.assertIn('_route isEqualType []',avenue)
+        self.assertIn('!(_x isEqualType [])',avenue)
         self.assertIn('class CortexVehicleJink',registry)
         for marker in [
             'WAIT_AIPass_VehicleJink_Enable','WAIT_Convoy_Active','CortexExternalTakeover',

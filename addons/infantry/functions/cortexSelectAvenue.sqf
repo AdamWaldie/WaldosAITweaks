@@ -67,7 +67,10 @@ private _best=[];
 private _bestScore=1e12;
 {
     private _route=_x;
-    private _valid=_route isNotEqualTo [] && {_route findIf {count _x < 2 || {surfaceIsWater _x}} < 0};
+    private _valid=_route isEqualType [] && {_route isNotEqualTo []}
+        && {_route findIf {!(_x isEqualType []) || {count _x < 2}
+            || {!((_x select 0) isEqualType 0)} || {!((_x select 1) isEqualType 0)}
+            || {surfaceIsWater _x}} < 0};
     private _routeLength=0;
     private _hardScreen=0;
     private _concealed=0;
