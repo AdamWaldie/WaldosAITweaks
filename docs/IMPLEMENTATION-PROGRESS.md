@@ -612,3 +612,5 @@ The casualty rifle fixture now retries the documented native muzzle/mode call at
 Regroup now permits a bounded grace (at most thirty seconds, no more than the configured base budget) when a route actor has recent measured progress, physical speed and its exact native destination. Stationary actors retain the original timeout, and the absolute ceiling still releases INCOMPLETE. No destination is reissued by this grace. Physical verification remains pending.
 
 Carried-static retirement now preserves one owner-local evidence record: owner/epoch, episode, last phase/deadline, destination, actor positions/native commands/distances/backpacks/vehicles and command-free handover. The 4531829 batch failed before assembly and consequently had no weapon for firing/facing/packing checks; the first failing phase remains unresolved.
+
+Carried deployment now captures the exact assistant bag before PutBag, then uses a finite DROPPING phase to observe native detachment before Assemble. Only the existing shared scheduler services it; the squad is not held. Missing/reassigned bags or drop timeout fail explicitly. Physical assembly/facing/fire/packing remain unproven.

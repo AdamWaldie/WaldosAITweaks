@@ -4,7 +4,7 @@
  * Locality / Authority: Runs only on the current group owner from the shared group brain. It uses native backpack assembly and boarding actions on local AI actors; it never creates, teleports, rearms, repairs or force-seats a weapon.
  * Repeat/JIP: One contact-episode record owns the exact pair, expected assembled class, position and resulting weapon. Each group-brain call advances at most one finite phase. Locality, Zeus, specialist or newer operation ownership retires WAIT markers without issuing cleanup commands over the new owner. Failed deployment is not retried during the same contact episode.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>; 3 allow post-contact packing <BOOL, default false>.
- * Return Value: STRING - DISABLED, IDLE, MOVING, ASSEMBLING, MOUNTING, ACTIVE, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
+ * Return Value: STRING - DISABLED, IDLE, MOVING, DROPPING, ASSEMBLING, MOUNTING, ACTIVE, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
  * Current callers: WAIT_fnc_CortexStaticSupport when no suitable existing emplacement is available, and WAIT_fnc_CortexGroupTick during SECURITY for finite recovery.
  * Example: [group player,[group player] call WAIT_fnc_CortexGroupState,[]] call WAIT_fnc_CortexStaticDeployStep;
  */
@@ -125,7 +125,7 @@ if (count _record >= 10) exitWith {
         || {group _gunner != _group} || {group _assistant != _group} || {isPlayer _gunner}
         || {isPlayer _assistant} || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
         || {_phase == "CONTACT" && {_recordEpisode != _episode}
-            && {_status in ["MOVING","ASSEMBLING","MOUNTING","ACTIVE"]}}) exitWith {
+            && {_status in ["MOVING","DROPPING","ASSEMBLING","MOUNTING","ACTIVE"]}}) exitWith {
         [false] call _retire;
         _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"FAILED",serverTime],true];
         "FAILED"
@@ -158,14 +158,31 @@ if (count _record >= 10) exitWith {
                     };
                 }];
                 _record set [12,_assemblyHandler];
-                _record set [1,"ASSEMBLING"];
-                _record set [6,time+12];
+                // Keep the exact support bag before native dropping changes unitBackpack.
+                _record set [13,unitBackpack _assistant];
+                _record set [1,"DROPPING"];
+                _record set [6,time+8];
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
                 _gunner action ["PutBag",_assistant];
-                _gunner action ["Assemble",unitBackpack _assistant];
-                "ASSEMBLING"
+                "DROPPING"
             } else {"MOVING"}
         }
+    };
+    if (_status == "DROPPING") exitWith {
+        private _supportBag=_record param [13,objNull,[objNull]];
+        if (time >= _deadline || {isNull _supportBag}) exitWith {
+            [false] call _retire;
+            _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"FAILED",serverTime],true];
+            "FAILED"
+        };
+        if (isNull unitBackpack _assistant && {_gunner distance _supportBag <= 3.5}
+            && {backpack _gunner == _gunnerBag}) then {
+            _record set [1,"ASSEMBLING"];
+            _record set [6,time+12];
+            _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+            _gunner action ["Assemble",_supportBag];
+            "ASSEMBLING"
+        } else {"DROPPING"}
     };
     if (_status == "ASSEMBLING") exitWith {
         private _matches=nearestObjects [_deployPos,[_expectedClass],8,true];

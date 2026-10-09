@@ -764,7 +764,7 @@ class CortexOperations(unittest.TestCase):
         restore=source('cortexRestoreCalm')
         for marker in [
             'WAIT_AIPass_StaticDeploy_Enable','assembleInfo','assembleTo','"primary") == 1',
-            '["PutBag",_assistant]','["Assemble",unitBackpack _assistant]',
+            '["PutBag",_assistant]','["Assemble",_supportBag]',
             'nearestObjects [_deployPos,[_expectedClass],8,true]',
             'assignAsGunner _assembled','orderGetIn true',
             'local _assembled','crew _assembled isEqualTo []',
@@ -6461,6 +6461,15 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"INSUFFICIENT_FIREPOWER"'))
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
+
+    def test_static_assembly_preserves_bag_before_observing_native_drop(self):
+        deploy=source('cortexStaticDeployStep')
+        self.assertLess(deploy.index('_record set [13,unitBackpack _assistant]'),deploy.index('action ["PutBag",_assistant]'))
+        drop=deploy.split('if (_status == "DROPPING") exitWith',1)[1].split('if (_status == "ASSEMBLING")',1)[0]
+        self.assertIn('isNull unitBackpack _assistant',drop)
+        self.assertIn('_gunner distance _supportBag <= 3.5',drop)
+        self.assertIn('time >= _deadline',drop)
+        self.assertIn('action ["Assemble",_supportBag]',drop)
 
     def test_group_release_cannot_retain_cover_or_issue_recovery_movement(self):
         cover=source('dangerCoverStep')
