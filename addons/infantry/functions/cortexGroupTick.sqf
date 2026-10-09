@@ -329,6 +329,14 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
     if (_operationKey != "") then {
         private _generation=_state getOrDefault [_operationKey,-1];
         if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
+        if (_movementOwner == "TACTICAL_REPOSITION") then {
+            private _reposition=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
+            if (count _reposition >= 8 && {(_reposition select 7) == _generation}) then {
+                _reposition set [0,"COMPLETE"];
+                _reposition pushBack serverTime;
+                _group setVariable ["WAIT_Cortex_TacticalReposition",_reposition,true];
+            };
+        };
         _state deleteAt _operationKey;
     };
     if (_movementOwner == "VEHICLE_JINK") then {

@@ -962,7 +962,7 @@ class CortexOperations(unittest.TestCase):
         retreat=source('cortexRetreat')
         for marker in ['private _armourIndex = _enemies findIf {',
                        '((_enemies select _armourIndex) select 2) <= 10',
-                       '((_enemies select _armourIndex) select 3) <= 250',
+                       '((_enemies select _armourIndex) select 3) <= 120',
                        'waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]',
                        '_state set ["withdrawReason","HEAVY_ARMOUR_NO_AT"]',
                        '"RETREAT"']:
@@ -3017,6 +3017,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"OPEN_APPROACH"',assessment)
         self.assertIn('"COVERED_APPROACH"',assessment)
         self.assertIn('"MORALE_NOT_STEADY"',assessment)
+        self.assertIn('"MORALE_SHAKEN"',assessment)
         self.assertIn('"INSUFFICIENT_FIREPOWER"',assessment)
         self.assertIn('"ELEVATED_FIRE_POSITION"',assessment)
         self.assertIn('"CONCEALED_ELEVATED_APPROACH"',assessment)
@@ -3063,6 +3064,7 @@ class CortexOperations(unittest.TestCase):
         ]:
             self.assertIn(marker,reposition)
         self.assertIn('case "TACTICAL_REPOSITION": {"tacticalRepositionOperationGeneration"}',tick)
+        self.assertIn('_reposition set [0,"COMPLETE"]',tick)
         self.assertIn('class CortexTacticalReposition',functions)
         self.assertIn('case "REPOSITION"',selector)
         self.assertNotIn('spawn',reposition)

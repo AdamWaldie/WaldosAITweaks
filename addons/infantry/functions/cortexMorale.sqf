@@ -12,9 +12,11 @@
  * (WAIT_fnc_CortexProfile): STEADY at moraleShaken or more, SHAKEN above moraleBroken, BROKEN below
  * it. A broken squad must recover 0.1 above moraleBroken before it counts as shaken again, so it
  * cannot flicker. With the shipped table, MILITIA breaks much sooner than ELITE.
- * A squad with no usable AT facing freshly known heavy armour inside 250 m withdraws immediately
- * instead of entering the ordinary flank/advance/assault selector. An authored HOLD or SENTRY
- * waypoint remains authoritative. Shaken squads do not start flank, assault or advance drills. Broken squads retreat; with
+ * A squad with no usable AT facing freshly known heavy armour inside 120 m withdraws immediately
+ * instead of entering the ordinary flank/advance/assault selector. At longer range the tactical
+ * selector improves cover and seeks another solution instead of making every overmatch a retreat.
+ * An authored HOLD or SENTRY waypoint remains authoritative. Shaken squads seek a screened lateral
+ * position rather than starting flank, assault or advance drills. Broken squads retreat; with
  * WAIT_AIPass_Surrender_Enable, a broken squad no larger than the profile's surrenderSurvivors, with
  * an enemy believed within 60 m and no friendly squad within 300 m, surrenders instead.
  * Morale inputs come from state the pass already holds; there are no allUnits scans.
@@ -71,7 +73,7 @@ private _explicitHold=_waypointIndex < count waypoints _group
     && {waypointType [_group,_waypointIndex] in ["HOLD","SENTRY"]};
 private _overmatched=!_hasAT && {_armourIndex >= 0}
     && {((_enemies select _armourIndex) select 2) <= 10}
-    && {((_enemies select _armourIndex) select 3) <= 250}
+    && {((_enemies select _armourIndex) select 3) <= 120}
     && {!_explicitHold};
 _state set ["armourOvermatched",_overmatched];
 if (_overmatched && {(_state getOrDefault ["phase",""]) == "CONTACT"}) exitWith {

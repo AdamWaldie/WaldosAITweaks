@@ -19,7 +19,6 @@ params [
 if (isNull _group || {!local _group} || {_enemies isEqualTo []}
     || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
-if (time < (_group getVariable ["WAIT_Cortex_TacticalRepositionCooldown",-1])) exitWith {false};
 if (count (_state getOrDefault ["drill",createHashMap]) > 0
     || {(_state getOrDefault ["movementLease",[]]) isNotEqualTo []}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}) exitWith {false};
@@ -35,6 +34,9 @@ if (count _threatPos < 2) then {
     if (!isNull _target) then {_threatPos=getPosATL vehicle _target};
 };
 if (count _threatPos < 2) exitWith {false};
+private _cooldown=_group getVariable ["WAIT_Cortex_TacticalRepositionCooldown",[]];
+if (count _cooldown == 3 && {time < (_cooldown select 0)}
+    && {(_cooldown select 1) == _reason} && {(_cooldown select 2) isEqualTo _target}) exitWith {false};
 
 private _origin=getPosATL _leader;
 private _distance=_origin distance2D _threatPos;
@@ -56,11 +58,13 @@ private _away=_threatPos getDir _origin;
 private _range=switch (_reason) do {
     case "ELEVATED_FIRE_POSITION": {45};
     case "INSUFFICIENT_FIREPOWER": {30};
+    case "MORALE_SHAKEN": {30};
     default {40};
 };
 private _headings=switch (_reason) do {
     case "ELEVATED_FIRE_POSITION": {[_toward+90,_toward-90,_away+45,_away-45]};
     case "INSUFFICIENT_FIREPOWER": {[_away+45,_away-45,_toward+90,_toward-90]};
+    case "MORALE_SHAKEN": {[_toward+90,_toward-90,_away+45,_away-45]};
     default {[_away+35,_away-35,_toward+90,_toward-90,_away]};
 };
 private _candidates=[];
@@ -72,7 +76,7 @@ private _candidates=[];
 private _route=[_origin,_candidates,_threatPos,[],_target,"INFANTRY"] call WAIT_fnc_CortexSelectAvenue;
 if (_route isEqualTo []) exitWith {
     _group setVariable ["WAIT_Cortex_TacticalReposition",["BLOCKED",_reason,_target,serverTime],true];
-    _group setVariable ["WAIT_Cortex_TacticalRepositionCooldown",time+12];
+    _group setVariable ["WAIT_Cortex_TacticalRepositionCooldown",[time+12,_reason,_target]];
     false
 };
 private _goal=+(_route select -1);
@@ -100,5 +104,5 @@ _state set ["movementLease",["TACTICAL_REPOSITION",time+30]];
 _group setVariable ["WAIT_Cortex_TacticalReposition",[
     "MOVING",_reason,_target,serverTime,+_origin,+_goal,+_route,_generation
 ],true];
-_group setVariable ["WAIT_Cortex_TacticalRepositionCooldown",time+45];
+_group setVariable ["WAIT_Cortex_TacticalRepositionCooldown",[time+75,_reason,_target]];
 true

@@ -1123,7 +1123,7 @@
         "runtime-20260927-193231: normal combat advance completed 33 checks with four findings and zero SQF errors. Actual covering fire and fire while moving passed. Contact deadline, frontage, clear-through and completion failed; ending GRENADE_UNRESOLVED with a separated leader. A saved explicit queued-throw cancellation transition is not yet live-verified. No acceptance claimed.",
         "Runtime 200043: focused ADVANCE-GRENADE completed 38 checks with zero findings and zero SQF errors, including actual grenade, physical clear-through by both elements and fire while moving. Single server-owner run; wider variants remain pending."
       ],
-      "automation": "runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. Changed assessment stage awaits exact-package live acceptance.",
+      "automation": "runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. runTacticalAssessment.sqf requires armour overmatch and exposed elevated contacts to make one physical screened REPOSITION while retaining native combat, and rejects a rifle rush or repeated fallback. A failed safe avenue hands off to the same finite reposition and reassessment path. Changed stages await exact-package live acceptance.",
       "executable_sources": [
         "runCombat.sqf"
       ],

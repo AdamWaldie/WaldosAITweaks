@@ -25,8 +25,17 @@ if (isNull _group || {!local _group} || {_enemies isEqualTo []}) exitWith {_resu
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (isNull _leader || {!alive _leader}) exitWith {_result};
-if ((_state getOrDefault ["moraleState","STEADY"]) != "STEADY") exitWith {
+private _moraleState=_state getOrDefault ["moraleState","STEADY"];
+if (_moraleState == "BROKEN") exitWith {
     _result set ["reason","MORALE_NOT_STEADY"];
+    _result
+};
+if (_moraleState == "SHAKEN") exitWith {
+    _result set ["intent","REPOSITION"];
+    _result set ["reason","MORALE_SHAKEN"];
+    _result set ["targetIndex",0];
+    _result set ["candidates",["REPOSITION"]];
+    _result set ["evidence",[_moraleState,_state getOrDefault ["morale",1]]];
     _result
 };
 

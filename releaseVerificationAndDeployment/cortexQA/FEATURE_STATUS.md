@@ -354,7 +354,7 @@ Feature cases: **65**. Required variant categories: **14**.
 
 **Expected:** After the contact delay, a fire team physically bounds toward the waypoint while others engage; authored route survives.
 
-**Automation and open work:** runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. Changed assessment stage awaits exact-package live acceptance.
+**Automation and open work:** runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. runTacticalAssessment.sqf requires armour overmatch and exposed elevated contacts to make one physical screened REPOSITION while retaining native combat, and rejects a rifle rush or repeated fallback. A failed safe avenue hands off to the same finite reposition and reassessment path. Changed stages await exact-package live acceptance.
 
 ### COORD - Coordinated assault
 

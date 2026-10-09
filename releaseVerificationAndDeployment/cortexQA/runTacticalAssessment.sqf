@@ -87,7 +87,7 @@ private _armourContact=[{
 private _armourDecision=[{[_armourGroup,"REPOSITION","ARMOUR_OVERMATCH","STARTED"] call _assessmentMatches},25] call _wait;
 private _armourProgress=[{
     private _record=_armourGroup getVariable ["WAIT_Cortex_TacticalReposition",[]];
-    count _record >= 6 && {(_record select 0) == "MOVING"}
+    count _record >= 6 && {(_record select 0) in ["MOVING","COMPLETE"]}
         && {leader _armourGroup distance2D (_record select 4) >= 15}
 },35] call _wait;
 private _armourDrill=((_armourGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
@@ -174,7 +174,7 @@ if (_elevatedReady) then {
     private _elevatedDecision=[{_elevatedGeometry && {[_elevatedGroup,"REPOSITION","ELEVATED_FIRE_POSITION","STARTED"] call _assessmentMatches}},30] call _wait;
     private _elevatedProgress=[{
         private _record=_elevatedGroup getVariable ["WAIT_Cortex_TacticalReposition",[]];
-        count _record >= 6 && {(_record select 0) == "MOVING"}
+        count _record >= 6 && {(_record select 0) in ["MOVING","COMPLETE"]}
             && {leader _elevatedGroup distance2D (_record select 4) >= 15}
     },40] call _wait;
     private _elevatedDrill=((_elevatedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
