@@ -487,6 +487,11 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
 // into a physical test instead of treating an accepted danger record or generated destination as success.
 private _dangerCoverWall=createVehicle ["Land_CncWall4_F",[2296,1350,0],[],0,"CAN_COLLIDE"];
 _dangerCoverWall setDir 90;
+private _coverDiscoveryPoint=[2293,1350,0];
+private _coverWallDiscovered=_dangerCoverWall in nearestObjects [_coverDiscoveryPoint,["House","Wall","Strategic"],8,true];
+["DANGER-cover-wall-discovery",_coverWallDiscovered,str [typeOf _dangerCoverWall,
+    ["House","Wall","Strategic","Thing"] apply {_dangerCoverWall isKindOf _x},
+    getPosATL _dangerCoverWall,boundingBoxReal _dangerCoverWall]] call _check;
 private _reflexStart=getPosATL _reflexUnit;
 ["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
