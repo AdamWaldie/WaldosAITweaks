@@ -22,6 +22,10 @@ private _clearActor={
 };
 private _retire={
     params ["_commandFree"];
+    // A successor operation may have started since this deployment was accepted. Retire
+    // bookkeeping and handlers without unassigning actors or pulling them back into formation.
+    _commandFree=_commandFree || {[_group] call WAIT_fnc_CortexExternalTakeover}
+        || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0};
     if (count _record >= 10) then {
         private _gunner=_record param [2,objNull,[objNull]];
         private _assistant=_record param [3,objNull,[objNull]];

@@ -444,3 +444,7 @@ Anti-armour relocation retirement now clears only its exact actor marker, destin
 deadline on the current actor owner. A successor grenade, cover or static-support reservation
 is preserved. This closes stale marker deletion without adding scans or recurring workers;
 physical transition acceptance remains pending.
+
+Carried-static retirement now rechecks successor operation and external ownership inside its
+cleanup boundary. Those handovers retire old event handlers and records without unassigning
+crew or issuing return-to-formation commands into the new task. Physical handover remains pending.
