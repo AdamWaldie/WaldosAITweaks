@@ -150,7 +150,7 @@ or air combat. Those require the packaged, damage-enabled audit batches.
 
 <!-- WAIT-WIKI-NAV -->
 ---
-[Wiki home](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Feature-Tutorials)
+[Wiki home](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Home) · [Installation and setup](../README.md) · [Capability registry](CAPABILITY-REGISTRY.md)
 
 ### Passenger remount cooperation
 
