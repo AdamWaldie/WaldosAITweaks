@@ -52,6 +52,10 @@ support the empty-weapon selection correction only; carried deployment and broad
 remain separate acceptance cases. The rifle casualty fixture still reports no native projectile,
 so casualty response cannot be evaluated from those failed stimulus cases. Additional weapon-state
 and mode diagnostics are queued to establish the cause without changing casualty logic.
+The corrected airborne-overmatch fixture now passes flight prerequisites, natural contact,
+physical infantry repositioning and no-chase checks in the `41da6a4` run. These results establish
+this restraint/reposition case only; air attack weapon employment and flight profiles remain open.
+
 ## Earlier implementation work
 
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
