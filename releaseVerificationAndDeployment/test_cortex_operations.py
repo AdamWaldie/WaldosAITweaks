@@ -768,6 +768,7 @@ class CortexOperations(unittest.TestCase):
             '_assistantBag,-1,+_targetPos]',
             'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
             'lineIntersectsSurfaces','surfaceNormal _x',
+            'crew _weapon isEqualTo [] && {vehicle _gunner == _gunner}',
             'WeaponDisassembled','["Disassemble",_weapon]',
             '["TakeBag",_primaryBag]','["TakeBag",_baseBag]',
             '"PACK_MOVING"','"PACKING"','"TAKING"','"PACKED"',

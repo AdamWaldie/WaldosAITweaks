@@ -84,7 +84,7 @@ if (count _record >= 10) exitWith {
         && {!isNull _gunner} && {alive _gunner} && {local _gunner}
         && {!isNull _assistant} && {alive _assistant} && {local _assistant}
         && {!isNull _weapon} && {alive _weapon}
-        && {gunner _weapon == _gunner}
+        && {gunner _weapon == _gunner || {crew _weapon isEqualTo [] && {vehicle _gunner == _gunner}}}
         && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}) then {
         [_gunner] orderGetIn false;
         unassignVehicle _gunner;
