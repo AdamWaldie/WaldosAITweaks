@@ -598,3 +598,5 @@ Group release now explicitly retires danger-cover leases through release-only mo
 A failed solid-cover search now retains one four-second owner-local follow-up record, so brief danger expiry does not discard the visual-concealment assessment. The existing group callback consumes it once, with generation and ownership revalidation in the helper. Group release clears the record. Physical cadence and handover acceptance remain pending.
 
 Danger cover now records one owner-local retirement observation with release/interruption/timeout/destination-proximity reason, generation, horizontal and vertical distance and destination. Diagnostics expose it without treating proximity as effective screening or replicated HC history. Physical acceptance remains pending.
+
+The 4531829 danger batch reported a native rifle fixture with no projectile before the casualty-alert failure. That result does not establish an exercised casualty-response defect. Additive real-damage and native-observation prerequisite cases now expose this distinction for the next batch; the combined behavioural checks are retained unchanged. Current runtime remains on its original packaged source.

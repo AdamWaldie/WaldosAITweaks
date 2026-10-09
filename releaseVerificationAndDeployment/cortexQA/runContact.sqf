@@ -392,6 +392,9 @@ private _casualtyNoContact=_casualtyTransitions findIf {(_x param [2,""]) == "CO
     && {(_casualtyGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
     && {combatMode _casualtyGroup == "BLUE"}
     && {(([_casualtyGroup] call WAIT_fnc_CortexKnowledge) select 0) isEqualTo []};
+["DANGER-casualty-real-damage-prerequisite",_casualtyKilled,str [alive _casualtyActor,damage _casualtyActor]] call _check;
+["DANGER-casualty-native-response-prerequisite",_casualtyKilled && {_casualtyObserved},
+    str (_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
 ["DANGER-casualty-alert-no-contact",_casualtyKilled && {_casualtyObserved} && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
 deleteVehicle _casualtyProjectile;
 deleteVehicle _casualtyActor;
@@ -437,6 +440,8 @@ private _bodySeparated=_bodyKilled && {_bodyObserved}
     && {_bodyTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0}
     && {((_bodyObserverGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
     && {combatMode _bodyObserverGroup == "BLUE"};
+["DANGER-other-body-real-damage-prerequisite",_bodyKilled,str [alive _bodyActor,damage _bodyActor]] call _check;
+["DANGER-other-body-native-observation-prerequisite",_bodyKilled && {_bodyObserved},str _bodyStats] call _check;
 ["DANGER-other-body-distinct-alert",_bodySeparated,str [_bodyStats,_bodyTransitions,combatMode _bodyObserverGroup]] call _check;
 deleteVehicle _bodyActor;
 deleteVehicle _bodyProjectile;
