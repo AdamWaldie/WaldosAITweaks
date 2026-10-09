@@ -6462,6 +6462,17 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_group_release_cannot_retain_cover_or_issue_recovery_movement(self):
+        cover=source('dangerCoverStep')
+        release=source('cortexReleaseGroup')
+        self.assertIn('_dangerCoverLease select 1,true] call WAIT_fnc_DangerCoverStep',release)
+        self.assertIn('if (!_releaseOnly && {count _lease >= 4}',cover)
+        self.assertIn('if (!_releaseOnly && {alive _leasedActor}',cover)
+        self.assertLess(cover.index('if (_releaseOnly) exitWith'),cover.index('call WAIT_fnc_CortexFindCover'))
+        recovery=cover.split('if (!_releaseOnly && {alive _leasedActor}',1)[1].split('_leasedActor doFollow',1)[0]
+        self.assertIn('_leasedActor checkAIFeature "MOVE"',recovery)
+        self.assertIn('_leasedActor checkAIFeature "PATH"',recovery)
+
     def test_nearby_valid_cover_is_not_misclassified_as_failed_screening(self):
         text=source('dangerCoverStep')
         self.assertIn('if (_found && {count _spot >= 2}',text)

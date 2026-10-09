@@ -12,7 +12,8 @@
  * of the list so indices stay valid while deleting.
  *
  * Arguments:
- * 0: group <GROUP>
+ * 0: group <GROUP>, default grpNull.
+ * 1: operation generation <NUMBER>, default -1 - only clear matching generation when non-negative.
  *
  * Return Value:
  * Number - waypoints removed
