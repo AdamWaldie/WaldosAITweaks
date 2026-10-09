@@ -517,3 +517,8 @@ No missing-stimulus result is promoted to a behavioural pass. Physical retest re
 Same-group casualty fixture now faces its observer toward the victim before the physical shot.
 Native casualty danger requires observed death or body discovery; proximity alone is not that
 prerequisite. Engine delivery and no-contact acceptance remain pending physical retest.
+
+Cover discovery merges up to ten terrain objects and ten placed objects, ranks the combined
+bounded set by distance, then performs geometry checks on at most ten. Previously terrain
+insertion order could discard a closer placed wall. This changes candidate availability without
+increasing the geometry budget; mixed placed/terrain physical acceptance remains pending.

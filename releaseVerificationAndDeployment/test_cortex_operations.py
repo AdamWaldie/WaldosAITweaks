@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_cover_budget_ranks_placed_and_terrain_objects_together(self):
+        text=source('cortexFindCover')
+        self.assertIn('private _ranked=_objects apply',text)
+        self.assertIn('_ranked sort true',text)
+        self.assertIn('_objects=(_ranked select [0,10])',text)
+        self.assertLess(text.index('forEach _placed'),text.index('_ranked sort true'))
+
     def test_cheap_specialist_wait_gate_recognises_runtime_and_animation_ownership(self):
         text=source('compatibilityExternalControl')
         self.assertIn('IMS_IsUnitInvicibleScripted',text)

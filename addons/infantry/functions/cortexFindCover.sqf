@@ -32,8 +32,14 @@ if (count _position < 2 || {count _threat < 2}) exitWith {[_position, false]};
 _radius = (_radius max 1) min 25;
 private _validate = [_group,"WAIT_AIPass_CoverValidation_Enable",true] call WAIT_fnc_CortexFeatureEnabled;
 private _objects = nearestTerrainObjects [_position, ["TREE", "SMALL TREE", "ROCK", "ROCKS", "WALL", "FENCE", "HIDE", "BUILDING", "HOUSE"], _radius, true, true];
-{_objects pushBackUnique _x} forEach (nearestObjects [_position, ["House", "Wall", "Strategic"], _radius, true]);
 if (count _objects > 10) then {_objects resize 10};
+private _placed=(nearestObjects [_position, ["House", "Wall", "Strategic"], _radius, true]) select [0,10];
+{_objects pushBackUnique _x} forEach _placed;
+// Rank both sources together before the geometry budget. Appending placed cover after terrain
+// and truncating immediately could discard a nearby wall behind ten more distant trees.
+private _ranked=_objects apply {[_x distance2D _position,_forEachIndex,_x]};
+_ranked sort true;
+_objects=(_ranked select [0,10]) apply {_x select 2};
 private _threatASL = (AGLToASL _threat) vectorAdd [0, 0, 1.6];
 private _result = [];
 {
