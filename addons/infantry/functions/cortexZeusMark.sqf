@@ -44,7 +44,10 @@
 params [["_group", grpNull, [grpNull]], ["_waypoints", false, [false]], ["_waypointIndex",-1,[0]]];
 if (isNull _group || {!(missionNamespace getVariable ["WAIT_AIPass_Enable", false])}) exitWith {};
 if ((units _group) findIf {isPlayer _x} >= 0 || {(units _group) findIf {alive _x} < 0}) exitWith {};
-if (!_waypoints && {time - (_group getVariable ["WAIT_AIPass_ZeusMarkedAt", -1e6]) < 10}) exitWith {};
+// Coalesce repeated direct edits only within the same control domain. A direct edit after a
+// waypoint is a newer owner, even inside ten seconds, and must invalidate its route snapshot now.
+if (!_waypoints && {(_group getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "DIRECT"}
+    && {time - (_group getVariable ["WAIT_AIPass_ZeusMarkedAt", -1e6]) < 10}) exitWith {};
 _group setVariable ["WAIT_AIPass_ZeusMarkedAt", time];
 private _hold=[random 1e6, missionNamespace getVariable ["WAIT_AIPass_ZeusHoldSeconds", 120]];
 _group setVariable ["WAIT_AIPass_ZeusHold", _hold, true];

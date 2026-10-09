@@ -2099,6 +2099,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_ZeusOrderSnapshot',mark)
         self.assertIn('WAIT_AIPass_ZeusControlKind',mark)
         self.assertIn('["DIRECT","WAYPOINT"] select _waypoints',mark)
+        self.assertIn('if (!_waypoints && {(_group getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "DIRECT"}',mark)
         self.assertIn('setVariable ["WAIT_AIPass_ZeusWaypoints",false,true]',mark)
         self.assertIn('_hold select 0',mark)
         self.assertIn('["_waypointIndex",-1,[0]]',mark)
