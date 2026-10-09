@@ -491,3 +491,10 @@ actor to ordinary danger classification; physical movement-under-fire acceptance
 Tracked reverse release now suppresses STOP/STOPTURNING when external ownership has taken over,
 while retiring its exact old markers. A matching native command string alone cannot authorise
 cleanup over a newer Zeus/player/specialist order. Physical reverse interruption remains queued.
+
+The cheap compatibility object gate now checks seven supported specialist runtime markers,
+allowing danger waiting to yield when one appears mid-response. The group form stays a declared
+ownership read; config/faction classification remains outside this hot gate. Runtime marker
+recognition is not full compatibility acceptance: activation/release/animation handovers and
+ordinary group-member coexistence still need physical tests. Candidate aa23ee8 is separately
+staged at runtime-20261009-201916-298 and predates this new change; no game was launched.

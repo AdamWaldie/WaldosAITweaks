@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Reads the public external-controller ownership marker through WAIT's compatibility boundary.
+ * Reads declared ownership and active specialist runtime markers through WAIT's compatibility boundary.
  * Tactical subsystems use this neutral gate rather than depending on another product's runtime
  * variable name. The marker is read-only and never grants WAIT ownership.
  *
@@ -12,7 +12,7 @@
  *
  * Return Value:
  * Boolean - true only when the subject or, for an object, its current group explicitly declares
- * external control.
+ * external control or an actor has a specialist runtime marker.
  *
  * Current callers: WAIT eligibility, vehicles, aircraft, skill layers, diagnostics and HC adoption.
  *
@@ -28,3 +28,9 @@ if (isNull _subject) exitWith {false};
 
 (_subject getVariable ["Waldo_AI_ExternalControl", false])
 || {(group _subject) getVariable ["Waldo_AI_ExternalControl", false]}
+// Runtime activation can occur while an engine danger response is waiting. These bounded
+// marker reads permit immediate yielding without the full config/faction classifier.
+|| {["WBK_AI_ISZombie","Droid_Health","WBK_Droids_VoiceType","WBK_AI_ZombieMoveSet",
+     "IMS_IsUnitInvicibleScripted","IMS_ISAI","IMS_EventHandler_Hit"] findIf {
+        !isNil {_subject getVariable _x}
+    } >= 0}
