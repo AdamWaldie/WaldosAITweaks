@@ -112,7 +112,11 @@ private _weapon=(_rankedWeapons select 0) select 1;
 private _candidates=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {_x != leader _group}
         && {[_x] call WAIT_fnc_CortexCombatEffective} && {vehicle _x == _x}
-        && {isNull assignedVehicle _x} && {currentCommand _x in ["","STOP","MOVE","ATTACK","FIRE","SUPPRESS"]}
+        && {isNull assignedVehicle _x}
+        // Native contact commands such as TARGET and WATCH are transient observations, not an
+        // external movement owner. Reject only concrete actor tasks which boarding would actually
+        // interrupt; the group-level Zeus/mission-order gate above already protects authored work.
+        && {!(toUpperANSI (currentCommand _x) in ["GET IN","ACTION","HEAL","REARM","JOIN"])}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
 if (_candidates isEqualTo []) exitWith {

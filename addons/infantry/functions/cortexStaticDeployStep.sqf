@@ -235,7 +235,8 @@ if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"
 private _ready=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
         && {[_x] call WAIT_fnc_CortexCombatEffective}
-        && {isNull assignedVehicle _x} && {currentCommand _x in ["","STOP","MOVE","ATTACK","FIRE","SUPPRESS"]}
+        && {isNull assignedVehicle _x}
+        && {!(toUpperANSI (currentCommand _x) in ["GET IN","ACTION","HEAL","REARM","JOIN"])}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
 private _gunnerIndex=_ready findIf {

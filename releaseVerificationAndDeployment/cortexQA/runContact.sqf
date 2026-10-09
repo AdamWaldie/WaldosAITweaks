@@ -12,27 +12,104 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf";
  */
 params ["_check","_phase","_wait"];
-// Arma does not reliably arm a hand grenade created exactly on the terrain surface. Give every
-// explosion fixture a short physical fall so the engine, rather than the audit, creates danger
-// cause 4. The returned projectile may already be deleted by its fuse when cleanup runs.
+// A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
+// native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
+// engine-created projectile, then place that already-attributed shot above the fixture. WAIT state
+// is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
+// after the engine has delivered the explosion.
 private _spawnRealGrenade={
     params [["_position",[0,0,0],[[]]]];
-    private _spawn=+_position;
-    _spawn set [2,(_spawn param [2,0]) + 2];
-    private _grenade=createVehicle ["GrenadeHand",_spawn,[],0,"CAN_COLLIDE"];
-    _grenade setVelocity [0,0,-4];
+    private _sourceGroup=createGroup [east,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _sourceGroup setCombatMode "BLUE";
+    private _sourcePosition=+_position;
+    _sourcePosition set [2,0];
+    _sourcePosition=_sourcePosition getPos [80,0];
+    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source addMagazine "HandGrenade";
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+    }];
+    _source forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"];
+    private _deadline=diag_tickTime+2;
+    waitUntil {
+        sleep 0.05;
+        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+    };
+    private _grenade=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if (isNull _grenade) then {
+        diag_log "WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile";
+    } else {
+        private _spawn=+_position;
+        _spawn set [2,(_spawn param [2,0]) + 2];
+        _grenade setPosATL _spawn;
+        _grenade setVelocity [0,0,-4];
+    };
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 12;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
     _grenade
 };
-// Scripted setDamage does not necessarily enter a nearby soldier's engine danger queue. This
-// helper creates actual ballistic damage without inventing an attacker or calling WAIT callbacks.
+// Scripted damage and an unattributed createVehicle bullet do not reliably create native casualty
+// danger. Fire a real rifle round from an excluded same-side actor, capture its engine projectile,
+// then place the attributed shot on the casualty. This tests Arma's death/body danger causes rather
+// than calling WAIT or manufacturing its state.
 private _killWithRealProjectile={
     params [["_actor",objNull,[objNull]]];
     if (isNull _actor) exitWith {objNull};
+    private _sourceGroup=createGroup [east,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _sourceGroup setCombatMode "BLUE";
+    private _sourcePosition=(getPosATL _actor) getPos [100,0];
+    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+    }];
+    private _weaponState=weaponState _source;
+    _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
+    private _deadline=diag_tickTime+2;
+    waitUntil {
+        sleep 0.02;
+        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+    };
+    private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if (isNull _projectile) exitWith {
+        diag_log "WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile";
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+        objNull
+    };
     private _impact=eyePos _actor vectorAdd [0,0,-0.25];
     private _origin=_impact vectorAdd [-2,0,0];
-    private _projectile=createVehicle ["B_127x99_Ball",[0,0,1000],[],0,"CAN_COLLIDE"];
     _projectile setPosASL _origin;
     _projectile setVelocity ((_impact vectorDiff _origin) vectorMultiply 450);
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 5;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
     _projectile
 };
 [createHashMapFromArray [
@@ -932,10 +1009,16 @@ private _publishedPhases=_phaseHistory apply {_x param [2,""]};
 // The ledger normally contains its initial CALM entry and may contain an interrupted first search.
 // Compare the first valid ordered subsequence instead of comparing every phase with the earliest
 // CALM in history, which incorrectly fails a complete SECURITY -> SEARCH -> REGROUP -> CALM cycle.
+private _findPublishedAfter={
+    params ["_phases","_wanted","_after"];
+    private _relative=(_phases select [_after+1]) find _wanted;
+    if (_relative < 0) exitWith {-1};
+    _after+1+_relative
+};
 private _publishedSecurity=_publishedPhases find "SECURITY";
-private _publishedSearch=_publishedPhases findIf {_forEachIndex > _publishedSecurity && {_x == "SEARCH"}};
-private _publishedRegroup=_publishedPhases findIf {_forEachIndex > _publishedSearch && {_x == "REGROUP"}};
-private _publishedCalm=_publishedPhases findIf {_forEachIndex > _publishedRegroup && {_x == "CALM"}};
+private _publishedSearch=[_publishedPhases,"SEARCH",_publishedSecurity] call _findPublishedAfter;
+private _publishedRegroup=[_publishedPhases,"REGROUP",_publishedSearch] call _findPublishedAfter;
+private _publishedCalm=[_publishedPhases,"CALM",_publishedRegroup] call _findPublishedAfter;
 private _publishedOrder=_publishedSecurity >= 0 && {_publishedSearch > _publishedSecurity}
     && {_publishedRegroup > _publishedSearch} && {_publishedCalm > _publishedRegroup};
 private _latestPhase=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
@@ -1009,10 +1092,19 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_staticUnits+[_staticWeapon
 [createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",false]]] call WAIT_fnc_CortexTuning;
 ["Danger tactics: nearby static disabled","The squad must naturally contact the target but leave the nearby empty HMG unassigned while the feature is disabled.",getPosATL _staticWeapon] call _phase;
 private _staticContact=[{(([_staticGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _staticEnemy} >= 0},30] call _wait;
+private _staticReady=_staticContact && {[{
+    _staticGroup getVariable ["WAIT_AIPass_Managed",false]
+        && {(_staticGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
+},20] call _wait};
+["DANGER-static-support-fixture-ready",_staticReady,str [
+    _staticGroup getVariable ["WAIT_AIPass_Managed",false],
+    _staticGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _staticGroup getVariable ["WAIT_AIPass_State",createHashMap]
+]] call _check;
 sleep 6;
 private _staticDisabled=gunner _staticWeapon isEqualTo objNull
     && {(_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]) isEqualTo []};
-["DANGER-static-support-disabled",_staticContact && {_staticDisabled},str [gunner _staticWeapon,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+["DANGER-static-support-disabled",_staticReady && {_staticDisabled},str [gunner _staticWeapon,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
 [createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",true]]] call WAIT_fnc_CortexTuning;
 // The disabled path does not consume the contact episode's single attempt. Opening the live gate
 // therefore exercises production selection during the same natural contact without assigning a
@@ -1023,7 +1115,12 @@ private _staticFired=[{(_staticWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0
 private _staticSquadFired=[{
     _staticUnits findIf {_x != _staticGunner && {(_x getVariable ["WAIT_CortexQA_Shots",0]) > 0}} >= 0
 },30] call _wait;
-["DANGER-static-support-physical-seat",_staticOccupied,str [_staticGunner,assignedVehicle _staticGunner,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+["DANGER-static-support-physical-seat",_staticOccupied,str [
+    _staticGunner,assignedVehicle _staticGunner,
+    _staticGroup getVariable ["WAIT_Danger_StaticSupport",[]],
+    _staticGroup getVariable ["WAIT_Danger_StaticAttempt",[]],
+    _staticUnits apply {currentCommand _x}
+]] call _check;
 ["DANGER-static-support-composable-fire",_staticOccupied && {_staticFired} && {_staticSquadFired},str [_staticWeapon getVariable ["WAIT_CortexQA_Shots",0],_staticUnits apply {_x getVariable ["WAIT_CortexQA_Shots",0]}]] call _check;
 deleteVehicle _staticEnemy;
 private _staticReleased=[{
@@ -1083,6 +1180,15 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_deployUnits+[_deployEnemy]
 ]] call WAIT_fnc_CortexTuning;
 ["Danger tactics: carried static deployment","A real compatible weapon team faces a naturally detected enemy. The pair must physically assemble the weapon, the primary-bag carrier must board its gunner seat and the real emplacement must fire without holding the rest of the squad.",getPosATL _deployGunner] call _phase;
 private _deployContact=[{(([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _deployEnemy} >= 0},35] call _wait;
+private _deployReady=_deployContact && {[{
+    _deployGroup getVariable ["WAIT_AIPass_Managed",false]
+        && {(_deployGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
+},20] call _wait};
+["DANGER-static-deploy-fixture-ready",_deployReady,str [
+    _deployGroup getVariable ["WAIT_AIPass_Managed",false],
+    _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _deployGroup getVariable ["WAIT_AIPass_State",createHashMap]
+]] call _check;
 private _deployActive=[{
     private _record=_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]];
     count _record >= 10
@@ -1102,7 +1208,7 @@ if (!isNull _deployedWeapon) then {
 };
 private _deployFired=[{!isNull _deployedWeapon && {(_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0}},35] call _wait;
 ["DANGER-static-deploy-config-prerequisite",_deployConfigValid,str [_deployExpected,_deployBases,backpack _deployAssistant]] call _check;
-["DANGER-static-deploy-physical-assembly",_deployContact && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner]] call _check;
+["DANGER-static-deploy-physical-assembly",_deployReady && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner]] call _check;
 ["DANGER-static-deploy-real-fire",_deployActive && {_deployFired},str [_deployedWeapon,_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]]] call _check;
 deleteVehicle _deployEnemy;
 private _deployReleased=[{

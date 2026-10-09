@@ -12,15 +12,52 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf";
  */
 params ["_check","_phase","_wait"];
-// Give audit grenades a short physical fall. A projectile created on or just above the terrain may
-// be removed without producing Arma's native explosion-danger event, which invalidates every
-// downstream vehicle assertion while making the controller appear inert.
+// Use an engine-fired grenade rather than an unattributed createVehicle projectile. Capturing the
+// real FiredMan projectile preserves native shot ownership and danger delivery while the audit only
+// relocates the physical shot into the isolated fixture. The excluded firer is cleaned after fuse.
 private _spawnRealGrenade={
     params [["_position",[0,0,0],[[]]]];
-    private _spawn=+_position;
-    _spawn set [2,(_spawn param [2,0]) + 2];
-    private _grenade=createVehicle ["GrenadeHand",_spawn,[],0,"CAN_COLLIDE"];
-    _grenade setVelocity [0,0,-4];
+    private _sourceGroup=createGroup [east,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _sourceGroup setCombatMode "BLUE";
+    private _sourcePosition=+_position;
+    _sourcePosition set [2,0];
+    _sourcePosition=_sourcePosition getPos [80,0];
+    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source addMagazine "HandGrenade";
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+    }];
+    _source forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"];
+    private _deadline=diag_tickTime+2;
+    waitUntil {
+        sleep 0.05;
+        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+    };
+    private _grenade=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if (isNull _grenade) then {
+        diag_log "WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile";
+    } else {
+        private _spawn=+_position;
+        _spawn set [2,(_spawn param [2,0]) + 2];
+        _grenade setPosATL _spawn;
+        _grenade setVelocity [0,0,-4];
+    };
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 12;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
     _grenade
 };
 [createHashMapFromArray [

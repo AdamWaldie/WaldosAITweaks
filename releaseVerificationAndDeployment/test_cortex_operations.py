@@ -5905,8 +5905,10 @@ class CortexOperations(unittest.TestCase):
                      'DANGER-STATIC-empty-crew-released','DANGER-STATIC-useful-crew-retained',
                      'DANGER-STATIC-no-invented-combat']:
             self.assertIn(item,text)
-        self.assertIn('createVehicle ["GrenadeHand"',text)
         self.assertIn('private _spawnRealGrenade={',text)
+        self.assertIn('addEventHandler ["FiredMan"',text)
+        self.assertIn('forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"]',text)
+        self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
         self.assertIn('_grenade setVelocity [0,0,-4]',text)
         self.assertGreaterEqual(text.count('call _spawnRealGrenade'),6)
         self.assertNotIn('attackTarget (',text)
@@ -6066,6 +6068,9 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(case,text)
         self.assertIn('[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
         self.assertIn('private _spawnRealGrenade={',text)
+        self.assertIn('addEventHandler ["FiredMan"',text)
+        self.assertIn('forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"]',text)
+        self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
         self.assertIn('_spawn set [2,(_spawn param [2,0]) + 2]',text)
         self.assertIn('_grenade setVelocity [0,0,-4]',text)
         disabled=text.split('// The configured engine FSM remains installed',1)[1].split('// Prove the engine-loaded FSM',1)[0]
@@ -6099,7 +6104,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('TRANS-published-phase-ledger',text)
         self.assertIn('WAIT_Cortex_PhaseTransitions',text)
         self.assertIn('private _publishedSecurity=_publishedPhases find "SECURITY"',text)
-        self.assertIn('_forEachIndex > _publishedRegroup && {_x == "CALM"}',text)
+        self.assertIn('private _findPublishedAfter={',text)
+        self.assertIn('[_publishedPhases,"CALM",_publishedRegroup] call _findPublishedAfter',text)
+        self.assertNotIn('_forEachIndex > _publishedRegroup',text)
         self.assertIn('count _phaseHistory <= 32',text)
         self.assertNotIn('call WAIT_fnc_CortexRestoreCalm',text)
 
