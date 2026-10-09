@@ -511,7 +511,8 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
                 if (count _operation == 0) then {
                     [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
                 } else {
-                    [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
+                    private _reverse=[_group,_state,_vehicle,_enemyPos,"START",_operation get "generation"] call WAIT_fnc_CortexVehicleReverseStep;
+                    if (_reverse != "REVERSE") then {[_group, _away, 40] call WAIT_fnc_CortexGroupMove};
                     _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
                     _state set ["vehicleOperationGeneration",_operation get "generation"];
                     private _origin = getPosATL _vehicle;

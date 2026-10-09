@@ -702,7 +702,21 @@ for "_sample" from 1 to 15 do {
 _origin=getPosATL _armour;
 [createHashMapFromArray [["WAIT_AIPass_VehicleWithdraw_Enable",true]]] call WAIT_fnc_CortexTuning;
 ["Damaged armour withdrawal","Withdrawal is now enabled on the same APC. It must fire actual defensive smoke and drive at least 40 m away from the visible threat, retaining all operating crew.",[1900,1100,0]] call _phase;
-private _withdrawn=[{_armour distance2D _origin > 40 && {_armour distance2D _enemy > (_origin distance2D _enemy)+30}},100] call _wait;
+private _reversePhysical=false;
+private _reverseFacing=false;
+private _withdrawn=[{
+    private _reverse=_group getVariable ["WAIT_VehicleReverse",[]];
+    if (count _reverse == 9 && {(_reverse select 0) == _armour}
+        && {(_armour distance2D _origin) >= 8}
+        && {(velocityModelSpace _armour select 1) < -0.5}) then {
+        _reversePhysical=true;
+        private _bearing=_armour getRelDir (getPosATL _enemy);
+        _reverseFacing=_reverseFacing || {_bearing <= 45 || {_bearing >= 315}};
+    };
+    _armour distance2D _origin > 40 && {_armour distance2D _enemy > (_origin distance2D _enemy)+30}
+},100] call _wait;
+["WITHDRAW-tracked-physical-reverse",_withdrawContact && {_reversePhysical},str [getPosATL _armour,vehicleMoveInfo _armour]] call _check;
+["WITHDRAW-tracked-threat-facing",_reversePhysical && {_reverseFacing},str [_armour getRelDir (getPosATL _enemy)]] call _check;
 ["WITHDRAW-physical-distance",_withdrawContact && {_withdrawn},str getPosATL _armour] call _check;
 ["WITHDRAW-actual-smoke",(_armour getVariable ["WAIT_CortexQA_SmokeShots",0]) > 0] call _check;
 ["WITHDRAW-crew-retained",_crew findIf {!alive _x || {vehicle _x != _armour}} < 0] call _check;

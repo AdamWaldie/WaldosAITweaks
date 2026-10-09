@@ -6404,3 +6404,28 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_fnc_CortexGroupAnchor',text)
         self.assertIn('getPosATL _operationAnchor',start)
         self.assertIn('[_dangerActor,""RELEASE""] call WAIT_fnc_DangerReact',fsm)
+
+    def test_tracked_reverse_is_bounded_and_uses_existing_operation_authority(self):
+        reverse=source('cortexVehicleReverseStep')
+        vehicles=source('cortexVehicles')
+        tick=source('cortexGroupTick')
+        self.assertIn('_vehicle isKindOf "Tank"',reverse)
+        self.assertIn('_driver == _commander',reverse)
+        self.assertIn('WAIT_AIPass_VehicleWithdraw_Enable',reverse)
+        self.assertIn('ownerEpoch',reverse)
+        self.assertIn('CortexExternalTakeover',reverse)
+        self.assertIn('CortexSelectAvenue',reverse)
+        self.assertIn('lineIntersectsSurfaces',reverse)
+        self.assertIn('time-(_record select 6) > 6',reverse)
+        self.assertIn('sendSimpleCommand "BACK"',reverse)
+        self.assertIn('vehicleMoveInfo',reverse)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf').read_text(encoding='utf-8')
+        self.assertIn('WITHDRAW-tracked-physical-reverse',audit)
+        self.assertIn('(velocityModelSpace _armour select 1) < -0.5',audit)
+        self.assertIn('WITHDRAW-tracked-threat-facing',audit)
+        for forbidden in ['setDir','setVelocity','setPos','while {','spawn {']:
+            self.assertNotIn(forbidden,reverse)
+        self.assertIn('if (_reverse != "REVERSE")',vehicles)
+        self.assertIn('_reverseResult in ["COMPLETE","FALLBACK"]',tick)
+        for helper in ['operationCancel','operationRelease','cortexRestoreCalm','cortexLocality']:
+            self.assertIn('WAIT_fnc_CortexVehicleReverseStep',source(helper))

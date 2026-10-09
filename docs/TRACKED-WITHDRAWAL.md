@@ -2,7 +2,7 @@
 
 Tracked fighting vehicles should keep their frontal hull arc roughly toward the last known
 contact while reversing out of immediate exposure. Wheeled vehicles retain native forward escape.
-This requirement is pending implementation and physical acceptance.
+A bounded initial reverse leg is implemented in the working candidate; physical acceptance is pending.
 
 Use the existing VEHICLE_WITHDRAW operation, generation and owner epoch. Add a finite initial
 ALIGN/REVERSE leg, followed by screened reassessment or the existing native escape when necessary.
@@ -22,7 +22,7 @@ A short successful leg reaches cover or gains separation before reassessment; no
 proves withdrawal. Smoke direction uses the recorded threat bearing, not a smoke object's location.
 
 Cancellation must stop only matching WAIT-owned simple commands before accepting a replacement
-order. Locality adoption preserves the committed intent and physical progress, then revalidates
+order. Locality adoption preserves the durable escape intent and physical progress, retires inherited reverse commands, then revalidates
 terrain and crew capability on the new owner. No new persistent worker is permitted; steps use the
 existing shared group scheduler. The current seven-field withdrawal snapshot needs a documented
 extension or a separate versioned reverse snapshot, with matching release and migration handling.

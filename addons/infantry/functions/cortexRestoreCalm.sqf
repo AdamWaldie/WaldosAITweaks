@@ -49,6 +49,10 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_allowRemount",true,[true]], ["_yieldToExternal",false,[true]], ["_reason","RESTORED",[""]], ["_forcePhase",false,[true]]];
+private _reverseCleanup=_group getVariable ["WAIT_VehicleReverse",[]];
+if (local _group && {count _reverseCleanup == 9}) then {
+    [_group,_state,objNull,[],"RELEASE",_reverseCleanup select 1] call WAIT_fnc_CortexVehicleReverseStep;
+};
 if (isNull _group || {!local _group}) exitWith {};
 // A cleanup can run before the engine elects a replacement leader. All WAIT-owned followers use
 // this viable local anchor; external handovers still suppress the follow command below.

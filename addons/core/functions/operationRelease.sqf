@@ -13,6 +13,7 @@ if (isNull _group || {!local _group}) exitWith {false};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {false};
 if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])) exitWith {false};
+[_group,createHashMap,objNull,[],"RELEASE",_generation] call WAIT_fnc_CortexVehicleReverseStep;
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
 // Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval
 // operations share the generation record without touching their native combat state on release.

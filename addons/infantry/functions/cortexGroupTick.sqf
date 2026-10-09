@@ -299,6 +299,18 @@ if (count _activeDrill > 0) then {
         _activeDrill=createHashMap;
     };
 };
+private _reverseRecord=_group getVariable ["WAIT_VehicleReverse",[]];
+if (count _reverseRecord == 9) then {
+    private _reverseResult=[_group,_state,_reverseRecord select 0,_reverseRecord select 4,"STEP",_reverseRecord select 1] call WAIT_fnc_CortexVehicleReverseStep;
+    if (_reverseResult in ["COMPLETE","FALLBACK"] && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+        && {(_state getOrDefault ["phase",""]) == "RETREAT"}
+        && {private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            (_current getOrDefault ["generation",-1]) == (_reverseRecord select 1)
+                && {(_current getOrDefault ["intent",""]) == "VEHICLE_WITHDRAW"}}) then {
+        private _escape=_state getOrDefault ["retreatTarget",[]];
+        if (count _escape >= 2) then {[_group,_escape,40] call WAIT_fnc_CortexGroupMove};
+    };
+};
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
 private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLease select 1)} && {
@@ -307,6 +319,10 @@ private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLea
         case "COORDINATED_ASSAULT": {
             _state getOrDefault ["assaulting",false]
                 && {(_state getOrDefault ["supportToken",""]) != ""}
+        };
+        case "VEHICLE_WITHDRAW": {
+            (_group getVariable ["WAIT_VehicleReverse",[]]) isNotEqualTo []
+                || {(waypoints _group) findIf {waypointDescription _x == "WAIT AI PASS" && {(_x select 1) >= currentWaypoint _group}} >= 0}
         };
         case "VEHICLE_ORIENT": {
             private _vehicle=(_state getOrDefault ["vehicleDangerOrient",[]]) param [1,objNull,[objNull]];
@@ -1114,7 +1130,8 @@ switch (_state get "phase") do {
         if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
             _delay=1;
         };
-        private _moving = (waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0;
+        private _reversing=(_group getVariable ["WAIT_VehicleReverse",[]]) isNotEqualTo [];
+        private _moving = _reversing || {(waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0};
         private _start = _state getOrDefault ["retreatStart",getPosATL _leader];
         private _travel = _leader distance2D _start;
         private _progress = _state getOrDefault ["retreatProgress",[_now,0,0]];

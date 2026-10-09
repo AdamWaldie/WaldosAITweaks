@@ -76,6 +76,11 @@ _group setVariable ["WAIT_AIPass_Managed", nil];
 {_group setVariable [_x, nil]} forEach ["WAIT_AIPass_GarrisonApplied", "WAIT_AIPass_DefendApplied", "WAIT_AIPass_ClearApplied"];
 _group setVariable ["WAIT_AIPass_Adopted", _gained];
 if (!_gained || {!local _group}) exitWith {};
+// Retire inherited simple driving before the new owner resumes the durable escape route.
+private _reverseCleanup=_group getVariable ["WAIT_VehicleReverse",[]];
+if (count _reverseCleanup == 9) then {
+    [_group,createHashMap,objNull,[],"RELEASE",_reverseCleanup select 1] call WAIT_fnc_CortexVehicleReverseStep;
+};
 // Observation-only hearing has its own eligibility boundary and may coexist with a curator
 // waypoint. Reinstall it on the new owner now instead of losing sound events until discovery.
 [_group] call WAIT_fnc_CortexHearingLocal;
