@@ -6,14 +6,26 @@ with zero client findings. These results contradict broad behavioural acceptance
 does not establish server-side AI behaviour. Some compound failures include unmet stimulus or
 contact prerequisites and must be traced from those prerequisites before changing a controller.
 
-The next staged candidate is clean commit `99cd423`, package fingerprint
-`34169aa437f716a580ec13f0812472a355f01a194a547bbac6cbe1fa38217050`.
-It is staged for `dangerparity` at 3840×2160 with CBA and the optional curator integration.
-It has not run. The full static build passed 504 tests, SQF/config checks, settings parity,
-performance-pattern checks, FSM validation and eight-PBO packaging. Frame-time overhead,
-physical behaviour, JIP and headless acceptance remain unproven by these gates.
+The subsequent `dangerparity` batch is running clean commit `d7c5649` at 3840×2160
+with CBA, optional curator integration, observer Zeus and two headless clients. Native danger
+entry, immediate physical posture, contact/search/regroup transitions and carried static assembly
+have passed individual cases. Cover, cleanup, existing static support, carried weapon firing and
+packing, tactical fixtures, vehicle responses and passenger transitions have recorded failures.
+The batch has not yet published its completion marker; these are partial results.
 
-Changes awaiting that physical batch:
+Confirmed follow-up corrections are committed: the assembled empty static weapon is oriented
+once toward its chosen sector before boarding; vehicle jink now supplies properly nested routes;
+route validation rejects malformed endpoints; empty carried emplacements remain eligible for
+packing after native dismount; and the airborne threat fixture has explicit initial altitude and
+an ordinary transit waypoint. Cover rejection diagnostics distinguish ownership/command gates
+from unavailable geometry. These corrections still need a fresh packaged physical run.
+
+The full static build passed 504 tests, SQF/config checks, settings parity, performance-pattern
+checks, FSM validation and eight-PBO packaging. Frame-time overhead, physical behaviour, JIP
+and headless acceptance remain unproven by these gates.
+
+Changes under physical reassessment:
+
 
 - Armour overmatch, exposed elevated threats, insufficient firepower and shaken morale can start
   one finite screened reposition. Close protected armour inside 120 metres can invoke withdrawal;
