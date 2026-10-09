@@ -482,3 +482,8 @@ WAIT diagnostics now display the last owner-local remount retirement reason, age
 actor/vehicle speed-distance-assignment evidence beside existing active ownership checks.
 The view identifies locality and does not present stored intent or historical HC observations
 as physical boarding completion. No recurring diagnostic scan was added.
+
+Finite anti-armour relocation and static-support approach reservations now participate in the
+engine danger committed-mover check. Repeated immediate danger retains a mobile weak posture
+instead of forcing a reserved launcher relocation prone. Reservation expiry still returns the
+actor to ordinary danger classification; physical movement-under-fire acceptance is pending.

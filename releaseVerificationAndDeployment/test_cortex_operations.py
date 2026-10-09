@@ -6462,6 +6462,14 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_launcher_relocation_remains_mobile_under_immediate_danger(self):
+        text=source('dangerEngineAct')
+        actor=text.split('private _actorMove=',1)[1].split('// Forced orders',1)[0]
+        self.assertIn('"ANTI_ARMOUR"',actor)
+        self.assertIn('"STATIC_SUPPORT"',actor)
+        self.assertIn('> time',actor)
+        self.assertIn('_committedMover=true',actor)
+
     def test_cover_arrival_does_not_force_return_into_exposure(self):
         text=source('dangerCoverStep')
         cleanup=text.split('if (count _lease >= 4) then {',1)[1].split('_group setVariable ["WAIT_Danger_CoverLease",nil];',1)[0]
