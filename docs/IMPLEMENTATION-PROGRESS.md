@@ -448,3 +448,10 @@ physical transition acceptance remains pending.
 Carried-static retirement now rechecks successor operation and external ownership inside its
 cleanup boundary. Those handovers retire old event handlers and records without unassigning
 crew or issuing return-to-formation commands into the new task. Physical handover remains pending.
+
+Packaging boundary: clean candidate 7bc6c6b passes the full static/package pipeline, including
+519 tests, 277 SQF files, 171 config files, 139 settings and eight addon PBOs. No separate optional
+engine-policy PBOs or optional policy release layout currently exist. Runtime crew skill/aim
+coefficients do not fulfil that locked delivery requirement. Policy design must preserve player
+projectile accuracy, remain restart-required and receive config plus physical acceptance before
+release inclusion. This is outstanding implementation, not an optional scope reduction.
