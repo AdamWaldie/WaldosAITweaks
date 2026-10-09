@@ -65,8 +65,9 @@ if !([_group,"VEHICLE_JINK",true,serverTime+25] call WAIT_fnc_CortexOwnershipLea
 private _operation=[_group,"VEHICLE_JINK",_threat,crew _vehicle,[_destination],"MOVING"] call WAIT_fnc_OperationStart;
 if (count _operation == 0) exitWith {
     [_group,"VEHICLE_JINK",false] call WAIT_fnc_CortexOwnershipLease;
-    false
+    ["OPERATION_REFUSED"] call _refuse
 };
+_state deleteAt "vehicleJinkRefusal";
 [_group,_destination,25] call WAIT_fnc_CortexGroupMove;
 _state set ["movementLease",["VEHICLE_JINK",time+25]];
 _state set ["vehicleOperationGeneration",_operation get "generation"];

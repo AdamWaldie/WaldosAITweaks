@@ -56,6 +56,11 @@ The corrected airborne-overmatch fixture now passes flight prerequisites, natura
 physical infantry repositioning and no-chase checks in the `41da6a4` run. These results establish
 this restraint/reposition case only; air attack weapon employment and flight profiles remain open.
 
+The separate-passenger crew-report case now passes natural crew contact, safe stop, physical
+exit, WAIT attribution and driver retention in the `41da6a4` run. Passenger target knowledge was
+absent, as intended. Other passenger layouts, remount, replacement orders and migration remain
+independent acceptance cases; the corrected predicate does not establish them automatically.
+
 ## Earlier implementation work
 
 - Danger shutdown now retires every actor-local engine stance lease through the exact-ownership
