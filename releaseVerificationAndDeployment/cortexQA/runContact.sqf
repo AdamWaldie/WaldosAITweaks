@@ -1269,6 +1269,11 @@ _hearingEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 _hearingEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 private _hearingEnemy=_hearingEnemyGroup createUnit ["B_Soldier_F",[2620,1700,0],[],0,"NONE"];
 _hearingEnemy allowDamage false;
+_hearingEnemy setVariable ["WAIT_CortexQA_HearingShots",0];
+_hearingEnemy addEventHandler ["FiredMan",{
+    params ["_actor"];
+    _actor setVariable ["WAIT_CortexQA_HearingShots",(_actor getVariable ["WAIT_CortexQA_HearingShots",0])+1];
+}];
 _hearingEnemy disableAI "MOVE";
 _hearingEnemy setDir 90;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_hearingActor,_hearingEnemy],true];
@@ -1279,10 +1284,26 @@ sleep 0.5;
 private _hearingWeaponState=weaponState _hearingEnemy;
 _hearingEnemy forceWeaponFire [_hearingWeaponState param [1,_hearingWeapon],_hearingWeaponState param [2,"Single"]];
 private _heard=[{(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]) param [3,""] == "SOUND"},8] call _wait;
+["ZEUS-hearing-real-shot-prerequisite",(_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0]) > 0,str (weaponState _hearingEnemy)] call _check;
 private _hearingProgress=[{_hearingActor distance2D _hearingOrigin >= 20},35] call _wait;
 ["ZEUS-hearing-real-sound-report",_heard,str (_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]])] call _check;
 ["ZEUS-hearing-authored-movement",_hearingProgress && {combatMode _hearingGroup == "BLUE"}
     && {count (_hearingGroup getVariable ["WAIT_Operation",createHashMap]) == 0},str [getPosATL _hearingActor,combatMode _hearingGroup,_hearingGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+// A direct edit supersedes the waypoint domain even inside the mark throttle interval. Keep the
+// existing report as evidence and require its timestamp not to change under another real shot.
+[_hearingGroup,true,_hearingWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+[_hearingGroup] call WAIT_fnc_CortexZeusMark;
+private _directReport=+(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]);
+private _directShots=_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0];
+sleep 11;
+_hearingEnemy setPosATL ((getPosATL _hearingActor) getPos [20,90]);
+_hearingEnemy forceWeaponFire [_hearingWeaponState param [1,_hearingWeapon],_hearingWeaponState param [2,"Single"]];
+private _directShot=[{(_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0]) > _directShots},3] call _wait;
+sleep 1;
+["ZEUS-hearing-direct-edit-yields",_directShot
+    && {(_hearingGroup getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "DIRECT"}
+    && {(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]) isEqualTo _directReport},
+    str [_directShot,_directReport,_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]]] call _check;
 [_hearingGroup,true] call WAIT_fnc_CortexHearingLocal;
 {deleteVehicle _x} forEach [_hearingActor,_hearingEnemy];
 deleteGroup _hearingGroup;
