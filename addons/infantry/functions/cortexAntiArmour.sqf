@@ -48,7 +48,14 @@ if (count _relocation == 3) then {
     if (_stillOurs && {_relocating distance2D _relocationSpot > 2} && {_now < _relocationUntil}) then {
         _relocationBlocks = true;
     } else {
-        _relocating setVariable ["WAIT_Cortex_ActorMove",nil];
+        if (!isNull _relocating && {local _relocating}) then {
+            private _actorMove=_relocating getVariable ["WAIT_Cortex_ActorMove",[]];
+            if (count _actorMove == 3 && {(_actorMove select 0) == "ANTI_ARMOUR"}
+                && {(_actorMove select 1) distance2D _relocationSpot < 1}
+                && {(_actorMove select 2) == _relocationUntil}) then {
+                _relocating setVariable ["WAIT_Cortex_ActorMove",nil];
+            };
+        };
         _state deleteAt "antiArmourRelocation";
         if (_now >= _relocationUntil || {!_stillOurs}) then {[_state,"antiArmourMove",10] call WAIT_fnc_CortexCooldown};
     };

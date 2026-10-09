@@ -6462,6 +6462,13 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(assess.index('"VEHICLE_DOMAIN"'),assess.index('"MORALE_SHAKEN"'))
         self.assertIn('"VEHICLE_LAYER_HANDOFF"',start)
 
+    def test_anti_armour_cleanup_does_not_erase_another_actor_move(self):
+        text=source('cortexAntiArmour')
+        section=text.split('private _relocation =',1)[1].split('if (_relocationBlocks',1)[0]
+        self.assertIn('(_actorMove select 0) == "ANTI_ARMOUR"',section)
+        self.assertIn('(_actorMove select 1) distance2D _relocationSpot < 1',section)
+        self.assertIn('(_actorMove select 2) == _relocationUntil',section)
+
     def test_cover_cleanup_preserves_replaced_native_destination(self):
         text=source('dangerCoverStep')
         cleanup=text.split('if (count _lease >= 4) then {',1)[1].split('_group setVariable ["WAIT_Danger_CoverLease",nil];',1)[0]

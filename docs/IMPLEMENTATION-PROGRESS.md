@@ -439,3 +439,8 @@ Danger-cover cleanup now requires the exact actor-move deadline and current expe
 before returning a nonleader to formation. Living local membership, on-foot state and absence of
 player/external/operation ownership remain required. A replacement native MOVE destination is
 preserved even when the command name matches the old move. Physical new-order retest is pending.
+
+Anti-armour relocation retirement now clears only its exact actor marker, destination and
+deadline on the current actor owner. A successor grenade, cover or static-support reservation
+is preserved. This closes stale marker deletion without adding scans or recurring workers;
+physical transition acceptance remains pending.
