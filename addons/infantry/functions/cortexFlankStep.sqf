@@ -199,7 +199,7 @@ private _rankCandidates={
     _candidates=_candidates select {
         (_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []
             && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
-            && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SCRIPTED","SUPPORT"])}
+            && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
     };
     private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _anchor) then {_anchor=leader _group};
