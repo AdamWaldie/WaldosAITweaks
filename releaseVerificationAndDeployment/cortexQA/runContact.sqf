@@ -973,6 +973,7 @@ private _closeShots=0;
 private _closeShotHandler=_reflexUnit addEventHandler ["FiredMan",{missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0])+1]}];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",0];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit,_closeTarget],true];
+private _closeBrainStepBefore=(_reflexGroup getVariable ["WAIT_GroupBrain",createHashMap]) getOrDefault ["lastStepAt",-1];
 private _recyclesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["recycles",0];
 private _boundedRecycleEndsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["boundedRecycleEnds",0];
 ["Danger FSM: close hostile persistence","The two invulnerable opponents face each other at 25 metres. WAIT must retain the native contact across finite response cycles while native AI fires; no target or fire command is injected by the audit.",getPosATL _closeTarget] call _phase;
@@ -1032,6 +1033,21 @@ private _finiteReflexHandoff=[{
         && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
 },12] call _wait;
 ["DANGER-close-contact-finite-reflex-handoff",_finiteReflexHandoff,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_reflexGroup getVariable ["WAIT_Cortex_Phase",""]]] call _check;
+// An incoming-fire stream can preempt ENGAGE before its optional two follow-ups finish.
+// Keep that acceptance above intact, and independently measure the selected IMMEDIATE bridge.
+private _closeStats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _closeEnds=_closeStats getOrDefault ["boundedRecycleEndsByMode",createHashMap];
+private _closeCycles=_closeStats getOrDefault ["lastRecycleCyclesByMode",createHashMap];
+private _closeImmediate=(_closeEnds getOrDefault ["IMMEDIATE",0]) > 0
+    && {(_closeCycles getOrDefault ["IMMEDIATE",-1]) == 0};
+["DANGER-close-contact-immediate-no-synthetic-recycle",_closeImmediate
+    && {_closeShots > 0} && {_reflexUnit knowsAbout _closeTarget > 0},
+    str [_closeEnds,_closeCycles,_reflexUnit getVariable ["WAIT_Danger_EngineEntryCount",0]]] call _check;
+private _closeBrain=_reflexGroup getVariable ["WAIT_GroupBrain",createHashMap];
+["DANGER-close-contact-shared-brain-handoff",_closeImmediate
+    && {_reflexGroup getVariable ["WAIT_AIPass_Managed",false]}
+    && {(_closeBrain getOrDefault ["lastStepAt",-1]) > _closeBrainStepBefore},
+    str [_closeBrainStepBefore,_closeBrain]] call _check;
 _reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
