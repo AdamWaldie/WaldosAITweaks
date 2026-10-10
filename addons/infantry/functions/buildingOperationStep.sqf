@@ -433,16 +433,16 @@ private _delay=call {
                     };
                     if (_moved) then {
                         _lastPositions=_pair apply {getPosATL _x};
-                        _lastProgress=_now;
                         // Walking can be legitimate navigation without approaching this node.
-                        // Keep local no-progress observation alive, but only approach progress
-                        // renews the operation budget; circles cannot extend it indefinitely.
+                        // Only new best approach progress renews retry and operation budgets;
+                        // circles must eventually reach the bounded retry/recovery path.
                         private _targetDistance=(getPosATL _point) vectorDistance _target;
                         if (_bestDistance-_targetDistance >= 1) then {
                             _bestDistance=_targetDistance;
+                            _lastProgress=_now;
+                            _job set ["lastProgressAt",serverTime];
                             _job set ["deadline",(_job get "deadline") max (serverTime+120)];
                         };
-                        _job set ["lastProgressAt",serverTime];
                     };
                     if (_positionIndex in _cleared) then {
                         _entered=true;
