@@ -114,21 +114,22 @@ private _killWithRealProjectile={
     };
     private _weaponState=weaponState _source;
     _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
-    private _deadline=diag_tickTime+2;
+    private _deadline=diag_tickTime+5;
     private _nextRetry=diag_tickTime+0.5;
     private _attempts=1;
     waitUntil {
         sleep 0.02;
         // A selected muzzle can precede the native firing animation's readiness. Retry only
-        // this excluded fixture, at most four attempts, and stop once an actual shot exists.
-        if ((_source getVariable ["WAIT_CortexQA_RifleShots",0]) == 0
-            && {_attempts < 4} && {diag_tickTime >= _nextRetry}) then {
+        // this excluded fixture, at most six real rounds, and stop on actual casualty death.
+        // A single torso hit can wound rather than kill; it is not a casualty stimulus.
+        if (alive _actor
+            && {_attempts < 6} && {diag_tickTime >= _nextRetry}) then {
             private _retryState=weaponState _source;
             _source forceWeaponFire [_retryState param [1,_rifle],_retryState param [2,"Single"]];
             _attempts=_attempts+1;
             _nextRetry=diag_tickTime+0.5;
         };
-        (_source getVariable ["WAIT_CortexQA_RifleShots",0]) > 0 || {diag_tickTime >= _deadline}
+        !alive _actor || {diag_tickTime >= _deadline}
     };
     private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
     if ((_source getVariable ["WAIT_CortexQA_RifleShots",0]) == 0) exitWith {
