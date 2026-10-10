@@ -71,7 +71,9 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (_action == "MAINTAIN" && {count _operation == 0}) then {
     _action=["ENGAGE","HIDE"] select (_cause in ["HIT","EXPLOSION","SUPPRESSED","CASUALTY","BODY_FOUND","SCREAM"]);
 };
-private _leaseIntact=_leaseOwned && {time < (_lease select 4)}
+// Expiry permits cleanup; it does not prove cleanup has run. A late renewing event must
+// preserve the original baseline while the exact owned values still remain applied.
+private _leaseIntact=_leaseOwned
     && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
 private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour _postureActor};
 private _priorCombat=if (_leaseIntact) then {_lease select 2} else {combatMode _group};
