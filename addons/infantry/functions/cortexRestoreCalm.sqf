@@ -224,5 +224,7 @@ _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];
 _group setVariable ["WAIT_Cortex_TransitionIntent",nil,true];
 _group setVariable ["WAIT_AIPass_Checkpoint", [], true];
+// Explicit terminal handovers remain observable even when the tactical phase was already CALM.
+_forcePhase=_forcePhase || {_reason in ["CORTEX_STOPPED","ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
 [_group,_state,"CALM",_reason,time,_forcePhase] call WAIT_fnc_CortexSetPhase;
 if (missionNamespace getVariable ["WAIT_AIPass_Debug", false]) then {diag_log format ["[WAIT] %1 CALM restored", _group]};

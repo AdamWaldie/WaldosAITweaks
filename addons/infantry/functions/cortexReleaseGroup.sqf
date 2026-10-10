@@ -80,6 +80,9 @@ if (_externalTakeover) then {
 // WAIT building operations are movement owners too. Zeus replacement orders terminate them before
 // general group state is restored.
 if (_externalTakeover) then {
+    // Defence is an explicit movement owner too. Retire its public assignment so
+    // discovery/locality replay cannot restore the old line after a curator edit.
+    [_group,false] call WAIT_fnc_CortexDefendRelease;
     [_group,false] call WAIT_fnc_CortexClearRelease;
     [_group,false] call WAIT_fnc_CortexGarrisonRelease;
 };
