@@ -472,4 +472,11 @@ class SemanticComponentContracts(unittest.TestCase):
         self.assertIn('_throwBearing-_contactBearing', source)
         self.assertIn('stance _unit,+_towards,getDir _unit,eyeDirection _unit', source)
 
+    def test_smoke_fixture_retires_hostile_before_later_contact_cases(self):
+        source = (ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
+        creation = source.index('private _smokeEnemy=_smokeEnemyGroup createUnit')
+        cleanup = source.index('deleteVehicle _smokeEnemy;', creation)
+        self.assertLess(cleanup, source.index('private _closeTarget='))
+        self.assertIn('deleteGroup _smokeEnemyGroup;', source[cleanup:cleanup+150])
+
 if __name__ == '__main__': unittest.main()

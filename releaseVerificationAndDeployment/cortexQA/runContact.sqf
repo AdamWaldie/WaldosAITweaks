@@ -911,6 +911,10 @@ private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHas
 ["DANGER-smoke-does-not-block-route",_smokeMoving && {_smokeThrown} && {_smokeArrived}
     && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
 deleteVehicle _smokeGrenade;
+// Retire the live contact stimulus after recording this case. Keeping an invulnerable
+// hostile here contaminates later contact-loss and static deployment acceptance.
+deleteVehicle _smokeEnemy;
+deleteGroup _smokeEnemyGroup;
 deleteVehicle _smokeUnit;
 deleteGroup _smokeGroup;
 
