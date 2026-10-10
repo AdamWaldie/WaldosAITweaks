@@ -13,6 +13,18 @@
 params ["_recordCheck","_phase","_wait"];
 private _owners=(missionNamespace getVariable ["WAIT_Headless_Clients",[]]) apply {_x select 0};
 ["LIFE-two-headless-clients",count _owners >= 2] call _recordCheck;
+private _nativeProvider=missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false];
+private _nativeReady=true;
+if (_nativeProvider) then {
+    _nativeReady=[{
+        private _registered=(missionNamespace getVariable ["Waldo_Headless_Clients",[]]) apply {_x select 0};
+        count _owners >= 2 && {_owners findIf {!(_x in _registered)} < 0}
+    },30] call _wait;
+    ["LIFE-native-provider-registration",_nativeReady,
+        str (missionNamespace getVariable ["Waldo_Headless_Clients",[]])] call _recordCheck;
+};
+// A missing provider registration is a failed fixture prerequisite, not a transfer failure.
+if (!_nativeReady) exitWith {};
 private _variants=[["",2]];
 {_variants pushBack [format ["HC%1-",_forEachIndex+1],_x]} forEach (_owners select [0,2]);
 {
