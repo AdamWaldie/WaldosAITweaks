@@ -45,9 +45,18 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_resume",[],[[]]]];
+// Validate authority before route geometry, ending support or changing combat settings. A
+// rejected native service task must not become a partially applied withdrawal.
+if (isNull _group || {!local _group}
+    || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}
+    || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
+if ((units _group) findIf {
+    alive _x && {toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}
+} >= 0) exitWith {false};
 // Use a local combat-effective anchor so leader loss or reassignment does not suppress an otherwise viable manoeuvre.
 private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
+if (!([_leader] call WAIT_fnc_CortexCombatEffective) || {!local _leader} || {group _leader != _group}) exitWith {false};
 private _resuming = count _resume == 7 && {(_resume select 0) == "INFANTRY"};
 private _enemyPos = if (_resuming) then {_resume select 3} else {_state getOrDefault ["enemyPos", []]};
 if (count _enemyPos < 2) exitWith {false};
