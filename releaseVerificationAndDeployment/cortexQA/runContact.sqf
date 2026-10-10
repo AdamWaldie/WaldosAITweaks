@@ -1610,6 +1610,11 @@ diag_log format ["WAIT STATIC PACK CONTACT TRACE: %1",[
     _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
     _deployGroup getVariable ["WAIT_AIPass_State",createHashMap],
     [_deployGroup] call WAIT_fnc_CortexKnowledge,
+    (([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) apply {
+        private _target=_x select 0;
+        [netId _target,typeOf _target,isPlayer _target,captive _target,getPosATL _target,_x select 1]
+    },
+    allPlayers apply {[netId _x,isPlayer _x,captive _x,getPosATL _x]},
     _deployGroup getVariable ["WAIT_Operation",createHashMap],
     (waypoints _deployGroup) apply {[_x,waypointType _x,waypointDescription _x]}]];
 
