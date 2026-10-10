@@ -48,13 +48,15 @@ private _reflexOnly=0;
             private _hostileSource=!isNull _source && {alive _source}
                 && {(side _group) getFriend (side _source) < 0.6};
             private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
+            // Discovering a friendly body from another group is still an alert; native cause 6
+            // must not be discarded merely because that casualty shares the observer's side.
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
             // The engine FSM has already classified concrete boarding, treatment, supply, action
             // and join tasks as FORCED. Keep their danger evidence actor-local: publishing even a
             // transient group record can wake CONTACT before the later group step clears it.
             private _groupRelevant=if (_mode in ['FORCED','RELEASE'] || {_cause == 10}) then {false} else {
-                if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
+                if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,6,7]}}
             };
             if (count _position == 3 && {_groupRelevant}) then {
                 private _causeName=_causeNames select _cause;
