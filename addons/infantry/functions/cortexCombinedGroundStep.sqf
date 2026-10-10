@@ -58,7 +58,12 @@ if ([_group] call WAIT_fnc_CortexZeusHeld) exitWith {["ZEUS_HANDOVER"] call _fin
 if (!([_group] call WAIT_fnc_CortexIsEligible)
     || {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {["FEATURE_CLOSED"] call _finish};
+private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if ((_currentOperation getOrDefault ["generation",-2]) != _operationGeneration
+    || {(_currentOperation getOrDefault ["intent",""]) != "COMBINED_GROUND"}) exitWith {["REPLACED"] call _finish};
 if (isNull _target || {!alive _target}) exitWith {["TARGET_LOST"] call _finish};
+if (captive _target || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {(side _group) getFriend (side _target) >= 0.6}) exitWith {["TARGET_NO_LONGER_HOSTILE"] call _finish};
 if (serverTime >= (_job getOrDefault ["expiry",serverTime])) exitWith {["EXPIRED"] call _finish};
 if (_asset distance2D _destination <= 70) exitWith {
     _group reveal [_target,3];
