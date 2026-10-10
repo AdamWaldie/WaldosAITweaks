@@ -358,12 +358,14 @@ if (_movementOwner == "TACTICAL_REPOSITION" && {count _movementLease == 2} && {t
             private _members=_current getOrDefault ["participants",[]];
             private _unavailable=_current getOrDefault ["unavailable",[]];
             private _recovery=_current getOrDefault ["recovery",createHashMap];
+            private _attempts=_current getOrDefault ["recoveryAttempts",createHashMap];
             if (count _members <= 64) then {
                 private _stuck=_members findIf {
                     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
                         && {!(_x in _unavailable)} && {abs speed _x <= 0.5}
                         && {_x distance2D _point > 6}
                         && {(_recovery getOrDefault [netId _x,[]]) isEqualTo []}
+                        && {(_attempts getOrDefault [netId _x,0]) < 1}
                 };
                 if (_stuck >= 0) then {[_group,_generation,_members select _stuck,_point] call WAIT_fnc_RecoveryStep};
             };
