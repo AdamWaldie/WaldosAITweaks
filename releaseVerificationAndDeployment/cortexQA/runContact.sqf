@@ -950,6 +950,12 @@ _forcedUnit assignAsCargo _forcedVehicle;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_forcedUnit,_forcedVehicle],true];
 ["Danger FSM: native boarding ownership","The soldier has an ordinary engine GET IN task before a real grenade detonates. WAIT must observe FORCED, never publish infantry tactical authority, and allow physical boarding to finish.",getPosATL _forcedVehicle] call _phase;
 private _forcedReady=[{toUpperANSI (currentCommand _forcedUnit) == "GET IN"},10] call _wait;
+private _forcedWaypointCount=count waypoints _forcedGroup;
+private _forcedRoute=[_forcedGroup,(getPosATL _forcedUnit) getPos [40,180],3] call WAIT_fnc_CortexGroupMove;
+["DANGER-forced-order-group-route-rejected",_forcedReady && {_forcedRoute isEqualTo [grpNull,-1]}
+    && {count waypoints _forcedGroup == _forcedWaypointCount},
+    str [_forcedRoute,currentCommand _forcedUnit,_forcedWaypointCount,count waypoints _forcedGroup]] call _check;
+
 private _forcedModesBefore=((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["FORCED",0];
 private _forcedAcceptedBefore=(_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
 private _forcedTransitionCount=count (_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
