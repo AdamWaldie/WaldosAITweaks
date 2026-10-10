@@ -1082,7 +1082,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexZeusHeld',step)
         self.assertIn('participantProgress',start)
         self.assertIn('participantProgress',step)
-        self.assertIn('private _actorProgressed=_currentPosition distance2D _lastPosition >= _minimum',step)
+        self.assertIn('private _actorProgressed=_currentPosition vectorDistance _lastPosition >= _minimum',step)
         self.assertIn('[_lastPosition,_currentPosition] select _actorProgressed',step)
         self.assertNotIn('_updated pushBack [_actor,_currentPosition];',step)
         clear=source('cortexClearBuilding')+source('buildingOperationStep')

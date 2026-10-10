@@ -1,6 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Maintains physical progress for one existing operation and identifies bounded recovery needs.
+ * Purpose: Maintains three-dimensional physical progress for one existing operation and identifies
+ * bounded recovery needs. Vertical travel counts; recovery arrival requires the destination floor band.
  * Locality/authority: Current group owner only; it never creates a replacement route or issues a movement order.
  * Repeat/JIP: Updates the current generation only. Changed progress, roster and recovery state are public; unchanged no-progress observations are not rebroadcast. Cadence is local and rebuilt after migration.
  * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 minimum progress <NUMBER, 3>; 3 stale seconds <NUMBER, 12>; 4 allow own WAIT feature <BOOL, false>.
@@ -53,11 +54,12 @@ private _unavailableCount=count _unavailable;
         _record params ["_attempts","_startedAt",["_destination",[],[[]]],["_startPosition",getPosATL _actor,[[]]]];
         if (_attempts > 0 && {time-_startedAt >= _staleSeconds}) then {
             private _currentPosition=getPosATL _actor;
-            if (count _destination >= 2 && {_actor distance2D _destination <= 4}) then {
+            if (count _destination >= 2 && {_actor distance2D _destination <= 4}
+                && {count _destination < 3 || {abs (((getPosATL _actor) select 2)-(_destination select 2)) <= 1.5}}) then {
                 _recovery deleteAt _key;
                 _recoveryChanged=true;
             } else {
-                if (_currentPosition distance2D _startPosition >= _minimum) then {
+                if (_currentPosition vectorDistance _startPosition >= _minimum) then {
                     // The isolated actor is still moving. Renew only its observation window; its
                     // travel cannot mask a stalled manoeuvre element or reset operation progress.
                     _recovery set [_key,[_attempts,time,+_destination,_currentPosition]];
@@ -88,7 +90,7 @@ private _progressActor=objNull;
     _x params ["_actor","_lastPosition"];
     if (_actor in _participants) then {
         private _currentPosition=getPosATL _actor;
-        private _actorProgressed=_currentPosition distance2D _lastPosition >= _minimum;
+        private _actorProgressed=_currentPosition vectorDistance _lastPosition >= _minimum;
         if (_actorProgressed) then {
             _progressed=true;
             _progressActor=_actor;
