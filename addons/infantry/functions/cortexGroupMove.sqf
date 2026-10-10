@@ -65,6 +65,17 @@ private _hasOwnedWaypoint = count _previousWaypoint == 2
     && {(_previousWaypoint select 1) < count waypoints _group}
     && {waypointDescription _previousWaypoint == "WAIT AI PASS"};
 
+// The internal description is not sufficient ownership proof: Zeus or mission code can
+// edit an existing WAIT waypoint without changing its label. Treat that edit as a newer order
+// before adopting this route or inserting another waypoint ahead of it.
+if (_hasOwnedWaypoint && {count _previousPosition < 2
+    || {waypointPosition _previousWaypoint distance2D _previousPosition > 1}
+    || {waypointType _previousWaypoint != _previousType}
+    || {abs (waypointCompletionRadius _previousWaypoint-_previousRadius) > 0.1}}) exitWith {
+    [_group,true,_previousWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+    [grpNull,-1]
+};
+
 // Keep an established engine route until a meaningful tactical change. Position drift inside the
 // current completion radius and a small retask tolerance cannot justify a new waypoint.
 private _sameDestination = count _previousPosition >= 2
