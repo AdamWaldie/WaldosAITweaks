@@ -19,12 +19,13 @@
  *
  * Arguments:
  * 0: group <GROUP>
- * 1: position <ARRAY> - ATL destination
+ * 1: position <ARRAY> - two or three numeric ATL coordinates; omitted height defaults to zero
  * 2: completion radius <NUMBER> - metres (optional, default: 25)
  * 3: type <STRING> - waypoint type, MOVE or SAD (optional, default: "MOVE")
+ * 4: operation generation <NUMBER> - matching operation identity, -1 adopts the current operation
  *
  * Return Value:
- * Array - the waypoint [group, index]
+ * Array - the waypoint [group, index], or [grpNull,-1] when refused before movement
  *
  * Example:
  * [_group, _rallyPoint] call WAIT_fnc_CortexGroupMove;
@@ -35,7 +36,8 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_position", [], [[]]], ["_radius", 25, [0]], ["_type", "MOVE", [""]], ["_operationGeneration", -1, [0]]];
-if (isNull _group || {!local _group} || {count _position < 2}
+if (isNull _group || {!local _group} || {!(count _position in [2,3])}
+    || {_position findIf {!(_x isEqualType 0)} >= 0}
     || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull, -1]};
 // Establish the owner epoch before committing an unscoped route on a newly spawned
 // group. Later periodic discovery must not treat this active route as pre-adoption work.
