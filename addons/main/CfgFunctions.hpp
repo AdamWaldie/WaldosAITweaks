@@ -94,6 +94,7 @@ class CfgFunctions {
             class OperationStep {file = "\z\waldo_ai_tweaks\addons\core\functions\operationStep.sqf";};
             class OperationCancel {file = "\z\waldo_ai_tweaks\addons\core\functions\operationCancel.sqf";};
             class OperationRelease {file = "\z\waldo_ai_tweaks\addons\core\functions\operationRelease.sqf";};
+            class OperationRestore {file = "\z\waldo_ai_tweaks\addons\core\functions\operationRestore.sqf";};
             class RebalanceRoles {file = "\z\waldo_ai_tweaks\addons\infantry\functions\rebalanceRoles.sqf";};
             class RecoveryStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\recoveryStep.sqf";};
             class CortexDrillInterrupt {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexDrillInterrupt.sqf";};

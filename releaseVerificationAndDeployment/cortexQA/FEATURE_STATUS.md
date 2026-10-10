@@ -60,7 +60,7 @@ Feature cases: **65**. Required variant categories: **14**.
 | DEFEND - Defence orders | 0 | 0 | 4 | `runServer.sqf` | 0 | implemented_partial |
 | CLEAR - Building clearance | 2 | 0 | 7 | `runBuildingComparison.sqf` | 1 | implemented_partial |
 | UI - CBA configuration and diagnostics | 0 | 0 | 1 | `runClient.sqf` | 0 | implemented_partial |
-| LIFECYCLE - Transfer, disconnect and JIP | 0 | 0 | 15 | `runLifecycle.sqf` | 6 | implemented_partial |
+| LIFECYCLE - Transfer, disconnect and JIP | 0 | 0 | 16 | `runLifecycle.sqf` | 6 | implemented_partial |
 | MULTI-FLANK - Multi-squad flank cohesion | 0 | 0 | 0 | `runMultiManoeuvre.sqf` | 1 | implemented_partial |
 | MULTI-BOUND - Squad and multi-squad bounding overwatch | 0 | 0 | 0 | `runMultiManoeuvre.sqf` | 1 | implemented_partial |
 | MULTI-WITHDRAW - Multi-squad screened withdrawal | 0 | 0 | 0 | `runReactions.sqf` | 0 | implemented_partial |

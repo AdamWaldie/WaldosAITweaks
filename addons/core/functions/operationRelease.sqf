@@ -20,6 +20,7 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {
     [_group,_generation,_handoverReason] call WAIT_fnc_OperationCancel;
     false
 };
+[_group,_operation,_reason] call WAIT_fnc_OperationRestore;
 [_group,createHashMap,objNull,[],"RELEASE",_generation] call WAIT_fnc_CortexVehicleReverseStep;
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
 // Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval

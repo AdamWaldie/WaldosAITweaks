@@ -14,6 +14,7 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {false};
 if (toUpperANSI _reason != "OWNERSHIP_LOST"
     && {(_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {false};
+[_group,_operation,_reason] call WAIT_fnc_OperationRestore;
 [_group,createHashMap,objNull,[],"RELEASE",_generation] call WAIT_fnc_CortexVehicleReverseStep;
 _operation set ["cancelReason",toUpperANSI _reason];
 _operation set ["phase","CANCELLED"];

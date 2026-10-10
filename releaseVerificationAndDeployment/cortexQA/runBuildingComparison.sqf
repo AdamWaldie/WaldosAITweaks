@@ -104,8 +104,11 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     // Audit exactly that set rather than preserving the superseded exterior-leader assumption.
     private _clearingMembers=+_members;
     private _memberVisits=_clearingMembers apply {[]};
+    private _originalAttack=attackEnabled leader _group;
     private _accepted=[_group,_house] call WAIT_fnc_CortexClearBuilding;
     [format ["CLEAR-fresh-%1-accepted",_size],_accepted] call _check;
+    [format ["CLEAR-fresh-%1-owned-attack-delegation",_size],_accepted && {!attackEnabled leader _group},
+        str [_originalAttack,attackEnabled leader _group]] call _check;
     private _entryEpoch=_group getVariable ["WAIT_AIPass_Epoch",0];
     private _entryGeneration=(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1];
     private _entryOwnerStable=true;
@@ -145,6 +148,9 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
             && {(_sharedResult select 0) == "CLEAR"} && {(_sharedResult select 1) == _localResult}
             && {(_sharedResult select 2) == _entryGeneration} && {(_sharedResult select 4) == _expectedReason},
         str [_localResult,_sharedResult]] call _check;
+    [format ["CLEAR-fresh-%1-attack-delegation-restored",_size],
+        _localResult in ["COMPLETE","INCOMPLETE"] && {attackEnabled leader _group == _originalAttack},
+        str [_localResult,_originalAttack,attackEnabled leader _group]] call _check;
     private _physical=_rooms isNotEqualTo [] && {_visits findIf {!_x} < 0};
     [format ["CLEAR-fresh-%1-physical-room-visits",_size],_physical,format ["visits=%1 units=%2",_visits,_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x]}]] call _check;
     [format ["CLEAR-fresh-%1-result-agrees",_size],_physical && {((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) == "COMPLETE"}] call _check;

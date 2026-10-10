@@ -124,7 +124,8 @@ if (serverTime >= _deadline) exitWith {[_group] call WAIT_fnc_CortexClearRelease
 // Validate the new building/team first; an invalid request must preserve the current order.
 // HC resume keeps the published progress/deadline rather than starting a new episode.
 if (!_resume && {_previous isNotEqualTo []}) then {[_group] call WAIT_fnc_CortexClearRelease};
-_group setVariable ["WAIT_AIPass_ClearOrder", [_building, _cleared, _deadline, _baseBehaviour, _unreachable, _retryCounts, _failedBy, _lastProgressAt], true];
+private _baseAttack=if (_resume) then {_previous param [8,attackEnabled _leader,[true]]} else {attackEnabled _leader};
+_group setVariable ["WAIT_AIPass_ClearOrder", [_building, _cleared, _deadline, _baseBehaviour, _unreachable, _retryCounts, _failedBy, _lastProgressAt, _baseAttack], true];
 _group setVariable ["WAIT_AIPass_ClearApplied", true];
 _group setVariable ["WAIT_Cortex_ClearResult",["RUNNING",count _cleared,count _positions],true];
 _group setVariable ["WAIT_Cortex_ClearEvidence",nil,true];
@@ -145,6 +146,19 @@ if (count _operation == 0) exitWith {
         _group setVariable ["WAIT_Cortex_ClearResult",["CANCELLED",count _cleared,count _positions],true];
     };
     false
+};
+// Suppress only competing autonomous group attack assignment during the clear. Native
+// targeting, weapons and suppression remain enabled. Mixed specialist/player groups retain
+// their command policy; only ordinary groups acquire this exact-owned reversible setting.
+private _delegationMembers=units _group;
+if (count _delegationMembers <= 64
+    && {_delegationMembers findIf {isPlayer _x || {[_x] call WAIT_fnc_CompatibilityExternalControl}} < 0}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+    && {((_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1]) == (_operation get "generation")}
+    && {(_operation get "ownerEpoch") == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+    (_operation get "restore") set ["groupAttack",[_baseAttack,false]];
+    _group setVariable ["WAIT_Operation",_operation,true];
+    _group enableAttack false;
 };
 // Initial owner adoption may reset replay markers; this successfully created job now owns them.
 _group setVariable ["WAIT_AIPass_ClearApplied",true];
@@ -232,7 +246,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["ENTRY",count _cleared,count _unr
 private _job=createHashMapFromArray [
     ["group", _group], ["team", _team], ["started", []], ["positions", _positions], ["cleared", _cleared], ["building", _building], ["assigned", _team apply {[]}], ["unreachable",_unreachable], ["retryCounts",_retryCounts],
     ["entry",_entryRoute], ["entries",_entries], ["pairs",_pairs], ["pairRoutes",_pairRoutes], ["pairStates",_pairStates], ["pending",_pending],
-    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt], ["visitCursor",0],
+    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["baseAttack",_baseAttack], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt], ["visitCursor",0],
     ["phase","ENTRY"],["rotatedOut",[]],["egressAssignments",[]],["egressDeadline",0],["egressReissue",0],["egressFailed",false]
 ];
 [_job] call WAIT_fnc_BuildingOperationStart;
