@@ -318,6 +318,24 @@ private _contactSite=[7550,5800,0];
 private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",_contactSite,[],0,"NONE"];
 _contactHouse enableSimulationGlobal true;
 private _contactRooms=_contactHouse buildingPos -1;
+// Find an exterior approach with a genuine view through an opening before creating actors.
+// A hidden room plus an arbitrary rear approach tests absent detection, not contact-to-clear.
+private _contactRoom=[];
+private _contactApproach=[];
+{
+    private _room=_x;
+    for "_bearing" from 0 to 337.5 step 22.5 do {
+        private _approach=_contactSite getPos [38,_bearing];
+        private _from=AGLToASL (_approach vectorAdd [0,0,1.5]);
+        private _to=AGLToASL (_room vectorAdd [0,0,1.5]);
+        if ((lineIntersectsSurfaces [_from,_to,objNull,objNull,true,1,"VIEW","NONE"]) isEqualTo []) exitWith {
+            _contactRoom=+_room; _contactApproach=+_approach;
+        };
+    };
+    if (_contactRoom isNotEqualTo []) exitWith {};
+} forEach (_contactRooms select [0,16]);
+private _contactGeometryReady=_contactRoom isNotEqualTo [];
+if (!_contactGeometryReady) then {_contactRoom=_contactRooms param [0,getPosATL _contactHouse]; _contactApproach=_contactSite vectorAdd [-12,-38,0]};
 private _contactGroup=createGroup [east,true];
 private _contactOpposition=createGroup [west,true];
 {
@@ -327,14 +345,15 @@ private _contactOpposition=createGroup [west,true];
 _contactOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
 private _contactMembers=[];
 for "_i" from 0 to 5 do {
-    private _unit=_contactGroup createUnit ["O_Soldier_F",_contactSite vectorAdd [-12+(_i mod 3)*3,-38-floor(_i/3)*3,0],[],0,"NONE"];
+    private _rowOrigin=_contactApproach getPos [floor (_i/3)*3,(_contactApproach getDir _contactHouse)+180];
+    private _unit=_contactGroup createUnit ["O_Soldier_F",_rowOrigin getPos [(_i mod 3)*3,(_contactApproach getDir _contactHouse)+90],[],0,"NONE"];
     _unit allowDamage false;
     _unit setDir (_unit getDir _contactHouse);
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["NATURAL CQB %1",_i+1],true];
     _contactMembers pushBack _unit;
 };
-private _contactEnemy=_contactOpposition createUnit ["B_Soldier_F",_contactRooms param [0,getPosATL _contactHouse],[],0,"NONE"];
+private _contactEnemy=_contactOpposition createUnit ["B_Soldier_F",_contactRoom,[],0,"NONE"];
 _contactEnemy allowDamage false;
 _contactEnemy setDir (_contactEnemy getDir leader _contactGroup);
 _contactEnemy setVariable ["acex_headless_blacklist",true,true];
@@ -343,6 +362,11 @@ _contactGroup setCombatMode "RED";
 _contactOpposition setCombatMode "RED";
 missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Enable",true,true];
 missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Range",100,true];
+[createHashMapFromArray [["WAIT_AIPass_Contact_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _contactSightline=_contactGeometryReady && {_contactMembers findIf {
+    (lineIntersectsSurfaces [eyePos _x,eyePos _contactEnemy,_x,_contactEnemy,true,1,"VIEW","NONE"]) isEqualTo []
+} >= 0};
+["BUILD-CONTACT-visible-fixture",_contactSightline,str [_contactRoom,_contactApproach,_contactGeometryReady]] call _check;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactMembers+[_contactEnemy],true];
 ["Natural building contact","The six-person squad faces a live hostile physically inside the house. Native knowledge must form first; WAIT should then transition directly from contact into its single building-clear operation and physically enter. The audit injects no reveal, clear order or route.",getPosATL _contactHouse] call _phase;
 private _nativeContact=[{(units _contactGroup) findIf {_x knowsAbout _contactEnemy >= 1} >= 0},30] call _wait;
