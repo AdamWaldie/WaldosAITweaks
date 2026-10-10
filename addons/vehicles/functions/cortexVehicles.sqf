@@ -244,6 +244,8 @@ private _dismountAtThreat = {
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
         if (_commandsVehicle && {local _vehicle}) then {
             if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",[_group getVariable ["WAIT_OperationGeneration",0],
+                    [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
                 _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0],true];
             };
             if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
@@ -259,6 +261,9 @@ private _dismountAtThreat = {
             // Publish ownership before GetOut handlers can observe the command.
             if (_dismounted findIf {(_x select 0) == _unit} < 0) then {
                 _dismounted pushBack [_unit,_vehicle];
+                _group setVariable ["WAIT_Cortex_DismountContinuation",[serverTime+60,
+                    _group getVariable ["WAIT_OperationGeneration",0],+_dismounted,
+                    [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
             };
             _state set ["dismounted", _dismounted];
             if ([] call _mayIssueVehicle && {toUpperANSI (currentCommand _unit) != "GET OUT"}) then {
@@ -291,6 +296,27 @@ private _dismountAtThreat = {
                 alive _unit && {group _unit == _passengerGroup}
                     && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
             } >= 0 || {
+                private _continuation=_passengerGroup getVariable ["WAIT_Cortex_DismountContinuation",[]];
+                private _crewProof=_vehicle getVariable ["WAIT_Cortex_DismountStopOrder",[]];
+                count _continuation == 4 && {count _crewProof == 2}
+                    && {(_continuation select 0) isEqualType 0} && {(_continuation select 1) isEqualType 0}
+                    && {(_continuation select 2) isEqualType []} && {(_continuation select 3) isEqualType []}
+                    && {serverTime < (_continuation select 0)} && {(_continuation select 0) <= serverTime+60}
+                    && {(_continuation select 1) == (_passengerGroup getVariable ["WAIT_OperationGeneration",0])}
+                    && {(_continuation select 3) isEqualTo [currentWaypoint _passengerGroup,waypointPosition [_passengerGroup,currentWaypoint _passengerGroup]]}
+                    && {_crewProof isEqualTo [_group getVariable ["WAIT_OperationGeneration",0],
+                        [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]]}
+                    && {!_movementOwned} && {!([_passengerGroup] call WAIT_fnc_CortexExternalTakeover)}
+                    && {[_passengerGroup,"WAIT_AIPass_VehicleRemount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {((_continuation select 2) select [0,8]) findIf {
+                        if !(_x isEqualType [] && {count _x == 2}
+                            && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}) exitWith {false};
+                        _x params ["_unit","_originalVehicle"];
+                        alive _unit && {group _unit == _passengerGroup} && {_originalVehicle == _vehicle}
+                            && {isNull objectParent _unit} && {_unit distance2D _vehicle <= 100}
+                            && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}
+                    } >= 0}
+            } || {
                 private _boarding=_passengerGroup getVariable ["WAIT_Cortex_Remount",[]];
                 _boarding isEqualType [] && {count _boarding == 2}
                     && {(_boarding select 0) isEqualType 0} && {(_boarding select 1) isEqualType []}
@@ -309,9 +335,13 @@ private _dismountAtThreat = {
                     } >= 0}
             }};
     };
+    // An external speed edit invalidates our exact zero-speed hold. Never reapply zero over it.
+    if (_saved isNotEqualTo [] && {abs ((getForcedSpeed _vehicle)-(_saved param [1,-2])) > 0.1}) then {_valid=false};
     if (_valid) then {
         if (_saved isEqualTo []) then {
             _saved=[getForcedSpeed _vehicle,0];
+            _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",[_group getVariable ["WAIT_OperationGeneration",0],
+                [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
             _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved,true];
         };
         if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
@@ -321,6 +351,7 @@ private _dismountAtThreat = {
             && {_ownedStop >= 0} && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
             _vehicle forceSpeed (_saved param [0,-1]);
         };
+        _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil,true];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };

@@ -89,6 +89,7 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
+    _group setVariable ["WAIT_Cortex_DismountContinuation",nil,true];
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
     _group setVariable ["WAIT_Danger_CoverPending",nil];
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
@@ -140,6 +141,7 @@ private _releasedVehicles=[];
             _vehicle forceSpeed (_saved param [0,-1]);
         };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
         _vehicle setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
     };

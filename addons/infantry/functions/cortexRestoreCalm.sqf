@@ -206,6 +206,7 @@ if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]}) then {
 } forEach (_state getOrDefault ["dismounted", []]);
 // Retain boarding intent until seats are actually occupied. The public record lets
 // a new HC owner continue the bounded attempt; it never moves units into seats.
+_group setVariable ["WAIT_Cortex_DismountContinuation",nil,true];
 private _boarding = _state getOrDefault ["dismounted", []];
 if (_allowRemount && {_boarding isNotEqualTo []}) then {
     _group setVariable ["WAIT_Cortex_Remount",[serverTime+60,+_boarding],true];

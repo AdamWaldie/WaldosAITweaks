@@ -91,6 +91,7 @@ if (isServer) then {
             _x forceSpeed (_savedStopSpeed param [0,-1]);
         };
         _x setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _x setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
         _x setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
         _x setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootToken",nil,true];

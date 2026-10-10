@@ -539,6 +539,31 @@ if (!_ordered && {_visible isEqualTo []}
 };
 // Retry calm boarding on the current owner only; a different assigned vehicle retires our intent. A missing seat or moving
 // vehicle is temporary, not grounds to forget the passenger after one attempt.
+// Bridge only WAIT-owned exits until calm boarding starts; native exits never create this proof.
+private _continuation=_group getVariable ["WAIT_Cortex_DismountContinuation",[]];
+if (count _continuation == 4 && {(_continuation select 0) isEqualType 0}
+    && {(_continuation select 1) isEqualType 0} && {(_continuation select 2) isEqualType []}
+    && {(_continuation select 3) isEqualType []}) then {
+    private _validContinuation=serverTime < (_continuation select 0)
+        && {(_continuation select 1) == (_group getVariable ["WAIT_OperationGeneration",0])}
+        && {(_continuation select 3) isEqualTo [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]}
+        && {[] call _mayIssueMovement}
+        && {["WAIT_AIPass_Vehicles_Enable",true] call _get}
+        && {["WAIT_AIPass_VehicleRemount_Enable",true] call _get};
+    if (_validContinuation) then {
+        {
+            _x params ["_unit","_vehicle"];
+            if (alive _unit && {group _unit == _group} && {alive _vehicle}
+                && {isNull objectParent _unit} && {_unit distance2D _vehicle <= 100}
+                && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",
+                    [_group,groupOwner _group,(serverTime+30) min (_continuation select 0)],true];
+            };
+        } forEach (((_continuation select 2) select [0,8]) select {
+            _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}
+        });
+    } else {_group setVariable ["WAIT_Cortex_DismountContinuation",nil,true]};
+};
 private _remount = _group getVariable ["WAIT_Cortex_Remount",[]];
 if (_remount isNotEqualTo []) then {
     _remount params ["_deadline","_passengers"];

@@ -622,3 +622,7 @@ Mixed-observer audit now samples exact commander/VEHICLE/ARMOURED/vehicle identi
 Crew recovery now retains one owner-local refusal observation with stage reason, danger cause/generation, vehicle speed, commander native command and native knowledge. No eligibility/ownership rule or seat-change behaviour is relaxed. This is diagnostic evidence, not recovery acceptance.
 
 The live 4531829 batch passes stationary shared/separate physical remount but fails moving separate-group remount. The next audit emits the existing remount retirement reason plus vehicle speed/forced-speed/position/owner/stop request and passenger distance. This adds evidence without altering boarding or masking its failure.
+
+WAIT-issued exits now publish a bounded sixty-second continuation proof before exit: original passenger pairs, operation generation and current waypoint identity/position. Only newly recorded owned exits publish it; native/unowned exits do not. Group release and calm/remount handover clear it. Vehicle stop consumption is still being implemented; this record alone does not fix remount or prove acceptance.
+
+The continuation proof now refreshes the existing bounded stop request for nearby owned passengers. Vehicle validation requires the original passenger generation/waypoint and a captured crew generation/waypoint, no competing vehicle movement or external passenger owner, and an unexpired sixty-second episode. The first stop captures crew order proof; retirement clears it. Physical remount, order replacement, locality and performance remain unverified.
