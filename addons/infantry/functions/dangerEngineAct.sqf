@@ -60,7 +60,8 @@ if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
 if (_mode == "IMMEDIATE" && {_cause in [2,9]} && {!_committedMover}
     && {[_group,"WAIT_AIPass_DangerEvasion_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {isNull objectParent _actor} && {stance _actor == "PRONE"}
-    && {abs (speed _actor) < 0.5} && {currentCommand _actor == ""}
+    && {abs (speed _actor) < 0.5}
+    && {currentCommand _actor in ["","ATTACK","FIRE","SUPPRESS"]}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
     && {primaryWeapon _actor != ""} && {currentWeapon _actor == primaryWeapon _actor}
     && {time >= (_actor getVariable ["WAIT_Danger_EvasionAfter",-1])}) then {

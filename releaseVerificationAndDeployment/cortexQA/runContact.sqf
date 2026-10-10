@@ -794,6 +794,8 @@ _closeTarget setVariable ["WAIT_CortexQA_Label","CLOSE HOSTILE CONTACT",true];
 _reflexUnit allowDamage false;
 _reflexUnit setDir (_reflexUnit getDir _closeTarget);
 _closeTarget setDir (_closeTarget getDir _reflexUnit);
+_reflexUnit setUnitPosWeak "DOWN";
+_reflexUnit setVariable ["WAIT_Danger_LastEvasion",nil];
 _reflexGroup setCombatMode "RED";
 private _closeShots=0;
 private _closeShotHandler=_reflexUnit addEventHandler ["FiredMan",{missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0])+1]}];
@@ -808,6 +810,29 @@ private _closePersistent=[{
         && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
         && {_reflexUnit knowsAbout _closeTarget > 0}
 },25] call _wait;
+// Evasion acceptance requires a native hit/near-round response followed by real displacement.
+// The actor and opponent remain engine-controlled; no danger record or animation is injected.
+private _evasionObserved=[{count (_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]) == 5},12] call _wait;
+private _evasionEvidence=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
+private _evasionMoved=false;
+if (_evasionObserved) then {
+    private _evasionStart=_evasionEvidence select 4;
+    _evasionMoved=[{_reflexUnit distance2D _evasionStart >= 0.4},4] call _wait;
+};
+["DANGER-evasion-native-stimulus-prerequisite",_evasionObserved,str _evasionEvidence] call _check;
+["DANGER-evasion-physical-displacement",_evasionObserved && {_evasionMoved},
+    str [_evasionEvidence,getPosATL _reflexUnit]] call _check;
+[createHashMapFromArray [["WAIT_AIPass_DangerEvasion_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _disabledEvasion=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
+private _disabledRecordsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
+sleep 6;
+private _disabledNativeRecords=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
+["DANGER-evasion-disabled-native-stimulus",_disabledNativeRecords > _disabledRecordsBefore,
+    str [_disabledRecordsBefore,_disabledNativeRecords]] call _check;
+["DANGER-evasion-disabled-no-action",_disabledNativeRecords > _disabledRecordsBefore
+    && {(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]) isEqualTo _disabledEvasion},
+    str (_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]])] call _check;
+[createHashMapFromArray [["WAIT_AIPass_DangerEvasion_Enable",true]]] call WAIT_fnc_CortexTuning;
 _closeShots=missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0];
 ["DANGER-close-contact-physical-persistence",_closePersistent,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
 private _finiteReflexHandoff=[{
@@ -825,6 +850,7 @@ _reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
 deleteGroup _closeGroup;
+_reflexUnit setUnitPosWeak "AUTO";
 
 // A curator replacement order is the strongest live interruption edge. Trigger a real engine
 // response, prove it became active, then install and mark an ordinary replacement waypoint through
