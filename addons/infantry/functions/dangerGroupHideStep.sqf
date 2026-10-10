@@ -4,7 +4,7 @@
  * Locality / Authority: Runs only on the owner of the local AI group from the existing group-brain step. It changes weak stance only for local, idle, ordinary on-foot actors not reserved by another WAIT operation.
  * Selection inspects at most 64 group members and applies posture to at most four actors.
  * Cleanup may restore its exact weak posture during ordinary movement or a WAIT cover route;
- * it does not change that route. Starting a new group posture still requires an idle actor.
+ * it does not change that route. Starting a new group posture requires a stationary actor; native combat remains available.
  * Repeat/JIP: One generation-owned group lease records each actor's prior and applied weak stance, operation generation and owner epoch. Repeated calls retain that lease; release restores only an unchanged WAIT-applied stance. Zeus, player, specialist, locality and newer-generation handover discard the lease without writing over the new owner.
  * Arguments: 0: group <GROUP>, grpNull; 1: danger generation <NUMBER>, -1; 2: active <BOOL>, false; 3: cause <STRING>, "".
  * Return Value: Boolean - true while one or more exact-owned squad stance leases remain active.
@@ -105,7 +105,8 @@ private _candidates=_members select {
         && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
         && {!(_x in _reserved)}
         && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
-        && {currentCommand _x == ""}
+        && {currentCommand _x in ["","ATTACK","FIRE","SUPPRESS"]}
+        && {abs (speed _x) <= 0.5}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
         && {(_x getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
 };

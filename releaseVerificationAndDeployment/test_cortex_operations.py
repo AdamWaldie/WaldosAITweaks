@@ -621,7 +621,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_CoverLease',source('cortexReleaseGroup'))
         group_hide=source('dangerGroupHideStep')
         for marker in ['WAIT_Danger_GroupHideLeases','WAIT_Danger_Generation','WAIT_Operation',
-                       'currentCommand _x == ""','WAIT_Cortex_ActorMove','setUnitPosWeak',
+                       'currentCommand _x in ["","ATTACK","FIRE","SUPPRESS"]', 'abs (speed _x) <= 0.5','WAIT_Cortex_ActorMove','setUnitPosWeak',
                        'groupHideResponses','lastGroupHideActors']:
             self.assertIn(marker,group_hide)
         self.assertIn('call WAIT_fnc_CortexCapabilities',group_hide)
