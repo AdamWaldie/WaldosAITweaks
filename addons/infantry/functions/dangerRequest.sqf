@@ -57,9 +57,18 @@ if (isNull _hostileSource && {_index >= 0}) then {
 // approximate event inherits a still-live hostile identity from the previous coalesced record.
 private _event=[_cause,+_position,time,time+2,_hostileSource,_actor,_sourceObserver];
 if (_index >= 0) then {_events set [_index,_event]} else {_events pushBack _event};
-// Retain recent observations at the fixed group limit; a full queue must not permanently
-// reject a newly hit witness while its earlier occupants remain in the front slots.
-_group setVariable ["WAIT_Danger_Events",_events select [((count _events)-16) max 0,16]];
+// Keep the queue bounded while preserving both fresh witnesses and its strongest hazard.
+// Only overflow needs priority work: the normal coalesced path retains its cheap write.
+if (count _events > 16) then {
+    private _previousBest=[_events] call WAIT_fnc_DangerSelect;
+    private _strongest=[[_previousBest,_event]] call WAIT_fnc_DangerSelect;
+    _events=_events select [((count _events)-16) max 0,16];
+    if (_strongest isNotEqualTo [] && {!(_strongest in _events)}) then {
+        _events deleteAt 0;
+        _events pushBack _strongest;
+    };
+};
+_group setVariable ["WAIT_Danger_Events",_events];
 private _running=_group getVariable ["WAIT_Danger_FSM",[]];
 if (count _running == 3 && {(_running select 0) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
     && {(_running select 1) == (_group getVariable ["WAIT_Danger_Generation",0])}
