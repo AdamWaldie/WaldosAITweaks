@@ -245,7 +245,8 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
     private _probeEvidence=[];
     private _probeExplosion=[{
         private _response=_probeActor getVariable ["WAIT_Danger_EngineResponse",[]];
-        if (count _response == 4 && {(_response select 1) == 4}) then {
+        // The engine may deliver blast damage as HIT, which correctly outranks EXPLOSION.
+        if (count _response == 4 && {(_response select 1) in [2,4]}) then {
             _probeEvidence=+_response;
             true
         } else {false}
