@@ -142,6 +142,17 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
     // Clear a previous HALT doStop on the lead driver without deleting or replacing route waypoints.
     if (currentWaypoint _group < count waypoints _group) then {
         (driver _lead) doFollow leader _group;
+        // Tracked HALT explicitly replaced vehicle movement with a current-position move.
+        // Following the commander cannot supersede that vehicle-level destination reliably.
+        // Restart only our matching halt once, toward the unchanged ordinary route waypoint.
+        private _haltOwner=_lead getVariable ["WAIT_Convoy_HaltOwner",[]];
+        private _resumeWaypoint=[_group,currentWaypoint _group];
+        if (count _haltOwner == 3 && {(_haltOwner select 0) == _group}
+            && {(_haltOwner select 2) == clientOwner} && {waypointType _resumeWaypoint == "MOVE"}
+            && {[] call _mayIssueDriving}) then {
+            _lead move waypointPosition _resumeWaypoint;
+            _lead setVariable ["WAIT_Convoy_HaltOwner",nil];
+        };
     };
     {_x setUnloadInCombat [false, false]} forEach _vehicles;
     private _initialPathOwners=createHashMap;
