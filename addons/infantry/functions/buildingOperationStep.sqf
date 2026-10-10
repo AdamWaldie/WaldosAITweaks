@@ -394,7 +394,12 @@ private _delay=call {
                     if (_moved) then {
                         _lastPositions=_pair apply {getPosATL _x};
                         _lastProgress=_now;
-                        _job set ["deadline",(_job get "deadline") max (serverTime+120)];
+                        // Walking can be legitimate navigation without approaching this node.
+                        // Keep local no-progress observation alive, but only approach progress
+                        // renews the operation budget; circles cannot extend it indefinitely.
+                        if ((_moverPrevious vectorDistance _target)-((getPosATL _point) vectorDistance _target) >= 1) then {
+                            _job set ["deadline",(_job get "deadline") max (serverTime+120)];
+                        };
                         _job set ["lastProgressAt",serverTime];
                     };
                     if (_positionIndex in _cleared) then {
@@ -492,9 +497,9 @@ private _delay=call {
     private _madeProgress=count _cleared != _before || {count _unreachable != _unreachableBefore};
     if (_pairStates findIf {_x param [12,false]} >= 0 && {(_job getOrDefault ["phase","ENTRY"]) == "ENTRY"}) then {_job set ["phase","SWEEP"]};
     if (_madeProgress) then {_job set ["phase","SWEEP"]} else {if (_retryChanged) then {_job set ["phase","REPLAN"]}};
-    if (_madeProgress) then {
-        // The total lease is a safety net, not a performance assumption. Genuine physical
-        // progress renews it so a busy server or delayed HC does not expire a working clear.
+    if (count _cleared != _before) then {
+        // Physical room visits renew the safety lease. An unreachable classification advances
+        // the finite queue but is not successful physical progress and cannot extend its budget.
         _job set ["lastProgressAt",serverTime];
         _job set ["deadline",(_job get "deadline") max (serverTime+120)];
     };
