@@ -350,10 +350,26 @@ if (_movementOwner == "TACTICAL_REPOSITION" && {count _movementLease == 2} && {t
     private _leg=_state getOrDefault ["tacticalRepositionLeg",0];
     if ((_operation getOrDefault ["generation",-2]) == _generation
         && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
-        && {count _route > 1} && {count _route <= 16} && {_leg >= 0} && {_leg < count _route-1}) then {
-        private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+        && {count _route > 0} && {count _route <= 16} && {_leg >= 0} && {_leg < count _route}) then {
         private _point=_route select _leg;
-        if (!isNull _anchor && {_anchor distance2D _point <= 6}
+        private _status=[_group,_generation,3,12,true] call WAIT_fnc_OperationStep;
+        if (_status == "STALLED") then {
+            private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            private _members=_current getOrDefault ["participants",[]];
+            private _unavailable=_current getOrDefault ["unavailable",[]];
+            private _recovery=_current getOrDefault ["recovery",createHashMap];
+            if (count _members <= 64) then {
+                private _stuck=_members findIf {
+                    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+                        && {!(_x in _unavailable)} && {abs speed _x <= 0.5}
+                        && {_x distance2D _point > 6}
+                        && {(_recovery getOrDefault [netId _x,[]]) isEqualTo []}
+                };
+                if (_stuck >= 0) then {[_group,_generation,_members select _stuck,_point] call WAIT_fnc_RecoveryStep};
+            };
+        };
+        private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+        if (_leg < count _route-1 && {_status in ["ACTIVE","STALLED"]} && {!isNull _anchor} && {_anchor distance2D _point <= 6}
             && {abs (((getPosATL _anchor) select 2)-(_point param [2,0])) <= 1.5}) then {
             private _next=_leg+1;
             private _waypoint=[_group,_route select _next,6,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
