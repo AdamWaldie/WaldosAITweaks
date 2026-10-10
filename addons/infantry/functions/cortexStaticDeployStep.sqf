@@ -49,6 +49,12 @@ private _retire={
                     backpack _x,vehicle _x]
             }
         };
+        private _retiredWeapon=_record param [7,objNull,[objNull]];
+        private _weaponEvidence=if (isNull _retiredWeapon) then {[]} else {
+            [netId _retiredWeapon,typeOf _retiredWeapon,alive _retiredWeapon,damage _retiredWeapon,
+                simulationEnabled _retiredWeapon,local _retiredWeapon,gunner _retiredWeapon,
+                assignedVehicle _gunner,crew _retiredWeapon]
+        };
         _group setVariable ["WAIT_Danger_StaticDeployEnd",[serverTime,clientOwner,
             _group getVariable ["WAIT_AIPass_Epoch",0],_record select 0,_record select 1,
             _record select 6,+_destination,_actors,_commandFree,
@@ -58,7 +64,7 @@ private _retire={
             },[_state getOrDefault ["phase",""],_state getOrDefault ["phaseStart",-1],
                 combatMode _group,_allowPack,
                 _operation getOrDefault ["intent",""],_operation getOrDefault ["generation",-1],
-                _operationActors apply {netId _x}]]];
+                _operationActors apply {netId _x}],_weaponEvidence]];
         private _handler=_record param [10,-1,[0]];
         if (!isNull _gunner && {local _gunner}) then {
             if (_handler >= 0) then {_gunner removeEventHandler ["WeaponDisassembled",_handler]};
