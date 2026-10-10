@@ -403,3 +403,7 @@ Reposition recovery selection skips disabled MOVE/PATH, mounted, player/remote-c
 Common isolated recovery rejects malformed coordinates before recording an attempt and enforces operation quarantine at initial and final command boundaries. An unavailable participant returns EXHAUSTED without movement or retry-budget mutation, even when a caller retained an earlier roster snapshot. Physical late-quarantine and invalid-script-input acceptance remain pending.
 
 Frag safety excludes handcuffed actors inside the existing twelve-metre target safety radius at both admission and delayed release. This matches danger threat protection and handles a capture state changed during alignment without adding a new scan or pausing movement. Physical capture-during-throw and friendly-safety cases remain pending.
+
+## Engine FSM disabled-state boundary
+
+The danger addon replaces SoldierWB/SoldierEB/SoldierGB fsmDanger at config load. Runtime disablement makes the initial continuation gate end the WAIT response; it does not write another config path or launch an unverified stock FSM through execFSM. Disabled-state acceptance must prove restored native movement/fire and absence of WAIT commands, leases and queue churn. It must not claim native danger equivalence solely from an empty WAIT operation. The matched performance baseline remains addon-absent. See [Arma 3 AI config reference](https://community.bistudio.com/wiki/Arma_3%3A_AI_Config_Reference). This behavioural boundary remains physically unaccepted.

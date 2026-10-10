@@ -59,7 +59,7 @@ The startup `a3_characters_f` warning occurs in both native and WAIT runs. Remov
 
 ### B2: danger and ownership
 
-Resolve danger intake, response-depth and exact actor/stance cleanup. Verify newer orders, players and specialist owners through real transitions. This is the behavioural prerequisite for infantry, building and coordination acceptance.
+Resolve danger intake, response-depth and exact actor/stance cleanup. CBA disablement ends WAIT's response but does not replace the loaded fsmDanger config; no WAIT command/lease is a necessary disabled-state result, not proof of native danger equivalence. Matched baseline performance must continue using the addon-absent native candidate. Verify newer orders, players and specialist owners through real transitions. This is the behavioural prerequisite for infantry, building and coordination acceptance.
 
 Implementation: [engine danger FSM](../addons/danger/danger.fsm), [operation start](../addons/core/functions/operationStart.sqf), [operation restoration](../addons/core/functions/operationRestore.sqf).
 
