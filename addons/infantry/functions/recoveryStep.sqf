@@ -14,7 +14,8 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor} || {c
 // This is the final direct movement command in a recovery path. Recheck handover at the point of
 // issue because a Zeus or specialist operation can arrive between an earlier operation step and
 // this isolated retry. Recovery must retire rather than overwrite the newer controller's route.
-if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"YIELDED"};
+if ([_group,false,_actor] call WAIT_fnc_CortexExternalTakeover
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"YIELDED"};
 if (group _actor != _group || {vehicle _actor != _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
     || {!(_actor checkAIFeature "MOVE")} || {!(_actor checkAIFeature "PATH")}) exitWith {"INVALID"};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
@@ -38,7 +39,8 @@ if (_attempts >= 1) exitWith {"EXHAUSTED"};
 // Recheck the exact generation, epoch and external owner at the final command boundary. One
 // doMove already requests a fresh native route; adding setDestination for the same destination
 // created a second path instruction and could produce hesitation or a turn-back during recovery.
-if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"YIELDED"};
+if ([_group,false,_actor] call WAIT_fnc_CortexExternalTakeover
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"YIELDED"};
 private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _currentOperation == 0
     || {(_currentOperation getOrDefault ["generation",-2]) != _generation}
