@@ -64,7 +64,12 @@ private _phase=toUpperANSI (_state getOrDefault ["phase","CALM"]);
 private _holdFire=combatMode _group in ["BLUE","GREEN"];
 if (!_enabled || {_phase != "CONTACT"} || {_holdFire} || {_enemies isEqualTo []} || {_external}) exitWith {
     [_external] call _release;
-    [_group,_state,[]] call WAIT_fnc_CortexStaticDeployStep;
+    // SECURITY owns the finite packing decision. A contact callback observing that transition
+    // must not retire the carried deployment through this wrapper's default no-pack call.
+    // Explicit disable, hold-fire and external takeover still clean up immediately.
+    if (!(_phase == "SECURITY" && {_enabled} && {!_holdFire} && {!_external})) then {
+        [_group,_state,[]] call WAIT_fnc_CortexStaticDeployStep;
+    };
     ["IDLE","YIELDED"] select _external
 };
 
