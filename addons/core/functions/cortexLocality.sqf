@@ -22,6 +22,7 @@
  */
 params [["_group", grpNull, [grpNull]], ["_gained", false, [true]]];
 if (isNull _group) exitWith {};
+private _firstAdoption=_gained && {local _group} && {(_group getVariable ["WAIT_AIPass_Epoch",0]) == 0};
 private _withdrawalIntent = _group getVariable ["WAIT_Cortex_WithdrawalIntent",[]];
 private _transitionIntent = _group getVariable ["WAIT_Cortex_TransitionIntent",[]];
 private _remountIntent = _group getVariable ["WAIT_Cortex_Remount",[]];
@@ -71,7 +72,10 @@ _group setVariable ["WAIT_BuildingBrain_FSM",nil];
         _unit setVariable ["WAIT_Cortex_ActorMove",nil];
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_Epoch", (_group getVariable ["WAIT_AIPass_Epoch", 0]) + 1];
-_group setVariable ["WAIT_AIPass_State", nil];
+// First adoption establishes this machine's epoch; it is not a transfer from another
+// owner. Keep the existing map object so an initiating feature's local reference remains
+// authoritative. Real owner changes rebuild state from the published checkpoint.
+if (!_firstAdoption) then {_group setVariable ["WAIT_AIPass_State", nil];};
 _group setVariable ["WAIT_AIPass_Managed", nil];
 {_group setVariable [_x, nil]} forEach ["WAIT_AIPass_GarrisonApplied", "WAIT_AIPass_DefendApplied", "WAIT_AIPass_ClearApplied"];
 _group setVariable ["WAIT_AIPass_Adopted", _gained];

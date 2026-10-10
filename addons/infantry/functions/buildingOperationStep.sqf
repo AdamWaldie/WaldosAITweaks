@@ -78,6 +78,7 @@ private _delay=call {
             };
         };
         diag_log format ["[WAIT] %1 clear building %2 (%3 of %4 positions)",_group,_result,count (_job get "cleared"),count (_job get "positions")];
+        diag_log format ["WAIT CLEAR END TRACE: %1",[_reason,_operationGeneration,(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1],_group getVariable ["WAIT_AIPass_Epoch",0],_brain getOrDefault ["ownerEpoch",-1]]];
         -1
     };
     if (isNull _group || {!local _group} || {!(_group getVariable ["WAIT_AIPass_ClearBuilding", false])}
