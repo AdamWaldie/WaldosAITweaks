@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Maintains physical progress for one existing operation and identifies bounded recovery needs.
  * Locality/authority: Current group owner only; it never creates a replacement route or issues a movement order.
- * Repeat/JIP: Updates the current generation only. Progress summary is public; cadence is local and rebuilt after migration.
+ * Repeat/JIP: Updates the current generation only. Changed progress, roster and recovery state are public; unchanged no-progress observations are not rebroadcast. Cadence is local and rebuilt after migration.
  * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 minimum progress <NUMBER, 3>; 3 stale seconds <NUMBER, 12>; 4 allow own WAIT feature <BOOL, false>.
  * Return Value: STRING - ACTIVE, STALLED, LOST_OWNER, ZEUS, EXTERNAL or COMPLETE.
  * Current callers: shared group operation jobs.
@@ -32,6 +32,8 @@ private _originalParticipants=_declaredParticipants select {
 private _recovery=_operation getOrDefault ["recovery",createHashMap];
 private _unavailable=_operation getOrDefault ["unavailable",[]];
 private _temporarilyOwned=[];
+private _recoveryChanged=false;
+private _unavailableCount=count _unavailable;
 {
     private _actor=_x;
     private _key=netId _actor;
@@ -43,6 +45,7 @@ private _temporarilyOwned=[];
     if (_reserved || {_nativeTask}) then {
         // A newer owner invalidates this recovery observation, not the actor's capability.
         // Keep its retry count in recoveryAttempts; retire no other actor's route or record.
+        if (_key in _recovery) then {_recoveryChanged=true};
         _recovery deleteAt _key;
         _temporarilyOwned pushBack _actor;
     };
@@ -52,11 +55,13 @@ private _temporarilyOwned=[];
             private _currentPosition=getPosATL _actor;
             if (count _destination >= 2 && {_actor distance2D _destination <= 4}) then {
                 _recovery deleteAt _key;
+                _recoveryChanged=true;
             } else {
                 if (_currentPosition distance2D _startPosition >= _minimum) then {
                     // The isolated actor is still moving. Renew only its observation window; its
                     // travel cannot mask a stalled manoeuvre element or reset operation progress.
                     _recovery set [_key,[_attempts,time,+_destination,_currentPosition]];
+                    _recoveryChanged=true;
                 } else {
                     _unavailable pushBackUnique _actor;
                 };
@@ -123,10 +128,12 @@ if (_progressed) then {
     _group setVariable ["WAIT_Operation",_operation,true];
     "ACTIVE"
 } else {
+    private _changed=_recoveryChanged || {count _unavailable != _unavailableCount}
+        || {_updated isNotEqualTo _records};
     _operation set ["participantProgress",_updated];
     _operation set ["recovery",_recovery];
     _operation set ["unavailable",_unavailable];
-    _group setVariable ["WAIT_Operation",_operation,true];
+    if (_changed) then {_group setVariable ["WAIT_Operation",_operation,true]};
     if (_participantsRequired && {_participants isEqualTo []}) then {"STALLED"} else {
         if (time-(_operation getOrDefault ["lastProgressAt",time]) >= _staleSeconds) then {"STALLED"} else {"ACTIVE"}
     }
