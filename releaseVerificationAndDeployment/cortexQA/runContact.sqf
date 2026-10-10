@@ -690,7 +690,7 @@ private _reflexStart=getPosATL _reflexUnit;
 ["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _coverMovesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
-private _grenade=[(getPosATL _reflexUnit) getPos [7,90]] call _spawnRealGrenade;
+private _grenade=[(getPosATL _reflexUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _nativeStimulus=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
 },12] call _wait;
@@ -744,7 +744,7 @@ _coverInterruptUnit setVariable ["acex_headless_blacklist",true,true];
 _coverInterruptUnit setVariable ["WAIT_CortexQA_Label","ACTIVE COVER HANDOVER",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_coverInterruptUnit],true];
 ["Danger cover: active native replacement","A real explosion must first create a production cover move. An ordinary replacement doMove must then retire that lease and reach its own destination without WAIT returning to the old cover route.",getPosATL _coverInterruptUnit] call _phase;
-private _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90]] call _spawnRealGrenade;
+private _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _coverInterruptStarted=[{
     private _lease=_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]];
     count _lease == 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
