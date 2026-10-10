@@ -966,6 +966,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        ending=source('cortexFlankEnd')
+        self.assertIn('private _mayRestore=_sameOperation',ending)
+        self.assertIn('if (_mayRestore && {count _groupModeLease == 2}',ending)
+        self.assertIn('if (_mayRestore && {count _groupSpeedLease == 2}',ending)
+        self.assertIn('_liveDrill getOrDefault ["token",""]',ending)
         deploy=source('cortexStaticDeployStep')
         approach=deploy.split('if (!_atSector && {time >= _deadline-10}',1)[1].split('if (_atSector && {_pairTogether})',1)[0]
         self.assertIn('!(_record param [20,false,[false]])',approach)

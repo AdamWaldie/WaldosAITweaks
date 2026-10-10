@@ -36,16 +36,23 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_reason", "", [""]]];
+if (isNull _group || {!local _group}) exitWith {};
 private _drill = _state getOrDefault ["drill", createHashMap];
 if (count _drill == 0) exitWith {};
-private _mayCommand = !(_reason in ["ZEUS","OWNERSHIP_LOST"])
+private _liveDrill=(_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+if (count _liveDrill > 0 && {(_liveDrill getOrDefault ["token",""]) != (_drill getOrDefault ["token",""])}) exitWith {};
+private _liveOperation=_group getVariable ["WAIT_Operation",createHashMap];
+private _sameOperation=count _liveOperation == 0 || {(_liveOperation getOrDefault ["generation",-2]) == (_drill getOrDefault ["operationGeneration",-1])};
+private _mayRestore=_sameOperation && {!(_reason in ["ZEUS","OWNERSHIP_LOST","EXTERNAL","REPLACED"])}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
+private _mayCommand = _mayRestore && {!(_reason in ["ZEUS","OWNERSHIP_LOST"])}
     && {[_group] call WAIT_fnc_CortexIsEligible};
 private _groupModeLease = _drill getOrDefault ["groupCombatMode",[]];
-if (count _groupModeLease == 2 && {combatMode _group == (_groupModeLease select 1)}) then {
+if (_mayRestore && {count _groupModeLease == 2} && {combatMode _group == (_groupModeLease select 1)}) then {
     _group setCombatMode (_groupModeLease select 0);
 };
 private _groupSpeedLease = _drill getOrDefault ["groupSpeedMode",[]];
-if (count _groupSpeedLease == 2 && {speedMode _group == (_groupSpeedLease select 1)}) then {
+if (_mayRestore && {count _groupSpeedLease == 2} && {speedMode _group == (_groupSpeedLease select 1)}) then {
     _group setSpeedMode (_groupSpeedLease select 0);
 };
 {
@@ -54,11 +61,11 @@ if (count _groupSpeedLease == 2 && {speedMode _group == (_groupSpeedLease select
 } forEach (_drill getOrDefault ["disabled", []]);
 {
     _x params ["_unit","_mode",["_ownedMode","BLUE"]];
-    if (local _unit && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
+    if (_mayRestore && {local _unit} && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
 } forEach (_drill getOrDefault ["combatModes",[]]);
 {
     _x params ["_unit","_previous","_owned"];
-    if (local _unit && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
+    if (_mayRestore && {local _unit} && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
 } forEach (_drill getOrDefault ["combatBehaviours",[]]);
 private _members = (_drill getOrDefault ["units", []]) select {alive _x && {local _x} && {group _x == _group}};
 // Retire only the temporary throw listener belonging to this cancelled/completed drill.
@@ -74,7 +81,7 @@ private _members = (_drill getOrDefault ["units", []]) select {alive _x && {loca
 private _stragglers = ((_drill getOrDefault ["recovery",[]]) apply {_x select 0}) select {_x in _members};
 private _supportToken=_drill getOrDefault ["supportToken",""];
 private _lease=_group getVariable ["WAIT_AIPass_SupportLease",[]];
-private _holdFailedBound=_supportToken != ""
+private _holdFailedBound=_mayCommand && {_supportToken != ""}
     && {_reason in ["STALLED","TIME_LIMIT","RECOVERY_FAILED"]}
     && {_state getOrDefault ["assaulting",false]}
     && {count _lease == 6} && {(_lease select 0) == _supportToken}
