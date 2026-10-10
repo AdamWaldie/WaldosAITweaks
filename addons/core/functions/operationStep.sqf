@@ -26,6 +26,8 @@ private _declaredParticipants=_operation getOrDefault ["participants",[]];
 private _participantsRequired=_operation getOrDefault ["participantsRequired",_declaredParticipants isNotEqualTo []];
 private _originalParticipants=_declaredParticipants select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x} && {group _x == _group}
+        && {isNull (remoteControlled _x)} && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
 };
 // A recovery order has one bounded observation window. If its actor remains stationary after that
 // window, record the actor as unavailable and let the remaining element continue. Do not turn one

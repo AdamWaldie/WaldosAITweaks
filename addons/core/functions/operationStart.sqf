@@ -38,7 +38,12 @@ if (isNull _operationAnchor) then {_operationAnchor=leader _group};
 private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
 private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
-private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
+private _capable=_participants select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+        && {!isPlayer _x} && {isNull (remoteControlled _x)}
+        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+};
 private _operation=createHashMapFromArray [
     ["intent",toUpperANSI _intent], ["generation",_generation], ["ownerEpoch",_group getVariable ["WAIT_AIPass_Epoch",0]],
     ["objective",_objective], ["participants",_capable], ["participantsRequired",_participants isNotEqualTo []], ["route",+_route], ["phase",toUpperANSI _phase],
