@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Purpose: Give one idle exposed soldier a single bounded move to nearby physical cover after an immediate danger event.
+ * Purpose: Give one stationary exposed soldier a single bounded move to nearby physical cover after an immediate danger event.
  * Locality / Authority: Called by the group brain while it already runs in WAIT's shared scheduler.
  * It runs on the actor and group owner and yields
  * to player, Zeus, specialist, native-command and WAIT-operation ownership before selecting or issuing movement.
@@ -70,7 +70,7 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
     && {isNull objectParent _actor}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
-    && {currentCommand _actor in ["","MOVE"]}) exitWith {true};
+    && {currentCommand _actor in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}) exitWith {true};
 private _arrived=false;
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
@@ -121,7 +121,8 @@ if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
 // must retire instead of turning its stale observation into a movement instruction.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0
     || {!(_actor checkAIFeature "MOVE")} || {!(_actor checkAIFeature "PATH")}
-    || {!isNull objectParent _actor} || {currentCommand _actor != ""}
+    || {!isNull objectParent _actor}
+    || {!(currentCommand _actor in ["","ATTACK","FIRE","SUPPRESS"]) || {abs speed _actor > 0.5}}
     || {(_actor getVariable ["WAIT_Cortex_ActorMove",[]]) isNotEqualTo []}) exitWith {
     _group setVariable ["WAIT_Danger_CoverBlockedContext",[time,currentCommand _actor,
         _actor checkAIFeature "MOVE",_actor checkAIFeature "PATH",
@@ -168,7 +169,7 @@ if (!_found || {count _spot < 2}
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
-    || {currentCommand _actor != ""}) exitWith {[] call _clearLease};
+    || {!(currentCommand _actor in ["","ATTACK","FIRE","SUPPRESS"]) || {abs speed _actor > 0.5}}) exitWith {[] call _clearLease};
 _group setVariable ["WAIT_Danger_CoverPending",nil];
 _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot,_screenMode]];
 // The observation may end before native pathing reaches cover. Retain the committed move
