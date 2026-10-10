@@ -1651,7 +1651,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('count _failures >= _failureThreshold',timeout)
         self.assertIn('_x doMove _unitTarget',timeout)
         self.assertNotIn('setDestination',timeout)
-        self.assertIn('private _moved=_point distance2D _moverPrevious >= 1',text)
+        self.assertIn('private _moved=(getPosATL _point) vectorDistance _moverPrevious >= 1',text)
         self.assertIn('if (_approachingEntry && {!_moved}) then {',text)
         self.assertIn('_retries < 3',timeout)
         self.assertIn('count (_job get "cleared") == count (_job get "positions")',text)
@@ -1762,7 +1762,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_pair findIf {currentCommand _x in ["","STOP"]}',text)
         self.assertIn('private _moverSlot=_moverIndex mod count _pair',text)
         progress=text.split('// Once inside, only the assigned room mover proves progress toward this room.',1)[1].split('if (_positionIndex in _cleared)',1)[0]
-        self.assertIn('_point distance2D _moverPrevious >= 1',progress)
+        self.assertIn('(getPosATL _point) vectorDistance _moverPrevious >= 1',progress)
         self.assertIn('if (_approachingEntry && {!_moved}) then {',progress)
         self.assertNotIn('} forEach _pair;\n                    if (_moved) then {',progress)
         self.assertNotIn('setVehiclePosition',text)

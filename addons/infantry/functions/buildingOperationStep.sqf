@@ -381,11 +381,11 @@ private _delay=call {
                     // counting that movement hid doorway stalls and prevented recovery indefinitely.
                     private _moverSlot=_moverIndex mod count _pair;
                     private _moverPrevious=_lastPositions param [_moverSlot,getPosATL _point];
-                    private _moved=_point distance2D _moverPrevious >= 1;
+                    private _moved=(getPosATL _point) vectorDistance _moverPrevious >= 1;
                     if (_approachingEntry && {!_moved}) then {
                         _moved=_pair findIf {
                             private _old=_lastPositions param [_forEachIndex,getPosATL _x];
-                            _x distance2D _old >= 1
+                            (getPosATL _x) vectorDistance _old >= 1
                         } >= 0;
                     };
                     if (_moved) then {
