@@ -32,10 +32,17 @@ _targetIndex=(_targetIndex max 0) min ((count _enemies)-1);
 private _record=_enemies select _targetIndex;
 private _target=_record param [0,objNull,[objNull]];
 private _threatPos=_record param [1,[],[[]]];
-if (count _threatPos < 2) then {
-    if (!isNull _target) then {_threatPos=getPosATL vehicle _target};
+if (!isNull _target && {!alive _target || {captive _target}
+    || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
+    || {(side _group) getFriend (side _target) >= 0.6}}) exitWith {false};
+if (count _threatPos < 2 && {!isNull _target} && {_leader knowsAbout _target > 0}) then {
+    // Missing shared geometry cannot grant an exact live target position. Native belief is
+    // sufficient for a screened reposition; absent belief leaves ordinary combat authoritative.
+    _threatPos=_leader getHideFrom (vehicle _target);
 };
-if (count _threatPos < 2) exitWith {false};
+if (!(count _threatPos in [2,3]) || {_threatPos findIf {!(_x isEqualType 0)} >= 0}
+    || {_threatPos isEqualTo [0,0,0]}) exitWith {false};
 private _cooldown=_group getVariable ["WAIT_Cortex_TacticalRepositionCooldown",[]];
 if (count _cooldown == 3 && {time < (_cooldown select 0)}
     && {(_cooldown select 1) == _reason} && {(_cooldown select 2) isEqualTo _target}) exitWith {false};
