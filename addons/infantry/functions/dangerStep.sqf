@@ -76,16 +76,22 @@ private _responseActor=if (count _activeAction >= 6
 } else {
     _lastAssessment param [5,_actor,[objNull]]
 };
-if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
+private _retiredWitness=_responseActor;
+private _responseUnavailable=count _activeAction >= 6
+    && {(_activeAction param [4,-1,[0]]) == _generation}
+    && {time < (_activeAction param [3,-1,[0]])}
+    && {!([_responseActor] call WAIT_fnc_CortexCombatEffective)
+        || {!local _responseActor} || {group _responseActor != _group}};
+if (!([_responseActor] call WAIT_fnc_CortexCombatEffective) || {!local _responseActor}
     || {group _responseActor != _group}) then {_responseActor=_actor};
 private _responseCommand=toUpperANSI (currentCommand _responseActor);
-private _nativeHandover=behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
+private _nativeHandover=_responseUnavailable || {behaviour _responseActor == "CARELESS"} || {fleeing _responseActor}
     || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]};
 if (_nativeHandover) then {
     [_responseActor,"RELEASE"] call WAIT_fnc_DangerReact;
     private _otherWitnesses=(_group getVariable ["WAIT_Danger_Events",[]]) select {
         _x isEqualType [] && {count _x >= 6}
-            && {(_x param [5,objNull,[objNull]]) != _responseActor}
+            && {(_x param [5,objNull,[objNull]]) != _retiredWitness}
     };
     _group setVariable ["WAIT_Danger_Events",_otherWitnesses];
     _group setVariable ["WAIT_Danger_Response",nil,true];

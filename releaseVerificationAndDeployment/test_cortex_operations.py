@@ -1023,7 +1023,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_witness knowsAbout _target >= 1',knowledge)
         danger=source('dangerStep')
         self.assertIn('private _otherWitnesses=',danger)
-        self.assertIn('(_x param [5,objNull,[objNull]]) != _responseActor',danger)
+        self.assertIn('(_x param [5,objNull,[objNull]]) != _retiredWitness',danger)
+        self.assertIn('private _retiredWitness=_responseActor;',danger)
+        self.assertIn('private _responseUnavailable=count _activeAction >= 6',danger)
         forced=danger.split('if (_action == "FORCED") exitWith',1)[1].split('// This is a finite handoff',1)[0]
         self.assertIn('if (_remaining isNotEqualTo []) then {0.25} else {-1}',forced)
         assessment=source('dangerStep')
