@@ -20,7 +20,9 @@ private _saved = [];
         if (_value isEqualType []) then {_value = _value apply {if (_x isEqualType []) then {+_x} else {_x}}};
         _saved pushBack [_x, _value];
     };
-} forEach ["supportHeld", "baseAttack", "attackChanged", "retreatCombatMode", "baseBehaviour", "behaviourChanged", "hadContact", "baseSpeed", "speedChanged", "searchTeam", "holders", "dismounted"];
+} forEach ["supportHeld", "baseAttack", "attackChanged", "retreatCombatMode", "retreatSpeedMode", "baseBehaviour", "behaviourChanged", "hadContact", "baseSpeed", "speedChanged", "searchTeam", "holders", "dismounted"];
+private _retreatSpeedLease=_state getOrDefault ["retreatSpeedMode",[]];
+if (count _retreatSpeedLease == 2) then {_saved pushBack ["restoreGroupSpeedMode",+_retreatSpeedLease]};
 private _drill = _state getOrDefault ["drill", createHashMap];
 if (count _drill > 0) then {
     private _groupModeLease = _drill getOrDefault ["groupCombatMode",[]];

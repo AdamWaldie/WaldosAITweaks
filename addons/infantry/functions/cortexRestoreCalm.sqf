@@ -199,8 +199,11 @@ if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {b
     if (_base == "SAFE" && {_state getOrDefault ["hadContact", false]}) then {_base = "AWARE"};
     _group setBehaviour _base;
 };
-if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]}) then {
-    _group setSpeedMode (_state getOrDefault ["baseSpeed", "NORMAL"]);
+private _retreatSpeedLease=_state getOrDefault ["retreatSpeedMode",[]];
+if (!_yieldToExternal && {count _retreatSpeedLease == 2}
+    && {speedMode _group == (_retreatSpeedLease select 1)}
+    && {(_retreatSpeedLease select 0) != (_retreatSpeedLease select 1)}) then {
+    _group setSpeedMode (_retreatSpeedLease select 0);
 };
 {
     _x params ["_unit", "_vehicle"];
@@ -223,7 +226,7 @@ if (!_allowRemount) then {
 {_state deleteAt _x} forEach [
     "consolidationRoutes", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
     "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatSpeedMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];

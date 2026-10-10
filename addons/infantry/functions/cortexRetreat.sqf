@@ -178,6 +178,9 @@ _group setVariable ["WAIT_Cortex_WithdrawalIntent",_withdrawalIntent,true];
 if (speedMode _group != "FULL") then {
     if !(_state getOrDefault ["speedChanged", false]) then {_state set ["baseSpeed", speedMode _group]};
     _state set ["speedChanged", true];
+    if ((_state getOrDefault ["retreatSpeedMode",[]]) isEqualTo []) then {
+        _state set ["retreatSpeedMode",[speedMode _group,"FULL"]];
+    };
     _group setSpeedMode "FULL";
 };
 {if (alive _x && {local _x}) then {_x doFollow _leader}} forEach (_state getOrDefault ["holders", []]);
