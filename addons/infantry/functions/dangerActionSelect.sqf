@@ -27,7 +27,8 @@ if (isNull _actor || {!alive _actor} || {!local _actor} || {group _actor != _gro
     _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _actor) then {_actor=leader _group};
 };
-if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
+if (isNull _actor || {!alive _actor}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"RELEASE"};
 // A concrete native task remains authoritative through the group handoff as well as the immediate
 // engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous
 // combat, and WAIT's response changes only a finite posture while native targeting and movement stay
