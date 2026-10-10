@@ -10,6 +10,12 @@
  */
 params ["_check","_phase","_wait"];
 private _results=[];
+// Both arms retain the loaded addon configuration. Report this as a runtime-toggle
+// comparison, never as the full addon overhead versus a separate native-AI launch.
+private _baselineDanger=getText (configFile >> "CfgVehicles" >> "O_Soldier_F" >> "fsmDanger");
+missionNamespace setVariable ["WAIT_CortexQA_PerformanceComparisonScope","RUNTIME_TOGGLE",true];
+diag_log format ["WAIT PERFORMANCE BASELINE|scope=RUNTIME_TOGGLE|nativeLaunch=false|dangerFSM=%1",_baselineDanger];
+
 {
     private _enabled=_x;
     private _arm=_forEachIndex;

@@ -16,6 +16,12 @@
  */
 params ["_check","_phase","_wait",["_mixed",false,[false]]];
 private _prefix=["PERF-CONTACT","PERF-MIXED"] select _mixed;
+// Both arms retain the loaded addon configuration. Report this as a runtime-toggle
+// comparison, never as the full addon overhead versus a separate native-AI launch.
+private _baselineDanger=getText (configFile >> "CfgVehicles" >> "O_Soldier_F" >> "fsmDanger");
+missionNamespace setVariable ["WAIT_CortexQA_PerformanceComparisonScope","RUNTIME_TOGGLE",true];
+diag_log format ["WAIT PERFORMANCE BASELINE|scope=RUNTIME_TOGGLE|nativeLaunch=false|dangerFSM=%1",_baselineDanger];
+
 missionNamespace setVariable ["WAIT_CortexQA_PerformanceContactCompleted",false];
 private _hcOwners=((missionNamespace getVariable ["WAIT_Headless_Clients",[]]) apply {_x select 0}) select [0,2];
 [format ["%1-two-headless-prerequisite",_prefix],count _hcOwners == 2,str _hcOwners] call _check;

@@ -2,6 +2,12 @@
 
 The primary target is 50 AI groups without significant added cost versus the same mission with Cortex disabled. The earlier 100-group workload saturated the local multi-process Arma host before a valid comparison and remains an exploratory stress point.
 
+## Baseline scope
+
+The current OFF/ON fixtures keep WAIT loaded in every arm. CBA's master gate changes runtime participation; it does not remove the addon configuration or restore the native danger FSM. These fixtures measure runtime-toggle cost and log the effective infantry danger path. Their measurements cannot establish total WAIT overhead versus native AI.
+
+Full performance acceptance requires a separate matched launch without WAIT, using the same actors, routes, ownership, terrain, observation and sampling cost. The current runtime-toggle results remain useful diagnostics, but do not satisfy that comparison. This separate native baseline is still pending.
+
 ## Workloads
 
 - Measure 25 and 50 groups with six real AI per infantry group; retain 100 and 150 as exploratory stress points. Record actual unit and group counts.
