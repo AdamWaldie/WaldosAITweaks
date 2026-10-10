@@ -556,7 +556,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('call WAIT_fnc_DangerGroupHideStep',source('cortexReleaseGroup'))
         self.assertIn('call WAIT_fnc_DangerGroupHideStep',source('dangerSetup'))
         self.assertIn('call WAIT_fnc_DangerCoverStep',source('cortexReleaseGroup'))
-        self.assertIn('WAIT_fnc_CortexZeusHeld',engine_act)
+        self.assertIn('WAIT_fnc_CortexIsEligible',engine_act)
+        self.assertIn('WAIT_fnc_CortexZeusHeld',source('cortexExternalTakeover'))
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
             self.assertNotIn(forbidden,engine_act)
         self.assertIn('_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]',engine_fsm)
@@ -1156,9 +1157,10 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_fnc_CortexFeatureEnabled',text)
             self.assertIn('WAIT_fnc_CortexIsEligible',text)
             self.assertIn('WAIT_fnc_CortexIsPaused',text)
-            self.assertIn('WAIT_fnc_CortexExternalTakeover',text)
+            self.assertIn('[_group,false,true,false,_actor] call WAIT_fnc_CortexIsEligible',text)
+        self.assertIn('WAIT_fnc_CortexExternalTakeover',source('cortexIsEligible'))
         self.assertLess(mode.index('WAIT_AIPass_Danger_Enable'),mode.index('if (fleeing _actor'))
-        self.assertLess(action.index('WAIT_AIPass_Danger_Enable'),action.index('private _delays='))
+        self.assertLess(action.index('WAIT_AIPass_Danger_Enable'),action.index('private _baseDelay='))
 
     def test_danger_cleanup_never_restores_wait_posture_after_ownership_takeover(self):
         fsm=(ROOT/'addons/main/fsm/dangerAssessment.fsm').read_text(encoding='utf-8')

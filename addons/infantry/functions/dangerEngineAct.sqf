@@ -22,17 +22,23 @@ if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_group,false,true,false,_actor] call WAIT_fnc_CortexIsEligible)}
-    || {[] call WAIT_fnc_CortexIsPaused}
-    || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
+    || {[] call WAIT_fnc_CortexIsPaused}) exitWith {0};
 // Recheck actor-level authority at the command boundary; group eligibility alone does not
 // cover a specialist actor sharing an otherwise ordinary group.
 if ([_actor] call WAIT_fnc_CompatibilityExternalControl
     || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {0};
-private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIATE",1],["HIDE",1.25],["ENGAGE",1],["ASSESS",0.75]];
+// Eligibility already checked player, curator and external ownership in this unscheduled call.
+// Use fixed branch values instead of allocating a lookup map for every actor reaction.
+private _baseDelay=switch (_mode) do {
+    case "HIDE": {1.25};
+    case "VEHICLE";
+    case "IMMEDIATE";
+    case "ENGAGE": {1};
+    default {0.75};
+};
 // A small local offset prevents an entire squad from changing stance on the same frame while
 // retaining a strict upper bound and no recurring work.
-private _delay=(_delays getOrDefault [_mode,0.75]) + random 0.25;
+private _delay=_baseDelay + random 0.25;
 private _cause=_record param [0,-1,[0]];
 private _desiredStance="";
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
