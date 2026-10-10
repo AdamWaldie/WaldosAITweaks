@@ -44,7 +44,11 @@ private _retire={
         };
         _group setVariable ["WAIT_Danger_StaticDeployEnd",[serverTime,clientOwner,
             _group getVariable ["WAIT_AIPass_Epoch",0],_record select 0,_record select 1,
-            _record select 6,+_destination,_actors,_commandFree]];
+            _record select 6,+_destination,_actors,_commandFree,
+            call {
+                private _bag=_record param [13,objNull,[objNull]];
+                if (isNull _bag) then {[]} else {[netId _bag,typeOf _bag,getPosATL _bag,objectParent _bag]}
+            }]];
         private _handler=_record param [10,-1,[0]];
         if (!isNull _gunner && {local _gunner}) then {
             if (_handler >= 0) then {_gunner removeEventHandler ["WeaponDisassembled",_handler]};
