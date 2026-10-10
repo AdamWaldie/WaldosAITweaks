@@ -86,3 +86,5 @@ places enable switches before tuning. Existing saved option keys and defaults ar
 Vehicles covers general combat and passenger decisions. Convoys covers explicitly registered
 columns, their spacing, driving assistance and halt/unload rules. Convoy driving assistance does
 not enable a standalone general driving controller. See the [settings reference](docs/SETTINGS-REFERENCE.md).
+
+Current implementation, physical acceptance and progression blockers are recorded in [the completion status](docs/COMPLETION-STATUS.md).
