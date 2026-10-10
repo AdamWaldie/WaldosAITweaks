@@ -76,10 +76,15 @@ private _responseActor=if (count _activeAction >= 6
 if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
     || {group _responseActor != _group}) then {_responseActor=_actor};
 private _responseCommand=toUpperANSI (currentCommand _responseActor);
-if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
-    || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {
+private _nativeHandover=behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
+    || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]};
+if (_nativeHandover) then {
     [_responseActor,"RELEASE"] call WAIT_fnc_DangerReact;
-    _group setVariable ["WAIT_Danger_Events",nil];
+    private _otherWitnesses=(_group getVariable ["WAIT_Danger_Events",[]]) select {
+        _x isEqualType [] && {count _x >= 6}
+            && {(_x param [5,objNull,[objNull]]) != _responseActor}
+    };
+    _group setVariable ["WAIT_Danger_Events",_otherWitnesses];
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
@@ -90,8 +95,8 @@ if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
         _nativeBrain set ["wakeAt",time];
         _nativeBrain set ["nextAt",time];
     };
-    -1
 };
+if (_nativeHandover && {(_group getVariable ["WAIT_Danger_Events",[]]) isEqualTo []}) exitWith {-1};
 // An explicit witness is part of the observation's domain and authority. Do not turn
 // an unavailable crew/foot witness into a different actor's response by substituting the anchor.
 // Older records without witness fields retain their documented group-anchor interpretation.
@@ -169,7 +174,7 @@ if (_action == "FORCED") exitWith {
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _forcedBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _forcedBrain > 0) then {_forcedBrain deleteAt "responsiveUntil"};
-    -1
+    if (_remaining isNotEqualTo []) then {0.25} else {-1}
 };
 // This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
 // respond on its already-owned scheduler cycle while retaining route, operation and external ownership.

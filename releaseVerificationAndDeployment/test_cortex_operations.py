@@ -966,6 +966,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        danger=source('dangerStep')
+        self.assertIn('private _otherWitnesses=',danger)
+        self.assertIn('(_x param [5,objNull,[objNull]]) != _responseActor',danger)
+        forced=danger.split('if (_action == "FORCED") exitWith',1)[1].split('// This is a finite handoff',1)[0]
+        self.assertIn('if (_remaining isNotEqualTo []) then {0.25} else {-1}',forced)
         assessment=source('dangerStep')
         refusal=assessment.split('if (_action == "RELEASE") exitWith',1)[1].split('if (!isNull _source',1)[0]
         self.assertNotIn('setVariable',refusal)
