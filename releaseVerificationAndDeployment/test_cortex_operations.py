@@ -6553,6 +6553,12 @@ class CortexOperations(unittest.TestCase):
         drop=deploy.split('if (_status == "DROPPING") exitWith',1)[1].split('if (_status == "ASSEMBLING")',1)[0]
         self.assertIn('isNull unitBackpack _assistant',drop)
         self.assertIn('_gunner distance _supportAnchor <= 3.5',drop)
+        self.assertIn('_dropPosition distance ([_x] call _bagAnchor) <= 5',drop)
+        self.assertIn('!(_record param [16,false,[false]])',drop)
+        self.assertIn('_actorMove isEqualTo ["STATIC_DEPLOY",_deployPos,_deadline]',drop)
+        self.assertIn('time < _deadline',drop)
+        self.assertIn('_gunner doMove _bagPosition',drop)
+        self.assertNotIn('_record set [6,time+',drop.split('// Native combat can separate',1)[1].split('// Observe completed',1)[0])
         self.assertIn('private _container=objectParent _bag',deploy)
         self.assertIn('action ["Assemble",_supportBag]',drop)
         self.assertIn('everyBackpack _x',drop)

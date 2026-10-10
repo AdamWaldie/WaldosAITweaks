@@ -3,6 +3,7 @@
  * Purpose: Physically assemble one compatible carried static weapon during confirmed contact and give its original carrier a finite chance to occupy the real gunner seat.
  * Locality / Authority: Runs only on the current group owner from the shared group brain. It uses native backpack assembly and boarding actions on local AI actors; it never creates, teleports, rearms, repairs or force-seats a weapon.
  * A ready pair may deploy at its actual safe firing position instead of waiting for both actors to converge on one exact point.
+ * After dropping, a still-owned gunner may make one short physical approach to the bag holder within the unchanged drop deadline.
  * Other squad members may manoeuvre beside an existing deployment; overlapping participants or withdrawal preempt it.
  * Repeat/JIP: One contact-episode record owns the exact pair, expected assembled class, position and resulting weapon. Each group-brain call advances at most one finite phase. Locality, Zeus, specialist or newer operation ownership retires WAIT markers without issuing cleanup commands over the new owner. Failed deployment is not retried during the same contact episode.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>; 3 allow post-contact packing <BOOL, default false>.
@@ -243,7 +244,7 @@ if (count _record >= 10) exitWith {
                 _dropped append ((everyBackpack _x) select [0,4]);
             } forEach ((nearestObjects [_dropPosition,["GroundWeaponHolder","WeaponHolderSimulated"],5,true]) select [0,12]);
             private _bagIndex=_dropped findIf {
-                typeOf _x == _assistantBag && {!(_x in _existingBags)} && {_gunner distance ([_x] call _bagAnchor) <= 3.5}
+                typeOf _x == _assistantBag && {!(_x in _existingBags)} && {_dropPosition distance ([_x] call _bagAnchor) <= 5}
             };
             if (_bagIndex >= 0) then {
                 _supportBag=_dropped select _bagIndex;
@@ -251,6 +252,22 @@ if (count _record >= 10) exitWith {
                 _record set [13,_supportBag];
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
             };
+        };
+        // Native combat can separate the pair while PutBag completes. Recover only this
+        // carrier, once, without widening assembly range or extending the phase deadline.
+        private _actorMove=_gunner getVariable ["WAIT_Cortex_ActorMove",[]];
+        if (isNull unitBackpack _assistant && {!isNull _supportAnchor}
+            && {_gunner distance _supportAnchor > 3.5} && {_gunner distance _supportAnchor <= 10}
+            && {time < _deadline} && {!(_record param [16,false,[false]])}
+            && {[_gunner] call WAIT_fnc_CortexCombatEffective}
+            && {vehicle _gunner == _gunner} && {backpack _gunner == _gunnerBag}
+            && {currentCommand _gunner in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}
+            && {_actorMove isEqualTo ["STATIC_DEPLOY",_deployPos,_deadline]}) then {
+            private _bagPosition=getPosATL _supportAnchor;
+            _record set [16,true];
+            _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+            _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_bagPosition,_deadline]];
+            _gunner doMove _bagPosition;
         };
         // Observe completed physical work before its deadline: a delayed scheduler callback must
         // not turn a bag already on the ground into a failed drop solely because time has advanced.
