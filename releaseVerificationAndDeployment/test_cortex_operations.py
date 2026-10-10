@@ -738,7 +738,8 @@ class CortexOperations(unittest.TestCase):
         ]:
             self.assertIn(marker,support)
         self.assertIn('count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',support)
-        self.assertIn('failed or unsuitable attempts are not retried until a later contact',support)
+        self.assertIn('Failed physical attempts are not retried until a later contact',support)
+        self.assertIn('if (_potential) exitWith {"IDLE"};',support)
         self.assertNotIn('moveInGunner',support)
         self.assertNotIn('setPos',support)
         self.assertNotIn('allowDamage',support)

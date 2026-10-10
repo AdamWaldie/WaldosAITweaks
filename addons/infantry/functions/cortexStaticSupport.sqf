@@ -7,7 +7,8 @@
  * Locality / Authority: Runs on the current group owner. It issues a gunner assignment only to one
  * local AI actor and never moves, creates, repairs, rearms, teleports or changes the static weapon.
  * Repeat/JIP: One contact-episode lease records the exact actor, weapon and assignment. A contact is
- * sampled once; failed or unsuitable attempts are not retried until a later contact. Locality change
+ * sampled once after an eligible actor is available; temporary actor reservations remain retryable.
+ * Failed physical attempts are not retried until a later contact. Locality change
  * discards engine commands and lets the new owner reassess. Cleanup cancels only WAIT's exact still-
  * matching assignment; Zeus, player, specialist and newer external ownership are never overwritten.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>.
@@ -36,6 +37,7 @@ private _release={
         [_actor] call _clearActorMove;
         if (!_external && {!isNull _actor} && {alive _actor} && {local _actor}
             && {!isPlayer _actor} && {group _actor == _group}
+            && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
             && {!isNull _weapon} && {assignedVehicle _actor == _weapon}) then {
             [_actor] orderGetIn false;
             unassignVehicle _actor;
@@ -62,6 +64,10 @@ if ((_group getVariable ["WAIT_Danger_StaticDeployment",[]]) isNotEqualTo []) ex
 };
 if (count _lease >= 7) exitWith {
     _lease params ["_leaseEpisode","_actor","_weapon","_issuedAt","_deadline","_status","_startPosition"];
+    if (!isNull _actor && {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {
+        [true] call _release;
+        "YIELDED"
+    };
     if (_leaseEpisode != _episode || {isNull _actor} || {!alive _actor} || {!local _actor}
         || {isPlayer _actor} || {group _actor != _group} || {isNull _weapon} || {!alive _weapon}
         || {!(simulationEnabled _weapon)} || {assignedVehicle _actor != _weapon && {vehicle _actor != _weapon}}) exitWith {
@@ -116,6 +122,7 @@ private _weapon=(_rankedWeapons select 0) select 1;
 private _candidates=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {_x != leader _group}
         && {[_x] call WAIT_fnc_CortexCombatEffective} && {vehicle _x == _x}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {isNull assignedVehicle _x}
         // Native contact commands such as TARGET and WATCH are transient observations, not an
         // external movement owner. Reject only concrete actor tasks which boarding would actually
@@ -124,6 +131,12 @@ private _candidates=(units _group) select {
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
 if (_candidates isEqualTo []) exitWith {
+    private _potential=(units _group) findIf {
+        alive _x && {local _x} && {!isPlayer _x} && {_x != leader _group}
+            && {[_x] call WAIT_fnc_CortexCombatEffective} && {isNull objectParent _x}
+            && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+    } >= 0;
+    if (_potential) exitWith {"IDLE"};
     _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,"NO_ACTOR",serverTime],true];
     "IDLE"
 };
