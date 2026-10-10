@@ -38,8 +38,9 @@
  */
 
 params [["_unit", objNull, [objNull]], ["_towards", [], [[]]], ["_kind", "SMOKE", [""]], ["_context",[],[[]]]];
-if (isNull _unit || {!alive _unit} || {!local _unit} || {vehicle _unit != _unit} || {count _towards < 2}) exitWith {false};
+if (isNull _unit || {!alive _unit} || {!local _unit} || {isPlayer _unit} || {!isNull remoteControlled _unit} || {vehicle _unit != _unit} || {count _towards < 2}) exitWith {false};
 if (!([_unit] call WAIT_fnc_CortexCombatEffective)
+    || {([_unit] call WAIT_fnc_CortexExternalOwner) != ""}
     || {[_unit] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 _kind=toUpperANSI _kind;
 if (!(_kind in ["SMOKE","FRAG"]) || {!([group _unit] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
@@ -97,7 +98,7 @@ private _thrown = false;
                     ["NEW_TASK",[_operationGeneration,_group getVariable ["WAIT_OperationGeneration",0],
                         _ownerEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],currentCommand _unit]] call _cancel;
                 };
-                if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {vehicle _unit != _unit} || {group _unit != _group}
+                if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {isPlayer _unit} || {!isNull remoteControlled _unit} || {vehicle _unit != _unit} || {group _unit != _group}
                     || {[_unit] call WAIT_fnc_CompatibilityExternalControl}
                     || {!([_group] call WAIT_fnc_CortexIsEligible)}
                     || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo _hold}

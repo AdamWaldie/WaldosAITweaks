@@ -3,7 +3,7 @@
  * Direction requires retained native contact; an impact without contact cannot define a throw bearing.
  * Purpose: Opportunistically deploy one carried smoke grenade during a severe finite danger response without delaying cover, movement, firing or the group operation state.
  * Locality / Authority: Runs inside the owner-local group-brain scheduler. It selects one local foot soldier and queues one local throw after rechecking WAIT, Zeus, specialist and generation ownership.
- * Selection tries at most three ordinary carriers; unavailable inventory backs off without blocking the group.
+ * Selection inspects at most 64 members and tries at most three ordinary carriers; unavailable inventory backs off without blocking the group.
  * Repeat/JIP: A generation-scoped group lease and cooldown coalesce a danger burst. Queued throws are not replayed to JIP and a later generation, order or external owner cancels before weapon release.
  * Arguments: 0: group <GROUP>; 1: danger response <ARRAY> [cause, position, observedAt, expires, generation].
  * Return Value: Boolean - true only when a smoke throw was queued for the current danger generation.
@@ -34,20 +34,23 @@ private _actorAvailable={
     _reservation isEqualTo []
         || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}}
 };
-private _candidates=(units _group) select {
+private _members=(units _group) select [0,64];
+private _candidates=_members select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {vehicle _x == _x} && {[_x] call _actorAvailable}
         && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
         && {!(_x in _reserved)} && {getSuppression _x >= 0.55 || {_cause in ["HIT","EXPLOSION"]}}
+        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
 };
 if (_candidates isEqualTo []) then {
-    _candidates=(units _group) select {
+    _candidates=_members select {
         [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
             && {vehicle _x == _x} && {[_x] call _actorAvailable}
         && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
             && {getSuppression _x >= 0.7 || {_cause == "HIT"}}
+        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
     };
 };
 if (_candidates isEqualTo []) exitWith {false};

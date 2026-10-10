@@ -241,3 +241,7 @@ external ownership, locality transfer, physical reaction and 50 mixed-group fram
 
 
 Squad low-profile posture inspects at most 64 members and applies at most four weak stance leases. Actor eligibility excludes declared external ownership, specialist identities and active melee control before acquisition; ordinary actors in the same group remain eligible. This boundary correction is statically validated and still requires specialist coexistence acceptance.
+
+Lifecycle anchoring accepts an eligible ordinary leader immediately, otherwise inspects at most twelve members. Player remote-control, declared ownership, specialist identity and active melee prevent anchor selection. Opportunistic danger smoke inspects at most 64 members and tries at most three ordinary carriers; grenade initiation independently rejects specialist identities. Mixed ordinary actors remain eligible. These corrections await physical coexistence and casualty acceptance.
+
+Grenade requests reject player and remote-controlled actors at initiation and again at asynchronous release. Taking control during the alignment window cancels the queued request. Physical control-transfer acceptance remains pending.
