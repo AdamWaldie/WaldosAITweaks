@@ -703,7 +703,7 @@ private _physicalReflex=[{
 private _coverGoal=[];
 private _physicalCover=[{
     private _lease=_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]];
-    if (count _lease == 4 && {(_lease select 0) == _reflexUnit}) then {_coverGoal=+(_lease select 3)};
+    if (count _lease >= 4 && {(_lease select 0) == _reflexUnit}) then {_coverGoal=+(_lease select 3)};
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
         && {_reflexUnit distance2D _reflexStart >= 0.6}
 },16] call _wait;
@@ -749,7 +749,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_coverInterruptUnit],true]
 private _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _coverInterruptStarted=[{
     private _lease=_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]];
-    count _lease == 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
+    count _lease >= 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
 },16] call _wait;
 ["DANGER-cover-active-replacement-prerequisite",_coverInterruptStarted,
     str (_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]])] call _check;
