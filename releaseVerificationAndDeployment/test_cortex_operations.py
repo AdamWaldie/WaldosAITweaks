@@ -6159,7 +6159,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('addEventHandler ["FiredMan"',text)
         self.assertIn('forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"]',text)
         self.assertIn('WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile',text)
-        self.assertIn('private _sourceGroup=createGroup [west,true]',text)
+        self.assertIn('private _sourceGroup=createGroup [east,true]',text)
         self.assertIn('_source hideObjectGlobal true',text)
         self.assertIn('_source setAmmo [_rifle,30]',text)
         self.assertIn('_spawn set [2,(_spawn param [2,0]) + 2]',text)

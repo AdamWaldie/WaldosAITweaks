@@ -13,13 +13,13 @@
  */
 params ["_check","_phase","_wait"];
 // A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
-// native danger queue. Fire a real hand grenade from an excluded hostile actor, capture the
+// native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
 // engine-created projectile, then place that already-attributed shot above the fixture. WAIT state
 // is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
 // after the engine has delivered the explosion.
 private _spawnRealGrenade={
     params [["_position",[0,0,0],[[]]]];
-    private _sourceGroup=createGroup [west,true];
+    private _sourceGroup=createGroup [east,true];
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
     _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -27,7 +27,7 @@ private _spawnRealGrenade={
     private _sourcePosition=+_position;
     _sourcePosition set [2,0];
     _sourcePosition=_sourcePosition getPos [80,0];
-    private _source=_sourceGroup createUnit ["B_Soldier_F",_sourcePosition,[],0,"NONE"];
+    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
     _source allowDamage false;
     _source hideObjectGlobal true;
     _source disableAI "MOVE";
