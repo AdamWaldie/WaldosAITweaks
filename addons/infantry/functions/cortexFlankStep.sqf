@@ -194,6 +194,13 @@ private _desiredStrength=_drill getOrDefault ["desiredStrength",count (_drill ge
 private _reinforcements=[];
 private _rankCandidates={
     params ["_candidates"];
+    // Reserve selection must honour finite actor tasks before the drill mutates its own roster;
+    // the later shared operation roster check cannot undo a carrier already added to a fire team.
+    _candidates=_candidates select {
+        (_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []
+            && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SCRIPTED","SUPPORT"])}
+    };
     private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _anchor) then {_anchor=leader _group};
     private _rifles=_candidates select {!(([_x] call WAIT_fnc_CortexUnitRole) in ["MG","AT","LEADER"])};

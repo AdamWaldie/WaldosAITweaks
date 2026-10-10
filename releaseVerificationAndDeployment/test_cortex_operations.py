@@ -333,6 +333,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_retry,+_this,0.25] call CBA_fnc_waitAndExecute', queued)
         self.assertIn('time+1.5,_release,_throwGeneration', queued)
         self.assertIn('WAIT_OperationGeneration',queued)
+        drill_reserves=source('cortexFlankStep').split('private _rankCandidates={',1)[1].split('private _anchor=',1)[0]
+        self.assertIn('WAIT_Cortex_ActorMove',drill_reserves)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',drill_reserves)
+        self.assertIn('currentCommand _x',drill_reserves)
         roles=source('rebalanceRoles')
         self.assertIn('WAIT_fnc_CortexCombatEffective',roles)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',roles)
