@@ -88,7 +88,8 @@ if (_groupHandlers isNotEqualTo []) exitWith {};
 private _handler=_group addEventHandler ["EnemyDetected",{
     params ["_observingGroup","_target"];
     if (isNull _observingGroup || {!local _observingGroup} || {isNull _target} || {!alive _target}
-        || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}) exitWith {};
+        || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
+        || {_target getVariable ["ace_captives_isHandcuffed",false]}) exitWith {};
     // EnemyDetected can report a man or a vehicle. A vehicle object has no useful direct `group`,
     // so compare the target object's actual side or armoured/air contacts lose their identity here.
     private _friendly=(side _observingGroup) getFriend (side _target) >= 0.6;

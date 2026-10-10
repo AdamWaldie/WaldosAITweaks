@@ -46,6 +46,7 @@ if (_cause in [0,3,8]) exitWith {
     private _source=_record param [3,objNull,[objNull]];
     if (!isNull _source && {alive _source} && {!captive _source}
         && {!(_source getVariable ["ace_captives_isSurrendering",false])}
+        && {!(_source getVariable ["ace_captives_isHandcuffed",false])}
         && {(side _group) getFriend (side _source) < 0.6}) then {"ENGAGE"} else {"ASSESS"}
 };
 "ASSESS"
