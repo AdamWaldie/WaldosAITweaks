@@ -966,6 +966,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        for native_path in ['dangerEngineMode','dangerEngineRecycle','dangerEngineSubmit']:
+            self.assertIn('captive _source',source(native_path))
+            self.assertIn('ace_captives_isSurrendering',source(native_path))
         progress=source('operationStep')
         self.assertIn('if (_changed) then {_group setVariable ["WAIT_Operation",_operation,true]}',progress)
         self.assertIn('count _unavailable != _unavailableCount',progress)
