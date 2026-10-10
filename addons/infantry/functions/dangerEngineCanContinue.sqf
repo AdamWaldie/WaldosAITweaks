@@ -44,6 +44,12 @@ if (behaviour _actor == "CARELESS" || {!_initial && {fleeing _actor
 // rapidly recycling the same event while the assistant walks to the assembly position.
 private _carrierTask=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 private _response=_actor getVariable ["WAIT_Danger_EngineResponse",[]];
+// Waiting belongs to the operation and locality which classified this response. A new operation
+// or owner must drain the old engine bridge before another recycle, without a squad scan.
+if (!_initial && {count _response != 7
+    || {(_response param [4,-1,[0]]) != (_group getVariable ["WAIT_OperationGeneration",0])}
+    || {(_response param [5,-1,[0]]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    || {(_response param [6,grpNull,[grpNull]]) != _group}}) exitWith {false};
 if (!_initial && {isNull objectParent _actor} && {count _carrierTask == 3}
     && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT"]}
     && {time < (_carrierTask select 2)}

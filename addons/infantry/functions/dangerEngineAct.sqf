@@ -183,5 +183,6 @@ if (_mode == "VEHICLE") then {
     _stats set ["lastVehicleProfile",[_actor] call WAIT_fnc_DangerVehicleProfile];
 };
 _group setVariable ["WAIT_Danger_EngineStats",_stats];
-_actor setVariable ["WAIT_Danger_EngineResponse",[_mode,_cause,time,time+_delay]];
+_actor setVariable ["WAIT_Danger_EngineResponse",[_mode,_cause,time,time+_delay,
+    _group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0],_group]];
 _delay
