@@ -87,7 +87,7 @@ def stage(package, destination, focus, root=ROOT, native_baseline=False, perform
         'diag_log format ["WAIT AUDIT CHARACTER CONFIG|owner=%1|sources=%2|danger=%3|required=%4",clientOwner,["Man","CAManBase","SoldierWB","SoldierEB","SoldierGB","B_Soldier_F"] apply {[_x,configSourceAddonList (configFile >> "CfgVehicles" >> _x)]},getText (configFile >> "CfgVehicles" >> "B_Soldier_F" >> "fsmDanger"),["A3_Characters_F","A3_Characters_F_BLUFOR","WAIT_danger"] apply {[_x,getArray (configFile >> "CfgPatches" >> _x >> "requiredAddons"),getArray (configFile >> "CfgPatches" >> _x >> "units")]}];\n'
         f'if (isServer) then {{missionNamespace setVariable ["WAIT_CortexQA_Focus","{focus}",true]}};\n')
     if focus == 'standaloneperformance':
-        for name in ('initServer.sqf', 'initPlayerLocal.sqf'):
+        for name in ('initServer.sqf', 'initPlayerLocal.sqf', 'mission.sqm'):
             shutil.copyfile(root/'releaseVerificationAndDeployment/standalonePerformance'/name, mission/name)
         with (mission/'auditIdentity.sqf').open('a') as identity:
             identity.write(f'if (isServer) then {{missionNamespace setVariable ["WAIT_QA_PerfExpectedLoaded",{str(not native_baseline).lower()},true]}};\n')

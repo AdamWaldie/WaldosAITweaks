@@ -27,6 +27,7 @@ if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyConti
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
 if ($NativeBaseline -and $Focus -ne 'standaloneperformance') {throw 'NativeBaseline requires standaloneperformance focus'}
+if ($Focus -eq 'standaloneperformance' -and $HeadlessClients -ne 0) {throw 'Standalone server-owned performance requires HeadlessClients 0; use the migration audit for headless cases'}
 $stageDefaultDependencies=!$Mods.Count
 if ($stageDefaultDependencies) {
     $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')

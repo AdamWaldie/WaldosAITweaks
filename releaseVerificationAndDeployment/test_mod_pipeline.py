@@ -45,6 +45,8 @@ class PackagePipelineTests(unittest.TestCase):
         for name in ('initServer.sqf','initPlayerLocal.sqf','cortexQAStandalonePerformance.sqf'):
             self.assertNotIn('WAIT_fnc_', (mission/name).read_text())
         self.assertIn('WAIT AUDIT OBSERVER ZEUS READY',(mission/'initServer.sqf').read_text())
+        self.assertNotIn('HeadlessClient_F',(mission/'mission.sqm').read_text())
+        self.assertIn('B_Soldier_F',(mission/'mission.sqm').read_text())
         with self.assertRaises(ValueError):
             stage(self.folder,Path(self.temp.name)/'invalid','airskills',native_baseline=True)
 
