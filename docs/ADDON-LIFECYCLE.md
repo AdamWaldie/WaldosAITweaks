@@ -457,3 +457,5 @@ Natural building-contact QA now searches bounded room/approach combinations for 
 WAIT local notifications pass title and body as separate CBA line arrays. The previous body string occupied the first line's numeric size parameter and caused a real client Params type error during convoy warning delivery. Static validation does not establish live rendering; the next exact-candidate batch must verify the warning appears without the client error.
 
 Convoy IMMOBILE halts now retain their distinct operation phase through start, step and FSM routing, instead of being labelled OBSTRUCTION. They use the existing bounded halt cadence and shared scheduler, with unchanged stop/recovery decisions. This is diagnostic state fidelity, not proof of physical recovery.
+
+Convoy release clears a crew target command only for combat-effective actors without actor-context takeover whose assigned target still matches WAIT's recorded target. Protected actors retain their newer command while stale convoy target metadata is retired. Physical separate-crew-group and Zeus target handover remain pending.
