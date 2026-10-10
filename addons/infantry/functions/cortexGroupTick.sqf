@@ -120,7 +120,11 @@ if (!_dangerYield) then {
         _x setVariable ["WAIT_AIPass_StanceSet",nil,true];
     };
     private _target = _x getVariable ["WAIT_AIPass_VehicleTarget",objNull];
-    if (local _x && {!isNull _target} && {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled) || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!(combatMode _group in ["YELLOW","RED"] && {unitCombatMode _x in ["YELLOW","RED"]})}}) then {
+    private _targetProtected=!isNull _target && {!alive _target || {captive _target}
+        || {_target getVariable ["ace_captives_isSurrendering",false]}
+        || {_target getVariable ["ace_captives_isHandcuffed",false]}
+        || {(side _group) getFriend (side _target) >= 0.6}};
+    if (local _x && {!isNull _target} && {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled) || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!(combatMode _group in ["YELLOW","RED"] && {unitCombatMode _x in ["YELLOW","RED"]})} || {_targetProtected}}) then {
         if (!_dangerYield && {!isPlayer _x} && {isNull (remoteControlled _x)}
             && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
             if (assignedTarget _x == _target) then {_x doTarget objNull};

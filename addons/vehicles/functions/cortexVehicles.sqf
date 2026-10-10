@@ -598,7 +598,10 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         {
             _x params ["_enemy", "_position", "_age"];
             private _distance = _vehicle distance2D _position;
-            if (_age <= 15 && {_distance <= 600} && {alive _enemy}) then {
+            if (_age <= 15 && {_distance <= 600} && {alive _enemy} && {!captive _enemy}
+                && {!(_enemy getVariable ["ace_captives_isSurrendering",false])}
+                && {!(_enemy getVariable ["ace_captives_isHandcuffed",false])}
+                && {(side _group) getFriend (side _enemy) < 0.6}) then {
                 private _priority = switch (true) do {
                     case (_enemy isKindOf "CAManBase" && {"AT" in ([_enemy] call WAIT_fnc_CortexCapabilities)}): {0};
                     case (_enemy isKindOf "Tank" || {_enemy isKindOf "Wheeled_APC_F"}): {1};

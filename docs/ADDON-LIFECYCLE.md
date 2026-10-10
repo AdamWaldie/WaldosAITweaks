@@ -307,3 +307,5 @@ Active flank, advance and assault drills end hostile intent when the retained ta
 Shared tactical knowledge prunes surrendering and handcuffed actors from cached observations and hostile candidates alongside captive/side checks. Ending an active drill cannot immediately recreate hostile intent through the same detained target's native knowledge. Physical surrender-to-security acceptance remains pending.
 
 Observed-contact cache pruning validates numeric expiry before comparing time and inspects at most the eight newest records, matching the writer's eight-contact cap. Invalid expiry records do not reach recurring knowledge evaluation. Physical intake and performance acceptance remains pending.
+
+Vehicle target cleanup retires WAIT's recorded target when dead, captive, surrendering, detained or friendly. It clears the native assignment only when it still matches WAIT's target and no newer owner controls the actor. Gunnery ranking independently revalidates protection and hostility, including direct callers with stale candidate lists. Physical surrender/side-change vehicle acceptance remains pending.
