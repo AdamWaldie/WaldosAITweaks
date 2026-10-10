@@ -1,6 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
- * Direction uses retained native contact when available; a coincident impact without contact cannot define a throw bearing.
+ * Direction requires retained native contact; an impact without contact cannot define a throw bearing.
  * Purpose: Opportunistically deploy one carried smoke grenade during a severe finite danger response without delaying cover, movement, firing or the group operation state.
  * Locality / Authority: Runs inside the owner-local group-brain scheduler. It selects one local foot soldier and queues one local throw after rechecking WAIT, Zeus, specialist and generation ownership.
  * Selection tries at most three ordinary carriers; unavailable inventory backs off without blocking the group.
@@ -45,11 +45,10 @@ private _ranked=_candidates apply {[-getSuppression _x,random 1,_x]};
 _ranked sort true;
 private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
 private _contact=_state getOrDefault ["enemyPos",[]];
-private _screenThreat=+_threat;
-// A nearby impact describes danger at the victim, not necessarily the shooter direction.
-if (_state getOrDefault ["contactKnowledge",false] && {count _contact >= 2}) then {
-    _screenThreat=+_contact;
-};
+// An impact is not a shooter bearing. Never screen an arbitrary blast position:
+// it can be behind the actor while the actual contact remains in front.
+if (!(_state getOrDefault ["contactKnowledge",false]) || {count _contact < 2}) exitWith {false};
+private _screenThreat=+_contact;
 private _thrower=objNull;
 private _queued=false;
 {

@@ -320,6 +320,9 @@ class CortexOperations(unittest.TestCase):
                        'getSuppression _x >= 0.55','["DANGER",_generation,_expires]',
                        'call WAIT_fnc_CortexThrowGrenade']:
             self.assertIn(marker,danger_smoke)
+        self.assertIn('private _screenThreat=+_contact;',danger_smoke)
+        self.assertNotIn('private _screenThreat=+_threat;',danger_smoke)
+        self.assertIn('if (!(_state getOrDefault ["contactKnowledge",false]) || {count _contact < 2}) exitWith {false};',danger_smoke)
         self.assertNotIn('sleep ',danger_smoke)
         self.assertNotIn('waitUntil',danger_smoke)
         throw=source('cortexThrowGrenade')
