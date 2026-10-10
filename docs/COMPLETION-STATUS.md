@@ -49,7 +49,7 @@ The category table below gives feature-level detail. Blockers B1-B7 define the p
 | Native headless integration | Real provider staging, hashes, registration/transfer/adoption fixture and ownership bridge | Provider now loads. Native HC registration failed, so transfer/adoption acceptance did not run. Standalone engine transfer success does not establish native integration. |
 | Performance and simulation | Shared budgets, caches, distance tiers and matched native/WAIT benchmark pipeline | Infantry patrol measurements matched at 21 ms median and 23 ms p95, but startup warnings invalidated comparison. Mixed/combat load, queue stability and the 5%/10% limits remain unaccepted. No new culling/simulation shortcut accepted. |
 | Optional engine policies | Runtime skill/dispersion controls and policy requirements | Separate optional engine-policy PBOs are absent from the current build. They still require implementation, packaging and proof that player accuracy is unaffected. |
-| Documentation and delivery | Static validators, tests, wiki generation, parity checks, package seals, audit launch/reporting and signed-candidate workflow | 554 static tests and package checks pass. No accepted release candidate. Some inventories describe earlier snapshots; full history cleanup has not been re-audited here. |
+| Documentation and delivery | Static validators, tests, wiki generation, parity checks, package seals, audit launch/reporting and signed-candidate workflow | 555 static tests and package checks pass. No accepted release candidate. Some inventories describe earlier snapshots; full history cleanup has not been re-audited here. |
 
 ## Progression blockers
 

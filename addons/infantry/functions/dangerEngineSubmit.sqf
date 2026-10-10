@@ -48,7 +48,7 @@ private _reflexOnly=0;
             private _knownFriendly=!isNull _source && {(side _group) getFriend (side _source) >= 0.6};
             private _hostileSource=!isNull _source && {alive _source} && {!captive _source}
                 && {!(_source getVariable ["ace_captives_isSurrendering",false])}
-        && {!(_source getVariable ["ace_captives_isHandcuffed",false])}
+                && {!(_source getVariable ["ace_captives_isHandcuffed",false])}
                 && {(side _group) getFriend (side _source) < 0.6};
             private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
             // Discovering a friendly body from another group is still an alert; native cause 6

@@ -6831,6 +6831,25 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_objects=(_ranked select [0,10])',text)
         self.assertLess(text.index('forEach _placed'),text.index('_ranked sort true'))
 
+    def test_engine_wait_and_recycle_share_operation_identity_without_squad_scan(self):
+        act=source('dangerEngineAct')
+        gate=source('dangerEngineCanContinue')
+        recycle=source('dangerEngineRecycle')
+        record=act.split('setVariable ["WAIT_Danger_EngineResponse",',1)[1]
+        self.assertIn('WAIT_OperationGeneration',record)
+        self.assertIn('WAIT_AIPass_Epoch',record)
+        self.assertIn('_group]]',record)
+        identity=gate.split('private _response=',1)[1].split('// The full Zeus helper',1)[0]
+        self.assertIn('if (!_initial && {count _response != 7',identity)
+        self.assertIn('_response param [4,-1,[0]]',identity)
+        self.assertIn('_response param [5,-1,[0]]',identity)
+        self.assertIn('_response param [6,grpNull,[grpNull]]',identity)
+        self.assertLess(identity.index('WAIT_OperationGeneration'),identity.index('_response param [0'))
+        self.assertIn('WAIT_fnc_DangerEngineCanContinue',recycle.split('private _group=',1)[0])
+        self.assertNotIn('units ',gate)
+        self.assertNotIn('configOf',gate)
+        self.assertNotIn('nearestObjects',gate)
+
     def test_cheap_specialist_wait_gate_recognises_runtime_and_animation_ownership(self):
         text=source('compatibilityExternalControl')
         self.assertIn('IMS_IsUnitInvicibleScripted',text)
