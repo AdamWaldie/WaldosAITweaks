@@ -165,7 +165,7 @@ def main():
     report = summarize(logs)
     manifest_path=root/'audit-manifest.json'
     if manifest_path.is_file():
-        from mod_pipeline import digest, verify
+        from mod_pipeline import mission_hashes, verify
         manifest=json.loads(manifest_path.read_text())
         report['focus']=manifest['focus']
         report['package_commit']=manifest['package']['commit']
@@ -174,7 +174,7 @@ def main():
             if identity['fingerprint'] != manifest['package']['fingerprint'] or identity['fingerprint'] != report['source_fingerprint']:
                 raise ValueError('RPT, package and audit manifest identity disagree')
             mission=root/'WAIT_Audit.VR'
-            if {p.name:digest(p) for p in mission.iterdir() if p.is_file()} != manifest['mission_files']:
+            if mission_hashes(mission) != manifest['mission_files']:
                 raise ValueError('Audit scripts changed after staging')
         except (ValueError, OSError) as error:
             report['provenance_issues'].append(str(error))

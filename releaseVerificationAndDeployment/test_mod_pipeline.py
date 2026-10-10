@@ -143,6 +143,11 @@ class PackagePipelineTests(unittest.TestCase):
             self.assertIn('compatibilityHeadlessProvider/init.sqf',(mission/name).read_text())
         for name in REQUIRED:
             self.assertIn('compatibilityHeadlessProvider/'+name,manifest['mission_files'])
+        from mod_pipeline import mission_hashes
+        self.assertEqual(mission_hashes(mission),manifest['mission_files'])
+        nested=mission/'compatibilityHeadlessProvider'/REQUIRED[0]
+        nested.write_text('modified provider')
+        self.assertNotEqual(mission_hashes(mission),manifest['mission_files'])
         with self.assertRaises(ValueError):
             stage(self.folder,Path(self.temp.name)/'invalid-perf','standaloneperformance',headless_provider=provider)
 

@@ -15,6 +15,15 @@ ALIASES = {'BuildingComparison': 'Buildings', 'ConvoySeats': 'Seats',
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def mission_hashes(folder):
+    rows = {}
+    for path in sorted(folder.rglob('*')):
+        if path.is_symlink():
+            raise ValueError(f'Audit content cannot contain links: {path}')
+        if path.is_file():
+            rows[path.relative_to(folder).as_posix()] = digest(path)
+    return rows
+
 def inventory(folder):
     rows = {}
     for path in sorted(folder.rglob('*')):
@@ -120,7 +129,7 @@ call compile preprocessFileLineNumbers "compatibilityHeadlessProvider/init.sqf";
     if missing:
         raise ValueError(f'Missing audit payloads: {sorted(set(missing))}')
     (destination/'audit-manifest.json').write_text(json.dumps(dict(package=record, focus=focus, native_baseline=native_baseline, performance_composition=performance_composition, headless_provider=provider_evidence,
-        mission_files={p.relative_to(mission).as_posix(): digest(p) for p in sorted(mission.rglob('*')) if p.is_file()}), indent=2)+'\n')
+        mission_files=mission_hashes(mission)), indent=2)+'\n')
     return mission
 
 def release_gate(package, evidence):
