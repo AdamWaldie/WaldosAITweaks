@@ -7,7 +7,7 @@
  * flashbangs are skipped. The throw muzzle is the "Throw" weapon muzzle that accepts that magazine.
  * The queued throw revalidates ownership and requests target observation. Release requires actual
  * body and viewing alignment; an unaligned actor cancels rather than throwing behind contact. A fragmentation grenade is never thrown when a
- * friendly or civilian soldier is within 12 m of the target, or when the target is under 8 m or over
+ * friendly, civilian, captive or surrendering soldier is within 12 m of the target, or when the target is under 8 m or over
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
  *
@@ -44,7 +44,8 @@ if (toUpperANSI _kind == "FRAG") then {
     if (_distance < 8 || {_distance > 40}) exitWith {_simulations = []};
     if ((_towards nearEntities ["CAManBase", 12]) findIf {
         private _otherSide = side group _x;
-        alive _x && {_otherSide == civilian || {_side getFriend _otherSide >= 0.6}}
+        alive _x && {captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}
+            || {_otherSide == civilian} || {_side getFriend _otherSide >= 0.6}}
     } >= 0) then {_simulations = []};
 };
 if (_simulations isEqualTo []) exitWith {false};
@@ -132,7 +133,8 @@ private _thrown = false;
                     private _side=side _group;
                     if (_distance < 8 || {_distance > 40} || {
                         (_towards nearEntities ["CAManBase",12]) findIf {
-                            alive _x && {side group _x == civilian || {_side getFriend (side group _x) >= 0.6}}
+                            alive _x && {captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}
+                                || {side group _x == civilian} || {_side getFriend (side group _x) >= 0.6}}
                         } >= 0
                     }) exitWith {[] call _cancel};
                     private _old = _unit getVariable ["WAIT_Cortex_FragHandler",-1];
