@@ -247,3 +247,5 @@ Lifecycle anchoring accepts an eligible ordinary leader immediately, otherwise i
 Grenade requests reject player and remote-controlled actors at initiation and again at asynchronous release. Taking control during the alignment window cancels the queued request. Physical control-transfer acceptance remains pending.
 
 Grenade evasion considers at most 16 nearby actors. Its delayed recovery matches the exact reservation expiry before clearing bookkeeping, and checks the captured operation generation and owner epoch before issuing follow. Player, specialist and native action owners block movement. Cover acquisition and recovery apply the same player/specialist boundary. Physical interruption and repeated-evasion acceptance remain queued.
+
+Squad posture restoration requires the complete six-field lease, matching operation generation and owner epoch. Incomplete records grant no restoration authority. Remote-controlled actors are excluded from acquisition, retention and restoration. Physical takeover and malformed-record acceptance remain pending.

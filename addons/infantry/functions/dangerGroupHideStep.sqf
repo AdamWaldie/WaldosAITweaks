@@ -26,8 +26,8 @@ private _external=!local _group
     || {[_group] call WAIT_fnc_CortexZeusHeld};
 private _sameOwner={
     params ["_proof"];
-    count _proof < 6 || {(_proof select 4) == (_group getVariable ["WAIT_OperationGeneration",0])
-        && {(_proof select 5) == (_group getVariable ["WAIT_AIPass_Epoch",0])}}
+    count _proof == 6 && {(_proof select 4) isEqualTo (_group getVariable ["WAIT_OperationGeneration",0])
+        && {(_proof select 5) isEqualTo (_group getVariable ["WAIT_AIPass_Epoch",0])}}
 };
 private _mayRestore={
     params ["_proof"];
@@ -38,6 +38,8 @@ private _mayRestore={
             (_move param [2,1e12,[0]]) <= time || {(_move select 0) == "DANGER_COVER"}
         }};
     [_proof] call _sameOwner
+        && {isNull remoteControlled _unit}
+        && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
         && {[_unit] call WAIT_fnc_CortexCombatEffective}
         && {currentCommand _unit in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}
         && {_postureFree}
@@ -79,7 +81,7 @@ if (_leases isNotEqualTo []) exitWith {
     private _valid=_leases select {
         _x params ["_unit","_prior","_applied","_leaseGeneration"];
         !isNull _unit && {alive _unit} && {local _unit} && {!isPlayer _unit}
-            && {group _unit == _group} && {isNull objectParent _unit}
+            && {isNull remoteControlled _unit} && {group _unit == _group} && {isNull objectParent _unit}
             && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
             && {[_x] call _sameOwner} && {[_unit] call WAIT_fnc_CortexCombatEffective}
             && {_leaseGeneration == _generation} && {toUpperANSI (unitPos _unit) == _applied}
@@ -98,7 +100,7 @@ private _reserved=if (count _operation > 0) then {
 } else {[]};
 private _members=(units _group) select [0,64];
 private _candidates=_members select {
-    local _x && {alive _x} && {!isPlayer _x} && {isNull objectParent _x}
+    local _x && {alive _x} && {!isPlayer _x} && {isNull remoteControlled _x} && {isNull objectParent _x}
         && {[_x] call WAIT_fnc_CortexCombatEffective}
         && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
         && {!(_x in _reserved)}
