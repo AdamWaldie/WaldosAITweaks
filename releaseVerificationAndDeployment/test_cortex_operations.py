@@ -6549,6 +6549,12 @@ class CortexOperations(unittest.TestCase):
 
     def test_static_assembly_preserves_bag_before_observing_native_drop(self):
         deploy=source('cortexStaticDeployStep')
+        ownership=deploy.split('private _participantUnavailable=',1)[1].split('if (_phase == "CONTACT" && {_status == "PACK_MOVING"}',1)[0]
+        self.assertIn('WAIT_fnc_CortexCombatEffective',ownership)
+        self.assertIn('assignedVehicle _actor == _weapon',ownership)
+        self.assertIn('!_ownedAction',ownership)
+        self.assertIn('[true] call _retire',ownership)
+        self.assertIn('"HEAL SOLDIER"',ownership)
         self.assertLess(deploy.index('_record set [13,unitBackpack _assistant]'),deploy.index('action ["PutBag",_assistant]'))
         drop=deploy.split('if (_status == "DROPPING") exitWith',1)[1].split('if (_status == "ASSEMBLING")',1)[0]
         self.assertIn('isNull unitBackpack _assistant',drop)

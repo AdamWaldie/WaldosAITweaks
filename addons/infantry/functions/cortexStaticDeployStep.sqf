@@ -112,6 +112,25 @@ if (count _record >= 10) exitWith {
         [true] call _retire;
         "YIELDED"
     };
+    // A finite reservation is not authority over a newer native task or medical state.
+    // Only this phase's own equipment actions may continue through the protected-task gate.
+    private _participantUnavailable=_reservedActors findIf {
+        private _actor=_x;
+        private _command=currentCommand _actor;
+        private _ownedAction=(_status == "ASSEMBLING" && {_actor == _gunner} && {_command == "ASSEMBLE"})
+            || {_status == "DROPPING" && {_actor == _assistant} && {_command == "DROP BAG"}}
+            || {_status == "PACKING" && {_command == "DISASSEMBLE"}}
+            || {_status == "TAKING" && {_command == "TAKE BAG"}}
+            || {_status == "MOUNTING" && {_actor == _gunner} && {_command == "GET IN"}
+                && {!isNull _weapon} && {assignedVehicle _actor == _weapon}};
+        !([_actor] call WAIT_fnc_CortexCombatEffective)
+            || {!_ownedAction && {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}}
+    };
+    if (_participantUnavailable >= 0) exitWith {
+        [true] call _retire;
+        _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"YIELDED",serverTime],true];
+        "YIELDED"
+    };
     if (_phase == "CONTACT" && {_status == "PACK_MOVING"}
         && {!isNull _gunner} && {alive _gunner} && {local _gunner}
         && {!isNull _assistant} && {alive _assistant} && {local _assistant}
