@@ -32,6 +32,9 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_enemies", [], [[]]]];
+// Direct callers and delayed scheduler callbacks obey the same group ownership boundary.
+if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {0};
 private _enemyPos = _state getOrDefault ["enemyPos", []];
 if (count _enemyPos < 2) exitWith {0};
 private _now = time;

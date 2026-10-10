@@ -265,3 +265,5 @@ Vehicle-gunnery feature-disable and hold-fire cleanup clears WAIT's target metad
 Normal CALM restoration preserves stance and targeting during explicit external handover, player/remote control and specialist ownership while clearing WAIT metadata. Cover-height stance acquisition excludes players, remote-controlled actors and specialist identities independently of an active external-control marker. Physical mixed-group acceptance remains pending.
 
 Cover-height stance checks inspect at most twelve members and cast at most six rays per group step. The existing rotating cursor advances for every inspected actor, including ineligible members, so large or specialist-heavy groups do not cause an unbounded eligibility scan or permanently starve later members. Frame-time acceptance remains pending.
+
+The cover-height stance entry point rejects null or non-local groups, current Zeus holds and declared group external control before geometry work or posture changes. Per-actor specialist checks remain separate so ordinary members of a mixed specialist group can participate. Direct-call and locality-handover physical acceptance remains pending.
