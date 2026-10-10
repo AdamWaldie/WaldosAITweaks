@@ -288,8 +288,7 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
 // Native stimulus diagnostic: compare attribution without injecting danger, knowledge or actions.
 // A missing callback is fixture/engine evidence, not proof that a tactical response is broken.
 {
-    private _sourceSide=_x;
-    private _label=["FRIENDLY","HOSTILE"] select (_sourceSide == west);
+    _x params ["_sourceSide","_label","_range"];
     private _probeGroup=createGroup [east,true];
     _probeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _probeGroup setVariable ["acex_headless_blacklist",true,true];
@@ -299,7 +298,7 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
     _probeActor setVariable ["WAIT_CortexQA_Label","EXPLOSION ATTRIBUTION "+_label,true];
     missionNamespace setVariable ["WAIT_CortexQA_Actors",[_probeActor],true];
     ["Diagnostic: explosion attribution "+_label,"A real attributed grenade tests engine explosion delivery. This diagnostic does not validate cover, smoke or tactical completion.",getPosATL _probeActor] call _phase;
-    private _probeGrenade=[(getPosATL _probeActor) getPos [7,90],_sourceSide] call _spawnRealGrenade;
+    private _probeGrenade=[(getPosATL _probeActor) getPos [_range,90],_sourceSide] call _spawnRealGrenade;
     private _probeProjectile=!isNull _probeGrenade;
     private _probeEvidence=[];
     private _probeExplosion=[{
@@ -310,14 +309,14 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
             true
         } else {false}
     },10] call _wait;
-    ["DANGER-STIMULUS-"+_label+"-actual-projectile",_probeProjectile,str [_sourceSide,_probeProjectile]] call _check;
+    ["DANGER-STIMULUS-"+_label+"-actual-projectile",_probeProjectile,str [_sourceSide,_probeProjectile,_range]] call _check;
     ["DANGER-STIMULUS-"+_label+"-native-explosion-callback",_probeProjectile && {_probeExplosion},
         str [_probeEvidence,_probeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
             [_probeGroup] call WAIT_fnc_CortexKnowledge]] call _check;
     deleteVehicle _probeGrenade;
     deleteVehicle _probeActor;
     deleteGroup _probeGroup;
-} forEach [east,west];
+} forEach [[east,"FRIENDLY",7],[west,"HOSTILE",7],[east,"FRIENDLY_NEAR",2.5],[west,"HOSTILE_NEAR",2.5]];
 
 // A live CBA change must also retire a response which already owns a weak actor stance. This is
 // distinct from starting disabled: the engine FSM has physically reacted, so cleanup must prove
