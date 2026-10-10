@@ -6,13 +6,14 @@
  * Locality / Authority: Runs where the affected AI soldier is local and reads only live gates and
  * explicit actor/group ownership markers. It issues no command and changes no state.
  * Repeat/JIP: Stateless and repeat-safe. A new locality starts a fresh engine danger FSM.
- * Arguments: 0: affected soldier <OBJECT>, objNull.
+ * Arguments: 0: affected soldier <OBJECT>, objNull; 1: initial observation <BOOL>, false.
+ * Initial observation permits native task classification only; waiting responses still yield immediately.
  * Return Value: Boolean - true while the current short WAIT response may continue.
  * Current callers: Engine-loaded infantry danger FSM Waiting state.
  * Example: if !([cursorObject] call WAIT_fnc_DangerEngineCanContinue) exitWith {};
  */
 
-params [["_actor",objNull,[objNull]]];
+params [["_actor",objNull,[objNull]],["_initial",false,[true]]];
 if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)}
     || {isPlayer _actor}) exitWith {false};
 private _group=group _actor;
@@ -31,15 +32,15 @@ if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
 // is waiting. Recheck only the affected actor here so a fresh boarding, action, treatment, rearm,
 // join or fleeing task interrupts before another WAIT stance or recycle. ATTACK deliberately remains
 // eligible because the engine also uses it for ordinary autonomous combat.
-if (behaviour _actor == "CARELESS" || {fleeing _actor}
-    || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {false};
+if (behaviour _actor == "CARELESS" || {!_initial && {fleeing _actor
+    || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}}}) exitWith {false};
 
 // A carrier reservation can begin after this response was classified. Interrupt that old
 // response, but let an already classified FORCED state keep its bounded wait instead of
 // rapidly recycling the same event while the assistant walks to the assembly position.
 private _carrierTask=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 private _response=_actor getVariable ["WAIT_Danger_EngineResponse",[]];
-if (isNull objectParent _actor && {count _carrierTask == 3}
+if (!_initial && {isNull objectParent _actor} && {count _carrierTask == 3}
     && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]}
     && {time < (_carrierTask select 2)}
     && {(_response param [0,"",[""]]) != "FORCED"}) exitWith {false};

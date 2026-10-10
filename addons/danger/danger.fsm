@@ -136,7 +136,7 @@ class FSM
                                         priority = 2.000000;
                                         to="End_Danger_1";
                                         precondition = /*%FSM<CONDPRECONDITION""">*/""/*%FSM</CONDPRECONDITION""">*/;
-                                        condition=/*%FSM<CONDITION""">*/"!([_this] call WAIT_fnc_DangerEngineCanContinue)"/*%FSM</CONDITION""">*/;
+                                        condition=/*%FSM<CONDITION""">*/"!([_this,true] call WAIT_fnc_DangerEngineCanContinue)"/*%FSM</CONDITION""">*/;
                                         action=/*%FSM<ACTION""">*/""/*%FSM</ACTION""">*/;
                                 };
                                 /*%FSM</LINK>*/

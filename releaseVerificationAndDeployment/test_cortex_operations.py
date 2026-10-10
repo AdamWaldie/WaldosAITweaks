@@ -616,6 +616,8 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(final_state,engine_fsm)
         self.assertNotRegex(engine_fsm.lower(),r'lambs|upstream|baseline')
         self.assertIn('WAIT_AIPass_Danger_Enable',engine_continue)
+        self.assertIn('[_this,true] call WAIT_fnc_DangerEngineCanContinue',engine_fsm)
+        self.assertIn('!_initial && {fleeing _actor',engine_continue)
         self.assertIn('(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]',engine_continue)
         self.assertIn('time < (_carrierTask select 2)',engine_continue)
         self.assertIn('(_response param [0,"",[""]]) != "FORCED"',engine_continue)
