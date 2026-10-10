@@ -13,6 +13,10 @@
 params [["_actor",objNull,[objNull]],["_cause","GUNFIRE",[""]],["_position",[],[[]]],["_source",objNull,[objNull]]];
 if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor}
     || {!(_cause in ["HIT","EXPLOSION","SUPPRESSED","DETECTED","PROXIMITY","CANFIRE","GUNFIRE","CASUALTY","BODY_FOUND","SCREAM"])} || {count _position != 3}) exitWith {false};
+// Reject throttled duplicates before the more expensive group ownership scan. Rejected
+// eligibility does not consume cadence; only an accepted observation advances it below.
+private _cadence=_actor getVariable ["WAIT_Danger_EventCadence",createHashMap];
+if (time < (_cadence getOrDefault [_cause,-1])) exitWith {false};
 private _group=group _actor;
 if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {!local _group}
@@ -23,8 +27,6 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
 // Eligibility was checked at observer installation and is rechecked before dispatch. Keep bullet
 // callbacks cheap; each observer keeps at most the ten accepted causes, with no squad scan.
 // One witness must not throttle or replace another witness in a different occupied domain.
-private _cadence=_actor getVariable ["WAIT_Danger_EventCadence",createHashMap];
-if (time < (_cadence getOrDefault [_cause,-1])) exitWith {false};
 _cadence set [_cause,time+0.25];
 _actor setVariable ["WAIT_Danger_EventCadence",_cadence];
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
