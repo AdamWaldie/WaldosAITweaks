@@ -21,13 +21,17 @@ if (isNull _group || {!local _group} || {!(count _event in [4,5,6,7])}) exitWith
 // in the group) to receive a reaction after the other danger paths had already yielded.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
 private _actor=_event param [5,objNull,[objNull]];
-// The event observer is authoritative only while it remains a living local member. Older scripted
-// callers and events surviving a casualty fall back to the current combat-effective anchor.
-if (isNull _actor || {!alive _actor} || {!local _actor} || {group _actor != _group}) then {
+// An explicit witness carries response-domain ownership. Its loss cannot be repaired by
+// substituting a foot leader for a crew member or an unrelated surviving soldier.
+if (count _event >= 6 && {!([_actor] call WAIT_fnc_CortexCombatEffective)
+    || {!local _actor} || {group _actor != _group}}) exitWith {"RELEASE"};
+// Only older position-only callers intentionally use the current group representative.
+if (count _event < 6) then {
     _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _actor) then {_actor=leader _group};
 };
-if (isNull _actor || {!alive _actor}
+if (!([_actor] call WAIT_fnc_CortexCombatEffective) || {!local _actor} || {isPlayer _actor}
+    || {group _actor != _group}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"RELEASE"};
 // A concrete native task remains authoritative through the group handoff as well as the immediate
 // engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous
