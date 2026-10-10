@@ -15,6 +15,8 @@ param(
     [switch]$NativeBaseline,
     [ValidateSet("infantry","mixed")][string]$PerformanceComposition="infantry",
     [switch]$ServerOnly,
+    [switch]$WaitForCompletion,
+    [ValidateRange(60,21600)][int]$BatchTimeoutSeconds=14400,
     [switch]$StageOnly
 )
 $ErrorActionPreference='Stop'
@@ -136,6 +138,7 @@ while ((Get-Date) -lt $deadline -and !$server.HasExited) {
 }
 if (!$ready) {throw "Server did not reach WAIT audit readiness. Inspect $runtime; processes have been left available for inspection."}
 $processes=@($server.Id)
+$auditProcessHandles=@($server)
 if ($ServerOnly) {
     @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
     Write-Output "WAIT danger loader diagnostic entered WAIT_Audit.VR server-side. Runtime: $runtime"
@@ -144,6 +147,7 @@ if ($ServerOnly) {
 for ($i=1; $i -le $HeadlessClients; $i++) {
     $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),"-name=WAIT_HC$i",$modArg)
     $processes+=$hc.Id
+    $auditProcessHandles+=$hc
 }
 $clientProfile=Join-Path $runtime 'client'
 New-Item -ItemType Directory -Force $clientProfile | Out-Null
@@ -159,6 +163,7 @@ Windowed=1;
 $clientConfig=Join-Path $clientProfile 'Arma3.cfg'
 $client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-world=empty','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight","-windowWidth=$ResolutionWidth","-windowHeight=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
 $processes+=$client.Id
+$auditProcessHandles+=$client
 @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
 $clientWindowHandle=Show-AuditClientWindow $client $ClientWindowTimeoutSeconds
 $clientDeadline=(Get-Date).AddSeconds($ClientReadyTimeoutSeconds)
@@ -181,3 +186,30 @@ if ($client.MainWindowHandle -eq [IntPtr]::Zero -or !$([WaitAuditWindow]::IsWind
 [WaitAuditWindow]::ShowWindowAsync($client.MainWindowHandle,9) | Out-Null
 [WaitAuditWindow]::SetForegroundWindow($client.MainWindowHandle) | Out-Null
 Write-Output "WAIT batch entered WAIT_Audit.VR in a visible ${ResolutionWidth}x${ResolutionHeight} client window. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"
+if ($WaitForCompletion) {
+    # Retain the actual Process handles: a later process inventory cannot recover exit codes
+    # and PID reuse must not make an unrelated application look like this audit.
+    $trackedProcesses=$auditProcessHandles
+    $batchDeadline=(Get-Date).AddSeconds($BatchTimeoutSeconds)
+    $batchState='RUNNING'
+    do {
+        $records=@($trackedProcesses | ForEach-Object {
+            $_.Refresh()
+            @{id=$_.Id; exited=$_.HasExited; exitCode=if ($_.HasExited) {$_.ExitCode} else {$null}}
+        })
+        $serverComplete=$false
+        $clientComplete=$false
+        foreach ($rpt in (Get-ChildItem $runtime -Filter '*.rpt' -Recurse)) {
+            if (Select-String -LiteralPath $rpt.FullName -Pattern 'WAIT CORTEX QA SERVER COMPLETE:|WAIT STANDALONE PERF COMPLETE' -Quiet) {$serverComplete=$true}
+            if (Select-String -LiteralPath $rpt.FullName -SimpleMatch 'WAIT CORTEX QA CLIENT COMPLETE:' -Quiet) {$clientComplete=$true}
+        }
+        if ($serverComplete -and ($clientComplete -or $Focus -eq 'standaloneperformance')) {$batchState='COMPLETED'}
+        elseif ($server.HasExited -or $client.HasExited) {$batchState='PROCESS_EXIT_BEFORE_COMPLETION'}
+        elseif ((Get-Date) -ge $batchDeadline) {$batchState='OBSERVATION_TIMEOUT'}
+        @{state=$batchState; observedAt=(Get-Date).ToUniversalTime().ToString('o'); processes=$records;
+            serverComplete=$serverComplete; clientComplete=$clientComplete; fingerprint=$manifest.package.fingerprint
+        } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $runtime 'batch-status.json')
+        if ($batchState -eq 'RUNNING') {Start-Sleep -Seconds 2}
+    } while ($batchState -eq 'RUNNING')
+    Write-Output "WAIT batch observation: $batchState. Processes are left untouched. Evidence: $runtime/batch-status.json"
+}
