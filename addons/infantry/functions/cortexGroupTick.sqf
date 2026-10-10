@@ -1292,14 +1292,18 @@ switch (_state get "phase") do {
             } else {
                 _candidateRoutes param [0,[]]
             };
+            // Count failed planning/command attempts as retries, never as physical movement.
+            // This keeps refusal from rerunning geometry on every brain callback.
+            _replans = _replans+1;
+            _progressAt = _now;
             if (_legs isNotEqualTo []) then {
                 private _candidate=+(_legs select ((count _legs)-1));
-                [_group,_candidate,30] call WAIT_fnc_CortexGroupMove;
-                _state set ["retreatTarget",_candidate];
-                _replans = _replans+1;
-                _progressAt = _now;
-                _bestTravel = _travel;
-                _moving = true;
+                private _waypoint=[_group,_candidate,30] call WAIT_fnc_CortexGroupMove;
+                if (!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0}) then {
+                    _state set ["retreatTarget",_candidate];
+                    _bestTravel = _travel;
+                    _moving = true;
+                };
             };
         };
         _state set ["retreatProgress",[_progressAt,_bestTravel,_replans]];
