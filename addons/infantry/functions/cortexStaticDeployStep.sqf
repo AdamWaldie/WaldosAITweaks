@@ -17,6 +17,12 @@ private _record=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
 private _external=[_group] call WAIT_fnc_CortexExternalTakeover;
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 private _operationActors=_operation getOrDefault ["participants",[]];
+private _bagAnchor={
+    params ["_bag"];
+    if (isNull _bag) exitWith {objNull};
+    private _container=objectParent _bag;
+    if (isNull _container) then {_bag} else {_container}
+};
 private _clearActor={
     params ["_actor"];
     if (!isNull _actor && {local _actor}) then {
@@ -226,7 +232,10 @@ if (count _record >= 10) exitWith {
     };
     if (_status == "DROPPING") exitWith {
         private _supportBag=_record param [13,objNull,[objNull]];
-        if (isNull unitBackpack _assistant && {isNull _supportBag || {_gunner distance _supportBag > 3.5}}) then {
+        private _supportAnchor=[_supportBag] call _bagAnchor;
+        // Cargo backpack coordinates are not world positions. Measure the real ground holder,
+        // while keeping the exact backpack object as the native assembly action's argument.
+        if (isNull unitBackpack _assistant && {isNull _supportBag || {_gunner distance _supportAnchor > 3.5}}) then {
             private _dropPosition=_record param [15,_deployPos,[[]]];
             private _existingBags=_record param [14,[],[[]]];
             private _dropped=nearestObjects [_dropPosition,[_assistantBag],5,true];
@@ -234,17 +243,18 @@ if (count _record >= 10) exitWith {
                 _dropped append ((everyBackpack _x) select [0,4]);
             } forEach ((nearestObjects [_dropPosition,["GroundWeaponHolder","WeaponHolderSimulated"],5,true]) select [0,12]);
             private _bagIndex=_dropped findIf {
-                typeOf _x == _assistantBag && {!(_x in _existingBags)} && {_gunner distance _x <= 3.5}
+                typeOf _x == _assistantBag && {!(_x in _existingBags)} && {_gunner distance ([_x] call _bagAnchor) <= 3.5}
             };
             if (_bagIndex >= 0) then {
                 _supportBag=_dropped select _bagIndex;
+                _supportAnchor=[_supportBag] call _bagAnchor;
                 _record set [13,_supportBag];
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
             };
         };
         // Observe completed physical work before its deadline: a delayed scheduler callback must
         // not turn a bag already on the ground into a failed drop solely because time has advanced.
-        if (isNull unitBackpack _assistant && {!isNull _supportBag} && {_gunner distance _supportBag <= 3.5}
+        if (isNull unitBackpack _assistant && {!isNull _supportBag} && {_gunner distance _supportAnchor <= 3.5}
             && {backpack _gunner == _gunnerBag}) then {
             // The assistant's physical contribution is complete once its exact bag is down.
             // Keep only the gunner reserved; ordinary native fire and movement may resume for support.

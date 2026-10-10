@@ -6534,7 +6534,9 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(deploy.index('_record set [13,unitBackpack _assistant]'),deploy.index('action ["PutBag",_assistant]'))
         drop=deploy.split('if (_status == "DROPPING") exitWith',1)[1].split('if (_status == "ASSEMBLING")',1)[0]
         self.assertIn('isNull unitBackpack _assistant',drop)
-        self.assertIn('_gunner distance _supportBag <= 3.5',drop)
+        self.assertIn('_gunner distance _supportAnchor <= 3.5',drop)
+        self.assertIn('private _container=objectParent _bag',deploy)
+        self.assertIn('action ["Assemble",_supportBag]',drop)
         self.assertIn('everyBackpack _x',drop)
         deployment_move=deploy.split('if (_status == "MOVING") exitWith',1)[1].split('if (_status == "DROPPING")',1)[0]
         self.assertLess(deployment_move.index('_record set [1,"DROPPING"]'),deployment_move.index('if (time >= _deadline)'))
