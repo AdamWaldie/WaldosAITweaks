@@ -104,8 +104,8 @@ private _buildingAnchor = {
             _unit setVariable ["WAIT_AIPass_GarrisonHandlers", true];
             private _duck = {
                 params ["_unit"];
-                if (!local _unit || {isPlayer _unit} || {lifeState _unit == "INCAPACITATED"} || {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
-                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)} || {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};
+                if (!local _unit || {isPlayer _unit} || {!([_unit] call WAIT_fnc_CortexCombatEffective)} || {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
+                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)} || {[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};
                 if (time < (_unit getVariable ["WAIT_AIPass_DuckUntil", -1])) exitWith {};
                 private _until = time + 4 + random 4;
                 _unit setVariable ["WAIT_AIPass_DuckUntil", _until];
@@ -114,10 +114,10 @@ private _buildingAnchor = {
                 _unit setUnitPos _duckStance;
                 [{
                     params ["_unit", "_until"];
-                    if (alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"} && {(_unit getVariable ["WAIT_AIPass_DuckUntil", -1]) == _until}
+                    if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {!isPlayer _unit} && {(_unit getVariable ["WAIT_AIPass_DuckUntil", -1]) == _until}
                         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isNotEqualTo []}
                         && {[group _unit] call WAIT_fnc_CortexIsEligible}
-                        && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
+                        && {!([group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                         if (unitPos _unit == (_unit getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
                             _unit setUnitPos (_unit getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
                         };

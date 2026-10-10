@@ -1624,9 +1624,12 @@ class CortexOperations(unittest.TestCase):
         for name in ['cortexGarrison','cortexGarrisonApplyLocal','cortexGarrisonRelease']:
             text=source(name)
             self.assertIn('!isPlayer',text)
-            self.assertIn('INCAPACITATED',text)
+            self.assertTrue('INCAPACITATED' in text or 'WAIT_fnc_CortexCombatEffective' in text)
+        effective=source('cortexCombatEffective')
+        for guard in ['INCAPACITATED','ACE_isUnconscious','captive','ace_captives_isSurrendering','ace_captives_isHandcuffed']:
+            self.assertIn(guard,effective)
         release=source('cortexGarrisonRelease')
-        self.assertLess(release.index('enableAI "PATH"'),release.index('if (alive _x && {!isPlayer'))
+        self.assertLess(release.index('enableAI "PATH"'),release.index('if ([_x] call WAIT_fnc_CortexCombatEffective'))
 
     def test_building_door_helper_preserves_locks_and_requires_local_proximity(self):
         text=source('cortexBuildingDoor')
@@ -1859,8 +1862,9 @@ class CortexOperations(unittest.TestCase):
         garrison=source('cortexGarrisonApplyLocal')
         duck=garrison.split('private _duck = {',1)[1].split('_unit setVariable ["WAIT_AIPass_GarrisonHandlerIds"',1)[0]
         self.assertGreaterEqual(duck.count('WAIT_fnc_CortexExternalTakeover'),2)
-        self.assertIn('|| {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};',duck)
-        self.assertIn('&& {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {',duck)
+        self.assertIn('|| {[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};',duck)
+        self.assertIn('&& {!([group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover)}) then {',duck)
+        self.assertGreaterEqual(duck.count('WAIT_fnc_CortexCombatEffective'),2)
 
     def test_reactive_direct_commands_recheck_external_ownership(self):
         dismount=source('convoyDismountLocal')
