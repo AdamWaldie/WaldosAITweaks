@@ -26,3 +26,5 @@ Other failed assertions remain in the batch report for individual review. Object
 See [completion status](COMPLETION-STATUS.md) for category progress and [performance validation](PERFORMANCE-VALIDATION.md) for strict comparison requirements.
 
 The reporter also rejects standalone parameter/type/generic/arithmetic error lines when an expression/position prefix is absent. Raw trace-line counts are not incident or root-cause counts.
+
+Script-not-found and script-cannot-be-loaded messages are explicit load failures, with or without a Warning Message prefix. This prevents missing packaged/provider entry points from being classified as merely incomplete. The earlier provider path failure was repaired before candidate 62d86bd; native registration remains separately unresolved.

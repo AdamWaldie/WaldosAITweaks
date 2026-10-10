@@ -16,6 +16,15 @@ class CortexReportTests(unittest.TestCase):
     def test_empty_run_is_incomplete(self):
         self.assertEqual('INCOMPLETE',summarize({})['status'])
 
+    def test_missing_script_is_load_failure_with_or_without_warning_prefix(self):
+        for prefix in ['', 'Warning Message: ']:
+            with self.subTest(prefix=prefix):
+                message=prefix+'Script compatibilityHeadlessProvider/init.sqf not found'
+                report=summarize({'client.rpt':message})
+                self.assertEqual('FAIL',report['status'])
+                self.assertEqual(1,len(report['load_errors']))
+                self.assertEqual(message,report['load_errors'][0]['message'])
+
     def test_standalone_parameter_and_arithmetic_errors_fail_without_trace_prefix(self):
         for error in ['Error Params: Type String, expected Number',
                       'Error Type Array, expected Number', 'Error Generic error in expression',

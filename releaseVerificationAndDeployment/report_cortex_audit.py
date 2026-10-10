@@ -14,6 +14,7 @@ FATAL_RUNTIME_ERROR = re.compile(
 )
 LOAD_ERROR = re.compile(
     r"Warning Message:\s*FSM\s+['\"].+?['\"]\s+cannot be loaded|"
+    r"(?:Warning Message:\s*)?Script\s+[^\r\n]+?\s+(?:not found|cannot be loaded)\b|"
     r"dependent on downloadable content that has been deleted",
     re.I,
 )
