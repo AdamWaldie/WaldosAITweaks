@@ -239,7 +239,15 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
                     _ownedWaypointName != "" && {waypointName _x == _ownedWaypointName}
                 };
                 if (_ownedWaypointIndex >= 0) then {
-                    deleteWaypoint ((waypoints _airGroup) select _ownedWaypointIndex);
+                    private _ownedWaypoint=(waypoints _airGroup) select _ownedWaypointIndex;
+                    private _snapshot=_airGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
+                    private _hold=_airGroup getVariable ["WAIT_AIPass_ZeusHold",[]];
+                    private _claimed=count _snapshot == 7 && {count _hold == 2}
+                        && {(_snapshot select 0) == (_hold select 0)}
+                        && {(_snapshot select 5) == (_ownedWaypoint select 1)};
+                    if (_claimed) then {
+                        _ownedWaypoint setWaypointName "";
+                    } else {deleteWaypoint _ownedWaypoint};
                 };
                 _airGroup enableAttack (_state getOrDefault ["previousAttackEnabled",true]);
             };

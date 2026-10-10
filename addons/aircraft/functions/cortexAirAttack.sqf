@@ -90,7 +90,15 @@ private _finish={
         private _ownedWaypointName=_job getOrDefault ["ownedWaypointName",""];
         if (!isNull _finishGroup && {_ownedWaypointName != ""}) then {
             private _ownedWaypointIndex=(waypoints _finishGroup) findIf {waypointName _x == _ownedWaypointName};
-            if (_ownedWaypointIndex >= 0) then {deleteWaypoint ((waypoints _finishGroup) select _ownedWaypointIndex)};
+            if (_ownedWaypointIndex >= 0) then {private _ownedWaypoint=(waypoints _finishGroup) select _ownedWaypointIndex;
+                    private _snapshot=_finishGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
+                    private _hold=_finishGroup getVariable ["WAIT_AIPass_ZeusHold",[]];
+                    private _claimed=count _snapshot == 7 && {count _hold == 2}
+                        && {(_snapshot select 0) == (_hold select 0)}
+                        && {(_snapshot select 5) == (_ownedWaypoint select 1)};
+                    if (_claimed) then {
+                        _ownedWaypoint setWaypointName "";
+                    } else {deleteWaypoint _ownedWaypoint};};
         };
         if (!isNull _finishGroup) then {_finishGroup enableAttack (_job getOrDefault ["previousAttackEnabled",true])};
         private _finishPilot=driver _aircraft;
