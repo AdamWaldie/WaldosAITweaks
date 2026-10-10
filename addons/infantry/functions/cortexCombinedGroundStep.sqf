@@ -60,9 +60,11 @@ if (!([_group] call WAIT_fnc_CortexIsEligible)
     || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {["FEATURE_CLOSED"] call _finish};
 private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
 if ((_currentOperation getOrDefault ["generation",-2]) != _operationGeneration
-    || {(_currentOperation getOrDefault ["intent",""]) != "COMBINED_GROUND"}) exitWith {["REPLACED"] call _finish};
+    || {(_currentOperation getOrDefault ["intent",""]) != "COMBINED_GROUND"}
+    || {(_currentOperation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {["REPLACED"] call _finish};
 if (isNull _target || {!alive _target}) exitWith {["TARGET_LOST"] call _finish};
 if (captive _target || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
     || {(side _group) getFriend (side _target) >= 0.6}) exitWith {["TARGET_NO_LONGER_HOSTILE"] call _finish};
 if (serverTime >= (_job getOrDefault ["expiry",serverTime])) exitWith {["EXPIRED"] call _finish};
 if (_asset distance2D _destination <= 70) exitWith {
@@ -76,11 +78,14 @@ if (time >= (_job getOrDefault ["progressAt",time])+10) then {
     if (_travel < 8) then {
         private _stalls=_job getOrDefault ["stalls",0];
         if (_stalls >= 1) exitWith {_job set ["terminal","BLOCKED"]};
-        // Ask the engine to rebuild the same tactical route once. The destination is unchanged,
-        // so this cannot walk a scripted obstacle-avoidance spiral around a deliberate roadblock.
+        // Reacquire a missing route once; a still-owned destination remains committed.
+        // This cannot create an obstacle-avoidance spiral around a deliberate roadblock.
         if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
-            [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+            private _waypoint=[_group,_destination,55,"MOVE",_operationGeneration] call WAIT_fnc_CortexGroupMove;
             _job set ["stalls",_stalls+1];
+            if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) then {
+                _job set ["terminal","MOVEMENT_REJECTED"];
+            };
         };
     };
     _job set ["lastPosition",getPosATL _asset];

@@ -484,7 +484,8 @@ class SemanticComponentContracts(unittest.TestCase):
         fire = source.index('_gunner doFire')
         self.assertLess(source.index('private _currentOperation='), fire)
         self.assertLess(source.index('"TARGET_NO_LONGER_HOSTILE"'), fire)
-        self.assertIn('"COMBINED_GROUND"}) exitWith {["REPLACED"]', source)
+        self.assertIn('getOrDefault ["intent",""]) != "COMBINED_GROUND"', source)
+        self.assertIn('getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])', source)
         local = (ROOT/'addons/infantry/functions/cortexCombinedArmsLocal.sqf').read_text()
         self.assertLess(local.index('captive _target'), local.index('_group reveal'))
 
