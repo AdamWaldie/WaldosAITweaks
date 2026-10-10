@@ -84,8 +84,9 @@ private _finish={
     private _guidanceTarget=_job getOrDefault ["guidanceTarget",objNull];
     if (!isNull _guidanceTarget) then {deleteVehicle _guidanceTarget};
     if (local _aircraft) then {
-        // Negative limits can command helicopter reverse; restore the native positive default.
-        _aircraft limitSpeed (2 * getNumber (configOf _aircraft >> "maxSpeed"));
+        private _ownsFlight=[_aircraft,"AIR_ATTACK",_job getOrDefault ["flightLeaseToken",""]] call WAIT_fnc_FlightLeaseValid;
+        // A newer flight controller owns speed and pilot features. Retire only our bookkeeping.
+        if (_ownsFlight) then {_aircraft limitSpeed (2 * getNumber (configOf _aircraft >> "maxSpeed"))};
         // Remove exactly the lease-owned waypoint before selecting any authored route. Searching
         // by name remains correct when Zeus added or removed other waypoints and shifted indices.
         private _ownedWaypointName=_job getOrDefault ["ownedWaypointName",""];
@@ -103,7 +104,10 @@ private _finish={
         };
         // This controller never changes enableAttack, so cleanup has no restoration authority.
         private _finishPilot=driver _aircraft;
-        if (!isNull _finishPilot && {alive _finishPilot}) then {
+        if (_ownsFlight && {!isNull _finishPilot} && {alive _finishPilot} && {local _finishPilot}
+            && {!isPlayer _finishPilot} && {isNull (remoteControlled _finishPilot)}
+            && {([_finishPilot] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_finishPilot] call WAIT_fnc_CompatibilityExternalControl)}) then {
             {_finishPilot enableAI _x} forEach (_job getOrDefault ["lateralPilotFeatures",[]]);
         };
         // Direct Zeus input owns the aircraft immediately. Do not clear target or watch state here:
