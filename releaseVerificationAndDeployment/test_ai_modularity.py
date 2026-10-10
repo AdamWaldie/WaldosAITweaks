@@ -464,4 +464,12 @@ class SemanticComponentContracts(unittest.TestCase):
         validator = (ROOT/'releaseVerificationAndDeployment/sqf_validator.py').read_text()
         self.assertIn("['addons',", validator)
 
+    def test_danger_throw_rechecks_contact_before_release(self):
+        source = (ROOT/'addons/infantry/functions/cortexThrowGrenade.sqf').read_text()
+        check = source.index('if (_contactChanged) exitWith')
+        self.assertLess(check, source.index('_unit forceWeaponFire'))
+        self.assertIn('"CONTACT_CHANGED"', source)
+        self.assertIn('_throwBearing-_contactBearing', source)
+        self.assertIn('stance _unit,+_towards,getDir _unit,eyeDirection _unit', source)
+
 if __name__ == '__main__': unittest.main()

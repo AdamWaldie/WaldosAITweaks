@@ -107,6 +107,20 @@ private _thrown = false;
                         || {[_group] call WAIT_fnc_CortexExternalTakeover}
                 };
                 if (_dangerInvalid) exitWith {[] call _cancel};
+                // A queued screen must still face the retained contact at release. Observation
+                // may change during alignment; cancel rather than throw along an obsolete bearing.
+                private _contactChanged=false;
+                if (count _context == 3 && {(_context select 0) == "DANGER"}) then {
+                    private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
+                    private _contact=_state getOrDefault ["enemyPos",[]];
+                    _contactChanged=!(_state getOrDefault ["contactKnowledge",false]) || {count _contact < 2};
+                    if (!_contactChanged) then {
+                        private _contactBearing=_unit getDir _contact;
+                        private _throwBearing=_unit getDir _towards;
+                        _contactChanged=abs (((_throwBearing-_contactBearing+540) % 360)-180) > 60;
+                    };
+                };
+                if (_contactChanged) exitWith {["CONTACT_CHANGED",[+_towards]] call _cancel};
                 if (_kind == "FRAG" && {_drillToken != ""}
                     && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {[] call _cancel};
                 _unit doWatch _towards;
@@ -159,10 +173,10 @@ private _thrown = false;
                             _actor setVariable ["WAIT_Cortex_FragHandler",-1];
                         };
                     },[_unit,_handler],10] call CBA_fnc_waitAndExecute;
-                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit]]];
+                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit,+_towards,getDir _unit,eyeDirection _unit]]];
                     _unit forceWeaponFire [_muzzle,_muzzle];
                 } else {
-                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit]]];
+                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit,+_towards,getDir _unit,eyeDirection _unit]]];
                     _unit forceWeaponFire [_muzzle,_muzzle];
                 };
             };
