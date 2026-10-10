@@ -41,7 +41,7 @@ private _reflexOnly=0;
         private _cause=_x param [0,-1,[0]];
         private _position=_x param [1,[],[[]]];
         private _expires=_x param [2,time,[0]];
-        if (_cause >= 0 && {_cause < count _causeNames} && {count _position >= 2} && {_expires >= time - 0.25}) then {
+        if (_cause >= 0 && {_cause < count _causeNames} && {count _position in [2,3]} && {_position findIf {!(_x isEqualType 0)} < 0} && {_expires >= time - 0.25}) then {
             _processed=true;
             if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
             private _source=_x param [3,objNull,[objNull]];

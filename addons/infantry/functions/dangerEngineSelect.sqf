@@ -24,7 +24,7 @@ private _latest=-1;
         private _expiry=_x param [2,-1,[0]];
         private _position=_x param [1,[],[[]]];
         private _rank=if (_cause >= 0 && {_cause < count _priorities}) then {_priorities select _cause} else {-1};
-        if (_rank >= 0 && {count _position >= 2} && {_expiry >= time - 0.25} && {_rank > _best || {_rank == _best && {_expiry > _latest}}}) then {
+        if (_rank >= 0 && {count _position in [2,3]} && {_position findIf {!(_x isEqualType 0)} < 0} && {_expiry >= time - 0.25} && {_rank > _best || {_rank == _best && {_expiry > _latest}}}) then {
             _selected=+_x;
             _best=_rank;
             _latest=_expiry;
