@@ -22,7 +22,10 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {["EXTERNAL_OWNER"] 
 [_group,_configuration] call WAIT_fnc_ConvoyTick;
 private _state=_group getVariable ["WAIT_Convoy_LocalState",createHashMap];private _reason=toUpperANSI (_configuration param [8,"NONE"]);private _phase="CRUISE";private _delay=1;private _spacingPairs=0;private _recoveryActors=0;
 if ((_configuration param [5,"TRAVEL"]) == "HALT") then {
- _delay=30;_phase=switch (_reason) do {case "ARRIVED":{"ARRIVED"};case "AMBUSH":{"CONTACT_HOLD"};case "MANUAL":{"ORDERED_HOLD"};case "IMMOBILE":{"IMMOBILE"};default {"OBSTRUCTION"}};
+ // Slow cadence belongs to a physically settled hold, not merely an accepted HALT flag.
+ // Keep bounded braking/crew correction responsive while any local vehicle still moves.
+ private _haltMoving=(_configuration param [4,[]]) findIf {!isNull _x && {local _x} && {alive _x} && {abs speed _x >= 1}} >= 0;
+ _delay=[30,1] select _haltMoving;_phase=switch (_reason) do {case "ARRIVED":{"ARRIVED"};case "AMBUSH":{"CONTACT_HOLD"};case "MANUAL":{"ORDERED_HOLD"};case "IMMOBILE":{"IMMOBILE"};default {"OBSTRUCTION"}};
 } else {
  if (_state getOrDefault ["contact",false]) then {_phase="CONTACT_HOLD"};
  if ((_state getOrDefault ["routeRecoveryAt",-1]) > time) then {_recoveryActors=_recoveryActors+1};

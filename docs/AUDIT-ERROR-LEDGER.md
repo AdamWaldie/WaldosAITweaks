@@ -28,3 +28,5 @@ See [completion status](COMPLETION-STATUS.md) for category progress and [perform
 The reporter also rejects standalone parameter/type/generic/arithmetic error lines when an expression/position prefix is absent. Raw trace-line counts are not incident or root-cause counts.
 
 Script-not-found and script-cannot-be-loaded messages are explicit load failures, with or without a Warning Message prefix. This prevents missing packaged/provider entry points from being classified as merely incomplete. The earlier provider path failure was repaired before candidate 62d86bd; native registration remains separately unresolved.
+
+Tracked convoy findings: 15/30/50 m forward resume and turn-direction assertions failed in the active 89812ab batch. Queued repairs daa96ea and b35b53d invalidate stopped commitments and retire the matching lead HALT destination. Tracked 75 m also failed physical HALT with two followers near 30 km/h despite STOP/zero cap; adaptive unsettled-halt cadence is queued. These are unresolved physical failures, not closed by static validation.
