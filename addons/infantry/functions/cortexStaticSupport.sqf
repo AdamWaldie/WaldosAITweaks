@@ -10,7 +10,7 @@
  * sampled once after an eligible actor is available; temporary actor reservations remain retryable.
  * Failed physical attempts are not retried until a later contact. Locality change
  * discards engine commands and lets the new owner reassess. Cleanup cancels only WAIT's exact still-
- * matching assignment; Zeus, player, specialist and newer external ownership are never overwritten.
+ * matching assignment; Zeus, player, specialist, medical, equipment and newer actor movement ownership are never overwritten.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>.
  * Return Value: STRING - DISABLED, IDLE, MOVING, ACTIVE, FAILED or YIELDED.
  * Current callers: WAIT_fnc_CortexGroupTick while a group is in confirmed CONTACT.
@@ -36,9 +36,17 @@ private _release={
     if (count _lease >= 7) then {
         private _actor=_lease param [1,objNull,[objNull]];
         private _weapon=_lease param [2,objNull,[objNull]];
+        private _command=toUpperANSI currentCommand _actor;
+        private _ownedBoarding=_command == "GET IN" && {!isNull _weapon}
+            && {assignedVehicle _actor == _weapon};
+        private _protectedTask=!_ownedBoarding && {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]};
+        private _actorMove=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _newMove=count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
+            && {(_actorMove select 0) != "STATIC_SUPPORT" || {(_actorMove select 2) != (_lease select 4)}};
         [_actor] call _clearActorMove;
-        if (!_external && {!isNull _actor} && {alive _actor} && {local _actor}
+        if (!_external && {!_protectedTask} && {!_newMove} && {!isNull _actor} && {alive _actor} && {local _actor}
             && {!isPlayer _actor} && {group _actor == _group}
+            && {[_actor] call WAIT_fnc_CortexCombatEffective}
             && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
             && {!isNull _weapon} && {assignedVehicle _actor == _weapon}) then {
             [_actor] orderGetIn false;

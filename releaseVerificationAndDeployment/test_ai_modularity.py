@@ -511,4 +511,12 @@ class SemanticComponentContracts(unittest.TestCase):
         self.assertLess(source.index('private _nativeTask='), source.index('_unit doFollow'))
         self.assertLess(source.index('private _reservedMove='), source.index('_unit doMove'))
 
+    def test_static_support_release_preserves_new_actor_tasks(self):
+        source = (ROOT/'addons/infantry/functions/cortexStaticSupport.sqf').read_text()
+        release = source[source.index('private _release='):source.index('private _enabled=')]
+        self.assertIn('private _ownedBoarding=', release)
+        self.assertIn('&& {!_protectedTask} && {!_newMove}', release)
+        self.assertIn('call WAIT_fnc_CortexCombatEffective', release)
+        self.assertLess(release.index('private _protectedTask='), release.index('orderGetIn false'))
+
 if __name__ == '__main__': unittest.main()
