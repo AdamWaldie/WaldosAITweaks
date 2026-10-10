@@ -10,7 +10,7 @@ class StandalonePerformanceReportTests(unittest.TestCase):
         folder.mkdir()
         (folder/'server').mkdir()
         manifest=dict(focus='standaloneperformance',native_baseline=not loaded,resolution=[3840,2160],
-                      headlessClients=0,dependencySources=['cba'],package=dict(dirty=False,fingerprint='same'),
+                      headlessClients=0,performance_composition='infantry',dependencySources=['cba'],package=dict(dirty=False,fingerprint='same'),
                       mission_files={'mission.sqm':'same','cortexQAStandalonePerformance.sqf':'same'})
         (folder/'audit-manifest.json').write_text(json.dumps(manifest))
         identity=[loaded,'z/wait/danger/danger.fsm' if loaded else 'native.fsm',50,300,'INFANTRY_PATROL',2]

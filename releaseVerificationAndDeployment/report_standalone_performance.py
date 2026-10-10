@@ -24,14 +24,14 @@ def read_run(folder):
         return json.loads(raw)
     identity=row('WAIT STANDALONE PERF IDENTITY: ')
     result=row('WAIT STANDALONE PERF RESULT: ')
-    if len(identity) != 6 or len(result) != 11 or identity[2:5] != [50,300,'INFANTRY_PATROL']:
+    if len(identity) != 6 or len(result) != 11 or identity[2] != 50 or identity[4] not in ('INFANTRY_PATROL','MIXED_PATROL'):
         raise ValueError('Unexpected fixture or result schema')
     expected=not manifest.get('native_baseline',False)
     if identity[0] is not expected or result[0] is not expected or result[1] is not True:
         raise ValueError('Addon identity or physical fixture failed')
     if expected != ('wait' in identity[1].lower()) or identity[5] != 2:
         raise ValueError('Danger FSM identity or server ownership mismatch')
-    if result[2] < 100 or result[6:9] != [50,300,50] or result[9:] != [1,True]:
+    if result[2] < 100 or result[6:9] != [50,identity[3],50] or result[9:] != [1,True]:
         raise ValueError('Samples, movement, actor survival or observer validation failed')
     if any(not isinstance(value,(int,float)) or not math.isfinite(value) or value <= 0 for value in result[3:6]):
         raise ValueError('Invalid frame-time measurement')
@@ -44,7 +44,7 @@ def compare(native,wait):
     a,b=native['manifest'],wait['manifest']
     if a.get('native_baseline') is not True or b.get('native_baseline') is not False:
         raise ValueError('Native and WAIT run roles must differ')
-    for key in ('focus','resolution','headlessClients','dependencySources'):
+    for key in ('focus','resolution','headlessClients','dependencySources','performance_composition'):
         if key not in a or a[key] != b.get(key):
             raise ValueError(f'Unmatched launch field: {key}')
     if a['focus'] != 'standaloneperformance':
@@ -54,8 +54,10 @@ def compare(native,wait):
     fixtures=lambda m: {k:v for k,v in m['mission_files'].items() if k != 'auditIdentity.sqf'}
     if fixtures(a) != fixtures(b):
         raise ValueError('Mission fixtures differ')
+    if native['identity'][2:5] != wait['identity'][2:5]:
+        raise ValueError('Group/actor composition differs')
     overhead=[(wait['result'][i]/native['result'][i]-1)*100 for i in (3,4)]
-    return dict(scope='INFANTRY_PATROL_50',status='PASS' if overhead[0] <= 5+1e-9 and overhead[1] <= 10+1e-9 else 'FAIL',
+    return dict(scope=native['identity'][4]+'_50',status='PASS' if overhead[0] <= 5+1e-9 and overhead[1] <= 10+1e-9 else 'FAIL',
                 median_overhead_percent=overhead[0],p95_overhead_percent=overhead[1],
                 native=native['result'],wait=wait['result'],
                 limitation='Patrol only; combat, mixed forces, queue growth and stalled operations remain unaccepted.')

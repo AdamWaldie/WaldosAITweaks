@@ -12,6 +12,7 @@ param(
     [ValidateRange(0,2)][int]$HeadlessClients=2,
     [switch]$WithZen,
     [switch]$NativeBaseline,
+    [ValidateSet("infantry","mixed")][string]$PerformanceComposition="infantry",
     [switch]$ServerOnly,
     [switch]$StageOnly
 )
@@ -34,9 +35,9 @@ if ($stageDefaultDependencies) {
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 if ($NativeBaseline) {
-    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline --performance-composition $PerformanceComposition
 } else {
-    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --performance-composition $PerformanceComposition
 }
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
 $launchMods=$Mods
