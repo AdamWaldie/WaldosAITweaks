@@ -79,6 +79,7 @@ def stage(package, destination, focus, root=ROOT):
 '''
         f'diag_log "WAIT CORTEX QA SOURCE|fingerprint={record["fingerprint"]}";\n'
         'diag_log format ["WAIT AUDIT DEPENDENCIES|owner=%1|server=%2|interface=%3|patches=%4|observerClass=%5",clientOwner,isServer,hasInterface,["A3_Characters_F","A3_Characters_F_BLUFOR","A3_Map_VR"] apply {[_x,isClass (configFile >> "CfgPatches" >> _x)]},isClass (configFile >> "CfgVehicles" >> "B_Soldier_F")];\n'
+        'diag_log format ["WAIT AUDIT CHARACTER CONFIG|owner=%1|sources=%2|danger=%3|required=%4",clientOwner,["Man","CAManBase","SoldierWB","SoldierEB","SoldierGB","B_Soldier_F"] apply {[_x,configSourceAddonList (configFile >> "CfgVehicles" >> _x)]},getText (configFile >> "CfgVehicles" >> "B_Soldier_F" >> "fsmDanger"),["A3_Characters_F","A3_Characters_F_BLUFOR","WAIT_danger"] apply {[_x,getArray (configFile >> "CfgPatches" >> _x >> "requiredAddons"),getArray (configFile >> "CfgPatches" >> _x >> "units")]}];\n'
         f'if (isServer) then {{missionNamespace setVariable ["WAIT_CortexQA_Focus","{focus}",true]}};\n')
     missing = []
     for path in mission.glob('*.sqf'):
