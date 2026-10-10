@@ -14,12 +14,13 @@
 params ["_check","_phase","_wait"];
 // A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
 // native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
-// engine-created projectile, then place that already-attributed shot above the fixture. WAIT state
+// engine-created projectile, then place that already-attributed shot above the fixture.
+// The smoke-contact case explicitly requests a hostile source after natural contact is proven. WAIT state
 // is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
 // after the engine has delivered the explosion.
 private _spawnRealGrenade={
-    params [["_position",[0,0,0],[[]]]];
-    private _sourceGroup=createGroup [east,true];
+    params [["_position",[0,0,0],[[]]],["_sourceSide",east,[east]]];
+    private _sourceGroup=createGroup [_sourceSide,true];
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
     _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -27,7 +28,7 @@ private _spawnRealGrenade={
     private _sourcePosition=+_position;
     _sourcePosition set [2,0];
     _sourcePosition=_sourcePosition getPos [80,0];
-    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    private _source=_sourceGroup createUnit [["O_Soldier_F","B_Soldier_F"] select (_sourceSide == west),_sourcePosition,[],0,"NONE"];
     _source allowDamage false;
     _source hideObjectGlobal true;
     _source disableAI "MOVE";
@@ -736,12 +737,26 @@ _smokeWaypoint setWaypointSpeed "FULL";
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_smokeUnit],true];
 ["Danger FSM: non-blocking smoke","The moving soldier has one carried smoke grenade. A real explosion must trigger one physical smoke throw while his ordinary waypoint remains authoritative; he must continue to the destination rather than waiting on the throw.",_smokeDestination] call _phase;
 private _smokeMoving=[{_smokeUnit distance2D _smokeStart >= 4},20] call _wait;
-private _smokeGrenade=[(getPosATL _smokeUnit) getPos [7,90]] call _spawnRealGrenade;
+private _smokeEnemyGroup=createGroup [west,true];
+_smokeEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_smokeEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_smokeEnemyGroup setVariable ["acex_headless_blacklist",true,true];
+private _smokeEnemy=_smokeEnemyGroup createUnit ["B_Soldier_F",(getPosATL _smokeUnit) getPos [55,45],[],0,"NONE"];
+_smokeEnemy allowDamage false;
+_smokeEnemy setUnitPos "UP";
+_smokeEnemy disableAI "PATH";
+_smokeEnemy disableAI "FIREWEAPON";
+private _smokeKnown=[{_smokeUnit knowsAbout _smokeEnemy > 0},20] call _wait;
+["DANGER-smoke-native-contact-prerequisite",_smokeKnown,str (_smokeUnit targetKnowledge _smokeEnemy)] call _check;
+private _smokeGrenade=[(getPosATL _smokeUnit) getPos [7,0],west] call _spawnRealGrenade;
 private _smokeThrown=[{(_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0]) == 1},18] call _wait;
 private _smokeArrived=[{_smokeUnit distance2D _smokeDestination < 7},55] call _wait;
 private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
-["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeThrown}
+["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeKnown} && {_smokeThrown}
     && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats]] call _check;
+["DANGER-smoke-route-arrival",_smokeMoving && {_smokeArrived}
+    && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},
+    str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
 ["DANGER-smoke-does-not-block-route",_smokeMoving && {_smokeThrown} && {_smokeArrived}
     && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
 deleteVehicle _smokeGrenade;
