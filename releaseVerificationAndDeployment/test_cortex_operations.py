@@ -1271,8 +1271,13 @@ class CortexOperations(unittest.TestCase):
         clear=source('cortexGroupMoveClear')
         self.assertIn('WAIT_Cortex_GroupMoveIntent',move)
         self.assertIn('private _sameRequest',move)
-        self.assertIn('if (_sameRequest) exitWith {_previousWaypoint}',move)
-        self.assertLess(move.index('if (_sameRequest) exitWith {_previousWaypoint}'),
+        self.assertIn('if (_sameRequest) exitWith {',move)
+        same_route=source('cortexGroupMove').split('if (_sameRequest) exitWith {',1)[1].split('// A curator',1)[0]
+        self.assertIn('_intent set ["operationGeneration",_operationGeneration]',same_route)
+        self.assertNotIn('addWaypoint',same_route)
+        self.assertNotIn('setCurrentWaypoint',same_route)
+
+        self.assertLess(move.index('if (_sameRequest) exitWith {'),
                         move.index('call WAIT_fnc_CortexGroupMoveClear'))
         self.assertIn('if (isNull _group || {!local _group}',move)
         self.assertIn('[_group,false,false,true] call WAIT_fnc_CortexIsEligible',move)

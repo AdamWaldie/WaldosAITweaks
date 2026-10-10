@@ -73,7 +73,15 @@ private _sameRequest = _hasOwnedWaypoint
     && {_sameDestination}
     && {abs (_radius - _previousRadius) <= 2}
     && {_type == _previousType};
-if (_sameRequest) exitWith {_previousWaypoint};
+if (_sameRequest) exitWith {
+    // A new operation may adopt the same committed route. Keep native movement uninterrupted,
+    // but bind cleanup to its current generation; an unscoped old token otherwise survives cancel.
+    if ((_intent getOrDefault ["operationGeneration",-1]) != _operationGeneration) then {
+        _intent set ["operationGeneration",_operationGeneration];
+        _group setVariable ["WAIT_Cortex_GroupMoveIntent",_intent,true];
+    };
+    _previousWaypoint
+};
 // A curator, player or specialist can take the group after the earlier eligibility gate but before
 // the waypoint write. Recheck at the mutation boundary so no delayed WAIT route is inserted over it.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
