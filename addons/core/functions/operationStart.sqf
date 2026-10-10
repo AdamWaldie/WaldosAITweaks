@@ -33,7 +33,7 @@ private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse s
 private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
 private _operation=createHashMapFromArray [
     ["intent",toUpperANSI _intent], ["generation",_generation], ["ownerEpoch",_group getVariable ["WAIT_AIPass_Epoch",0]],
-    ["objective",_objective], ["participants",_capable], ["route",+_route], ["phase",toUpperANSI _phase],
+    ["objective",_objective], ["participants",_capable], ["participantsRequired",_participants isNotEqualTo []], ["route",+_route], ["phase",toUpperANSI _phase],
     ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL _operationAnchor],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
     ["replans",0], ["recovery",createHashMap], ["recoveryAttempts",createHashMap], ["unavailable",[]], ["restore",createHashMap],

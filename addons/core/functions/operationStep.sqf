@@ -21,9 +21,10 @@ if !([_group,false,false,_allowFeatureOwner] call WAIT_fnc_CortexIsEligible) exi
 // Progress belongs to the actors committed to this operation, not automatically to the group
 // leader. A leader can deliberately provide exterior security during CLEAR while the entry element
 // is advancing through rooms; leader-only accounting would misclassify that working operation as stalled.
-private _originalParticipants=(_operation getOrDefault ["participants",[]]) select {
-    alive _x && {local _x} && {!isPlayer _x} && {group _x == _group}
-        && {lifeState _x != "INCAPACITATED"}
+private _declaredParticipants=_operation getOrDefault ["participants",[]];
+private _participantsRequired=_operation getOrDefault ["participantsRequired",_declaredParticipants isNotEqualTo []];
+private _originalParticipants=_declaredParticipants select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x} && {group _x == _group}
 };
 // A recovery order has one bounded observation window. If its actor remains stationary after that
 // window, record the actor as unavailable and let the remaining element continue. Do not turn one
@@ -91,7 +92,7 @@ private _progressActor=objNull;
 } forEach _participants;
 // Some finite operations intentionally have no foot participants. Preserve leader-based progress
 // only for that case, rather than requiring a vehicle or support operation to manufacture an actor roster.
-if (_participants isEqualTo [] && {_originalParticipants isEqualTo []}) then {
+if (_participants isEqualTo [] && {!_participantsRequired}) then {
     private _leader=leader _group;
     private _position=getPosATL _leader;
     if (_position distance2D (_operation getOrDefault ["lastProgressPosition",_position]) >= _minimum) then {
@@ -115,7 +116,7 @@ if (_progressed) then {
     _operation set ["recovery",_recovery];
     _operation set ["unavailable",_unavailable];
     _group setVariable ["WAIT_Operation",_operation,true];
-    if (_originalParticipants isNotEqualTo [] && {_participants isEqualTo []}) then {"STALLED"} else {
+    if (_participantsRequired && {_participants isEqualTo []}) then {"STALLED"} else {
         if (time-(_operation getOrDefault ["lastProgressAt",time]) >= _staleSeconds) then {"STALLED"} else {"ACTIVE"}
     }
 }

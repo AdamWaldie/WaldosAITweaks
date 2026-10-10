@@ -954,7 +954,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (_entryTarget isEqualTo [] || {!_approachingEntry && {_entered}}) then {_target} else {_entryTarget}',clear)
         self.assertIn('lastProgressActor',step)
         self.assertIn('A leader can deliberately provide exterior security during CLEAR',step)
-        self.assertIn('if (_participants isEqualTo [] && {_originalParticipants isEqualTo []}) then',step)
+        self.assertIn('if (_participants isEqualTo [] && {!_participantsRequired}) then',step)
         self.assertIn('getOrDefault ["ownerEpoch",-1]',step)
         self.assertIn('WAIT_AIPass_Epoch',step)
         self.assertIn('exitWith {"LOST_OWNER"}',step)
