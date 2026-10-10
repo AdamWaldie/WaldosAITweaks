@@ -6623,8 +6623,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('max 4 min 12',text)
         self.assertIn('["DANGER_COVER",+_spot,_deadline]',text)
         self.assertIn('[_actor,_generation,_deadline,+_spot,+_threat]',text)
-        adoption=text.split('// A fresh observation',1)[1].split('if (!_releaseOnly',1)[0]
+        adoption=text.split('// A fresh observation',1)[1].split('if (!_releaseOnly && {count _lease >= 4}',1)[0]
         self.assertIn('_lease set [1,_generation]',adoption)
+        self.assertIn('if (!_releaseOnly && {count _lease >= 5}',adoption)
+        self.assertIn('WAIT_fnc_CortexCombatEffective',text)
         self.assertNotIn('_lease set [2',adoption)
         self.assertNotIn('doMove _',adoption)
 

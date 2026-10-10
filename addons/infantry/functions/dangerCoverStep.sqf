@@ -47,7 +47,7 @@ private _clearLease={
     false
 };
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
-    || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {[] call _clearLease};
+    || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor} || {group _actor != _group}) exitWith {[] call _clearLease};
 // A delayed old observation cannot retire the lease belonging to the current danger generation.
 if (_generation >= 0 && {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {[] call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
@@ -55,7 +55,7 @@ private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 // A fresh observation is not automatically a new movement intent. Adopt a still-live solid-cover
 // route only when the nearby new hazard is screened at that exact destination. Never extend its
 // deadline, repeat doMove or let a stale callback adopt a newer generation.
-if (count _lease >= 5 && {(_lease select 0) == _actor} && {(_lease select 1) < _generation}
+if (!_releaseOnly && {count _lease >= 5} && {(_lease select 0) == _actor} && {(_lease select 1) < _generation}
     && {time < (_lease select 2)} && {count _threat == 3}
     && {_threat distance2D (_lease select 4) <= 3}
     && {count _moveProof == 3 && {(_moveProof select 0) == "DANGER_COVER"}
