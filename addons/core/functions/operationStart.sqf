@@ -65,7 +65,17 @@ private _operation=createHashMapFromArray [
 ];
 // Relinquish the old posture before changing its generation proof. Otherwise renewal captures
 // WAIT-applied values as a new baseline and a later release cannot restore the original posture.
-if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact};
+if (_dangerPosture) then {
+    [_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact;
+    // Retire weak posture while its original generation still grants restoration authority.
+    // New committed movers must not inherit a temporary danger stance as an authored baseline.
+    {
+        if (local _x && {count (_x getVariable ["WAIT_Danger_EngineStanceLease",[]]) > 0}) then {
+            [_x] call WAIT_fnc_DangerEngineRelease;
+        };
+    } forEach ((units _group) select [0,64]);
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
+};
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
 _group setVariable ["WAIT_Operation",_operation,true];
 _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_generation,serverTime],true];
