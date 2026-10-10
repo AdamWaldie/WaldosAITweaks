@@ -416,6 +416,13 @@ if (count _record >= 10) exitWith {
         }
     };
     if (_status == "ACTIVE") exitWith {
+        // Native AI may vacate its seat as the final contact disappears, before the group's
+        // SECURITY transition. Preserve the exact empty emplacement for that finite packing
+        // handoff; this does not remount the actor or renew contact/phase deadlines.
+        private _vacatedForContactLoss=_phase == "CONTACT" && {_enemies isEqualTo []}
+            && {!isNull _weapon} && {alive _weapon} && {crew _weapon isEqualTo []}
+            && {vehicle _gunner == _gunner} && {isNull assignedVehicle _gunner};
+        if (_vacatedForContactLoss) exitWith {"ACTIVE"};
         if (isNull _weapon || {!alive _weapon} || {gunner _weapon != _gunner}) then {
             [false] call _retire;
             "FAILED"

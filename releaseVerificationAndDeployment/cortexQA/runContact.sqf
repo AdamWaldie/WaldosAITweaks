@@ -1619,6 +1619,7 @@ private _deployReleased=[{
         && {vehicle _deployGunner == _deployGunner}
 },75] call _wait;
 ["DANGER-static-deploy-contact-release",_deployActive && {_deployReleased},str [vehicle _deployGunner,assignedVehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]]] call _check;
+diag_log format ["WAIT STATIC RETIRE TRACE: %1",_deployGroup getVariable ["WAIT_Danger_StaticDeployEnd",[]]];
 diag_log format ["WAIT STATIC PACK CONTACT TRACE: %1",[
     _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
     _deployGroup getVariable ["WAIT_AIPass_State",createHashMap],
