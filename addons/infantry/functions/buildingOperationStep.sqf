@@ -21,6 +21,16 @@ private _delay=call {
     private _group = _job get "group";
     if (isNull _group || {!local _group}) exitWith {-1};
     if ((_group getVariable ["WAIT_AIPass_ClearGeneration", -1]) != (_job get "generation")) exitWith {-1};
+    private _actorAvailable={
+        params ["_actor"];
+        private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _free=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        [_actor] call WAIT_fnc_CortexCombatEffective && {local _actor} && {!isPlayer _actor}
+            && {group _actor == _group} && {isNull objectParent _actor} && {_free}
+            && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+    };
     private _finish = {
         params [["_restore",true,[true]],["_reason","CANCELLED",[""]]];
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
@@ -29,7 +39,7 @@ private _delay=call {
             if (isNull _leader) then {_leader=leader _group};
             {
                 if (local _x && {!isPlayer _x} && {group _x == _group}) then {
-                    if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
+                    if ([_x] call _actorAvailable) then {
                         // Do not undo a replacement controller's stance or speed. The clear job
                         // restores temporary movement state only when it is returning to formation.
                         if (_restore && {unitPos _x == "UP"} && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
@@ -95,25 +105,17 @@ private _delay=call {
     if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {[false,"EXTERNAL"] call _finish};
     // Check ownership at every local movement write as a Zeus, player or specialist controller
     // can take over during this queued callback after the operation-level eligibility check.
-    private _actorAvailable={
-        params ["_actor"];
-        private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
-        private _free=_reservation isEqualTo []
-            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
-        [_actor] call WAIT_fnc_CortexCombatEffective && {local _actor} && {!isPlayer _actor}
-            && {group _actor == _group} && {isNull objectParent _actor} && {_free}
-            && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
-            && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
-    };
     private _mayIssueMovement = {
         !([_group] call WAIT_fnc_CortexExternalTakeover)
     };
     if ((_job getOrDefault ["phase","CLEAR"]) == "EGRESS") exitWith {
         private _assignments=(_job get "egressAssignments") select {
             _x params ["_unit"];
-            alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"}
-                && {group _unit == _group} && {isNull objectParent _unit}
+            [_unit] call _actorAvailable
         };
+        // A diverted/unavailable actor is no longer ours to route, but its unfinished exit
+        // must remain visible instead of counting an empty eligible set as successful egress.
+        if (count _assignments < count (_job get "egressAssignments")) then {_job set ["egressFailed",true]};
         private _arrived=_assignments findIf {(_x select 0) distance2D (_x select 1) > 5} < 0;
         if (_arrived || {_assignments isEqualTo []} || {time >= (_job get "egressDeadline")}) then {
             if (!_arrived && {_assignments isNotEqualTo []}) then {
