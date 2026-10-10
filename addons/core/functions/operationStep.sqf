@@ -68,6 +68,9 @@ private _unavailableCount=count _unavailable;
                     _recoveryChanged=true;
                 } else {
                     _unavailable pushBackUnique _actor;
+                    // Quarantine ends this observation, not its generation's retry budget.
+                    _recovery deleteAt _key;
+                    _recoveryChanged=true;
                 };
             };
         };

@@ -220,6 +220,12 @@ private _delay=call {
                     if (_progressRecords findIf {(_x select 0) == _replacement} < 0) then {
                         _progressRecords pushBack [_replacement,getPosATL _replacement];
                     };
+                    // Retire only the removed actor's active observation. Its retry budget and
+                    // unavailable status remain generation-owned, preventing reserve rotation from
+                    // making a failed actor eligible for unlimited recovery attempts.
+                    private _recovery=_liveOperation getOrDefault ["recovery",createHashMap];
+                    _recovery deleteAt (netId _member);
+                    _liveOperation set ["recovery",_recovery];
                     _liveOperation set ["participants",_participants];
                     _liveOperation set ["participantProgress",_progressRecords];
                     _group setVariable ["WAIT_Operation",_liveOperation,true];
