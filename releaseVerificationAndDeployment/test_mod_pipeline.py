@@ -130,5 +130,21 @@ class PackagePipelineTests(unittest.TestCase):
         (self.folder/'wait-build.json').write_text(json.dumps(record))
         with self.assertRaises(ValueError): release_gate(self.folder,evidence)
 
+    def test_native_headless_stage_installs_all_machines_and_seals_provider_files(self):
+        from stage_headless_provider import REQUIRED
+        provider=Path(self.temp.name)/'provider'
+        source=provider/'MissionScripts/Headless'; source.mkdir(parents=True)
+        for name in REQUIRED:
+            (source/name).write_text('/* native provider fixture */\ntrue;')
+        mission=stage(self.folder,Path(self.temp.name)/'native-hc','lifecycle',headless_provider=provider)
+        manifest=json.loads((mission.parent/'audit-manifest.json').read_text())
+        self.assertEqual(manifest['headless_provider']['scope'],'EXPLICIT_NATIVE_TRANSFERS_ONLY')
+        for name in ('initServer.sqf','initPlayerLocal.sqf','init.sqf'):
+            self.assertIn('compatibilityHeadlessProvider/init.sqf',(mission/name).read_text())
+        for name in REQUIRED:
+            self.assertIn('compatibilityHeadlessProvider/'+name,manifest['mission_files'])
+        with self.assertRaises(ValueError):
+            stage(self.folder,Path(self.temp.name)/'invalid-perf','standaloneperformance',headless_provider=provider)
+
 if __name__ == '__main__':
     unittest.main()

@@ -4,7 +4,7 @@
  * migration and published handover reasons on the server and two headless owners.
  * Locality/authority: server fixture; WAIT migration and production owner-local defence/release paths.
  * Ordinary waypoints are issued after returning the group to the server while Cortex is disabled.
- * Also checks that a refused HC-to-HC transfer preserves actual ownership and its registry record.
+ * Also checks that a refused HC-to-HC transfer preserves actual ownership and honours the provider's registry policy.
  * Repeat/JIP: fresh group and public destination markers; caller restores tuning; fixture cleaned here.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; required audit callbacks.
  * Return: Nothing. Current caller: cortexQAServer.sqf.
@@ -45,6 +45,9 @@ if (_targetOwner != 2) then {
     private _otherOwners=_owners select {_x != _targetOwner};
     if (_otherOwners isNotEqualTo []) then {
         _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        };
         private _refused=!([_group,_otherOwners select 0] call WAIT_fnc_HeadlessMigrateGroup);
         sleep 2;
         // Integration evidence must read the actual companion manager's registry.
@@ -53,8 +56,20 @@ if (_targetOwner != 2) then {
         private _records=_registry select {(_x select 0) == _group};
         ["LIFE-refused-transfer-owner-retained",_refused && {groupOwner _group == _targetOwner}
             && {_units findIf {owner _x != _targetOwner} < 0},str [groupOwner _group,_units apply {owner _x}]] call _check;
-        ["LIFE-refused-transfer-registry-retained",count _records == 1 && {(_records select 0 select 1) == _targetOwner},str _records] call _check;
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            // The native provider removes excluded groups from its management registry while
+            // retaining their actual owner. Do not demand the standalone adapter's policy.
+            ["LIFE-refused-transfer-registry-pruned",_refused && {_records isEqualTo []},str _records] call _check;
+            private _adoption=_group getVariable ["Waldo_Headless_LastAdoption",[]];
+            ["LIFE-native-provider-adoption",count _adoption == 5 && {_adoption select 2}
+                && {(_adoption select 1) == _targetOwner},str _adoption] call _check;
+        } else {
+            ["LIFE-refused-transfer-registry-retained",count _records == 1 && {(_records select 0 select 1) == _targetOwner},str _records] call _check;
+        };
         _group setVariable ["WAIT_Headless_ExcludeGroup",false,true];
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            _group setVariable ["Waldo_Headless_ExcludeGroup",false,true];
+        };
     };
 };
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;

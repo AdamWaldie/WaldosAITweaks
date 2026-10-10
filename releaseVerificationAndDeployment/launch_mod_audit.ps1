@@ -2,6 +2,7 @@ param(
     [string]$ArmaPath='',
     [string]$Package='',
     [string]$Focus='all',
+    [string]$HeadlessProvider='',
     [string[]]$Mods=@(),
     [string]$Python='python',
     [int]$Port=24142,
@@ -35,10 +36,15 @@ if ($stageDefaultDependencies) {
 }
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+$providerArguments=@()
+if ($HeadlessProvider) {
+    if ($HeadlessClients -lt 1) {throw 'Native headless integration requires a connected headless client'}
+    $providerArguments=@('--headless-provider',(Resolve-Path -LiteralPath $HeadlessProvider).Path)
+}
 if ($NativeBaseline) {
-    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline --performance-composition $PerformanceComposition
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline --performance-composition $PerformanceComposition @providerArguments
 } else {
-    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --performance-composition $PerformanceComposition
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --performance-composition $PerformanceComposition @providerArguments
 }
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
 $launchMods=$Mods

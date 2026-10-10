@@ -18,3 +18,12 @@ python releaseVerificationAndDeployment/report_standalone_performance.py <native
 ```
 
 The report rejects incomplete/erroring runs, inconsistent addon/FSM identity, differing fixture hashes, dependencies, resolution, ownership composition or dirty candidates. Patrol overhead must be at most 5% median and 10% p95. A passing report covers only its named patrol composition. Combat load, scheduler queue growth, stalled operations and full subsystem acceptance still require separate evidence. No patrol measurements are accepted yet.
+
+
+## Native headless integration
+
+Use `launch_mod_audit.ps1 -Focus lifecycle -HeadlessClients 2 -HeadlessProvider <local companion repository>` for the explicit native transfer/adoption matrix. The launcher copies the actual headless provider into the disposable mission, records hashes for every copied and generated file, and loads it on the server, observer and headless machines. These scripts are audit dependencies and are not included in WAIT PBOs.
+
+This fixture tests native registration, transfer, refusal policy and destination adoption. Automatic distribution is deliberately delayed by the fixture's one-hour minimum group age; balancing and disconnect recovery require separate acceptance. Skill rebalancing stays disabled in this fixture. Existing ordinary engine-only migration tests remain available without the provider option and do not prove native integration.
+
+Native refusal excludes the group from the management registry while retaining its current engine owner. The integration case verifies that policy and the actual adoption result. Do not fabricate registry entries to satisfy the standalone expectation. Integration remains pending physical validation.
