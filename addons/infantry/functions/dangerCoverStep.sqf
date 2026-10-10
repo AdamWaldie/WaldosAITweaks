@@ -5,7 +5,8 @@
  * It runs on the actor and group owner and yields
  * to player, Zeus, specialist, native-command and WAIT-operation ownership before selecting or issuing movement.
  * Repeat/JIP: One group lease coalesces a danger burst. Each call either retains, releases or creates
- * one finite move. A locality or generation change retires it without restoring over newer work.
+ * one finite move. Physical arrival releases the movement reservation immediately; the deadline is a failure bound.
+ * A locality or generation change retires it without restoring over newer work.
  * Arguments: 0 group <GROUP>; 1 actor <OBJECT>; 2 threat position <ARRAY>; 3 danger generation <NUMBER>;
  * 4 release-only <BOOL>, false - retire the owned lease without recovery or new movement.
  * Return Value: Boolean - true while WAIT owns a finite danger-cover move, otherwise false.
@@ -36,6 +37,8 @@ private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
+    && {_actor distance2D (_lease select 3) > 2
+        || {abs (((getPosATL _actor) select 2)-((_lease select 3) param [2,0])) > 1.5}}
     && {count _moveProof == 3} && {(_moveProof select 0) == "DANGER_COVER"}
     && {(_moveProof select 1) distance2D (_lease select 3) <= 1}
     && {(_moveProof select 2) == (_lease select 2)}
@@ -50,6 +53,7 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {isNull objectParent _actor}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
     && {currentCommand _actor in ["","MOVE"]}) exitWith {true};
+private _arrived=false;
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
     private _distance=if (isNull _leasedActor) then {-1} else {_leasedActor distance2D _leasedSpot};
@@ -59,6 +63,7 @@ if (count _lease >= 4) then {
             ["INTERRUPTED","TIMEOUT"] select (time >= _expires)
         }
     };
+    _arrived=_endReason == "AT_DESTINATION";
     // One owner-local observation, not an accumulating history or proof of effective screening.
     _group setVariable ["WAIT_Danger_CoverEnd",[time,_leasedActor,_leasedGeneration,_endReason,_distance,_height,+_leasedSpot,clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]];
     if (!isNull _leasedActor) then {
@@ -85,6 +90,7 @@ if (count _lease >= 4) then {
     };
     _group setVariable ["WAIT_Danger_CoverLease",nil];
 };
+if (_arrived) exitWith {["AT_DESTINATION"] call _clearLease};
 if (_releaseOnly) exitWith {["RELEASED"] call _clearLease};
 if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
@@ -111,7 +117,7 @@ private _origin=getPosATL _actor;
 // excluded useful nearby side cover before its threat screening could be evaluated.
 private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
 private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
-if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT"]}) exitWith {false};
+if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT","AT_DESTINATION"]}) exitWith {false};
 // A failed solid-cover search must not repeat every scheduler tick when visual fallback is disabled.
 // A newer danger generation permits a fresh assessment.
 if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}
