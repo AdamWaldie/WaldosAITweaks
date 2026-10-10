@@ -135,6 +135,8 @@ private _generation = (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 
 _group setVariable ["WAIT_AIPass_ClearGeneration", _generation];
 private _operation=[_group,"CLEAR",_building,_team,_positions,"ENTRY"] call WAIT_fnc_OperationStart;
 if (count _operation == 0) exitWith {false};
+// Initial owner adoption may reset replay markers; this successfully created job now owns them.
+_group setVariable ["WAIT_AIPass_ClearApplied",true];
 private _operationGeneration=_operation get "generation";
 _group setVariable ["WAIT_AIPass_ClearBuilding", true, true];
 private _entries=[];

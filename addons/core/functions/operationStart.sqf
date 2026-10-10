@@ -17,6 +17,14 @@ if (isNull _group || {!local _group} || {_intent == ""}) exitWith {createHashMap
 // retiring an earlier route: a delayed job must not cancel WAIT state or issue cleanup after
 // Zeus, a player or a specialist controller has claimed the group.
 if !([_group,false,false,true] call WAIT_fnc_CortexIsEligible) exitWith {createHashMap};
+// Explicit feature orders can arrive before periodic discovery adopts a fresh local group.
+// Establish its owner epoch first; adopting after publication would cancel this new operation
+// as if it were inherited from another machine. Locality adoption marks itself before resuming
+// durable intents, so any nested operation start sees the already-established owner.
+if (!(_group getVariable ["WAIT_AIPass_Adopted",false])) then {
+    [_group,true] call WAIT_fnc_CortexLocality;
+};
+if (!local _group || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {createHashMap};
 private _previous=_group getVariable ["WAIT_Operation",createHashMap];
 private _generation=(_group getVariable ["WAIT_OperationGeneration",0])+1;
 if (count _previous > 0) then {
