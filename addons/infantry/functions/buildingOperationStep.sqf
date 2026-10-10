@@ -63,9 +63,9 @@ private _delay=call {
                             _x doFollow _leader;
                         };
                     };
-                    _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];
-                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil];
-                    _x setVariable ["WAIT_Cortex_ClearStance",nil];
+                    _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil,true];
+                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil,true];
+                    _x setVariable ["WAIT_Cortex_ClearStance",nil,true];
                 };
             } forEach (_job get "team");
             _group setVariable ["WAIT_AIPass_ClearBuilding", nil, true];
@@ -386,16 +386,24 @@ private _delay=call {
                             private _started=_job get "started";
                             if !(_unit in _started) then {
                                 doStop _unit;
-                                _unit setVariable ["WAIT_Cortex_ClearStance",unitPos _unit];
-                                _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
+                                // Preserve the original baseline across owner-local worker rebuilds.
+                                // A later different setting becomes the new baseline, not old WAIT state.
+                                private _priorStance=_unit getVariable ["WAIT_Cortex_ClearStance",unitPos _unit];
+                                if (toUpperANSI (unitPos _unit) != "UP") then {_priorStance=unitPos _unit};
+                                private _priorSpeed=_unit getVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
+                                if (abs ((getForcedSpeed _unit)-(_unit getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _unit])) > 0.1) then {
+                                    _priorSpeed=getForcedSpeed _unit;
+                                };
+                                _unit setVariable ["WAIT_Cortex_ClearStance",_priorStance,true];
+                                _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",_priorSpeed,true];
                                 _unit setUnitPos "UP";
                                 private _clearSpeed=[4.5,5] select (combatMode _group in ["YELLOW","RED"]);
-                                _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed];
+                                _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed,true];
                                 _unit forceSpeed _clearSpeed;
                                 _started pushBack _unit;
                             };
                             private _unitTarget=if (_unit == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
-                            _unit doMove _unitTarget;
+                            if (call _mayIssueMovement) then {_unit doMove _unitTarget;};
                         };
                         _assigned set [(_job get "team") find _unit,[_positionIndex,_lastProgress,getPosATL _unit,_retries,_approachingEntry]];
                     } forEach _pair;

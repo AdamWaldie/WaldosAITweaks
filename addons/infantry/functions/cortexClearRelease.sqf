@@ -64,9 +64,9 @@ if (isNull _leader) then {_leader=leader _group};
             };
             if (_restore) then {_x doFollow _leader};
         };
-        _x setVariable ["WAIT_Cortex_ClearStance",nil];
-        _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];
-        _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil];
+        _x setVariable ["WAIT_Cortex_ClearStance",nil,true];
+        _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil,true];
+        _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil,true];
     };
 } forEach units _group;
 true
