@@ -34,6 +34,16 @@ if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
 if (behaviour _actor == "CARELESS" || {fleeing _actor}
     || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {false};
 
+// A carrier reservation can begin after this response was classified. Interrupt that old
+// response, but let an already classified FORCED state keep its bounded wait instead of
+// rapidly recycling the same event while the assistant walks to the assembly position.
+private _carrierTask=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+private _response=_actor getVariable ["WAIT_Danger_EngineResponse",[]];
+if (isNull objectParent _actor && {count _carrierTask == 3}
+    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]}
+    && {time < (_carrierTask select 2)}
+    && {(_response param [0,"",[""]]) != "FORCED"}) exitWith {false};
+
 // The full Zeus helper may inspect waypoints and update a timing cache. The danger FSM only needs
 // the cheap interruption edge: a new curator token, a known live hold, or curator-owned waypoints.
 private _token=_group getVariable ["WAIT_AIPass_ZeusHold",[]];
