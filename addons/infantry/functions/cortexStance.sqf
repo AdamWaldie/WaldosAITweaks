@@ -8,7 +8,7 @@
  * These local height probes are approximate clearance checks, not proof of a clear shot to a target.
  * With no cover in front, the stance is handed back to the engine (AUTO). Each soldier is re-checked
  * at most every 10 s. A soldier briefly reserved for an opportunistic grenade keeps his stance
- * during that action; the grenade never blocks the manoeuvre state. A rotating cursor limits each group step to two sampled soldiers (six rays),
+ * during that action; the grenade never blocks the manoeuvre state. A rotating cursor limits each group step to two sampled soldiers (six rays) and twelve inspected members,
  * avoiding a whole-squad ray burst; ineligible soldiers do not consume the sampling allowance. Only soldiers whose stance was AUTO, or was set by
  * the pass, are changed, so mission-maker stances are respected. The pass returns every stance it set
  * to AUTO when the squad goes back to CALM only while it still matches the applied stance.
@@ -49,7 +49,7 @@ private _count=count _members;
 if (_count == 0) exitWith {0};
 private _cursor=(_state getOrDefault ["stanceCursor",0]) mod _count;
 private _sampled=0;
-for "_offset" from 0 to (_count-1) do {
+for "_offset" from 0 to ((_count min 12)-1) do {
     if (_sampled >= 2) exitWith {};
     private _index=(_cursor+_offset) mod _count;
     private _unit=_members select _index;

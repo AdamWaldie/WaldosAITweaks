@@ -4420,6 +4420,7 @@ class CortexOperations(unittest.TestCase):
         text=source('cortexStance')
         self.assertIn('{abs speed _unit < 1}',text)
         self.assertIn('if (_sampled >= 2) exitWith {}', text)
+        self.assertIn('for "_offset" from 0 to ((_count min 12)-1) do {', text)
         self.assertIn('set ["stanceCursor",(_index+1) mod _count]', text)
         self.assertIn('setVariable ["WAIT_AIPass_StanceAt", _now + 10]', text)
         self.assertEqual(3,text.count('call _blocked;'))

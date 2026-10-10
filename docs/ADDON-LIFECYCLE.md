@@ -263,3 +263,5 @@ Disabling stance control clears its bookkeeping but resets posture only for an o
 Vehicle-gunnery feature-disable and hold-fire cleanup clears WAIT's target metadata without issuing doTarget over group takeover, player control, remote control or specialist ownership. For an eligible ordinary actor, the assigned target must still match WAIT's recorded target before removal. Physical target handover acceptance remains pending.
 
 Normal CALM restoration preserves stance and targeting during explicit external handover, player/remote control and specialist ownership while clearing WAIT metadata. Cover-height stance acquisition excludes players, remote-controlled actors and specialist identities independently of an active external-control marker. Physical mixed-group acceptance remains pending.
+
+Cover-height stance checks inspect at most twelve members and cast at most six rays per group step. The existing rotating cursor advances for every inspected actor, including ineligible members, so large or specialist-heavy groups do not cause an unbounded eligibility scan or permanently starve later members. Frame-time acceptance remains pending.
