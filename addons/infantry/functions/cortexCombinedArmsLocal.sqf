@@ -112,8 +112,16 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"OWNER_LOST",serverTime,_target],true];
         false
     };
-    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
-    [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+    private _generation=_operation get "generation";
+    private _waypoint=[_group,_destination,55,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+    if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}
+        || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {
+        [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+        [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"MOVEMENT_REJECTED",serverTime,_target],true];
+        false
+    };
     private _state=[_group] call WAIT_fnc_CortexGroupState;
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
     [WAIT_fnc_CortexCombinedGroundStep,createHashMapFromArray [
