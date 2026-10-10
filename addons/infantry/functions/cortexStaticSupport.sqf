@@ -100,6 +100,10 @@ if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {
     // Temporary operation ownership is not a failed contact-episode attempt.
     "IDLE"
 };
+// Retry temporary reservations without repeatedly scanning nearby world objects.
+// Existing seat/deployment leases were advanced above; only new opportunity discovery backs off.
+private _retry=_group getVariable ["WAIT_Danger_StaticRetry",[]];
+if (count _retry == 2 && {(_retry select 0) == _episode} && {time < (_retry select 1)}) exitWith {"IDLE"};
 private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _anchor) then {_anchor=leader _group};
 if (isNull _anchor) exitWith {"IDLE"};
@@ -115,6 +119,8 @@ if (_weapons isEqualTo []) exitWith {
     private _deploy=[_group,_state,_enemies] call WAIT_fnc_CortexStaticDeployStep;
     if (_deploy != "IDLE") then {
         _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,_deploy,serverTime],true];
+    } else {
+        _group setVariable ["WAIT_Danger_StaticRetry",[_episode,time+3]];
     };
     _deploy
 };
@@ -138,7 +144,10 @@ if (_candidates isEqualTo []) exitWith {
             && {[_x] call WAIT_fnc_CortexCombatEffective} && {isNull objectParent _x}
             && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
     } >= 0;
-    if (_potential) exitWith {"IDLE"};
+    if (_potential) exitWith {
+        _group setVariable ["WAIT_Danger_StaticRetry",[_episode,time+3]];
+        "IDLE"
+    };
     _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,"NO_ACTOR",serverTime],true];
     "IDLE"
 };
