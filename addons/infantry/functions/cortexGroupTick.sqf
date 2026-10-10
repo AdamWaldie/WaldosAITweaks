@@ -481,6 +481,14 @@ if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {
     _delay
 };
 
+// Native awareness may update while every actor boards, treats or performs an
+// equipment action. That knowledge is not authority for a competing group contact job.
+// Mixed groups retain autonomous decisions through their independently available members.
+private _autonomousActor=_alive findIf {
+    !(toUpperANSI currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])
+};
+if (_autonomousActor < 0) exitWith {_delay};
+
 ([_group] call WAIT_fnc_CortexKnowledge) params ["_enemies", "_seenCount"];
 // Native hostile knowledge is the durable continuation of a short engine danger callback. The
 // danger FSM wakes the shared group brain immediately; once that finite record expires, a group
