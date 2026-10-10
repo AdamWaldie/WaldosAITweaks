@@ -3,6 +3,8 @@
  * Ends a defence order: soldiers normally rejoin formation and fight as a normal squad. Replacement-
  * order release clears Cortex state and releases only a still-owned combat-labelled hold, so a
  * new group waypoint can move the soldier without overwriting a newer direct unit command.
+ * Watch and formation restoration require combat-effective, local actors without player or
+ * specialist ownership. Metadata cleanup still retires assignments for every member.
  *
  * Clears each soldier's spot and watch direction and the published order, so no machine re-applies
  * it. Called automatically when a defence breaks (losses or broken morale) or Zeus gives the group
@@ -43,7 +45,8 @@ if (isNull _leader) then {_leader=leader _group};
 {
     private _ownedHold = (_x getVariable ["WAIT_AIPass_DefendHolding",false])
         || {(_x getVariable ["WAIT_AIPass_DefendPos",[]]) isNotEqualTo []};
-    if (alive _x && {local _x}) then {
+    if ([_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}) then {
         if (!_externalTakeover) then {_x doWatch objNull;};
         private _command = toUpperANSI currentCommand _x;
         if (_canRestore || {!_externalTakeover && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}) then {
