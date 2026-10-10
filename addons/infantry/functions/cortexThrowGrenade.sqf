@@ -18,7 +18,9 @@
  * locally for assault sequencing; that FiredMan handler removes itself or expires after ten seconds.
  * One additional three-second listener records native launch velocity for smoke and fragmentation;
  * zero horizontal velocity is marked unavailable, not interpreted as an observed bearing. Locality
- * changes retire the listener. Neither listener changes the projectile or creates recurring work.
+ * changes retire the listener. Release evidence also records retained contact and launch error
+ * against that contact, separating a wrong requested target from a wrong native release direction.
+ * Neither listener changes the projectile or creates recurring work.
  * Arguments:
  * 0: unit <OBJECT>
  * 1: towards <ARRAY> - ATL position
@@ -168,6 +170,14 @@ private _thrown = false;
                         private _launchBearing=if (_directionAvailable) then {(_velocity select 0) atan2 (_velocity select 1)} else {-1};
                         private _error=if (_directionAvailable) then {abs (((_launchBearing-_bearing+540) % 360)-180)} else {-1};
                         private _trace=[time,_pending select 2,_pending select 3,+(_pending select 1),_bearing,_launchBearing,_error,_velocity,_directionAvailable];
+                        private _contactState=(group _actor) getVariable ["WAIT_AIPass_State",createHashMap];
+                        private _contact=+(_contactState getOrDefault ["enemyPos",[]]);
+                        private _contactAvailable=_contactState getOrDefault ["contactKnowledge",false] && {count _contact >= 2};
+                        private _contactBearing=if (_contactAvailable) then {_actor getDir _contact} else {-1};
+                        private _contactError=if (_contactAvailable && {_directionAvailable}) then {
+                            abs (((_launchBearing-_contactBearing+540) % 360)-180)
+                        } else {-1};
+                        _trace append [_contactAvailable,_contact,_contactBearing,_contactError];
                         _actor setVariable ["WAIT_Cortex_ThrowReleaseTrace",_trace];
                         diag_log format ["WAIT GRENADE RELEASE TRACE: %1 %2",netId _actor,_trace];
                         _actor removeEventHandler ["FiredMan",_thisEventHandler];
