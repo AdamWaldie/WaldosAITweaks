@@ -202,7 +202,7 @@ private _delay=call {
         && {!(_x in _rotatedOut)} && {!(_x in _unavailable)}};
     private _failureThreshold=(count (_job get "pairs")) min 2 max 1;
     {
-        if (!([_x] call WAIT_fnc_CortexCombatEffective) || {!local _x} || {isPlayer _x} || {_x in _rotatedOut} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
+        if (!([_x] call _actorAvailable) || {_x in _rotatedOut} || {_x in _unavailable}) then {
             _assigned set [_forEachIndex,[]];
         };
     } forEach (_job get "team");
@@ -469,12 +469,11 @@ private _delay=call {
         _group setVariable ["WAIT_AIPass_ClearOrder", [_job get "building", +_cleared, _job get "deadline", _job get "baseBehaviour", +_unreachable, +_retryCounts, +_failedBy, _job get "lastProgressAt"], true];
         _group setVariable ["WAIT_Cortex_ClearStatus",[_job getOrDefault ["phase","SWEEP"],count _cleared,count _unreachable,count (_job get "positions"),count (_job get "pairs"),_job get "lastProgressAt"],true];
     };
-    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {(_job get "team") findIf {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}} < 0}) exitWith {
+    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {_activeWorkers isEqualTo []}) exitWith {
         private _active=[];
         {_active append _x} forEach (_job get "pairs");
         _active=_active arrayIntersect _active;
-        _active=_active select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-            && {group _x == _group} && {isNull objectParent _x}};
+        _active=_active select {[_x] call _actorAvailable && {!(_x in _unavailable)}};
         private _entries=_job get "entries";
         private _buildingPos=getPosATL (_job get "building");
         private _egressAssignments=_active apply {

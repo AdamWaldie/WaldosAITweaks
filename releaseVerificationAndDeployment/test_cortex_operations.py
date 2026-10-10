@@ -1624,9 +1624,11 @@ class CortexOperations(unittest.TestCase):
     def test_clearance_releases_casualty_and_transferred_member_reservations(self):
         text=source('cortexClearBuilding')+source('buildingOperationStep')
         release=text.split('// Release reservations before selection',1)[1].split('private _now',1)[0]
-        self.assertIn('!([_x] call WAIT_fnc_CortexCombatEffective)',release)
-        self.assertIn('group _x != _group',release)
-        self.assertIn('isPlayer _x',release)
+        self.assertIn('!([_x] call _actorAvailable)',release)
+        helper=source('buildingOperationStep').split('private _actorAvailable=',1)[1].split('private _finish',1)[0]
+        self.assertIn('call WAIT_fnc_CortexCombatEffective',helper)
+        self.assertIn('group _actor == _group',helper)
+        self.assertIn('!isPlayer _actor',helper)
         self.assertIn('lifeState _unit != "INCAPACITATED"',source('cortexCombatEffective'))
         self.assertIn('_assigned set [_forEachIndex,[]]',release)
         self.assertIn('if (_restore) then {',text)
@@ -1785,7 +1787,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _unavailable=if ((_operation getOrDefault ["generation",-1]) == _operationGeneration',text)
         self.assertIn('(_reserved select {_x in _unavailable})',text)
         self.assertIn('|| {_member in _unavailable}) && {_reserves isNotEqualTo []})',text)
-        self.assertIn('&& {!(_x in _unavailable)} && {group _x == _group}',text)
+        self.assertIn('_active=_active select {[_x] call _actorAvailable && {!(_x in _unavailable)}}',text)
         self.assertIn('private _pair=_x select {[_x] call _actorAvailable',text)
         self.assertIn('!(_x in _unavailable)',text)
 
