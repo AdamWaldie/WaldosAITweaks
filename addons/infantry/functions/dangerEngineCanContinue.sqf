@@ -24,6 +24,10 @@ if (isNull _group || {!local _group}
 
 private _disabled=_group getVariable ["WAIT_AIPass_DisabledFeatures",[]];
 if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
+    || {_group getVariable ["WAIT_AI_Exclude",false]}
+    || {_group getVariable ["WAIT_AIPass_Exclude",false]}
+    || {_actor getVariable ["WAIT_AI_Exclude",false]}
+    || {_actor getVariable ["WAIT_AIPass_Exclude",false]}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {!isNull (remoteControlled _actor)}
     || {!isNull (_actor getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}) exitWith {false};
