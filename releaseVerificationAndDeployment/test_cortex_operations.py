@@ -5775,7 +5775,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_x select 0) == _selectedMagazine',controller)
         self.assertIn('_job set ["lateralPilotFeatures",_lateralPilotFeatures]',controller)
         self.assertNotIn('_group enableAttack false',controller)
-        self.assertIn('_finishGroup enableAttack (_job getOrDefault ["previousAttackEnabled",true])',controller)
+        self.assertNotIn('_finishGroup enableAttack (_job getOrDefault ["previousAttackEnabled",true])',controller)
         self.assertIn('case "BOMB"',controller)
         self.assertIn('case "GUN": {120}',controller)
         self.assertIn('case "BOMB": {2}',controller)

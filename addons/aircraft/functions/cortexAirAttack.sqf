@@ -46,7 +46,7 @@
  * never completes it. Zeus priority, locality loss, explicit exclusions, runtime disablement or a
  * changed curator waypoint end the lease immediately. Cleanup deletes only that named temporary
  * waypoint. A successful run hands the aircraft back toward its unchanged original waypoint.
- * During direct Zeus handover, cleanup clears this attack's target commands, restores the native
+ * During direct Zeus handover, cleanup clears this attack's target commands, preserves the native
  * attack policy and selects the authenticated curator waypoint. One non-forced height request uses
  * the waypoint's AGL altitude when meaningful, or the live aircraft height for a normal ground-level
  * map click; this cancels the otherwise persistent Cortex flight-height hint without inventing a
@@ -101,14 +101,14 @@ private _finish={
                         _ownedWaypoint setWaypointName "";
                     } else {deleteWaypoint _ownedWaypoint};};
         };
-        if (!isNull _finishGroup) then {_finishGroup enableAttack (_job getOrDefault ["previousAttackEnabled",true])};
+        // This controller never changes enableAttack, so cleanup has no restoration authority.
         private _finishPilot=driver _aircraft;
         if (!isNull _finishPilot && {alive _finishPilot}) then {
             {_finishPilot enableAI _x} forEach (_job getOrDefault ["lateralPilotFeatures",[]]);
         };
         // Direct Zeus input owns the aircraft immediately. Do not clear target or watch state here:
         // the curator or external controller may have replaced it before this scheduled cleanup ran.
-        // Restore the native attack policy, reselect the authenticated waypoint and leave. A timed
+        // Preserve the native attack policy, reselect the authenticated waypoint and leave. A timed
         // guard was observed to suppress the new route for 90 seconds and violated this boundary.
         if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {
             private _handoverPilot=driver _aircraft;
@@ -176,7 +176,10 @@ private _finish={
                 || {[_finishGroup] call WAIT_fnc_CortexZeusHeld};
             if (!_cleanupExternal && {!isNull _ownedTarget}) then {
                 {
-                    if (alive _x && {!isPlayer _x} && {assignedTarget _x isEqualTo _ownedTarget}) then {
+                    if (alive _x && {local _x} && {!isPlayer _x} && {isNull (remoteControlled _x)}
+                        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+                        && {assignedTarget _x isEqualTo _ownedTarget}) then {
                         _x doTarget objNull;
                         _x doWatch objNull;
                     };
