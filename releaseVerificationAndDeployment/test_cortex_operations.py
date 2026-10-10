@@ -6618,11 +6618,15 @@ class CortexOperations(unittest.TestCase):
 
     def test_committed_cover_outlives_expired_observation_with_bounded_travel(self):
         text=source('dangerCoverStep')
-        retention=text.split('private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];',2)[-1].split('exitWith {true};',1)[0]
+        retention=text.split('if (!_releaseOnly && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
         self.assertNotIn('count _threat',retention)
         self.assertIn('max 4 min 12',text)
         self.assertIn('["DANGER_COVER",+_spot,_deadline]',text)
-        self.assertIn('[_actor,_generation,_deadline,+_spot]',text)
+        self.assertIn('[_actor,_generation,_deadline,+_spot,+_threat]',text)
+        adoption=text.split('// A fresh observation',1)[1].split('if (!_releaseOnly',1)[0]
+        self.assertIn('_lease set [1,_generation]',adoption)
+        self.assertNotIn('_lease set [2',adoption)
+        self.assertNotIn('doMove _',adoption)
 
     def test_cover_budget_ranks_placed_and_terrain_objects_together(self):
         text=source('cortexFindCover')
@@ -6702,7 +6706,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_cover_retention_rechecks_live_authority_before_returning_active(self):
         text=source('dangerCoverStep')
-        retention=text.split('private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];',2)[-1].split('exitWith {true};',1)[0]
+        retention=text.split('if (!_releaseOnly && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
         for gate in ['WAIT_Danger_Generation','WAIT_AIPass_Active','WAIT_AIPass_Danger_Enable',
                      'WAIT_fnc_CortexExternalTakeover','WAIT_Operation','objectParent _actor']:
             self.assertIn(gate,retention)

@@ -52,6 +52,29 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
 if (_generation >= 0 && {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {[] call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+// A fresh observation is not automatically a new movement intent. Adopt a still-live solid-cover
+// route only when the nearby new hazard is screened at that exact destination. Never extend its
+// deadline, repeat doMove or let a stale callback adopt a newer generation.
+if (count _lease >= 5 && {(_lease select 0) == _actor} && {(_lease select 1) < _generation}
+    && {time < (_lease select 2)} && {count _threat == 3}
+    && {_threat distance2D (_lease select 4) <= 3}
+    && {count _moveProof == 3 && {(_moveProof select 0) == "DANGER_COVER"}
+        && {(_moveProof select 1) isEqualTo (_lease select 3)} && {(_moveProof select 2) == (_lease select 2)}}
+    && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+    && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+    && {lineIntersectsSurfaces [AGLToASL ((_lease select 3) vectorAdd [0,0,1.2]),
+        AGLToASL (_threat vectorAdd [0,0,1.2]),_actor,objNull,true,1,"GEOM","NONE"] isNotEqualTo []}) then {
+    _lease set [1,_generation];
+    _lease set [4,+_threat];
+    _group setVariable ["WAIT_Danger_CoverLease",_lease];
+    private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
+    if (count _decision >= 4 && {(_decision select 2) == _actor}) then {
+        _decision set [3,_generation];
+        _group setVariable ["WAIT_Danger_CoverDecision",_decision];
+    };
+};
+
 if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
     && {_actor distance2D (_lease select 3) > 2
@@ -177,7 +200,7 @@ _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_genera
 private _deadline=time+((2+(_origin distance2D _spot)/2) max 4 min 12);
 _actor doMove _spot;
 _actor setVariable ["WAIT_Cortex_ActorMove",["DANGER_COVER",+_spot,_deadline]];
-_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,_deadline,+_spot]];
+_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,_deadline,+_spot,+_threat]];
 private _stats=_group getVariable ["WAIT_Danger_EngineStats",createHashMap];
 _stats set ["coverMoves",((_stats getOrDefault ["coverMoves",0])+1) min 100000];
 _stats set ["lastCoverActor",_actor];
