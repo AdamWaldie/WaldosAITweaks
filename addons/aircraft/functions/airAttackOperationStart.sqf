@@ -12,7 +12,13 @@ params [["_job",createHashMap,[createHashMap]],["_delay",0,[0]]];
 private _aircraft=_job getOrDefault ["aircraft",objNull];
 if (isNull _aircraft || {!local _aircraft}) exitWith {false};
 private _current=_aircraft getVariable ["WAIT_AirAttack_Brain",createHashMap];
-if (count _current > 0 && {!(_current getOrDefault ["cancelled",false])} && {!(_current getOrDefault ["finished",false])}) exitWith {true};
+if (count _current > 0 && {!(_current getOrDefault ["cancelled",false])} && {!(_current getOrDefault ["finished",false])}) exitWith {
+    private _requestedTarget=_job getOrDefault ["target",objNull];
+    private _currentTarget=(_current getOrDefault ["job",createHashMap]) getOrDefault ["target",objNull];
+    !isNull _requestedTarget && {!isNull _currentTarget}
+        && {_requestedTarget == _currentTarget || {vehicle _requestedTarget == vehicle _currentTarget}}
+        && {[_aircraft,"AIR_ATTACK",_current getOrDefault ["flightLeaseToken",""]] call WAIT_fnc_FlightLeaseValid}
+};
 if (count _current > 0) then {_current set ["cancelled",true];_current set ["cancelReason","REPLACED"]};
 private _generation=(_aircraft getVariable ["WAIT_AirAttack_BrainGeneration",0])+1;
 private _leaseToken=str _generation;

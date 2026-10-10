@@ -146,10 +146,13 @@ if (_role == "AIR_ATTACK") exitWith {
         false
     };
     if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
-    if !(_asset getVariable ["WAIT_Cortex_AirAttackJob",false]) then {
-        // The server already authenticated this live hostile. Pass it into the finite controller;
-        // doTarget is asynchronous and assignedTarget may not be populated half a second later.
-        [createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_AirAttackOperationStart;
+    // Acceptance must correspond to this target, not merely an aircraft's busy marker.
+    private _started=[createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_AirAttackOperationStart;
+    if (!_started) exitWith {
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"AIR_BUSY_OR_REFUSED",serverTime,_target],true];
+        [_requester,_group,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
+        false
     };
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];
