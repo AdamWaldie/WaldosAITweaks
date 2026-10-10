@@ -966,6 +966,13 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        deploy=source('cortexStaticDeployStep')
+        approach=deploy.split('if (!_atSector && {time >= _deadline-10}',1)[1].split('if (_atSector && {_pairTogether})',1)[0]
+        self.assertIn('!(_record param [20,false,[false]])',approach)
+        self.assertIn('_proof isEqualTo ["STATIC_DEPLOY",_deployPos,_deadline]',approach)
+        self.assertIn('expectedDestination _x',approach)
+        self.assertNotIn('_record set [6,',approach)
+        self.assertNotIn('disableAI',approach)
         grenade=source('cortexThrowGrenade')
         self.assertEqual(grenade.count('captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}'),2)
         grenade_release=grenade.split('private _release =',1)[1]

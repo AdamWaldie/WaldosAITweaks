@@ -230,6 +230,26 @@ if (count _record >= 10) exitWith {
                     _atSector=true;
                 };
             };
+            if (!_atSector && {time >= _deadline-10} && {time < _deadline}
+                && {!(_record param [20,false,[false]])}) then {
+                private _refreshed=false;
+                {
+                    private _proof=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+                    if (_x distance2D _deployPos > 3.5
+                        && {_proof isEqualTo ["STATIC_DEPLOY",_deployPos,_deadline]}
+                        && {currentCommand _x in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}
+                        && {((expectedDestination _x) select 0) distance2D _deployPos > 1}) then {
+                        // One lost native route can be refreshed; retain targets, firing and
+                        // the original absolute deadline. Never turn this into a chase loop.
+                        _x doMove _deployPos;
+                        _refreshed=true;
+                    };
+                } forEach [_gunner,_assistant];
+                if (_refreshed) then {
+                    _record set [20,true];
+                    _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+                };
+            };
             if (_atSector && {_pairTogether}) then {
 
                 private _assemblyHandler=_gunner addEventHandler ["WeaponAssembled",{
