@@ -208,6 +208,8 @@ deleteVehicle _jinkBlast;
 deleteGroup _jinkGroup;
 // A stopped tracked fighting vehicle must physically turn its hull toward a naturally detected
 // hostile while the gunnery gate is enabled, without receiving a waypoint or changing position.
+// Both targets remain standing 70 m away, 45 degrees off the hull bow.
+// They are excluded from WAIT so target reactions cannot invalidate the detection fixture.
 // A first naturally detected hostile with the gate disabled proves that danger alone cannot acquire
 // the orientation owner. A replacement hostile then creates a fresh native detection generation.
 [createHashMapFromArray [
@@ -226,7 +228,10 @@ _orientGroup setCombatMode "RED";
 private _orientCrew=crew _orientVehicle;
 {_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["DANGER ORIENT CREW %1",_forEachIndex+1],true]} forEach _orientCrew;
 private _orientDisabledTargetGroup=createGroup [west,true];
-private _orientDisabledTarget=_orientDisabledTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+_orientDisabledTargetGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+[_orientDisabledTargetGroup] call _pin;
+private _orientDisabledTarget=_orientDisabledTargetGroup createUnit ["B_Soldier_F",[1629.5,929.5,0],[],0,"NONE"];
+_orientDisabledTarget setUnitPos "UP";
 removeAllWeapons _orientDisabledTarget;
 _orientDisabledTarget allowDamage false;
 _orientDisabledTarget disableAI "PATH";
@@ -247,7 +252,10 @@ deleteVehicle _orientDisabledTarget;
 deleteGroup _orientDisabledTargetGroup;
 [createHashMapFromArray [["WAIT_AIPass_VehicleGunnery_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _orientTargetGroup=createGroup [west,true];
-private _orientTarget=_orientTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+_orientTargetGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+[_orientTargetGroup] call _pin;
+private _orientTarget=_orientTargetGroup createUnit ["B_Soldier_F",[1629.5,929.5,0],[],0,"NONE"];
+_orientTarget setUnitPos "UP";
 removeAllWeapons _orientTarget;
 _orientTarget allowDamage false;
 _orientTarget disableAI "PATH";

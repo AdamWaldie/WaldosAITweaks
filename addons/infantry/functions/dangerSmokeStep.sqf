@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Direction uses retained native contact when available; a coincident impact without contact cannot define a throw bearing.
  * Purpose: Opportunistically deploy one carried smoke grenade during a severe finite danger response without delaying cover, movement, firing or the group operation state.
  * Locality / Authority: Runs inside the owner-local group-brain scheduler. It selects one local foot soldier and queues one local throw after rechecking WAIT, Zeus, specialist and generation ownership.
  * Repeat/JIP: A generation-scoped group lease and cooldown coalesce a danger burst. Queued throws are not replayed to JIP and a later generation, order or external owner cancels before weapon release.
@@ -41,7 +42,17 @@ private _ranked=_candidates apply {[-getSuppression _x,random 1,_x]};
 _ranked sort true;
 private _thrower=(_ranked select 0) select 2;
 private _origin=getPosATL _thrower;
-private _screen=_origin getPos [18,_origin getDir _threat];
+// HIT and suppression positions describe the danger near the victim, not the shooter.
+// Prefer the group's retained native contact position; never infer a shooter behind the unit
+// from a near-zero vector to its own impact position.
+private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
+private _contact=_state getOrDefault ["enemyPos",[]];
+private _screenThreat=+_threat;
+if (_state getOrDefault ["contactKnowledge",false] && {count _contact >= 2}) then {
+    _screenThreat=+_contact;
+};
+if (_origin distance2D _screenThreat < 3) exitWith {false};
+private _screen=_origin getPos [18,_origin getDir _screenThreat];
 _screen set [2,_origin select 2];
 private _queued=[_thrower,_screen,"SMOKE",["DANGER",_generation,_expires]] call WAIT_fnc_CortexThrowGrenade;
 if (!_queued) exitWith {false};
