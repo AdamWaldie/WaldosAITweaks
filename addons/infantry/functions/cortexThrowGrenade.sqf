@@ -6,7 +6,7 @@
  * or shotSmokeX; fragmentation is shotGrenade. Chemlights and ACE
  * flashbangs are skipped. The throw muzzle is the "Throw" weapon muzzle that accepts that magazine.
  * The queued throw revalidates ownership and requests target observation. Release requires actual
- * body and weapon alignment; an unaligned actor cancels rather than throwing behind contact. A fragmentation grenade is never thrown when a
+ * body and viewing alignment; an unaligned actor cancels rather than throwing behind contact. A fragmentation grenade is never thrown when a
  * friendly or civilian soldier is within 12 m of the target, or when the target is under 8 m or over
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
@@ -87,7 +87,8 @@ private _thrown = false;
                     || {(_group getVariable ["WAIT_AIPass_Epoch",0]) != _ownerEpoch}
                     || {!local _group}
                     || {currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {
-                    ["NEW_TASK"] call _cancel;
+                    ["NEW_TASK",[_operationGeneration,_group getVariable ["WAIT_OperationGeneration",0],
+                        _ownerEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],currentCommand _unit]] call _cancel;
                 };
                 if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {vehicle _unit != _unit} || {group _unit != _group}
                     || {[_unit] call WAIT_fnc_CompatibilityExternalControl}
@@ -113,7 +114,9 @@ private _thrown = false;
                 // asynchronous aiming window leaves the manoeuvre element free to continue.
                 private _bearing = _unit getDir _towards;
                 private _bodyError = abs (((getDir _unit - _bearing + 540) % 360) - 180);
-                private _aim = _unit weaponDirection (currentWeapon _unit);
+                // A lowered rifle can point across a standing actor's chest even when looking
+                // towards contact. Its muzzle is not the grenade release orientation.
+                private _aim = eyeDirection _unit;
                 private _aimBearing = (_aim select 0) atan2 (_aim select 1);
                 private _aimError = abs (((_aimBearing - _bearing + 540) % 360) - 180);
                 if (_bodyError > 30 || {_aimError > 30}) exitWith {

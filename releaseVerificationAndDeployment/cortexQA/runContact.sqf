@@ -230,8 +230,15 @@ private _killWithRealProjectile={
             }];
             private _label=format ["GRENADE-direction-%1-%2-%3",_kind,_stance,if (_rear) then {"rear"} else {"front"}];
             [_label,"The real carried grenade must depart towards the requested position. Rear-facing actors may cancel safely; front-facing actors must physically throw. No projectile direction or velocity is changed.",getPosATL _throwActor] call _phase;
-            sleep 1;
-            private _queued=[_throwActor,_destination,_kind] call WAIT_fnc_CortexThrowGrenade;
+            // New group discovery assigns its first owner epoch asynchronously. Prove setup
+            // before queuing a throw; a legitimate bootstrap must not be mistaken for a failure.
+            private _ownerReady=[{
+                local _throwGroup && {_throwGroup getVariable ["WAIT_AIPass_Managed",false]}
+                    && {(_throwGroup getVariable ["WAIT_AIPass_Epoch",0]) > 0}
+                    && {simulationEnabled _throwActor}
+            },12] call _wait;
+            [_label+"-owner-ready",_ownerReady,str [groupOwner _throwGroup,_throwGroup getVariable ["WAIT_AIPass_Epoch",0]]] call _check;
+            private _queued=_ownerReady && {[_throwActor,_destination,_kind] call WAIT_fnc_CortexThrowGrenade};
             private _released=[{(_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]]) isNotEqualTo []},4] call _wait;
             private _evidence=_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]];
             [_label,_queued && {if (_released) then {(_evidence select 0) >= 0.866} else {_rear}},
