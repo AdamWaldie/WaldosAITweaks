@@ -341,3 +341,5 @@ Building egress rechecks operation quarantine every step; losing an assigned act
 Building approach deadline renewal requires a new best three-dimensional distance to the committed target, accumulating at least one metre of improvement. Backtracking and repeated circles cannot repeatedly renew the budget. A changed entry/room target establishes its own baseline; physical room visits retain their existing renewal path. Physical doorway-circle acceptance remains pending.
 
 Building room retries reset their no-progress timestamp only for a new best approach distance, not arbitrary walking. Circling reaches existing finite retries, alternate-entry selection and isolated recovery while other pairs continue. Physical detour, stair and doorway cases must verify the retry timing remains appropriate; acceptance remains pending.
+
+Building reserve selection excludes operation-quarantined actors even when they are outside current pairs, plus remote-controlled actors and full specialist identities. Those actors cannot be inserted into a casualty vacancy before later availability checks reject them. Physical casualty/reserve mixed-group acceptance remains pending.

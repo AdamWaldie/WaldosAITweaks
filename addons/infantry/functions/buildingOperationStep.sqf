@@ -185,6 +185,8 @@ private _delay=call {
             || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
         [_candidate] call WAIT_fnc_CortexCombatEffective && {local _candidate} && {!isPlayer _candidate}
             && {isNull objectParent _candidate} && {!(_candidate in _reserved)} && {!(_candidate in _rotatedOut)}
+            && {!(_candidate in _unavailable)} && {isNull (remoteControlled _candidate)}
+            && {([_candidate] call WAIT_fnc_CortexExternalOwner) == ""}
             && {_reservationFree} && {_candidate checkAIFeature "MOVE"} && {_candidate checkAIFeature "PATH"}
             && {!([_candidate] call WAIT_fnc_CompatibilityExternalControl)}
             && {!(currentCommand _candidate in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
