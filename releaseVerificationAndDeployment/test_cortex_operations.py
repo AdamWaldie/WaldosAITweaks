@@ -966,6 +966,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        danger_config=(ROOT/'addons'/'danger'/'config.cpp').read_text(encoding='utf-8')
+        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}',danger_config)
         end=source('cortexFlankEnd')
         movement=end.split('_members=_members select',1)[1].split('private _stragglers',1)[0]
         self.assertIn('WAIT_Cortex_ActorMove',movement)
