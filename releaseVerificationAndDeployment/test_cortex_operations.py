@@ -6904,9 +6904,12 @@ class CortexOperations(unittest.TestCase):
         section=text.split('if (_leases isNotEqualTo []) exitWith {',1)[1].split('private _valid=',1)[0]
         self.assertIn('_leaseGeneration != _generation',section)
         self.assertIn('_unit setUnitPosWeak _prior',section)
-        self.assertIn('WAIT_Danger_EngineStanceLease',section)
-        self.assertIn('WAIT_Cortex_ActorMove',section)
-        self.assertIn('currentCommand _unit == ""',section)
+        self.assertIn('[_x] call _mayRestore',section)
+        restore=text.split('private _mayRestore={',1)[1].split('private _release={',1)[0]
+        self.assertIn('WAIT_Danger_EngineStanceLease',restore)
+        self.assertIn('WAIT_Cortex_ActorMove',restore)
+        self.assertIn('"DANGER_COVER"',restore)
+        self.assertIn('currentCommand _unit in ["","MOVE","ATTACK","FIRE","SUPPRESS"]',restore)
         self.assertIn('isNull objectParent _unit',section)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',section)
         self.assertIn('!isPlayer _unit',section)

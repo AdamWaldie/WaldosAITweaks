@@ -2,6 +2,8 @@
  * Author: WaldoTheWarfighter
  * Purpose: Apply or release one finite squad-level low-profile response after immediate incoming danger without taking movement, target or firing ownership.
  * Locality / Authority: Runs only on the owner of the local AI group from the existing group-brain step. It changes weak stance only for local, idle, on-foot actors not reserved by another WAIT operation.
+ * Cleanup may restore its exact weak posture during ordinary movement or a WAIT cover route;
+ * it does not change that route. Starting a new group posture still requires an idle actor.
  * Repeat/JIP: One generation-owned group lease records each actor's prior and applied weak stance, operation generation and owner epoch. Repeated calls retain that lease; release restores only an unchanged WAIT-applied stance. Zeus, player, specialist, locality and newer-generation handover discard the lease without writing over the new owner.
  * Arguments: 0: group <GROUP>, grpNull; 1: danger generation <NUMBER>, -1; 2: active <BOOL>, false; 3: cause <STRING>, "".
  * Return Value: Boolean - true while one or more exact-owned squad stance leases remain active.
@@ -29,10 +31,15 @@ private _sameOwner={
 private _mayRestore={
     params ["_proof"];
     private _unit=_proof param [0,objNull,[objNull]];
+    private _move=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _postureFree=_move isEqualTo []
+        || {_move isEqualType [] && {count _move == 3} && {
+            (_move param [2,1e12,[0]]) <= time || {(_move select 0) == "DANGER_COVER"}
+        }};
     [_proof] call _sameOwner
         && {[_unit] call WAIT_fnc_CortexCombatEffective}
-        && {currentCommand _unit in ["","ATTACK","FIRE","SUPPRESS"]}
-        && {(_unit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+        && {currentCommand _unit in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}
+        && {_postureFree}
         && {(_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
 };
 private _release={
@@ -64,9 +71,6 @@ if (_leases isNotEqualTo []) exitWith {
         if (_leaseGeneration != _generation && {[_x] call _mayRestore} && {!isNull _unit} && {alive _unit}
             && {local _unit} && {!isPlayer _unit} && {group _unit == _group}
             && {isNull objectParent _unit} && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
-            && {currentCommand _unit == ""}
-            && {(_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
-            && {(_unit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
             && {toUpperANSI (unitPos _unit) == _applied}) then {
             _unit setUnitPosWeak _prior;
         };
