@@ -43,6 +43,15 @@ class StandalonePerformanceReportTests(unittest.TestCase):
             wait['manifest']['package']['dirty']=True
             with self.assertRaises(ValueError): compare(native,wait)
 
+    def test_declared_mixed_run_cannot_report_infantry_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory)/'native'
+            self.fixture(folder,False)
+            manifest=json.loads((folder/'audit-manifest.json').read_text())
+            manifest['performance_composition']='mixed'
+            (folder/'audit-manifest.json').write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError): read_run(folder)
+
     def test_missing_completion_and_dead_observer_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory)/'native'

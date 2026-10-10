@@ -26,6 +26,9 @@ def read_run(folder):
     result=row('WAIT STANDALONE PERF RESULT: ')
     if len(identity) != 6 or len(result) != 11 or identity[2] != 50 or identity[4] not in ('INFANTRY_PATROL','MIXED_PATROL'):
         raise ValueError('Unexpected fixture or result schema')
+    scenario={'infantry':'INFANTRY_PATROL','mixed':'MIXED_PATROL'}.get(manifest.get('performance_composition'))
+    if scenario != identity[4] or identity[3] <= 0 or (scenario == 'INFANTRY_PATROL' and identity[3] != 300):
+        raise ValueError('Scenario declaration or actor count mismatch')
     expected=not manifest.get('native_baseline',False)
     if identity[0] is not expected or result[0] is not expected or result[1] is not True:
         raise ValueError('Addon identity or physical fixture failed')
@@ -60,7 +63,7 @@ def compare(native,wait):
     return dict(scope=native['identity'][4]+'_50',status='PASS' if overhead[0] <= 5+1e-9 and overhead[1] <= 10+1e-9 else 'FAIL',
                 median_overhead_percent=overhead[0],p95_overhead_percent=overhead[1],
                 native=native['result'],wait=wait['result'],
-                limitation='Patrol only; combat, mixed forces, queue growth and stalled operations remain unaccepted.')
+                limitation='Patrol only; combat behavior, queue growth and stalled operations remain unaccepted.')
 
 
 def main():

@@ -16,6 +16,7 @@ private _fsm=getText (configFile >> "CfgVehicles" >> "O_Soldier_F" >> "fsmDanger
 private _composition=missionNamespace getVariable ["WAIT_QA_PerfComposition","infantry"];
 if (!(_composition in ["infantry","mixed"])) exitWith {diag_log "WAIT STANDALONE PERF INVALID: composition"};
 private _vehicles=[];
+private _aircraft=[];
 private _fixtureValid=true;
 private _groups=[];
 private _actors=[];
@@ -61,6 +62,8 @@ for "_i" from 0 to 49 do {
             _vehicle flyInHeight 300;
             _vehicle setVelocity [0,[55,150] select _plane,0];
             _legLength=20000;
+            _aircraft pushBack _vehicle;
+            _fixtureValid=_fixtureValid && {vectorMagnitude velocity _vehicle >= 40};
         };
         _vehicles pushBack _vehicle;
     };
@@ -103,7 +106,8 @@ private _owned=0;
 } forEach _groups;
 private _observers=allPlayers select {!(_x isKindOf "HeadlessClient_F")};
 private _observerValid=count _observers == 1 && {alive (_observers select 0)};
-private _valid=_fixtureValid && {_vehicles findIf {!alive _x || {!simulationEnabled _x}} < 0} && {_observerValid} && {count _samples >= 100} && {_moving == 50} && {_alive == _expectedActors} && {_owned == 50};
+private _airValid=_aircraft findIf {!canMove _x || {(getPosATL _x) select 2 < 50} || {abs speed _x < 80}} < 0;
+private _valid=_airValid && {_fixtureValid} && {_vehicles findIf {!alive _x || {!simulationEnabled _x}} < 0} && {_observerValid} && {count _samples >= 100} && {_moving == 50} && {_alive == _expectedActors} && {_owned == 50};
 diag_log format ["WAIT STANDALONE PERF RESULT: %1",[_loaded,_valid,count _samples,
     [0.5] call _quantile,[0.95] call _quantile,[0.99] call _quantile,_moving,_alive,_owned,count _observers,_observerValid]];
 {deleteVehicle _x} forEach _actors;
