@@ -48,6 +48,8 @@ private _clearLease={
 };
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
     || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {[] call _clearLease};
+// A delayed old observation cannot retire the lease belonging to the current danger generation.
+if (_generation >= 0 && {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {[] call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
