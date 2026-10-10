@@ -61,9 +61,11 @@ private _owned=0;
     _alive=_alive+({alive _x} count units _x);
     if (groupOwner _x == 2) then {_owned=_owned+1};
 } forEach _groups;
-private _valid=count _samples >= 100 && {_moving == 50} && {_alive == 300} && {_owned == 50};
+private _observers=allPlayers select {!(_x isKindOf "HeadlessClient_F")};
+private _observerValid=count _observers == 1 && {alive (_observers select 0)};
+private _valid=_observerValid && {count _samples >= 100} && {_moving == 50} && {_alive == 300} && {_owned == 50};
 diag_log format ["WAIT STANDALONE PERF RESULT: %1",[_loaded,_valid,count _samples,
-    [0.5] call _quantile,[0.95] call _quantile,[0.99] call _quantile,_moving,_alive,_owned]];
+    [0.5] call _quantile,[0.95] call _quantile,[0.99] call _quantile,_moving,_alive,_owned,count _observers,_observerValid]];
 {deleteVehicle _x} forEach _actors;
 {deleteGroup _x} forEach _groups;
 missionNamespace setVariable ["WAIT_QA_StandaloneSamples",nil];

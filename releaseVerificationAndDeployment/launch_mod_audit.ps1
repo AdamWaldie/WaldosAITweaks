@@ -54,6 +54,7 @@ $manifest=Get-Content -Raw (Join-Path $runtime 'audit-manifest.json') | ConvertF
 $manifest | Add-Member dependencySources ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member dependencies ($launchMods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member resolution @($ResolutionWidth,$ResolutionHeight)
+$manifest | Add-Member headlessClients $HeadlessClients
 $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $runtime 'audit-manifest.json')
 if ($StageOnly) {Write-Output "Staged packaged audit: $runtime"; return}
 $mission=Join-Path $runtime 'WAIT_Audit.VR'
