@@ -503,4 +503,12 @@ class SemanticComponentContracts(unittest.TestCase):
         self.assertIn('assignedVehicle _unit != _vehicle', source)
         self.assertLess(source.index('private _command='), source.index('lineIntersectsSurfaces'))
 
+    def test_convoy_cover_cleanup_preserves_new_actor_tasks(self):
+        source = (ROOT/'addons/vehicles/functions/convoyDismountLocal.sqf').read_text()
+        self.assertIn('private _operator = _nativeTask || {_reservedMove}', source)
+        self.assertIn('[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover', source)
+        self.assertIn('private _ownedExit=_ours', source)
+        self.assertLess(source.index('private _nativeTask='), source.index('_unit doFollow'))
+        self.assertLess(source.index('private _reservedMove='), source.index('_unit doMove'))
+
 if __name__ == '__main__': unittest.main()
