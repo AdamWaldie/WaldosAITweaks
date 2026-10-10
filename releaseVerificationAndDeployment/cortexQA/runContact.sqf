@@ -295,6 +295,13 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
     _probeGroup setCombatMode "BLUE";
     private _probeActor=_probeGroup createUnit ["O_Soldier_F",[2820+(_forEachIndex*25),1350,0],[],0,"NONE"];
     _probeActor allowDamage false;
+    _probeActor setVariable ["WAIT_CortexQA_BlastEvents",[]];
+    private _blastHandler=_probeActor addEventHandler ["Explosion",{
+        params ["_actor","_damage"];
+        private _events=_actor getVariable ["WAIT_CortexQA_BlastEvents",[]];
+        if (count _events < 4) then {_events pushBack [time,_damage,getPosATL _actor]};
+        _actor setVariable ["WAIT_CortexQA_BlastEvents",_events];
+    }];
     _probeActor setVariable ["WAIT_CortexQA_Label","EXPLOSION ATTRIBUTION "+_label,true];
     missionNamespace setVariable ["WAIT_CortexQA_Actors",[_probeActor],true];
     ["Diagnostic: explosion attribution "+_label,"A real attributed grenade tests engine explosion delivery. This diagnostic does not validate cover, smoke or tactical completion.",getPosATL _probeActor] call _phase;
@@ -310,6 +317,10 @@ private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable
         } else {false}
     },10] call _wait;
     ["DANGER-STIMULUS-"+_label+"-actual-projectile",_probeProjectile,str [_sourceSide,_probeProjectile,_range]] call _check;
+    private _blastEvents=_probeActor getVariable ["WAIT_CortexQA_BlastEvents",[]];
+    ["DANGER-STIMULUS-"+_label+"-observer-blast-event",_probeProjectile && {_blastEvents isNotEqualTo []},
+        str [_blastEvents,isNull _probeGrenade,_sourceSide,_range]] call _check;
+    _probeActor removeEventHandler ["Explosion",_blastHandler];
     ["DANGER-STIMULUS-"+_label+"-native-explosion-callback",_probeProjectile && {_probeExplosion},
         str [_probeEvidence,_probeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
             [_probeGroup] call WAIT_fnc_CortexKnowledge]] call _check;
