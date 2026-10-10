@@ -61,6 +61,16 @@ if (_reason == "") then {
     _reason=if (_yieldToZeus) then {"ZEUS_TAKEOVER"} else {if (_yieldToExternal) then {"EXTERNAL_TAKEOVER"} else {"RELEASED"}};
 };
 private _externalTakeover=_yieldToZeus || {_yieldToExternal} || {_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
+// New curator intent invalidates pending operation work even when no common record
+// is active. Advance on the owner once per token; repeated cleanup is a no-op here.
+if (local _group && {_reason == "ZEUS_TAKEOVER"}) then {
+    private _curatorToken=_group getVariable ["WAIT_AIPass_ZeusHold",[]];
+    if (count _curatorToken == 2
+        && {(_group getVariable ["WAIT_OperationCuratorToken",-1]) != (_curatorToken select 0)}) then {
+        _group setVariable ["WAIT_OperationCuratorToken",_curatorToken select 0];
+        _group setVariable ["WAIT_OperationGeneration",(_group getVariable ["WAIT_OperationGeneration",0])+1,true];
+    };
+};
 // Explicit holding orders can survive without a tactical map while contact automation is off.
 // A terminal release still needs one authoritative diagnostic record, not a stale checkpoint.
 if (local _group && {count _state == 0}
