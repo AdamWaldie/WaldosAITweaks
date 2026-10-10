@@ -84,7 +84,7 @@ def summarize(logs):
 
 def attach_assessments(report, assessments):
     """Attach evidence-backed review without changing assertion or run outcomes."""
-    categories = {'functional_failure', 'partial_success', 'test_problem', 'unresolved'}
+    categories = {'functional_failure', 'partial_success', 'test_problem', 'detection_blocked', 'unresolved'}
     known = {case['case'] for case in report['cases']}
     reviewed = []
     for case_id, review in assessments.items():
@@ -123,7 +123,7 @@ def render_markdown(report):
     reviewed_ids = {item['case'] for item in assessments}
     unreviewed = sorted({case['case'] for case in failed_cases} - reviewed_ids)
     counts = {category: sum(item['category'] == category for item in assessments)
-              for category in ('functional_failure', 'partial_success', 'test_problem', 'unresolved')}
+              for category in ('functional_failure', 'partial_success', 'test_problem', 'detection_blocked', 'unresolved')}
     lines[4:4] = [
         'Review coverage: ' + ', '.join(f"{category.replace('_', ' ')}: {count}" for category, count in counts.items()) + '.',
         f"Failed case IDs awaiting evidence review: {len(unreviewed)}. These are unresolved, not automatically confirmed feature failures.",

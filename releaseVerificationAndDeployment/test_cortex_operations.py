@@ -4222,7 +4222,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_assault_contact_does_not_force_combat_mode(self):
         text = source('cortexGroupTick').split('private _beginContact = {')[1].split('switch (_state get "phase")')[0]
-        guard = 'if (!(_state getOrDefault ["assaulting", false]) && {behaviour _leader in ["SAFE", "AWARE"]}) then {'
+        guard = 'if (!_nativeTaskActive && {!(_state getOrDefault ["assaulting", false])}'
         self.assertIn(guard, text)
         self.assertLess(text.index(guard), text.index('_group setBehaviour "COMBAT"'))
         self.assertNotIn('disableAI "AUTOCOMBAT"', text)

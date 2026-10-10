@@ -1,6 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Locality / Authority: Executes on the caller; world changes are limited to locally owned objects or groups, or to server-published state, as guarded below.
+ * Group-wide contact posture yields to native boarding, actions, treatment, rearming and joining.
  * Pending remounts yield to a replacement vehicle assignment; cleanup only cancels the original seat order.
  * Runs one Cortex step for one locally owned group: reads the situation, moves it along the
  * group state ladder and calls each enabled behaviour. A targetless hit, explosion or suppression
@@ -703,6 +704,10 @@ private _enterContact = {
     // deadline and arrival; otherwise responders abandon the rendezvous on sighting.
 };
 private _beginContact = {
+    // Changing group behaviour also changes actors whose native tasks WAIT does not own.
+    private _nativeTaskActive = (_alive findIf {
+        toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]
+    }) >= 0;
     if !("baseBehaviour" in _state) then {
         _state set ["baseBehaviour", behaviour _leader];
         _state set ["baseSpeed", speedMode _group];
@@ -712,7 +717,9 @@ private _beginContact = {
     if ([] call _mayIssueMovement) then {
         {
             private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-            if (alive _x && {local _x} && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
+            if (alive _x && {local _x}
+                && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"])}
+                && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
                 _x doFollow _leader
             };
         } forEach (_state getOrDefault ["searchTeam", []]);
@@ -723,7 +730,8 @@ private _beginContact = {
     // A coordinated responder already has a finite assault movement order. Do not
     // lock the entire approach into script-forced COMBAT bounding; native
     // AUTOCOMBAT remains enabled and can still react to threats normally.
-    if (!(_state getOrDefault ["assaulting", false]) && {behaviour _leader in ["SAFE", "AWARE"]}) then {
+    if (!_nativeTaskActive && {!(_state getOrDefault ["assaulting", false])}
+        && {behaviour _leader in ["SAFE", "AWARE"]}) then {
         _group setBehaviour "COMBAT";
         _state set ["behaviourChanged", true];
     };
