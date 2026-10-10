@@ -127,7 +127,7 @@ private _delay=call {
     if ((_job getOrDefault ["phase","CLEAR"]) == "EGRESS") exitWith {
         private _assignments=(_job get "egressAssignments") select {
             _x params ["_unit"];
-            [_unit] call _actorAvailable
+            [_unit] call _actorAvailable && {!(_unit in _unavailable)}
         };
         // A diverted/unavailable actor is no longer ours to route, but its unfinished exit
         // must remain visible instead of counting an empty eligible set as successful egress.
@@ -266,8 +266,10 @@ private _delay=call {
     _job set ["visitCursor",(_visitCursor+_visitBudget) mod (count _positions)];
     {
         private _visitor = _x;
-        if (alive _visitor && {local _visitor} && {!isPlayer _visitor}
-            && {lifeState _visitor != "INCAPACITATED"} && {group _visitor == _group}
+        if ([_visitor] call WAIT_fnc_CortexCombatEffective && {local _visitor} && {!isPlayer _visitor}
+            && {isNull (remoteControlled _visitor)}
+            && {([_visitor] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_visitor] call WAIT_fnc_CompatibilityExternalControl)} && {group _visitor == _group}
             && {isNull objectParent _visitor}) then {
             private _actual = getPosASL _visitor;
             {
