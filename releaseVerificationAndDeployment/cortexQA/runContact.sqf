@@ -645,6 +645,10 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerW
     _observerSupportThree,_observerSupportFour,_observerSupportFive],true];
 ["Danger FSM: observer cover and squad readiness","A real explosion occurs beside the separated wingman. The native danger record must retain him as its observer, the one bounded cover move must move that same soldier rather than the distant leader, and four ordinary riflemen must lower profile before the squad's loaded AT gunner.",getPosATL _observerWingman] call _phase;
 sleep 2;
+private _observerIdle=[{currentCommand _observerWingman == "" && {_observerWingman checkAIFeature "MOVE"}
+    && {_observerWingman checkAIFeature "PATH"}},25] call _wait;
+["DANGER-observer-idle-command-prerequisite",_observerIdle,
+    str [currentCommand _observerWingman,getPosATL _observerWingman,expectedDestination _observerWingman]] call _check;
 // Native formation may have moved the separated wingman during setup. Align the disposable
 // wall with his actual stimulus location; never freeze or reset the tested actor to fake readiness.
 _observerStart=getPosATL _observerWingman;
@@ -677,7 +681,7 @@ private _observerCover=[{
 ["DANGER-finite-group-hide",_observerGroupHide,str [_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]],
     [_observerSupportOne] call WAIT_fnc_CortexCapabilities,unitPos _observerSupportOne,
     unitPos _observerSupportTwo,unitPos _observerSupportThree,unitPos _observerSupportFour,unitPos _observerSupportFive]] call _check;
-["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
+["DANGER-exact-observer-physical-cover",_observerIdle && {_observerCover},str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
 private _observerGenerationClosed=[{
     (_observerGroup getVariable ["WAIT_Danger_FSM",[]]) isEqualTo []
         && {(_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]]) isEqualTo []}

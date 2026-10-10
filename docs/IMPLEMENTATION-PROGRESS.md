@@ -630,3 +630,5 @@ The continuation proof now refreshes the existing bounded stop request for nearb
 The new audit still consumed rifle ammunition without retaining a projectile. The fixture now handles the actual engine bullet inside FiredMan before scheduled delay and tracks real shot capture independently of projectile lifetime. No created bullet, scripted death, target reveal or WAIT danger injection is added. Physical casualty/body stimulus remains pending.
 
 Targetless contact-suite grenades now come from an excluded same-side actor. The earlier hidden hostile firer could still produce legitimate native enemy attribution, contradicting no-contact acceptance. Real projectile/explosion delivery remains required; enemy-acquisition cases retain their separate hostile fixtures. Physical retest remains pending.
+
+The observer-cover fixture now waits for a native idle command and reports MOVE/PATH readiness before the stimulus, without stopping/resetting the actor. Combined physical cover acceptance requires that prerequisite; native formation movement must not be misclassified as a WAIT cover failure. Retest remains pending.
