@@ -136,7 +136,9 @@ if (_desiredStance != "") then {
     private _groupLeaseIndex=_groupLeases findIf {(_x param [0,objNull]) == _actor};
     if (_groupLeaseIndex >= 0) then {
         private _groupLease=_groupLeases select _groupLeaseIndex;
-        if (_currentStance == (_groupLease param [2,"",[""]])) then {
+        if (_currentStance == (_groupLease param [2,"",[""]])
+            && {count _groupLease < 6 || {(_groupLease select 4) == (_group getVariable ["WAIT_OperationGeneration",0])
+                && {(_groupLease select 5) == (_group getVariable ["WAIT_AIPass_Epoch",0])}}}) then {
             _priorStance=_groupLease param [1,_currentStance,[""]];
         };
         _groupLeases deleteAt _groupLeaseIndex;

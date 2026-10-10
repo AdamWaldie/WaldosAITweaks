@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Apply or release one finite squad-level low-profile response after immediate incoming danger without taking movement, target or firing ownership.
  * Locality / Authority: Runs only on the owner of the local AI group from the existing group-brain step. It changes weak stance only for local, idle, on-foot actors not reserved by another WAIT operation.
- * Repeat/JIP: One generation-owned group lease records each actor's prior and applied weak stance. Repeated calls retain that lease; release restores only an unchanged WAIT-applied stance. Zeus, player, specialist, locality and newer-generation handover discard the lease without writing over the new owner.
+ * Repeat/JIP: One generation-owned group lease records each actor's prior and applied weak stance, operation generation and owner epoch. Repeated calls retain that lease; release restores only an unchanged WAIT-applied stance. Zeus, player, specialist, locality and newer-generation handover discard the lease without writing over the new owner.
  * Arguments: 0: group <GROUP>, grpNull; 1: danger generation <NUMBER>, -1; 2: active <BOOL>, false; 3: cause <STRING>, "".
  * Return Value: Boolean - true while one or more exact-owned squad stance leases remain active.
  * Current callers: WAIT_fnc_CortexGroupTick, WAIT_fnc_CortexReleaseGroup and WAIT_fnc_DangerSetup.
@@ -21,11 +21,25 @@ private _leases=_group getVariable ["WAIT_Danger_GroupHideLeases",[]];
 private _external=!local _group
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld};
+private _sameOwner={
+    params ["_proof"];
+    count _proof < 6 || {(_proof select 4) == (_group getVariable ["WAIT_OperationGeneration",0])
+        && {(_proof select 5) == (_group getVariable ["WAIT_AIPass_Epoch",0])}}
+};
+private _mayRestore={
+    params ["_proof"];
+    private _unit=_proof param [0,objNull,[objNull]];
+    [_proof] call _sameOwner
+        && {[_unit] call WAIT_fnc_CortexCombatEffective}
+        && {currentCommand _unit in ["","ATTACK","FIRE","SUPPRESS"]}
+        && {(_unit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+        && {(_unit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}
+};
 private _release={
     if (!_external) then {
         {
             _x params ["_unit","_prior","_applied"];
-            if (!isNull _unit && {alive _unit} && {local _unit} && {!isPlayer _unit}
+            if ([_x] call _mayRestore && {!isNull _unit} && {alive _unit} && {local _unit} && {!isPlayer _unit}
                 && {group _unit == _group} && {isNull objectParent _unit}
                 && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
                 && {toUpperANSI (unitPos _unit) == _applied}) then {
@@ -47,7 +61,7 @@ if (_leases isNotEqualTo []) exitWith {
         _x params ["_unit","_prior","_applied","_leaseGeneration"];
         // Generation replacement ends this finite posture. Dropping its record alone left
         // the old weak stance behind and made the next generation capture it as its baseline.
-        if (_leaseGeneration != _generation && {!isNull _unit} && {alive _unit}
+        if (_leaseGeneration != _generation && {[_x] call _mayRestore} && {!isNull _unit} && {alive _unit}
             && {local _unit} && {!isPlayer _unit} && {group _unit == _group}
             && {isNull objectParent _unit} && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
             && {currentCommand _unit == ""}
@@ -62,6 +76,7 @@ if (_leases isNotEqualTo []) exitWith {
         !isNull _unit && {alive _unit} && {local _unit} && {!isPlayer _unit}
             && {group _unit == _group} && {isNull objectParent _unit}
             && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+            && {[_x] call _sameOwner} && {[_unit] call WAIT_fnc_CortexCombatEffective}
             && {_leaseGeneration == _generation} && {toUpperANSI (unitPos _unit) == _applied}
     };
     if (count _valid != count _leases) then {
@@ -114,7 +129,8 @@ private _newLeases=[];
     private _applied=["MIDDLE","DOWN"] select (getSuppression _x > 0.55 && {_cause in ["HIT","SUPPRESSED"]});
     if (_prior != _applied) then {
         _x setUnitPosWeak _applied;
-        _newLeases pushBack [_x,_prior,_applied,_generation];
+        _newLeases pushBack [_x,_prior,_applied,_generation,
+            _group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0]];
     };
 } forEach _candidates;
 if (_newLeases isEqualTo []) exitWith {false};

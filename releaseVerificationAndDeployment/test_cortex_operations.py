@@ -6532,6 +6532,12 @@ class CortexOperations(unittest.TestCase):
         group_hide=source('dangerGroupHideStep')
         actor=source('dangerEngineAct')
         self.assertIn('WAIT_Danger_EngineStanceLease',group_hide)
+        for marker in ['WAIT_OperationGeneration','WAIT_AIPass_Epoch','private _mayRestore','[_x] call _mayRestore']:
+            self.assertIn(marker,group_hide)
+        release=group_hide.split('private _mayRestore=',1)[1].split('private _release=',1)[0]
+        self.assertIn('WAIT_Cortex_ActorMove',release)
+        self.assertIn('WAIT_fnc_CortexCombatEffective',release)
+        self.assertIn('WAIT_Danger_EngineStanceLease',release)
         self.assertIn('_groupLeaseIndex=_groupLeases findIf',actor)
         self.assertIn('_priorStance=_groupLease param [1,_currentStance',actor)
         self.assertIn('_groupLeases deleteAt _groupLeaseIndex',actor)
