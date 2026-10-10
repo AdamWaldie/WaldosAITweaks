@@ -157,7 +157,7 @@ if (_action == "RELEASE") exitWith {
     if (_remaining isNotEqualTo [] || {count _live == 5 && {(_live select 4) == _generation}
         && {time < (_live select 3)}}) then {0.25} else {-1}
 };
-if (!isNull _source && {alive _source} && {!captive _source}
+if (_action != "FORCED" && {!isNull _source} && {alive _source} && {!captive _source}
     && {!(_source getVariable ["ace_captives_isSurrendering",false])} && {(side _group) getFriend (side _source) < 0.6}
     && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
@@ -168,6 +168,14 @@ if (!isNull _source && {alive _source} && {!captive _source}
 // soldier boarding, healing, rearming or joining can be pulled into CONTACT by the same event that
 // correctly classified that task as authoritative.
 if (_action == "FORCED") exitWith {
+    private _retainedAction=_group getVariable ["WAIT_Danger_Action",[]];
+    private _anotherWitness=count _retainedAction >= 6
+        && {(_retainedAction param [4,-1,[0]]) == _generation}
+        && {time < (_retainedAction param [3,-1,[0]])}
+        && {(_retainedAction param [5,objNull,[objNull]]) != _observer};
+    // A forced task on one actor is not authority to erase another actor's finite response.
+    // Keep its existing expiry; this event neither refreshes it nor wakes a new tactical job.
+    if (_anotherWitness) exitWith {0.25};
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",nil,true];
     _group setVariable ["WAIT_Danger_Action",nil,true];

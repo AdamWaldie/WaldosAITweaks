@@ -394,7 +394,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('time+_responseLifetime',step)
         self.assertIn('time >= (_existing select 3)',step)
         self.assertIn('if (_action == "FORCED") exitWith {',step)
-        forced_handoff=step.split('if (_action == "FORCED") exitWith {',1)[1].split('};',1)[0]
+        forced_handoff=step.split('if (_action == "FORCED") exitWith {',1)[1].split('// This is a finite handoff',1)[0]
+        self.assertIn('if (_anotherWitness) exitWith {0.25}',forced_handoff)
+        self.assertIn('(_retainedAction param [5,objNull,[objNull]]) != _observer',forced_handoff)
         self.assertIn('WAIT_Danger_Response",nil,true',forced_handoff)
         self.assertIn('WAIT_Danger_Action",nil,true',forced_handoff)
         self.assertIn('deleteAt "responsiveUntil"',forced_handoff)
@@ -1021,7 +1023,7 @@ class CortexOperations(unittest.TestCase):
         forced=danger.split('if (_action == "FORCED") exitWith',1)[1].split('// This is a finite handoff',1)[0]
         self.assertIn('if (_remaining isNotEqualTo []) then {0.25} else {-1}',forced)
         assessment=source('dangerStep')
-        refusal=assessment.split('if (_action == "RELEASE") exitWith',1)[1].split('if (!isNull _source',1)[0]
+        refusal=assessment.split('if (_action == "RELEASE") exitWith',1)[1].split('if (_action != "FORCED"',1)[0]
         self.assertNotIn('setVariable',refusal)
         self.assertNotIn('GroupBrainStart',refusal)
         self.assertIn('_remaining isNotEqualTo []',refusal)
