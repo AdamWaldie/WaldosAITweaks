@@ -966,6 +966,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        manoeuvre=source('cortexFlankStep')
+        target_guard=manoeuvre.split('private _intentTarget=',1)[1].split('// A queued drill',1)[0]
+        self.assertIn('captive _intentTarget',target_guard)
+        self.assertIn('"TARGET_NO_LONGER_HOSTILE" call _end',target_guard)
+        self.assertNotIn('!alive _intentTarget',target_guard)
+        self.assertLess(manoeuvre.index('"TARGET_NO_LONGER_HOSTILE"'),manoeuvre.index('_group setSpeedMode "FULL"'))
         self.assertIn('(side _group) getFriend (side _enemy) < 0.6',source('cortexKnowledge'))
         self.assertIn('!captive (_x select 0)',source('cortexKnowledge'))
         classifier=source('dangerActionSelect')

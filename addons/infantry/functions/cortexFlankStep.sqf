@@ -129,6 +129,15 @@ if (_operationGeneration >= 0) then {
 if (_operationEndReason != "") exitWith {_operationEndReason call _end};
 // External control and replacement orders win before any mode or movement mutation.
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _end};
+private _intentTarget=_drill getOrDefault ["target",objNull];
+// Retain a clear-through after a casualty, but surrender or a side change ends hostile intent.
+// Never continue a committed approach against a now-protected object merely because its old
+// native position remains in the drill's route record.
+if (!isNull _intentTarget && {captive _intentTarget
+    || {(side _group) getFriend (side _intentTarget) >= 0.6}}) exitWith {
+    "TARGET_NO_LONGER_HOSTILE" call _end
+};
+
 // A queued drill can run after a new direct owner appears. Recheck only at actual command
 // writes; route scoring and progress accounting remain bounded and do not issue movement.
 private _actorTaskFree={
