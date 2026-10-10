@@ -351,16 +351,31 @@ _contactCrewGroup setCombatMode "RED";
 private _contactFootLeader=_contactCrewGroup createUnit ["O_Soldier_F",[1635,1050,0],[],0,"NONE"];
 _contactFootLeader allowDamage false;
 _contactFootLeader disableAI "PATH";
-_contactFootLeader disableAI "TARGET";
-_contactFootLeader disableAI "AUTOTARGET";
+// Keep native aiming available: disabling TARGET/AUTOTARGET also compromises carried
+// grenade orientation and is unnecessary for testing the mounted observer domain.
 _contactFootLeader setVariable ["WAIT_CortexQA_Label","MIXED GROUP FOOT LEADER",true];
 _contactCrewGroup selectLeader _contactFootLeader;
+private _contactThrowHandler=_contactFootLeader addEventHandler ["FiredMan",{
+    params ["_actor","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
+    if (_weapon != "Throw") exitWith {};
+    private _contact=(group _actor) getVariable ["WAIT_CortexQA_ThrowContact",objNull];
+    private _velocity=velocity _projectile;
+    private _valid=!isNull _contact && {!isNull _projectile}
+        && {((_velocity select 0)^2+(_velocity select 1)^2) > 0.01};
+    private _bearing=if (_valid) then {_actor getDir _contact} else {-1};
+    private _launch=if (_valid) then {(_velocity select 0) atan2 (_velocity select 1)} else {-1};
+    private _error=if (_valid) then {abs (((_launch-_bearing+540) % 360)-180)} else {-1};
+    diag_log format ["WAIT MIXED GROUP THROW: %1",[netId _actor,_magazine,_valid,_bearing,_launch,_error,
+        _actor getVariable ["WAIT_Cortex_ThrowTracePending",[]],currentCommand _actor,
+        _actor checkAIFeature "TARGET",_actor checkAIFeature "AUTOTARGET"]];
+}];
 private _contactEnemyGroup=createGroup [west,true];
 [_contactEnemyGroup] call _pin;
 _contactEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 _contactEnemyGroup setCombatMode "BLUE";
 private _contactEnemy=_contactEnemyGroup createUnit ["B_Soldier_F",[1650,1075,0],[],0,"NONE"];
 _contactEnemy allowDamage false;
+_contactCrewGroup setVariable ["WAIT_CortexQA_ThrowContact",_contactEnemy];
 _contactEnemy disableAI "PATH";
 _contactEnemy setDir 180;
 _contactEnemy setVariable ["WAIT_CortexQA_Label","MOUNTED DANGER HOSTILE",true];
@@ -493,6 +508,8 @@ private _gunnerRecovered=[{
 ["DANGER-VEHICLE-driver-role-preserved",_recoveryPrerequisite
         && {alive _recoveryDriver} && {driver _contactVehicle == _recoveryDriver},
     str [_recoveryDriver,driver _contactVehicle,assignedVehicleRole _recoveryDriver]] call _check;
+_contactFootLeader removeEventHandler ["FiredMan",_contactThrowHandler];
+_contactCrewGroup setVariable ["WAIT_CortexQA_ThrowContact",nil];
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
 {deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_recoveryEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;
