@@ -321,3 +321,5 @@ Aircraft resume validates local group authority and the stored authored position
 Aircraft attack cleanup resets speed and restores its pilot feature switches only while the original AIR_ATTACK flight lease remains valid. A newer landing, braking, evasion or attack owner keeps its controls. Pilot feature restoration also requires eligible local ordinary control. Physical flight-owner transition acceptance remains pending.
 
 Flight lease acquisition and validation both require a combat-effective current pilot, excluding unconscious, incapacitated, captive, surrendering or detained actors. The lease itself has no time-based expiry; finite controller deadlines govern release. Reacquisition retains identity rather than promising an expiry refresh. Physical pilot-incapacitation acceptance remains pending.
+
+Operation start, cancellation and release reuse danger posture only from an unexpired response matching the current danger generation. An older response cannot be renewed merely because its timestamp has not elapsed after reset or handover. Physical disable/reset and migration transition acceptance remains pending.

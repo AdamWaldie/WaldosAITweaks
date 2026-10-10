@@ -37,7 +37,9 @@ _group setVariable ["WAIT_OperationResult",[_operation getOrDefault ["intent",""
 // bounded context after the movement owner is gone, so the group keeps its combat posture without
 // receiving a second route, target or firing controller. External ownership is rejected downstream.
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
-if (_operation getOrDefault ["dangerPosture",false] && {count _dangerResponse == 5} && {time < (_dangerResponse select 3)}) then {
+if (_operation getOrDefault ["dangerPosture",false] && {count _dangerResponse == 5}
+    && {(_dangerResponse select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerResponse select 3)}) then {
     private _dangerEvent=_dangerResponse select [0,4];
     private _dangerAction=[_group,_dangerEvent] call WAIT_fnc_DangerActionSelect;
     [_dangerActor,_dangerEvent select 0,_dangerEvent select 1,_dangerAction] call WAIT_fnc_DangerReact;
