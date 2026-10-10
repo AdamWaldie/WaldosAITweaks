@@ -119,6 +119,29 @@ private _supportHeld=_state getOrDefault ["supportHeld",[]];
     };
 } forEach _supportHeld;
 {_state deleteAt _x} forEach ["supportHeld","supportBoundSequence","supportToken","responding","assaulting","respondingTo","respondUntil"];
+// Withdrawal is an ordinary finite operation. It owns one route and can therefore be cancelled
+// immediately by Zeus, an external controller or locality migration through the common lifecycle.
+// A resumed locality handover receives a fresh generation after the former owner has retired its
+// prior local generation; it never resurrects an old route over a later order.
+private _participants=(units _group) select {
+    alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
+        && {lifeState _x != "INCAPACITATED"}
+};
+private _operation=[_group,"WITHDRAW",_point,_participants,[_point],"MOVING"] call WAIT_fnc_OperationStart;
+if (count _operation == 0) exitWith {
+    [_group,"INFANTRY_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
+    _group setVariable ["WAIT_Cortex_Withdrawal",["OWNER_LOST",0,0],true];
+    false
+};
+private _generation=_operation get "generation";
+private _waypoint=[_group,_point,30,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) exitWith {
+    [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+    [_group,"INFANTRY_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
+    _group setVariable ["WAIT_Cortex_Withdrawal",["MOVEMENT_REJECTED",0,0],true];
+    false
+};
+_state set ["withdrawOperationGeneration",_generation];
 if (!("baseAttack" in _state)) then {
     _state set ["baseAttack",attackEnabled _group];
     _state set ["attackChanged",attackEnabled _group];
@@ -138,22 +161,7 @@ if (behaviour _leader != "AWARE") then {
     _state set ["behaviourChanged",true];
     _group setBehaviour "AWARE";
 };
-// Withdrawal is an ordinary finite operation. It owns one route and can therefore be cancelled
-// immediately by Zeus, an external controller or locality migration through the common lifecycle.
-// A resumed locality handover receives a fresh generation after the former owner has retired its
-// prior local generation; it never resurrects an old route over a later order.
-private _participants=(units _group) select {
-    alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
-        && {lifeState _x != "INCAPACITATED"}
-};
-private _operation=[_group,"WITHDRAW",_point,_participants,[_point],"MOVING"] call WAIT_fnc_OperationStart;
-if (count _operation == 0) exitWith {
-    [_group,"INFANTRY_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
-    _group setVariable ["WAIT_Cortex_Withdrawal",["OWNER_LOST",0,0],true];
-    false
-};
-_state set ["withdrawOperationGeneration",_operation get "generation"];
-[_group, _point, 30] call WAIT_fnc_CortexGroupMove;
+
 private _origin = if (_resuming) then {+(_resume select 1)} else {getPosATL _leader};
 private _startedAt = if (_resuming) then {_resume select 4} else {serverTime};
 private _replans = if (_resuming) then {_resume select 5} else {0};
