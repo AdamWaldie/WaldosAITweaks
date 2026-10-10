@@ -47,6 +47,18 @@ private _delay=call {
         };
         _restore=_restore && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
+        // One bounded terminal snapshot preserves the route which actually failed before cleanup
+        // clears actors' destinations. No geometry query or recurring trace is added to the hot path.
+        private _routeActors=+(_job getOrDefault ["team",[]]);
+        _routeActors resize ((count _routeActors) min 16);
+        private _routeStates=+(_job getOrDefault ["pairStates",[]]);
+        _routeStates resize ((count _routeStates) min 8);
+        private _routeEvidence=[serverTime,_reason,_routeStates,_routeActors apply {
+            [netId _x,getPosATL _x,currentCommand _x,expectedDestination _x,
+                _x checkAIFeature "MOVE",_x checkAIFeature "PATH"]
+        }];
+        _group setVariable ["WAIT_Cortex_ClearRouteEvidence",_routeEvidence,true];
+        diag_log format ["WAIT CLEAR ROUTE END: %1",_routeEvidence];
         if (!isNull _group) then {
             private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
             if (isNull _leader) then {_leader=leader _group};
