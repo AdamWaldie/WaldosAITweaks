@@ -57,7 +57,9 @@ deleteGroup _generationProbeGroup;
 // is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
 // after the engine has delivered the explosion.
 private _spawnRealGrenade={
-    params [["_position",[0,0,0],[[]]],["_sourceSide",east,[east]]];
+    // Functional reaction fixtures default to a hostile shot. Friendly hazard delivery
+    // remains an explicitly selected comparison, because native FSM intake differs.
+    params [["_position",[0,0,0],[[]]],["_sourceSide",west,[east]]];
     private _sourceGroup=createGroup [_sourceSide,true];
     _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _sourceGroup setVariable ["acex_headless_blacklist",true,true];
