@@ -131,6 +131,24 @@ if (count _record >= 10) exitWith {
         _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"YIELDED",serverTime],true];
         "YIELDED"
     };
+    // Initial recognition can carry a poor native position estimate. Refresh only the same
+    // observed target's sector before assembly; the committed deployment position stays fixed.
+    if (_status in ["MOVING","DROPPING","ASSEMBLING"]) then {
+        private _sectorTarget=_record param [18,objNull,[objNull]];
+        private _observations=_enemies select [0,8];
+        private _observationIndex=_observations findIf {
+            (_x param [0,objNull,[objNull]]) == _sectorTarget && {!isNull _sectorTarget}
+        };
+        if (_observationIndex >= 0) then {
+            private _observedPosition=(_observations select _observationIndex) param [1,[],[[]]];
+            if (count _observedPosition == 3
+                && {_observedPosition findIf {!(_x isEqualType 0)} < 0}
+                && {_observedPosition distance2D (_record param [11,_observedPosition,[[]]]) > 1}) then {
+                _record set [11,+_observedPosition];
+                _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+            };
+        };
+    };
     if (_phase == "CONTACT" && {_status == "PACK_MOVING"}
         && {!isNull _gunner} && {alive _gunner} && {local _gunner}
         && {!isNull _assistant} && {alive _assistant} && {local _assistant}
@@ -496,6 +514,7 @@ private _deadline=time+18;
 // task, not a group stop; native targets/fire remain available and failure cleanup resumes follow.
 if (_gunner distance2D _deployPos <= 0.5) then {doStop _gunner};
 _record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos,-1];
+_record set [18,(_enemies select 0) param [0,objNull,[objNull]]];
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];
 "MOVING"

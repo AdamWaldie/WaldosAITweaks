@@ -863,6 +863,12 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,deploy)
         self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
         self.assertIn('_current set [7,_assembled]',deploy)
+        self.assertIn('private _observations=_enemies select [0,8]',deploy)
+        self.assertIn('_record set [18,(_enemies select 0) param [0,objNull,[objNull]]]',deploy)
+        sector=deploy.split('// Initial recognition can carry',1)[1].split('if (_phase == "CONTACT" && {_status == "PACK_MOVING"}',1)[0]
+        self.assertIn('_record set [11,+_observedPosition]',sector)
+        self.assertNotIn('_record set [5,',sector)
+        self.assertNotIn('getPosATL _sectorTarget',sector)
         self.assertIn('gunner _assembled == _actor',deploy)
         self.assertIn('crew _assembled findIf {_x != _actor} < 0',deploy)
         self.assertIn('_current set [17,true]',deploy)
