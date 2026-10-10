@@ -746,13 +746,28 @@ _coverInterruptUnit setVariable ["acex_headless_blacklist",true,true];
 _coverInterruptUnit setVariable ["WAIT_CortexQA_Label","ACTIVE COVER HANDOVER",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_coverInterruptUnit],true];
 ["Danger cover: active native replacement","A real explosion must first create a production cover move. An ordinary replacement doMove must then retire that lease and reach its own destination without WAIT returning to the old cover route.",getPosATL _coverInterruptUnit] call _phase;
-private _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90],west] call _spawnRealGrenade;
+// Do not expend a one-shot engine stimulus before WAIT has adopted this fresh group.
+private _coverInterruptReady=[{
+    local _coverInterruptGroup && {_coverInterruptGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {(_coverInterruptGroup getVariable ["WAIT_AIPass_Epoch",0]) > 0}
+        && {_coverInterruptUnit checkAIFeature "PATH"} && {_coverInterruptUnit checkAIFeature "MOVE"}
+},20] call _wait;
+["DANGER-cover-active-fixture-ready",_coverInterruptReady,
+    str [_coverInterruptGroup getVariable ["WAIT_AIPass_Managed",false],
+        _coverInterruptGroup getVariable ["WAIT_AIPass_Epoch",0],currentCommand _coverInterruptUnit]] call _check;
+private _coverInterruptGrenade=objNull;
+if (_coverInterruptReady) then {
+    _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90],west] call _spawnRealGrenade;
+};
 private _coverInterruptStarted=[{
     private _lease=_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]];
     count _lease >= 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
 },16] call _wait;
-["DANGER-cover-active-replacement-prerequisite",_coverInterruptStarted,
-    str (_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]])] call _check;
+["DANGER-cover-active-replacement-prerequisite",_coverInterruptReady && {_coverInterruptStarted},
+    str [_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverDecision",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverBlockedContext",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
 private _coverInterruptDestination=(getPosATL _coverInterruptUnit) getPos [25,0];
 _coverInterruptUnit doMove _coverInterruptDestination;
 private _coverInterruptReleased=[{
