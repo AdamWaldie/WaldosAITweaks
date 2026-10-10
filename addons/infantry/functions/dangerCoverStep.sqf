@@ -96,6 +96,7 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
     && {currentCommand _actor in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}) exitWith {true};
 private _arrived=false;
+private _timedOut=false;
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
     private _distance=if (isNull _leasedActor) then {-1} else {_leasedActor distance2D _leasedSpot};
@@ -106,6 +107,7 @@ if (count _lease >= 4) then {
         }
     };
     _arrived=_endReason == "AT_DESTINATION";
+    _timedOut=_endReason == "TIMEOUT" && {_leasedActor == _actor} && {_leasedGeneration == _generation};
     // One owner-local observation, not an accumulating history or proof of effective screening.
     _group setVariable ["WAIT_Danger_CoverEnd",[time,_leasedActor,_leasedGeneration,_endReason,_distance,_height,+_leasedSpot,clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]];
     if (!isNull _leasedActor) then {
@@ -135,6 +137,8 @@ if (count _lease >= 4) then {
     _group setVariable ["WAIT_Danger_CoverLease",nil];
 };
 if (_arrived) exitWith {["AT_DESTINATION"] call _clearLease};
+// A deadline is terminal for this observation, not permission to recommit the same failed route.
+if (_timedOut) exitWith {["TIMEOUT"] call _clearLease};
 if (_releaseOnly) exitWith {["RELEASED"] call _clearLease};
 if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
@@ -163,7 +167,7 @@ private _origin=getPosATL _actor;
 // excluded useful nearby side cover before its threat screening could be evaluated.
 private _decision=_group getVariable ["WAIT_Danger_CoverDecision",[]];
 private _sameSearch=count _decision >= 4 && {(_decision select 2) == _actor} && {(_decision select 3) == _generation};
-if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT","AT_DESTINATION"]}) exitWith {false};
+if (_sameSearch && {(_decision select 0) in ["NO_SCREEN","NO_DISPLACEMENT","AT_DESTINATION","TIMEOUT"]}) exitWith {false};
 // A failed solid-cover search must not repeat every scheduler tick when visual fallback is disabled.
 // A newer danger generation permits a fresh assessment.
 if (_sameSearch && {(_decision select 0) == "NO_VALID_COVER"}

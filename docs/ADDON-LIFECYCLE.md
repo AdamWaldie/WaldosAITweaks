@@ -267,3 +267,5 @@ Normal CALM restoration preserves stance and targeting during explicit external 
 Cover-height stance checks inspect at most twelve members and cast at most six rays per group step. The existing rotating cursor advances for every inspected actor, including ineligible members, so large or specialist-heavy groups do not cause an unbounded eligibility scan or permanently starve later members. Frame-time acceptance remains pending.
 
 The cover-height stance entry point rejects null or non-local groups, current Zeus holds and declared group external control before geometry work or posture changes. Per-actor specialist checks remain separate so ordinary members of a mixed specialist group can participate. Direct-call and locality-handover physical acceptance remains pending.
+
+Danger-cover timeout is terminal for the current actor and danger generation. Exact-owned reservation cleanup and eligible failed-approach recovery still run, but the same observation cannot immediately search and recommit its failed destination. A new danger generation permits reassessment. Physical blocked-cover acceptance remains pending.
