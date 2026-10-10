@@ -6,7 +6,8 @@
  * to player, Zeus, specialist, native-command and WAIT-operation ownership before selecting or issuing movement.
  * Repeat/JIP: One group lease coalesces a danger burst. Each call either retains, releases or creates
  * one finite move. Physical arrival releases the movement reservation immediately; the deadline is a failure bound.
- * A locality or generation change retires it without restoring over newer work.
+ * A locality or generation change retires it without restoring over newer work. Failed approach cleanup
+ * checks both horizontal distance and floor band, and follows only while the expected destination still matches.
  * Arguments: 0 group <GROUP>; 1 actor <OBJECT>; 2 threat position <ARRAY>; 3 danger generation <NUMBER>;
  * 4 release-only <BOOL>, false - retire the owned lease without recovery or new movement.
  * Return Value: Boolean - true while WAIT owns a finite danger-cover move, otherwise false.
@@ -122,9 +123,10 @@ if (count _lease >= 4) then {
                 && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
                 // Successful arrival is useful cover, not a reason to run back across exposure.
                 // Only a failed owned approach needs this bounded return-to-formation recovery.
-                && {_leasedActor distance2D _leasedSpot > 2}
+                && {_distance > 2 || {_height > 1.5}}
                 && {_leasedActor checkAIFeature "MOVE"} && {_leasedActor checkAIFeature "PATH"}
                 && {((expectedDestination _leasedActor) select 0) distance2D _leasedSpot <= 1}
+                && {abs ((((expectedDestination _leasedActor) select 0) param [2,0])-(_leasedSpot param [2,0])) <= 1.5}
                 && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
                 && {!([_group] call WAIT_fnc_CortexZeusHeld)}

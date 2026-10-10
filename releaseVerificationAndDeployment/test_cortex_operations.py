@@ -6858,8 +6858,9 @@ class CortexOperations(unittest.TestCase):
     def test_cover_arrival_does_not_force_return_into_exposure(self):
         text=source('dangerCoverStep')
         cleanup=text.split('if (count _lease >= 4) then {',1)[1].split('_group setVariable ["WAIT_Danger_CoverLease",nil];',1)[0]
-        self.assertIn('_leasedActor distance2D _leasedSpot > 2',cleanup)
-        self.assertLess(cleanup.index('_leasedActor distance2D _leasedSpot > 2'),cleanup.index('doFollow'))
+        self.assertIn('_distance > 2 || {_height > 1.5}',cleanup)
+        self.assertIn('abs ((((expectedDestination _leasedActor) select 0) param [2,0])-(_leasedSpot param [2,0])) <= 1.5',cleanup)
+        self.assertLess(cleanup.index('_distance > 2 || {_height > 1.5}'),cleanup.index('doFollow'))
 
     def test_remount_progress_removes_completed_passengers_without_extending_deadline(self):
         text=source('cortexGroupTick')
