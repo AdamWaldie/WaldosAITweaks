@@ -31,11 +31,22 @@ private _originalParticipants=_declaredParticipants select {
 // failed path into a group-wide retry loop or fabricate the actor's progress.
 private _recovery=_operation getOrDefault ["recovery",createHashMap];
 private _unavailable=_operation getOrDefault ["unavailable",[]];
+private _temporarilyOwned=[];
 {
     private _actor=_x;
     private _key=netId _actor;
     private _record=_recovery getOrDefault [_key,[]];
-    if (_record isEqualType [] && {count _record >= 2}) then {
+    private _move=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _reserved=_move isNotEqualTo [] && {!(_move isEqualType []) || {count _move != 3}
+        || {!((_move select 2) isEqualType 0)} || {time < (_move select 2)}};
+    private _nativeTask=currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"];
+    if (_reserved || {_nativeTask}) then {
+        // A newer owner invalidates this recovery observation, not the actor's capability.
+        // Keep its retry count in recoveryAttempts; retire no other actor's route or record.
+        _recovery deleteAt _key;
+        _temporarilyOwned pushBack _actor;
+    };
+    if (!_reserved && {!_nativeTask} && {_record isEqualType []} && {count _record >= 2}) then {
         _record params ["_attempts","_startedAt",["_destination",[],[[]]],["_startPosition",getPosATL _actor,[[]]]];
         if (_attempts > 0 && {time-_startedAt >= _staleSeconds}) then {
             private _currentPosition=getPosATL _actor;
@@ -63,7 +74,7 @@ private _recovering=[];
         _recovering pushBack _actor;
     };
 } forEach _originalParticipants;
-private _participants=_originalParticipants select {!(_x in _unavailable) && {!(_x in _recovering)}};
+private _participants=_originalParticipants select {!(_x in _unavailable) && {!(_x in _recovering)} && {!(_x in _temporarilyOwned)}};
 private _records=_operation getOrDefault ["participantProgress",[]];
 private _updated=[];
 private _progressed=false;
