@@ -72,14 +72,17 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 // Keep all original comparisons above, including their failures.
 {
     _x params ["_size","_class"];
-    private _house=createVehicle [_class,[6250,5800,0],[],0,"NONE"];
+    private _site=[6550+_forEachIndex*200,5800,0];
+    private _house=createVehicle [_class,_site,[],0,"NONE"];
     _house enableSimulationGlobal true;
+    private _otherBuildings=(nearestObjects [_site,["House"],50,true])-[_house];
+    [format ["CLEAR-fresh-%1-site-isolated",_size],_otherBuildings isEqualTo [],str [_site,_otherBuildings]] call _check;
     private _group=createGroup [east,true];
     _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _group setVariable ["acex_headless_blacklist",true,true];
     private _members=[];
     for "_i" from 0 to (_size-1) do {
-        private _unit=_group createUnit ["O_Soldier_F",[6235+(_i mod 4)*4,5760-floor(_i/4)*4,0],[],0,"NONE"];
+        private _unit=_group createUnit ["O_Soldier_F",_site vectorAdd [-15+(_i mod 4)*4,-40-floor(_i/4)*4,0],[],0,"NONE"];
         _unit setVariable ["acex_headless_blacklist",true,true];
         _unit setVariable ["WAIT_CortexQA_Label",format ["FRESH CLEAR %1 / soldier %2",_size,_i+1],true];
         _members pushBack _unit;
@@ -151,7 +154,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     };
     // Exercise natural completion/failure cleanup before invoking any explicit release.
     // A fresh ordinary waypoint must take control even when some rooms were unreachable.
-    private _destination=[6325,5770,0];
+    private _destination=_site vectorAdd [75,-30,0];
     private _beforeMove=_members apply {getPosATL _x};
     private _waypoint=_group addWaypoint [_destination,0];
     _waypoint setWaypointType "MOVE";
@@ -176,14 +179,15 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 
 // A casualty inside the clearing element must not strand the shared room queue. Use ten soldiers
 // so the production room-limited entry element leaves genuine reserves available as replacements.
-private _casualtyHouse=createVehicle ["Land_i_House_Big_01_V1_F",[6250,5800,0],[],0,"NONE"];
+private _casualtySite=[7150,5800,0];
+private _casualtyHouse=createVehicle ["Land_i_House_Big_01_V1_F",_casualtySite,[],0,"NONE"];
 _casualtyHouse enableSimulationGlobal true;
 private _casualtyGroup=createGroup [east,true];
 _casualtyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _casualtyGroup setVariable ["acex_headless_blacklist",true,true];
 private _casualtyMembers=[];
 for "_i" from 0 to 9 do {
-    private _unit=_casualtyGroup createUnit ["O_Soldier_F",[6230+(_i mod 5)*4,5760-floor(_i/5)*4,0],[],0,"NONE"];
+    private _unit=_casualtyGroup createUnit ["O_Soldier_F",_casualtySite vectorAdd [-20+(_i mod 5)*4,-40-floor(_i/5)*4,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["CQB CASUALTY / soldier %1",_i+1],true];
     _casualtyMembers pushBack _unit;
@@ -242,14 +246,15 @@ deleteGroup _casualtyGroup;
 deleteVehicle _casualtyHouse;
 
 // Exercise door handling through the real clearance job, never by calling its helper directly.
-private _doorHouse=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
+private _doorSite=[7350,5800,0];
+private _doorHouse=createVehicle ["Land_i_House_Small_01_V1_F",_doorSite,[],0,"NONE"];
 _doorHouse enableSimulationGlobal true;
 private _doorGroup=createGroup [east,true];
 _doorGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _doorGroup setVariable ["acex_headless_blacklist",true,true];
 private _doorMembers=[];
 for "_i" from 0 to 1 do {
-    private _unit=_doorGroup createUnit ["O_Soldier_F",[6250+_i*3,5770,0],[],0,"NONE"];
+    private _unit=_doorGroup createUnit ["O_Soldier_F",_doorSite vectorAdd [_i*3,-30,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["DOOR ORDER %1",_i+1],true];
     _doorMembers pushBack _unit;
@@ -293,7 +298,8 @@ deleteVehicle _doorHouse;
 // no reveal, direct clear call, target assignment or movement command is injected after spawning.
 // The production contact brain must first acquire the hostile through the engine, identify that the
 // fresh contact is physically inside the house, and hand the same squad to the building operation.
-private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
+private _contactSite=[7550,5800,0];
+private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",_contactSite,[],0,"NONE"];
 _contactHouse enableSimulationGlobal true;
 private _contactRooms=_contactHouse buildingPos -1;
 private _contactGroup=createGroup [east,true];
@@ -305,7 +311,7 @@ private _contactOpposition=createGroup [west,true];
 _contactOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
 private _contactMembers=[];
 for "_i" from 0 to 5 do {
-    private _unit=_contactGroup createUnit ["O_Soldier_F",[6238+(_i mod 3)*3,5762-floor(_i/3)*3,0],[],0,"NONE"];
+    private _unit=_contactGroup createUnit ["O_Soldier_F",_contactSite vectorAdd [-12+(_i mod 3)*3,-38-floor(_i/3)*3,0],[],0,"NONE"];
     _unit allowDamage false;
     _unit setDir (_unit getDir _contactHouse);
     _unit setVariable ["acex_headless_blacklist",true,true];
