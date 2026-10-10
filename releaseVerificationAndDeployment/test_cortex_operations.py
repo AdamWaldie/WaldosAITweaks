@@ -1293,7 +1293,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_operation getOrDefault ["ownerEpoch",-1]',rebalance)
         self.assertIn('private _blocked=(_operation getOrDefault ["unavailable",[]])+_excluded',rebalance)
         flank=source('cortexFlankStep')
-        self.assertIn('[_group,_operationGeneration,count _units,[]] call WAIT_fnc_RebalanceRoles;',flank)
+        self.assertIn('[_group,_operationGeneration,count _units,(units _group)-_units] call WAIT_fnc_RebalanceRoles;',flank)
         self.assertNotIn('[_group,_operationGeneration,count _units,_units] call WAIT_fnc_RebalanceRoles;',flank)
         self.assertEqual(recovery.count('_actor doMove _destination'),1)
         self.assertNotIn('setDestination [_destination',recovery)

@@ -277,7 +277,9 @@ if (_operationGeneration >= 0) then {
     // The drill's live units are the desired operation participants, not an exclusion list. Passing
     // them as excluded removed the whole active element from physical-progress accounting and could
     // make the operation appear leader-only or stalled after an otherwise valid casualty rebalance.
-    [_group,_operationGeneration,count _units,[]] call WAIT_fnc_RebalanceRoles;
+    // Exclude actors outside the committed live element, rather than admitting unrelated
+    // security or support actors whose movement could mask a stalled bound.
+    [_group,_operationGeneration,count _units,(units _group)-_units] call WAIT_fnc_RebalanceRoles;
 };
 if (_reinforcements isNotEqualTo []) then {
     private _history=_group getVariable ["WAIT_Cortex_DrillReinforcements",[]];
