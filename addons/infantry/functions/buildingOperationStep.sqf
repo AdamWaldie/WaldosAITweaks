@@ -364,6 +364,12 @@ private _delay=call {
                     private _target=[_positions select _positionIndex,_entryTarget] select _approachingEntry;
                     private _issue=_lastTarget != _positionIndex;
                     private _point=_pair select (_moverIndex mod count _pair);
+                    private _bestDistance=_state param [13,1e12,[0]];
+                    private _bestTarget=_state param [14,[],[[]]];
+                    if (_bestTarget isNotEqualTo _target) then {
+                        _bestTarget=+_target;
+                        _bestDistance=(getPosATL _point) vectorDistance _target;
+                    };
                     private _supportTarget=[];
                     if (count _pair > 1) then {
                         _supportTarget=if (_approachingEntry) then {
@@ -431,7 +437,9 @@ private _delay=call {
                         // Walking can be legitimate navigation without approaching this node.
                         // Keep local no-progress observation alive, but only approach progress
                         // renews the operation budget; circles cannot extend it indefinitely.
-                        if ((_moverPrevious vectorDistance _target)-((getPosATL _point) vectorDistance _target) >= 1) then {
+                        private _targetDistance=(getPosATL _point) vectorDistance _target;
+                        if (_bestDistance-_targetDistance >= 1) then {
+                            _bestDistance=_targetDistance;
                             _job set ["deadline",(_job get "deadline") max (serverTime+120)];
                         };
                         _job set ["lastProgressAt",serverTime];
@@ -524,6 +532,7 @@ private _delay=call {
                     _state set [9,_entryIndex]; _state set [10,_triedEntries];
                     _state set [11,_roomsCleared];
                     _state set [12,_entered];
+                    _state set [13,_bestDistance]; _state set [14,_bestTarget];
                 };
             };
         };
