@@ -891,7 +891,13 @@ if (_hcOwners isNotEqualTo []) then {
         && {(_zeusSnapshot select 5) == (_replacementWP select 1)},str _zeusSnapshot] call _check;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _migrateCrew;
     private _replacementArrived=[{_migrateArmour distance2D _replacement <= 22},100] call _wait;
-    ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},str getPosATL _migrateArmour] call _check;
+    ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},
+        str [getPosATL _migrateArmour,forcedSpeed _migrateArmour,vehicleMoveInfo _migrateArmour,
+            currentCommand driver _migrateArmour,behaviour driver _migrateArmour,
+            owner _migrateArmour,groupOwner _migrateGroup,
+            _migrateGroup getVariable ["WAIT_VehicleReverse",[]],
+            _migrateArmour getVariable ["WAIT_VehicleReverseOwner",[]],
+            _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap]]] call _check;
     private _stayedReleased=_replacementArrived;
     for "_sample" from 1 to 12 do {
         sleep 1;
