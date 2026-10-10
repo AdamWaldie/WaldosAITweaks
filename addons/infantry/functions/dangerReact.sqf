@@ -95,7 +95,13 @@ private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["
 // Exact ownership is required; an external mode change and BLUE/GREEN orders remain authoritative.
 private _keepEngagement=_combatIntact && {_appliedCombat == "RED"};
 private _desiredCombat=if (_engaging || {_keepEngagement}) then {"RED"} else {"YELLOW"};
-if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
+// A committed tactical drill owns its YELLOW discipline. Danger response may retain
+// posture but cannot turn that exact lease into RED and falsely trigger ROE_CHANGED.
+private _tacticalState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+private _tacticalMode=(_tacticalState getOrDefault ["drill",createHashMap]) getOrDefault ["groupCombatMode",[]];
+private _tacticalModeOwned=count _operation > 0 && {count _tacticalMode == 2}
+    && {combatMode _group == (_tacticalMode select 1)};
+if (!_tacticalModeOwned && {_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}}) then {
     if (combatMode _group != _desiredCombat) then {_group setCombatMode _desiredCombat};
     _appliedCombat=_desiredCombat;
 };

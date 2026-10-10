@@ -206,7 +206,8 @@ if (count _movementLease == 2 && {(_movementLease select 0) == "TACTICAL_DRILL"}
 // There is no casualty event handler or per-unit scheduler. A change during a live bound restarts
 // that bound from the same route point so spot indexes cannot drift after a casualty.
 private _ownedPathUnits=(_drill getOrDefault ["disabled",[]]) select {(_x select 1) == "PATH"} apply {_x select 0};
-private _fitSquad=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x}
+private _unavailable=(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["unavailable",[]];
+private _fitSquad=(units _group) select {!(_x in _unavailable)} select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x}
     && {isNull objectParent _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
     && {_x checkAIFeature "PATH" || {_x in _ownedPathUnits}} && {[_x] call _actorTaskFree}};
 private _teams=_drill getOrDefault ["teams",[]];
