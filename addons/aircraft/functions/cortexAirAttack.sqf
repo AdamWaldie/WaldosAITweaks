@@ -181,7 +181,7 @@ private _finish={
             if (!_cleanupExternal && {!isNull _ownedTarget}) then {
                 {
                     if (alive _x && {local _x} && {!isPlayer _x} && {isNull (remoteControlled _x)}
-                        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                        && {!([group _x,false,_x] call WAIT_fnc_CortexExternalTakeover)}
                         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
                         && {assignedTarget _x isEqualTo _ownedTarget}) then {
                         _x doTarget objNull;
