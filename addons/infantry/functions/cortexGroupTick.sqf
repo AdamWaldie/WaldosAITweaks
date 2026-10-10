@@ -1187,10 +1187,13 @@ switch (_state get "phase") do {
         // lagging survivor gets a single physical follow-up but never holds the surviving element
         // in place or causes a fresh group-wide route churn.
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
-        private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
-        private _operationState="ACTIVE";
-        if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}
-            && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
+        private _withdrawKind=_operation getOrDefault ["intent",""];
+        private _generation=_state getOrDefault [
+            ["withdrawOperationGeneration","vehicleOperationGeneration"] select (_withdrawKind == "VEHICLE_WITHDRAW"),-1];
+        private _withdrawOwner=count _operation > 0 && {_withdrawKind in ["WITHDRAW","VEHICLE_WITHDRAW"]}
+            && {(_operation getOrDefault ["generation",-2]) == _generation};
+        private _operationState=if (count _operation > 0 && {!_withdrawOwner}) then {"REPLACED"} else {"ACTIVE"};
+        if (_withdrawOwner) then {
             _operationState=[_group,_generation,3,15] call WAIT_fnc_OperationStep;
             // OperationStep can quarantine a previous straggler. Re-read the record before choosing
             // another actor so one exhausted recovery cannot monopolise every withdrawal check.
@@ -1229,7 +1232,9 @@ switch (_state get "phase") do {
         };
         private _shortWithdrawal = !_moving && {_travel < 30};
         private _stalled = _moving && {_now-_progressAt >= 15};
-        if ((_shortWithdrawal || {_stalled}) && {_replans < 4}) then {
+        // Physical completion may still be observed after release, but a retired operation may
+        // never manufacture a fresh unscoped route from its old RETREAT state.
+        if (_withdrawOwner && {(_shortWithdrawal || {_stalled})} && {_replans < 4}) then {
             private _enemyPos = _state getOrDefault ["enemyPos",[]];
             private _target = _state getOrDefault ["retreatTarget",getPosATL _leader];
             private _distance = ((_leader distance2D _target) max 80) min 250;

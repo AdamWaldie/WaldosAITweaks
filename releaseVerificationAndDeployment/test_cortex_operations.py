@@ -1272,6 +1272,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_GroupMoveIntent',move)
         self.assertIn('private _sameRequest',move)
         self.assertIn('if (_sameRequest) exitWith {',move)
+        retreat_scope=source('cortexGroupTick').split('case "RETREAT": {',1)[1]
+        self.assertIn('_withdrawKind in ["WITHDRAW","VEHICLE_WITHDRAW"]',retreat_scope)
+        self.assertIn('if (_withdrawOwner && {(_shortWithdrawal || {_stalled})}',retreat_scope)
         same_route=source('cortexGroupMove').split('if (_sameRequest) exitWith {',1)[1].split('// A curator',1)[0]
         self.assertIn('_intent set ["operationGeneration",_operationGeneration]',same_route)
         self.assertNotIn('addWaypoint',same_route)
