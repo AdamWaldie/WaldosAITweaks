@@ -90,11 +90,24 @@ private _armourProgress=[{
     count _record >= 6 && {(_record select 0) in ["MOVING","COMPLETE"]}
         && {leader _armourGroup distance2D (_record select 4) >= 15}
 },35] call _wait;
+// Leader travel alone cannot prove the manoeuvre element moved. Preserve the original
+// leader check and add an independent physical count with its own bounded observation.
+private _armourElementProgress=[{
+    private _moved=0;
+    {
+        if (alive _x && {(_armourOrigins select _forEachIndex) distance2D (getPosATL _x) >= 15}) then {
+            _moved=_moved+1;
+        };
+    } forEach _armourActors;
+    _moved >= ceil ((count _armourActors)*0.5)
+},30] call _wait;
 private _armourDrill=((_armourGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]);
 private _armourTravel=0;
 {_armourTravel=_armourTravel max ((_armourOrigins select _forEachIndex) distance2D (getPosATL _x))} forEach _armourActors;
 ["TACTICAL-armour-real-contact",_armourContact,str ([_armourGroup] call WAIT_fnc_CortexKnowledge)] call _check;
 ["TACTICAL-armour-overmatch-reposition",_armourDecision && {_armourProgress} && {count _armourDrill == 0},str [_armourGroup getVariable ["WAIT_Cortex_TacticalAssessment",[]],_armourGroup getVariable ["WAIT_Cortex_TacticalReposition",[]],_armourDrill]] call _check;
+["TACTICAL-armour-reposition-element-physical-travel",_armourElementProgress,
+    str (_armourActors apply {getPosATL _x})] call _check;
 ["TACTICAL-armour-no-WAIT-rifle-rush",_armourTravel < 90,format ["maximum travel=%1",_armourTravel]] call _check;
 private _armourCrew=crew _armour;
 {deleteVehicle _x} forEach _armourCrew;
