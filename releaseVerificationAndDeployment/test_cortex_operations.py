@@ -340,6 +340,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('currentCommand _x',drill_reserves)
         recovery=source('recoveryStep')
         self.assertIn('group _actor != _group',recovery)
+        self.assertIn('max (_used getOrDefault [_key,0])',recovery)
+        self.assertIn('_currentOperation set ["recoveryAttempts",_used]',recovery)
         self.assertIn('_actor in (_currentOperation getOrDefault ["participants",[]])',recovery)
         self.assertLess(recovery.index('currentCommand _actor'),recovery.index('_recovery set [_key'))
         support_handoff=source('cortexStaticSupport').split('if (count _lease >= 7) exitWith',1)[1].split('if (_leaseEpisode',1)[0]

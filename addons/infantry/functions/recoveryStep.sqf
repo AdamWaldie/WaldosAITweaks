@@ -24,7 +24,8 @@ if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AI
 private _recovery=_operation getOrDefault ["recovery",createHashMap];
 private _key=netId _actor;
 private _previous=_recovery getOrDefault [_key,[]];
-private _attempts=if (_previous isEqualType []) then {_previous param [0,0]} else {_previous};
+private _used=_operation getOrDefault ["recoveryAttempts",createHashMap];
+private _attempts=(if (_previous isEqualType []) then {_previous param [0,0]} else {_previous}) max (_used getOrDefault [_key,0]);
 if (_attempts >= 1) exitWith {"EXHAUSTED"};
 // Store the one physical retry and its start time. OperationStep can later quarantine only this
 // actor if it still makes no progress; other participants retain their committed route.
@@ -38,7 +39,10 @@ if (count _currentOperation == 0
     || {(_currentOperation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {!(_actor in (_currentOperation getOrDefault ["participants",[]]))}) exitWith {"INVALID"};
 if (currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]) exitWith {"YIELDED"};
+// Progress can retire an observation record, but must not forget the generation's retry budget.
+_used set [_key,_attempts+1];
 _recovery set [_key,[_attempts+1,time,+_destination,getPosATL _actor]];
+_currentOperation set ["recoveryAttempts",_used];
 _currentOperation set ["recovery",_recovery];
 _group setVariable ["WAIT_Operation",_currentOperation,true];
 _actor doMove _destination;

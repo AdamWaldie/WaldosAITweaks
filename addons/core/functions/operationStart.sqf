@@ -36,7 +36,7 @@ private _operation=createHashMapFromArray [
     ["objective",_objective], ["participants",_capable], ["route",+_route], ["phase",toUpperANSI _phase],
     ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL _operationAnchor],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
-    ["replans",0], ["recovery",createHashMap], ["unavailable",[]], ["restore",createHashMap],
+    ["replans",0], ["recovery",createHashMap], ["recoveryAttempts",createHashMap], ["unavailable",[]], ["restore",createHashMap],
     ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]
 ];
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
