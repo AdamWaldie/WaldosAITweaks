@@ -76,7 +76,15 @@ _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_gener
 if (_dangerPosture) then {
     if (_liveDanger isNotEqualTo []) then {
         _liveDanger params ["_dangerCause","_dangerPosition"];
-        [_operationAnchor,_dangerCause,_dangerPosition,"MAINTAIN"] call WAIT_fnc_DangerReact;
+        private _dangerEvent=_group getVariable ["WAIT_Danger_ResponseEvent",[]];
+        if (!(count _dangerEvent in [4,5,6,7])
+            || {(_dangerEvent param [0,"",[""]]) != _dangerCause}
+            || {(_dangerEvent param [2,-1,[0]]) != (_liveDanger select 2)}) then {
+            _dangerEvent=_liveDanger select [0,4];
+        };
+        private _dangerAction=[_group,_dangerEvent] call WAIT_fnc_DangerActionSelect;
+        private _dangerObserver=_dangerEvent param [5,_operationAnchor,[objNull]];
+        [_dangerObserver,_dangerCause,_dangerPosition,_dangerAction] call WAIT_fnc_DangerReact;
     };
 };
 _operation

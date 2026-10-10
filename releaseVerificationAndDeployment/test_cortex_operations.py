@@ -969,9 +969,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _operationAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;',start)
         self.assertIn('private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;',start)
         self.assertIn('["dangerPosture",_dangerPosture]',start)
-        self.assertIn('[_operationAnchor,_dangerCause,_dangerPosition,"MAINTAIN"] call WAIT_fnc_DangerReact',start)
+        self.assertIn('[_dangerObserver,_dangerCause,_dangerPosition,_dangerAction] call WAIT_fnc_DangerReact',start)
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
-        self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
+        self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('_dangerAction] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
         for native_path in ['dangerEngineMode','dangerEngineRecycle','dangerEngineSubmit']:
             self.assertIn('captive _source',source(native_path))
