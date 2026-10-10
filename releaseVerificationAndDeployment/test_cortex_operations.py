@@ -3308,6 +3308,24 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('coordinatedChance',coordinated)
         self.assertNotIn('random 1 >= ([_group, "coordinatedChance"]',coordinated)
 
+    def test_reposition_corridor_advances_only_after_owned_physical_arrival(self):
+        start=source('cortexTacticalReposition')
+        tick=source('cortexGroupTick')
+        self.assertIn('_route select 0,6,"MOVE",_generation',start)
+        self.assertIn('["tacticalRepositionLeg",0]',start)
+        progression=tick.split('// Follow the committed screened corridor',1)[1].split('private _groupMovementOwned',1)[0]
+        for marker in ['WAIT_OperationGeneration', 'ownerEpoch', '_anchor distance2D _point <= 6',
+                       'count _route <= 16', 'time < (_movementLease select 1)']:
+            if marker == 'WAIT_OperationGeneration':
+                self.assertIn('getOrDefault ["generation",-2]) == _generation',progression)
+            else:
+                self.assertIn(marker,progression)
+        self.assertLess(progression.index('_anchor distance2D _point <= 6'),progression.index('call WAIT_fnc_CortexGroupMove'))
+        self.assertLess(progression.index('(_waypoint param [1,-1,[0]]) >= 0'),progression.index('["tacticalRepositionLeg",_next]'))
+        self.assertEqual(progression.count('call WAIT_fnc_CortexGroupMove'),1)
+        self.assertNotIn('spawn',progression)
+        self.assertNotIn('while {',progression)
+
     def test_tactical_reposition_is_finite_generation_owned_and_yields_to_zeus(self):
         reposition=source('cortexTacticalReposition')
         selector=source('cortexTacticalStart')
