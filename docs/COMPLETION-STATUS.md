@@ -2,7 +2,7 @@
 
 Status checked on 2026-10-10. WAIT is not production-ready. All 65 registered feature families remain `implemented_partial`. None has complete acceptance. This registry label covers both substantial controllers and capabilities with missing implementation, so it is not a completion percentage.
 
-Audit processes are closed. Further game launches are suspended at the user's request. Static development can continue.
+Game audits are authorized in batches. The full packaged batch runtime-20261010-214346-432 is active against clean candidate 89812ab with observer Zeus, 3840x2160 and two headless clients. Later repairs require a subsequent exact-candidate retest.
 
 ## Module progress toward completion
 
@@ -100,3 +100,5 @@ Evidence contract: [performance validation](PERFORMANCE-VALIDATION.md), [all 65 
 - `runtime-20261010-151701-617`, candidate `62d86bd`: completed native-provider batch, 300 checks, one server finding, zero client findings, no matched SQF/fatal errors and one loader warning. Native registration failed its prerequisite; physical native transfers were not accepted.
 - `6308d3f` infantry patrol pair: native and WAIT both observed 21 ms median and 23 ms p95. Strict comparison is INVALID because both contain the loader warning. Patrol results do not establish combat performance.
 - `runtime-20261010-214346-432`, clean candidate `89812ab`: observer Zeus and 3840x2160 mission entry verified. Batch remains active: an unrestricted process check confirmed all four original PIDs and fresh building-stage RPT entries. An earlier restricted-shell inventory falsely appeared empty and its partial reporter snapshot must not be treated as terminal evidence. Completion and final results remain pending.
+
+The latest live snapshot of that batch records 137 checks and 37 failed assertions; completion is pending. Three building-contact cases are assessed as test problems following the user's manual visibility intervention. CQB timing assertions also require retest with bounded terminal settlement. Initial convoy travel, column alignment, speed, unload/crew retention and headless-transfer subchecks passed; these do not establish complete convoy acceptance. Four client SQF error lines point to CBA notification parsing; the malformed WAIT payload is repaired in acc9b93 but remains untested in this running candidate.
