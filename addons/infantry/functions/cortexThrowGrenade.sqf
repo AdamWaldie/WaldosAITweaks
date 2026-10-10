@@ -5,8 +5,8 @@
  * Grenade types are identified from config, so mod grenades work: smoke is ammo simulation shotSmoke
  * or shotSmokeX; fragmentation is shotGrenade. Chemlights and ACE
  * flashbangs are skipped. The throw muzzle is the "Throw" weapon muzzle that accepts that magazine.
- * The thrower is validated, turned to face the target and throws on the next frame, because a throw
- * leaves along the unit's facing. A fragmentation grenade is never thrown when a
+ * The queued throw revalidates ownership and requests target observation. Release requires actual
+ * body and weapon alignment; an unaligned actor cancels rather than throwing behind contact. A fragmentation grenade is never thrown when a
  * friendly or civilian soldier is within 12 m of the target, or when the target is under 8 m or over
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
@@ -91,8 +91,16 @@ private _thrown = false;
                 if (_dangerInvalid) exitWith {call _cancel};
                 if (_kind == "FRAG" && {_drillToken != ""}
                     && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _cancel};
-                _unit setDir (_unit getDir _towards);
                 _unit doWatch _towards;
+                // setDir changes the object transform without proving the prone throwing animation
+                // has turned. Never force release into the actor's previous facing. A later tactical
+                // opportunity may retry; this cancellation cannot hold the manoeuvre element.
+                private _bearing = _unit getDir _towards;
+                private _bodyError = abs (((getDir _unit - _bearing + 540) % 360) - 180);
+                private _aim = _unit weaponDirection (currentWeapon _unit);
+                private _aimBearing = (_aim select 0) atan2 (_aim select 1);
+                private _aimError = abs (((_aimBearing - _bearing + 540) % 360) - 180);
+                if (_bodyError > 30 || {_aimError > 30}) exitWith {call _cancel};
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
@@ -132,3 +140,4 @@ private _thrown = false;
     if (_thrown) exitWith {};
 } forEach (magazines _unit);
 _thrown
+

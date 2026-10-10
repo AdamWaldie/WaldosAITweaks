@@ -327,8 +327,11 @@ class CortexOperations(unittest.TestCase):
         for marker in ['WAIT_AIPass_DangerSmoke_Enable','WAIT_Danger_Generation','WAIT_fnc_CortexExternalTakeover']:
             self.assertIn(marker,queued)
         self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('forceWeaponFire'))
-        self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('_unit setDir'))
-        self.assertLess(queued.index('WAIT_fnc_CortexExternalTakeover'),queued.index('_unit setDir'))
+        self.assertNotIn('_unit setDir', queued)
+        self.assertIn('_bodyError > 30 || {_aimError > 30}', queued)
+        self.assertLess(queued.index('_bodyError > 30'), queued.index('forceWeaponFire'))
+        self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('_unit doWatch'))
+        self.assertLess(queued.index('WAIT_fnc_CortexExternalTakeover'),queued.index('_unit doWatch'))
         self.assertIn('WAIT_fnc_DangerActionSelect',step)
         self.assertIn('private _actor=[_group] call WAIT_fnc_CortexGroupAnchor;',step)
         self.assertIn('[_observer,_cause,_position,_action] call WAIT_fnc_DangerReact',step)
