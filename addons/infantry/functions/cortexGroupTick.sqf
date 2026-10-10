@@ -112,7 +112,10 @@ if (!_dangerYield) then {
 
 {
     if (local _x && {_x getVariable ["WAIT_AIPass_StanceSet",false]} && {!([_group,"WAIT_AIPass_Stance_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) then {
-        if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        if (!_dangerYield && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
+            if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        };
         _x setVariable ["WAIT_Cortex_AppliedStance",nil,true];
         _x setVariable ["WAIT_AIPass_StanceSet",nil,true];
     };

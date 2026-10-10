@@ -257,3 +257,5 @@ Danger renewals issue group behaviour and combat-mode commands only when the eff
 Danger renewal compares behaviour and combat-mode ownership independently. An external change to one value does not replace the original baseline of the other value while that value still matches WAIT's application. Generation, locality epoch and owner remain mandatory for both. Physical mixed-value renewal acceptance remains pending.
 
 A renewed suppression or hide observation preserves RED engagement only while the exact combat-mode lease is still owned. This avoids RED/YELLOW oscillation during the same finite response. Explicit BLUE/GREEN orders, external changes and release retain priority; this does not issue movement or firing commands. Physical sustained-contact acceptance remains pending.
+
+Disabling stance control clears its bookkeeping but resets posture only for an ordinary local actor without group takeover, player control, remote control or specialist ownership. Cleanup also requires the current posture to match WAIT's applied posture. Physical setting-change takeover acceptance remains pending.
