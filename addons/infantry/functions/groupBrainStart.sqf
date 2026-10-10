@@ -15,6 +15,12 @@
 
 params [["_group",grpNull,[grpNull]],["_wake",false,[true]]];
 if (isNull _group || {!local _group} || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}) exitWith {false};
+// Native danger may bootstrap this brain before the discovery sweep reaches its group.
+// Establish locality first so discovery cannot later invalidate an epoch-zero live brain.
+if (!(_group getVariable ["WAIT_AIPass_Adopted",false])) then {
+    if ([_group] call WAIT_fnc_CortexIsEligible) then {[_group,true] call WAIT_fnc_CortexLocality};
+};
+if (!local _group || {!(_group getVariable ["WAIT_AIPass_Adopted",false])}) exitWith {false};
 private _epoch=_group getVariable ["WAIT_AIPass_Epoch",0];
 private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
 if (count _brain > 0
