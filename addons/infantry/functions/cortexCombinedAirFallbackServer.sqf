@@ -16,7 +16,7 @@
  * Return Value:
  * BOOL - true when one replacement candidate was dispatched.
  *
- * Current callers: WAIT_fnc_CortexCombinedArmsLocal after a local NO_VIABLE_WEAPON result.
+ * Current callers: WAIT_fnc_CortexCombinedArmsLocal after local weapon or busy/start refusal.
  *
  * Example:
  * [_requester,_rejectedGroup,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
@@ -29,6 +29,13 @@ private _fallback=_requester getVariable ["WAIT_Cortex_CombinedAirFallback",[]];
 if (count _fallback != 6) exitWith {false};
 _fallback params ["_storedToken","_target","_position","_expiry","_candidates","_cursor"];
 if (_storedToken != _token || {serverTime >= _expiry} || {isNull _target} || {!alive _target}) exitWith {false};
+private _rejectedRole=_rejected getVariable ["WAIT_Cortex_CombinedRole",[]];
+if (count _rejectedRole != 7 || {(_rejectedRole select 0) != _token}
+    || {(_rejectedRole select 1) != _requester} || {(_rejectedRole select 4) != "AIR_ATTACK"}) exitWith {false};
+// Consume this exact refusal once. A duplicate notice has no matching role; a newer role
+// survives. Retiring the opportunity never cancels the aircraft's existing attack brain.
+_rejected setVariable ["WAIT_Cortex_CombinedRole",nil,true];
+_rejected setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
 private _replacement=grpNull;
 while {_cursor < count _candidates && {isNull _replacement}} do {
     private _candidate=_candidates select _cursor;
