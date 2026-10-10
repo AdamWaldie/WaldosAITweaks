@@ -771,7 +771,10 @@ private _withdrawn=[{
     };
     _armour distance2D _origin > 40 && {_armour distance2D _enemy > (_origin distance2D _enemy)+30}
 },100] call _wait;
-["WITHDRAW-tracked-physical-reverse",_withdrawContact && {_reversePhysical},str [getPosATL _armour,vehicleMoveInfo _armour]] call _check;
+["WITHDRAW-tracked-physical-reverse",_withdrawContact && {_reversePhysical},str [getPosATL _armour,vehicleMoveInfo _armour,
+    _group getVariable ["WAIT_VehicleReverseEnd",[]],
+    _group getVariable ["WAIT_VehicleReverseFallback",[]],
+    _group getVariable ["WAIT_VehicleReverse",[]]]] call _check;
 ["WITHDRAW-tracked-threat-facing",_reversePhysical && {_reverseFacing},str [_armour getRelDir (getPosATL _enemy)]] call _check;
 ["WITHDRAW-physical-distance",_withdrawContact && {_withdrawn},str getPosATL _armour] call _check;
 ["WITHDRAW-actual-smoke",(_armour getVariable ["WAIT_CortexQA_SmokeShots",0]) > 0] call _check;
