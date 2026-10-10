@@ -643,3 +643,6 @@ Packaged candidate `9b5a9bb`, batch `runtime-20261010-020243-631`, passed the tr
 
 
 Immediate danger eligibility has an explicit actor-local context for ordinary members of mixed specialist groups. Player, curator and explicit group ownership remain group-wide exclusions; tactical discovery and group waypoints retain full-group eligibility. This does not establish mixed-group manoeuvre or real specialist compatibility: those require separate physical acceptance.
+
+
+Candidate `66127ab`, batch `runtime-20261010-030436-104`, passed physical native boarding and rejection of an attempted WAIT group route during GET IN at 03:14:59. The combined danger-handover assertions still lack the expected friendly-source response and are not promoted. Evasion received native SUPPRESSED input, but its fixture actor was crouching, moving at 10.55 km/h and owned by a manoeuvre operation; idle evasion therefore remains unexercised. Subsequent fixture isolation and phase-reservation corrections await retest.
