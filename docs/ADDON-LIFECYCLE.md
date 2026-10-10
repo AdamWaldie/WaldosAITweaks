@@ -238,3 +238,6 @@ controller, feature disable, pause or locality handover cannot leave a stale COM
 Eligibility checks preserve external animation/combat ownership. The new owner starts from observations received locally. Queued acceptance
 covers priority/expiry, sustained fire, no knowledge leakage, disabled state, leader casualties, Zeus,
 external ownership, locality transfer, physical reaction and 50 mixed-group frame-time comparison.
+
+
+Squad low-profile posture inspects at most 64 members and applies at most four weak stance leases. Actor eligibility excludes declared external ownership, specialist identities and active melee control before acquisition; ordinary actors in the same group remain eligible. This boundary correction is statically validated and still requires specialist coexistence acceptance.
