@@ -28,17 +28,24 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 private _reserved=if (count _operation > 0) then {+(_operation getOrDefault ["participants",[]])} else {[]};
 // ATTACK is also the engine's ordinary autonomous combat command. It does not
 // imply a specialist/native action owner; the queued throw still rechecks those tasks.
+private _actorAvailable={
+    params ["_actor"];
+    private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+    !(count _reservation == 3 && {(_reservation param [2,-1,[0]]) > time})
+};
 private _candidates=(units _group) select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
-        && {vehicle _x == _x} && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
+        && {vehicle _x == _x} && {[_x] call _actorAvailable}
+        && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
         && {!(_x in _reserved)} && {getSuppression _x >= 0.55 || {_cause in ["HIT","EXPLOSION"]}}
 };
 if (_candidates isEqualTo []) then {
     _candidates=(units _group) select {
         [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
-            && {vehicle _x == _x} && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
+            && {vehicle _x == _x} && {[_x] call _actorAvailable}
+        && {currentCommand _x in ["","MOVE","ATTACK","SUPPRESS","FIRE"]}
             && {getSuppression _x >= 0.7 || {_cause == "HIT"}}
     };
 };

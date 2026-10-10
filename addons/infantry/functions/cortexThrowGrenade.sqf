@@ -111,6 +111,13 @@ private _thrown = false;
                         || {[_group] call WAIT_fnc_CortexExternalTakeover}
                 };
                 if (_dangerInvalid) exitWith {[] call _cancel};
+                if (count _context == 3 && {(_context select 0) == "DANGER"}) then {
+                    private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+                    if (count _reservation == 3 && {(_reservation param [2,-1,[0]]) > time}) then {
+                        _dangerInvalid=true;
+                    };
+                };
+                if (_dangerInvalid) exitWith {["ACTOR_RESERVED"] call _cancel};
                 // A queued screen must still face the retained contact at release. Observation
                 // may change during alignment; cancel rather than throw along an obsolete bearing.
                 private _contactChanged=false;
