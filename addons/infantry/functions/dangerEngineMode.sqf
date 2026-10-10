@@ -26,7 +26,7 @@ if (isNull _group || {!local _group}
 // represent a concrete boarding, action, treatment, supply or group-transfer task here.
 if (fleeing _actor || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {"FORCED"};
 // Vehicle response is a domain handoff, not an infantry path request. Classify it before the
-// on-foot MOVE gate so an intentionally immobile static gunner, artillery crew or stopped vehicle
+// on-foot posture classification so an intentionally immobile static gunner, artillery crew or stopped vehicle
 // commander still publishes danger to the correct dedicated owner. No movement is issued here.
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 // Only a live carrier reservation yields immediate danger actions. Ordinary ATTACK and squad
@@ -35,7 +35,9 @@ private _carrierTask = _actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (count _carrierTask == 3
     && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT"]}
     && {time < (_carrierTask select 2)}) exitWith {"FORCED"};
-if !(_actor checkAIFeature "MOVE") exitWith {"RELEASE"};
+// Disabled movement does not disable sensing, firing or finite weak posture. Movement-owning
+// cover and evasion helpers independently require MOVE/PATH and never enable those features.
+// A stationary defender must not lose its entire danger response because it cannot manoeuvre.
 private _cause=_record select 0;
 if (_cause in [1,2,4,9]) exitWith {"IMMEDIATE"};
 if (_cause in [5,6,7]) exitWith {"HIDE"};
