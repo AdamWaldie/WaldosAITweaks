@@ -966,6 +966,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        bounds=source('cortexFlankStep')
+        self.assertIn('&& {[_x] call _actorTaskFree}',bounds)
+        self.assertIn('[_actor] call _mayIssueMovement',bounds)
+        self.assertEqual(bounds.count('[_unit] call _mayIssueMovement'),2)
+        self.assertNotIn('{call _mayIssueMovement}',bounds)
         step=source('operationStep')
         temporary=step.split('if (_reserved || {_nativeTask}) then',1)[1].split('if (!_reserved',1)[0]
         self.assertIn('_recovery deleteAt _key',temporary)
@@ -1764,8 +1769,8 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexFlankStep')
         self.assertIn('private _mayIssueMovement = {',step)
         self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',step)
-        self.assertIn('if (call _mayIssueMovement) then {',step)
-        self.assertIn('&& {call _mayIssueMovement}) then {',step)
+        self.assertIn('if ([_unit] call _mayIssueMovement) then {',step)
+        self.assertIn('&& {[_unit] call _mayIssueMovement}) then {',step)
         for command in ['_actor doMove _rally;','_unit doMove _spot;','_unit doMove (_spots select _forEachIndex);']:
             index=step.index(command)
             self.assertIn('_mayIssueMovement',step[max(0,index-800):index])

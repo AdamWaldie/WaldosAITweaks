@@ -131,8 +131,19 @@ if (_operationEndReason != "") exitWith {_operationEndReason call _end};
 if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {"OWNERSHIP_LOST" call _end};
 // A queued drill can run after a new direct owner appears. Recheck only at actual command
 // writes; route scoring and progress accounting remain bounded and do not issue movement.
+private _actorTaskFree={
+    params ["_actor"];
+    private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _free=_reservation isEqualTo [] || {_reservation isEqualType [] && {count _reservation == 3}
+        && {(_reservation param [2,1e12,[0]]) <= time}};
+    _free && {[_actor] call WAIT_fnc_CortexCombatEffective}
+        && {local _actor} && {!isPlayer _actor} && {group _actor == _group} && {isNull objectParent _actor}
+        && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+        && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+};
 private _mayIssueMovement = {
-    !([_group] call WAIT_fnc_CortexExternalTakeover)
+    params ["_actor"];
+    !([_group] call WAIT_fnc_CortexExternalTakeover) && {[_actor] call _actorTaskFree}
 };
 // YELLOW preserves fire-at-will while discouraging independent RED pursuit subgroups. Give the
 // engine one scheduler step to settle the group mode before issuing the committed destination.
@@ -188,7 +199,7 @@ if (count _movementLease == 2 && {(_movementLease select 0) == "TACTICAL_DRILL"}
 private _ownedPathUnits=(_drill getOrDefault ["disabled",[]]) select {(_x select 1) == "PATH"} apply {_x select 0};
 private _fitSquad=(units _group) select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x}
     && {isNull objectParent _x} && {group _x == _group} && {_x checkAIFeature "MOVE"}
-    && {_x checkAIFeature "PATH" || {_x in _ownedPathUnits}}};
+    && {_x checkAIFeature "PATH" || {_x in _ownedPathUnits}} && {[_x] call _actorTaskFree}};
 private _teams=_drill getOrDefault ["teams",[]];
 private _desiredStrength=_drill getOrDefault ["desiredStrength",count (_drill get "units")];
 private _reinforcements=[];
@@ -298,7 +309,7 @@ if (_main isNotEqualTo []) then {
                 if (_operationGeneration >= 0) then {
                     [_group,_operationGeneration,_actor,_rally] call WAIT_fnc_RecoveryStep;
                 } else {
-                    if (call _mayIssueMovement) then {
+                    if ([_actor] call _mayIssueMovement) then {
                         _actor doMove _rally;
                     };
                 };
@@ -460,7 +471,7 @@ private _issue = {
         // Preserve native target acquisition, autonomous combat and the actor's current behaviour.
         // WAIT commits a route and role but leaves moment-to-moment combat to the engine.
         // Do not issue doFollow or setDestination: either can create a second movement owner.
-        if (call _mayIssueMovement) then {
+        if ([_unit] call _mayIssueMovement) then {
             _unit doWatch _enemyPos;
             _unit doMove _spot;
         };
@@ -528,7 +539,7 @@ switch (_drill get "stage") do {
                         && {((expectedDestination _unit) select 0) distance2D (_waypoint select 1) < 1};
                     if ((_now-(_last select 3) >= 8 || {_returnedToWaypoint}) && {_now-(_retry select 1) >= 8}
                         && {(_retry select 0) < 1} && {_unit checkAIFeature "PATH"}
-                        && {_unit checkAIFeature "MOVE"} && {call _mayIssueMovement}) then {
+                        && {_unit checkAIFeature "MOVE"} && {[_unit] call _mayIssueMovement}) then {
                         // Replan the same destination; do not move the actor or waive arrival.
                         // One native route refresh is allowed only after measured no-progress.
                         // Target and combat behaviour remain engine-owned.
