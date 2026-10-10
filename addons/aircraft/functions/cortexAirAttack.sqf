@@ -186,12 +186,12 @@ private _finish={
                 } forEach crew _aircraft;
             };
         };
-        if (_resume) then {
+        if (_resume && {!isNull _finishGroup} && {local _finishGroup}) then {
             private _resumePosition=_job getOrDefault ["resumePosition",[]];
             private _resumeGroup=group driver _aircraft;
-            private _resumeWaypointIndex=(waypoints _resumeGroup) findIf {
-                waypointPosition _x distance2D _resumePosition <= 2
-            };
+            private _resumeWaypointIndex=if (count _resumePosition >= 2) then {
+                (waypoints _resumeGroup) findIf {waypointPosition _x distance2D _resumePosition <= 2}
+            } else {-1};
             // The shared takeover boundary includes player occupants, Zeus and specialist markers
             // on every crew group. A completed attack must not re-form the aircraft over any one
             // of those newer owners merely because its own operation reached a normal release.

@@ -315,3 +315,5 @@ Aircraft planning rejects protected targets. Active attack updates revalidate li
 Aircraft cleanup no longer restores enableAttack because the controller does not modify that setting. It preserves later policy changes. Owned-target cleanup additionally requires local ordinary crew without player, remote, specialist or declared actor control; newer target assignments remain untouched. Physical aircraft policy/target handover acceptance remains pending.
 
 Ordinary aircraft route resume selects the actual authored waypoint handle rather than treating a list offset as an engine waypoint ID. Deleted temporary waypoints may leave ID gaps; the selected handle must still match the recorded resume position. Physical resume-after-waypoint-deletion acceptance remains pending.
+
+Aircraft resume validates local group authority and the stored authored position before searching waypoints. An absent resume position yields no waypoint search or route replay; attack completion/cancellation still retires its finite lease. Physical no-authored-route acceptance remains pending.
