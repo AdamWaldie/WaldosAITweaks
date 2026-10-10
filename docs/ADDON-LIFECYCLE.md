@@ -259,3 +259,5 @@ Danger renewal compares behaviour and combat-mode ownership independently. An ex
 A renewed suppression or hide observation preserves RED engagement only while the exact combat-mode lease is still owned. This avoids RED/YELLOW oscillation during the same finite response. Explicit BLUE/GREEN orders, external changes and release retain priority; this does not issue movement or firing commands. Physical sustained-contact acceptance remains pending.
 
 Disabling stance control clears its bookkeeping but resets posture only for an ordinary local actor without group takeover, player control, remote control or specialist ownership. Cleanup also requires the current posture to match WAIT's applied posture. Physical setting-change takeover acceptance remains pending.
+
+Vehicle-gunnery feature-disable and hold-fire cleanup clears WAIT's target metadata without issuing doTarget over group takeover, player control, remote control or specialist ownership. For an eligible ordinary actor, the assigned target must still match WAIT's recorded target before removal. Physical target handover acceptance remains pending.
