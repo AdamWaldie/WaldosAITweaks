@@ -303,3 +303,5 @@ Danger duplicate matching validates record shape and reads cause/witness through
 Danger classification rechecks surrender and handcuff state when consuming a queued hostile identity. Intake, inherited-source retention and contact publication also reject handcuffed sources. Native knowledge of a detained or newly surrendering actor cannot alone authorise a fresh engagement. Physical surrender-during-queued-contact acceptance remains pending.
 
 Active flank, advance and assault drills end hostile intent when the retained target begins surrender or becomes handcuffed, alongside existing captive/side-change checks. Target death remains distinct so a valid clear-through can continue after a casualty. Physical surrender-during-manoeuvre acceptance remains pending.
+
+Shared tactical knowledge prunes surrendering and handcuffed actors from cached observations and hostile candidates alongside captive/side checks. Ending an active drill cannot immediately recreate hostile intent through the same detained target's native knowledge. Physical surrender-to-security acceptance remains pending.
