@@ -117,11 +117,18 @@ private _delay=call {
         // A diverted/unavailable actor is no longer ours to route, but its unfinished exit
         // must remain visible instead of counting an empty eligible set as successful egress.
         if (count _assignments < count (_job get "egressAssignments")) then {_job set ["egressFailed",true]};
-        private _arrived=_assignments findIf {(_x select 0) distance2D (_x select 1) > 5} < 0;
+        private _outsideExit={
+            params ["_assignment"];
+            _assignment params ["_unit","_target"];
+            _unit distance2D _target > 5
+                || {abs (((getPosATL _unit) select 2)-(_target param [2,0])) > 1.5}
+        };
+        // Matching a ground exit horizontally is insufficient when still upstairs.
+        private _arrived=_assignments findIf {[_x] call _outsideExit} < 0;
         if (_arrived || {_assignments isEqualTo []} || {time >= (_job get "egressDeadline")}) then {
             if (!_arrived && {_assignments isNotEqualTo []}) then {
                 _job set ["egressFailed",true];
-                diag_log format ["[WAIT] %1 clear egress incomplete (%2 still inside)",_group,{(_x select 0) distance2D (_x select 1) > 5} count _assignments];
+                diag_log format ["[WAIT] %1 clear egress incomplete (%2 still inside)",_group,{[_x] call _outsideExit} count _assignments];
             };
             [true,"COMPLETE"] call _finish
         } else {
