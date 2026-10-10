@@ -966,6 +966,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        assessment=source('dangerStep')
+        refusal=assessment.split('if (_action == "RELEASE") exitWith',1)[1].split('if (!isNull _source',1)[0]
+        self.assertNotIn('setVariable',refusal)
+        self.assertNotIn('GroupBrainStart',refusal)
+        self.assertIn('_remaining isNotEqualTo []',refusal)
+        self.assertLess(assessment.index('if (_action == "RELEASE")'),assessment.index('setVariable ["WAIT_Danger_Contact",[_source'))
         classifier=source('dangerActionSelect')
         self.assertIn('if (count _event >= 6 && {!([_actor] call WAIT_fnc_CortexCombatEffective)',classifier)
         self.assertIn('if (count _event < 6) then',classifier)

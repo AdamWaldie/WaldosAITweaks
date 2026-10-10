@@ -144,11 +144,18 @@ if (isNull _observer || {!alive _observer} || {!local _observer} || {group _obse
 private _sourceObserver=_selected param [6,_observer,[objNull]];
 if (isNull _sourceObserver || {!alive _sourceObserver} || {!local _sourceObserver}
     || {group _sourceObserver != _group}) then {_sourceObserver=_observer};
+private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
+if (_action == "RELEASE") exitWith {
+    // Refusal is not a new response or contact. Preserve an independent live response and
+    // let other valid queued witnesses drain, without starting or waking another brain.
+    private _live=_group getVariable ["WAIT_Danger_Response",[]];
+    if (_remaining isNotEqualTo [] || {count _live == 5 && {(_live select 4) == _generation}
+        && {time < (_live select 3)}}) then {0.25} else {-1}
+};
 if (!isNull _source && {alive _source} && {(side _group) getFriend (side _source) < 0.6}
     && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
 };
-private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
 // A concrete native task is an ownership boundary, not a tactical response mode. The engine FSM may
 // record the event and perform its observation-only FORCED state, but the assessment layer must not
 // publish a group response, wake the tactical brain or retain an older WAIT posture. Otherwise a
