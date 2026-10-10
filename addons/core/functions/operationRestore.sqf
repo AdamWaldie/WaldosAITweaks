@@ -23,7 +23,8 @@ private _members=units _group;
 if (count _members > 64 || {[_group] call WAIT_fnc_CompatibilityExternalControl}
     || {_members findIf {isPlayer _x || {[_x] call WAIT_fnc_CompatibilityExternalControl}} >= 0}) exitWith {false};
 private _anchor=leader _group;
-if (isNull _anchor || {attackEnabled _anchor != (_attack select 1)}) exitWith {false};
+if (isNull _anchor || {attackEnabled _anchor != (_attack select 1)}
+    || {(_attack select 0) == (_attack select 1)}) exitWith {false};
 // A later different setting belongs to its new owner. Restoring this unchanged boolean does
 // not issue an attack or alter a Zeus waypoint, target, posture or movement command.
 _group enableAttack (_attack select 0);

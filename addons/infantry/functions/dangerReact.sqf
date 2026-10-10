@@ -39,8 +39,8 @@ if (_cause in ["RESTORE","RELEASE"]) exitWith {
     // immediately; otherwise the old COMBAT/ROE posture can outlive the controller that set it.
     if (_leaseOwned && {_cause == "RELEASE" || {time >= (_lease select 4)}}) then {
         _lease params ["_behaviour","_ownedBehaviour","_combatMode","_ownedCombatMode"];
-        if (behaviour _postureActor == _ownedBehaviour) then {_group setBehaviour _behaviour};
-        if (combatMode _group == _ownedCombatMode) then {_group setCombatMode _combatMode};
+        if (_behaviour != _ownedBehaviour && {behaviour _postureActor == _ownedBehaviour}) then {_group setBehaviour _behaviour};
+        if (_combatMode != _ownedCombatMode && {combatMode _group == _ownedCombatMode}) then {_group setCombatMode _combatMode};
         _group setVariable ["WAIT_Danger_ReactionLease",nil,true];
         "RESTORED"
     } else {"ASSESS"}
