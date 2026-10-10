@@ -14,8 +14,16 @@ params [["_group",grpNull,[grpNull]],["_state",createHashMap,[createHashMap]],
 if (isNull _group || {!local _group}) exitWith {"FALLBACK"};
 private _record=_group getVariable ["WAIT_VehicleReverse",[]];
 private _release={
+    params [["_reason","RELEASE",[""]]];
     if (count _record == 9 && {(_record select 1) == _generation}) then {
         private _ownedVehicle=_record select 0;
+        // One transition snapshot explains a failed physical leg without a per-tick log stream.
+        _group setVariable ["WAIT_VehicleReverseEnd",[serverTime,_reason,_generation,
+            _record select 2,clientOwner,
+            if (isNull _ownedVehicle) then {[]} else {getPosATL _ownedVehicle},
+            if (isNull _ownedVehicle) then {-1} else {_ownedVehicle distance2D (_record select 3)},
+            if (isNull _ownedVehicle) then {[]} else {vehicleMoveInfo _ownedVehicle},
+            time-(_record select 6)],true];
         if (!isNull _ownedVehicle && {local _ownedVehicle}
             && {(_ownedVehicle getVariable ["WAIT_VehicleReverseOwner",[]]) isEqualTo [_group,_generation]}) then {
             // Matching markers prove the old lease, not authority over a newer external order.
@@ -31,7 +39,7 @@ private _release={
     };
     "RELEASED"
 };
-if (toUpperANSI _mode == "RELEASE") exitWith {call _release};
+if (toUpperANSI _mode == "RELEASE") exitWith {["RELEASE"] call _release};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 private _eligible=(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     && {[_group,"WAIT_AIPass_VehicleWithdraw_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
@@ -42,14 +50,14 @@ private _eligible=(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {!isNull _vehicle} && {local _vehicle} && {alive _vehicle} && {canMove _vehicle}
     && {_vehicle isKindOf "Tank"} && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])};
-if (!_eligible) exitWith {call _release; "FALLBACK"};
+if (!_eligible) exitWith {["INELIGIBLE"] call _release; "FALLBACK"};
 private _driver=driver _vehicle;
 private _commander=effectiveCommander _vehicle;
 if (isNull _driver || {isNull _commander} || {_driver == _commander}
     || {!alive _driver} || {!alive _commander} || {!local _driver} || {!local _commander}
     || {isPlayer _driver} || {isPlayer _commander} || {group _driver != _group}
     || {group _commander != _group} || {!isNull remoteControlled _driver}
-    || {!isNull remoteControlled _commander}) exitWith {call _release; "FALLBACK"};
+    || {!isNull remoteControlled _commander}) exitWith {["CREW_UNAVAILABLE"] call _release; "FALLBACK"};
 if (toUpperANSI _mode == "START") exitWith {
     if (count _record == 9) exitWith {
         if ((_record select 1) == _generation && {(_record select 0) == _vehicle}) then {"REVERSE"} else {"FALLBACK"}
@@ -73,9 +81,9 @@ if (toUpperANSI _mode == "START") exitWith {
 };
 if (count _record != 9 || {(_record select 0) != _vehicle} || {(_record select 1) != _generation}
     || {(_record select 2) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {"FALLBACK"};
-if (_vehicle distance2D (_record select 3) >= 30) exitWith {call _release; "COMPLETE"};
+if (_vehicle distance2D (_record select 3) >= 30) exitWith {["DISTANCE_REACHED"] call _release; "COMPLETE"};
 if (_vehicle distance2D (_record select 7) >= 2) then {_record set [6,time]; _record set [7,getPosATL _vehicle]};
-if (time >= (_record select 5) || {time-(_record select 6) > 6}) exitWith {call _release; "FALLBACK"};
+if (time >= (_record select 5) || {time-(_record select 6) > 6}) exitWith {[["NO_PROGRESS","TIME_LIMIT"] select (time >= (_record select 5))] call _release; "FALLBACK"};
 private _bearing=_vehicle getRelDir (_record select 4);
 private _turn=if (_bearing <= 20 || {_bearing >= 340}) then {"STOPTURNING"} else {["LEFT","RIGHT"] select (_bearing < 180)};
 if (_turn != (_record select 8)) then {_vehicle sendSimpleCommand _turn; _record set [8,_turn]};

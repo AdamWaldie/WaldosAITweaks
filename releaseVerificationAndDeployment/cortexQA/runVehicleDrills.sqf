@@ -825,6 +825,10 @@ if (_hcOwners isNotEqualTo []) then {
             && {private _intent=_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]; count _intent == 7 && {(_intent select 0) == "VEHICLE"}}
             && {_migrateArmour distance2D _migrationOrigin >= 8}
     },45] call _wait;
+    diag_log format ["WAIT WITHDRAW REVERSE END TRACE: %1",[
+        _migrateGroup getVariable ["WAIT_VehicleReverseEnd",[]],
+        _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap],
+        currentCommand driver _migrateArmour,vehicleMoveInfo _migrateArmour]];
     ["WITHDRAW-MIGRATION-production-start",_migrationContact && {_migrationStarted},str [_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""],_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],getPosATL _migrateArmour]] call _check;
     private _initialSmoke=[{(_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0]) > 0},12] call _wait;
     ["WITHDRAW-MIGRATION-initial-smoke",_initialSmoke,str (_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0])] call _check;
