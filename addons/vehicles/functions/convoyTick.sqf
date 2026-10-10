@@ -113,7 +113,9 @@ if ((_state getOrDefault ["revision", -1]) != _revision || {(_state getOrDefault
     private _sameLine = _vehicles isEqualTo (_state getOrDefault ["vehicles",[]]);
     private _resumeTrails = if (_sameLine) then {_state getOrDefault ["frontTrails",createHashMap]} else {createHashMap};
     private _resumeFollowers = if (_sameLine) then {_state getOrDefault ["followers",createHashMap]} else {createHashMap};
-    {private _v=_x; private _key=netId _v; private _record=_resumeFollowers getOrDefault [_key,[]]; if (_record isNotEqualTo []) then {_record set [0,getPosATL _v]; _record set [1,time]; _record set [2,-1]}} forEach _vehicles;
+    // Revision setup stops/reacquires followers below. Preserve the predecessor trail and cursor,
+    // but invalidate command commitments so an unchanged endpoint cannot hide that stopped command.
+    {private _v=_x; private _key=netId _v; private _record=_resumeFollowers getOrDefault [_key,[]]; if (_record isNotEqualTo []) then {_record set [0,getPosATL _v]; _record set [1,time]; _record set [2,-1]; _record set [5,[]]; _record set [6,[]]}} forEach _vehicles;
     // A revision alone does not relinquish driving authority to native formation.
     if (count _state > 0 && {!_sameLine}) then {[_group, false, _restore, _registered] call WAIT_fnc_ConvoyReleaseLocal};
     private _savedProgress = _group getVariable ["WAIT_Convoy_ContactProgress", []];
