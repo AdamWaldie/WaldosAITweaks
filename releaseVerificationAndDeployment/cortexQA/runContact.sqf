@@ -897,14 +897,23 @@ _smokeEnemy allowDamage false;
 _smokeEnemy setUnitPos "UP";
 _smokeEnemy disableAI "PATH";
 _smokeEnemy disableAI "FIREWEAPON";
-private _smokeKnown=[{_smokeUnit knowsAbout _smokeEnemy > 0},20] call _wait;
+private _smokeKnown=[{
+    private _knowledge=([_smokeGroup] call WAIT_fnc_CortexKnowledge) select 0;
+    private _state=_smokeGroup getVariable ["WAIT_AIPass_State",createHashMap];
+    _knowledge findIf {(_x select 0) == _smokeEnemy} >= 0
+        && {_state getOrDefault ["contactKnowledge",false]}
+        && {count (_state getOrDefault ["enemyPos",[]]) >= 2}
+},20] call _wait;
 ["DANGER-smoke-native-contact-prerequisite",_smokeKnown,str (_smokeUnit targetKnowledge _smokeEnemy)] call _check;
 private _smokeGrenade=[(getPosATL _smokeUnit) getPos [7,0],west] call _spawnRealGrenade;
 private _smokeThrown=[{(_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0]) == 1},18] call _wait;
 private _smokeArrived=[{_smokeUnit distance2D _smokeDestination < 7},55] call _wait;
 private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
 ["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeKnown} && {_smokeThrown}
-    && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats]] call _check;
+    && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats,
+        _smokeKnown,_smokeUnit getVariable ["WAIT_Cortex_ThrowDecision",[]],
+        _smokeGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+        (_smokeGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["contactKnowledge",false]]] call _check;
 ["DANGER-smoke-route-arrival",_smokeMoving && {_smokeArrived}
     && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},
     str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
