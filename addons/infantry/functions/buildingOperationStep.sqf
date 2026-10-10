@@ -191,6 +191,23 @@ private _delay=call {
                 _rotatedOut pushBackUnique _member;
                 private _team=_job get "team";
                 _team pushBackUnique _replacement;
+                // The pair and common lifecycle must account for the same replacement.
+                // A reserve's real travel cannot renew progress while absent from this roster.
+                private _liveOperation=_group getVariable ["WAIT_Operation",createHashMap];
+                if ((_liveOperation getOrDefault ["generation",-1]) == _operationGeneration
+                    && {(_liveOperation getOrDefault ["intent",""]) == "CLEAR"}
+                    && {(_liveOperation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+                    private _participants=+(_liveOperation getOrDefault ["participants",[]]);
+                    _participants=_participants-[_member];
+                    _participants pushBackUnique _replacement;
+                    private _progressRecords=(_liveOperation getOrDefault ["participantProgress",[]]) select {(_x select 0) != _member};
+                    if (_progressRecords findIf {(_x select 0) == _replacement} < 0) then {
+                        _progressRecords pushBack [_replacement,getPosATL _replacement];
+                    };
+                    _liveOperation set ["participants",_participants];
+                    _liveOperation set ["participantProgress",_progressRecords];
+                    _group setVariable ["WAIT_Operation",_liveOperation,true];
+                };
                 (_job get "assigned") pushBack [];
                 private _lastPositions=_state select 2;
                 _lastPositions set [_slot,getPosATL _replacement];

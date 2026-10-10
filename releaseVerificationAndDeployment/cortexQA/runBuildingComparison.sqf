@@ -179,6 +179,12 @@ private _reinforced=[{
         && {_evidence findIf {(_x param [1,""]) == netId _casualty && {(_x param [2,""]) == netId _reserve}} >= 0}
 },30] call _wait;
 ["CLEAR-casualty-reserve-assigned",_reinforced,str (_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]])] call _check;
+private _reserveOperation=_casualtyGroup getVariable ["WAIT_Operation",createHashMap];
+["CLEAR-casualty-shared-progress-roster",_reinforced
+    && {_reserve in (_reserveOperation getOrDefault ["participants",[]])}
+    && {!(_casualty in (_reserveOperation getOrDefault ["participants",[]]))}
+    && {(_reserveOperation getOrDefault ["participantProgress",[]]) findIf {(_x select 0) == _reserve} >= 0},
+    str [_reserveOperation getOrDefault ["participants",[]],_reserveOperation getOrDefault ["participantProgress",[]]]] call _check;
 private _replacementMoved=[{
     alive _reserve
         && {_reserve distance2D _reserveStart >= 8
