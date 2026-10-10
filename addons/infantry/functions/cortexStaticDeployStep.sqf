@@ -95,6 +95,10 @@ if (!_enabled || {combatMode _group in ["BLUE","GREEN"]}) exitWith {
 };
 
 if (count _record >= 10) exitWith {
+    if (count _record >= 20 && {(_record select 19) isNotEqualTo [clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]}) exitWith {
+        [true] call _retire;
+        "YIELDED"
+    };
     _record params ["_recordEpisode","_status","_gunner","_assistant","_expectedClass","_deployPos","_deadline","_weapon","_gunnerBag","_assistantBag"];
     private _handler=_record param [10,-1,[0]];
     // Permission is live throughout packing, not only when ACTIVE first requests an exit.
@@ -233,6 +237,9 @@ if (count _record >= 10) exitWith {
                     private _owner=group _actor;
                     private _current=_owner getVariable ["WAIT_Danger_StaticDeployment",[]];
                     if (local _actor && {local _owner} && {local _assembled}
+                        && {(_current param [19,[],[[]]]) isEqualTo [clientOwner,_owner getVariable ["WAIT_AIPass_Epoch",0]]}
+                        && {[_actor] call WAIT_fnc_CortexCombatEffective}
+                        && {!(_actor in ((_owner getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["participants",[]]))}
                         && {count _current >= 13} && {(_current select 12) == _thisEventHandler}
                         && {(_current select 1) == "ASSEMBLING"}
                         && {(_current select 2) == _actor} && {typeOf _assembled == (_current select 4)}
@@ -419,7 +426,13 @@ if (count _record >= 10) exitWith {
                     _context params [["_owner",grpNull,[grpNull]],["_recordEpisode",-1,[0]],["_assistant",objNull,[objNull]],["_primaryClass","",[""]],["_baseClass","",[""]]];
                     private _current=if (isNull _owner) then {[]} else {_owner getVariable ["WAIT_Danger_StaticDeployment",[]]};
                     if (local _actor && {local _owner} && {!isNull _assistant} && {local _assistant}
-                        && {alive _actor} && {alive _assistant} && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}
+                        && {[_actor] call WAIT_fnc_CortexCombatEffective}
+                        && {[_assistant] call WAIT_fnc_CortexCombatEffective}
+                        && {group _actor == _owner} && {group _assistant == _owner}
+                        && {(_current param [19,[],[[]]]) isEqualTo [clientOwner,_owner getVariable ["WAIT_AIPass_Epoch",0]]}
+                        && {private _newActors=(_owner getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["participants",[]];
+                            !(_actor in _newActors) && {!(_assistant in _newActors)}}
+                        && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}
                         && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
                         && {!([_assistant] call WAIT_fnc_CompatibilityExternalControl)}
                         && {count _current >= 11} && {(_current select 0) == _recordEpisode}
@@ -537,6 +550,7 @@ private _deadline=time+18;
 if (_gunner distance2D _deployPos <= 0.5) then {doStop _gunner};
 _record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos,-1];
 _record set [18,(_enemies select 0) param [0,objNull,[objNull]]];
+_record set [19,[clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]];
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];
 "MOVING"

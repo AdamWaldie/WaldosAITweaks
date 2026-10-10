@@ -863,6 +863,11 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,deploy)
         self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
         self.assertIn('_current set [7,_assembled]',deploy)
+        self.assertEqual(deploy.count('(_current param [19,[],[[]]]) isEqualTo [clientOwner,_owner getVariable ["WAIT_AIPass_Epoch",0]]'),2)
+        callbacks=deploy.split('addEventHandler ["WeaponDisassembled"',1)[1].split('_record set [1,"PACKING"]',1)[0]
+        self.assertIn('group _assistant == _owner',callbacks)
+        self.assertIn('WAIT_fnc_CortexCombatEffective',callbacks)
+        self.assertIn('!(_assistant in _newActors)',callbacks)
         pack_permission=deploy.split('// Permission is live throughout packing',1)[1].split('private _reservedActors=',1)[0]
         self.assertIn('!_allowPack',pack_permission)
         self.assertIn('"PACK_EXITING","PACK_MOVING","PACKING","TAKING"',pack_permission)
