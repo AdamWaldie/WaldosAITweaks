@@ -126,7 +126,8 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
     [WAIT_fnc_CortexCombinedGroundStep,createHashMapFromArray [
         ["group",_group],["asset",_asset],["target",_target],["token",_token],
-        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],["lastPosition",_start],
+        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],
+        ["ownerEpoch",_operation get "ownerEpoch"],["lastPosition",_start],
         ["progressAt",time],["stalls",0]
     ],1] call WAIT_fnc_CortexQueueJob;
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];

@@ -21,13 +21,16 @@ private _target=_job getOrDefault ["target",objNull];
 private _token=_job getOrDefault ["token",""];
 private _destination=_job getOrDefault ["destination",[]];
 private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
+private _ownerEpoch=_job getOrDefault ["ownerEpoch",-1];
 private _finish={
     params ["_reason"];
-    if (!isNull _group && {local _group}) then {
+    if (!isNull _group && {local _group}
+        && {_ownerEpoch == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
         private _operationMatches=count _operation > 0
             && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}
-            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"};
+            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"}
+            && {(_operation getOrDefault ["ownerEpoch",-1]) == _ownerEpoch};
         if (_operationMatches) then {
             if (_reason == "POSITION_REACHED") then {
                 [_group,_operationGeneration,"COMPLETE","FIRING_POSITION_REACHED"] call WAIT_fnc_OperationRelease;
@@ -35,7 +38,7 @@ private _finish={
                 [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
             };
         };
-        if (_operationGeneration >= 0) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
+        if (_operationMatches && {_operationGeneration >= 0}) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
         // The label alone is not ownership. A late callback from an older role can observe the
@@ -51,7 +54,7 @@ private _finish={
     -1
 };
 if (isNull _group || {isNull _asset} || {!alive _asset}) exitWith {["ASSET_LOST"] call _finish};
-if (!local _group) exitWith {-1};
+if (!local _group || {_ownerEpoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {-1};
 private _role=_group getVariable ["WAIT_Cortex_CombinedRole",[]];
 if (count _role != 7 || {(_role select 0) != _token} || {(_role select 4) != "GROUND_MANOEUVRE"}) exitWith {["ROLE_RELEASED"] call _finish};
 if ([_group] call WAIT_fnc_CortexZeusHeld) exitWith {["ZEUS_HANDOVER"] call _finish};
