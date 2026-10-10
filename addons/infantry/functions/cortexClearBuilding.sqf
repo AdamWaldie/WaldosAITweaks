@@ -134,7 +134,17 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["ENTRY",count _cleared,count _unr
 private _generation = (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 1;
 _group setVariable ["WAIT_AIPass_ClearGeneration", _generation];
 private _operation=[_group,"CLEAR",_building,_team,_positions,"ENTRY"] call WAIT_fnc_OperationStart;
-if (count _operation == 0) exitWith {false};
+if (count _operation == 0) exitWith {
+    // A refused operation has no worker. Retire only this attempted generation's public
+    // order so discovery cannot resurrect it after a newer owner/task has taken over.
+    if ((_group getVariable ["WAIT_AIPass_ClearGeneration",-1]) == _generation) then {
+        _group setVariable ["WAIT_AIPass_ClearOrder",nil,true];
+        _group setVariable ["WAIT_AIPass_ClearApplied",nil];
+        _group setVariable ["WAIT_Cortex_ClearStatus",nil,true];
+        _group setVariable ["WAIT_Cortex_ClearResult",["CANCELLED",count _cleared,count _positions],true];
+    };
+    false
+};
 // Initial owner adoption may reset replay markers; this successfully created job now owns them.
 _group setVariable ["WAIT_AIPass_ClearApplied",true];
 private _operationGeneration=_operation get "generation";

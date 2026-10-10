@@ -4769,7 +4769,7 @@ class CortexOperations(unittest.TestCase):
         callers={
             'cortexAirAttack': 'if (count _operation == 0)',
             'cortexAdvanceStart': 'if (count _operation == 0) exitWith',
-            'cortexClearBuilding': 'if (count _operation == 0) exitWith {false}',
+            'cortexClearBuilding': 'if (count _operation == 0) exitWith {',
             'cortexCombinedArmsLocal': 'if (count _operation == 0) exitWith',
             'cortexFlankStart': 'if (count _operation == 0) exitWith',
             'cortexMedicalStep': 'if (count _operation == 0) exitWith {false}',
@@ -4781,6 +4781,10 @@ class CortexOperations(unittest.TestCase):
         }
         for name,guard in callers.items():
             self.assertIn(guard,source(name),name)
+        refused=source('cortexClearBuilding').split('if (count _operation == 0) exitWith {',1)[1].split('// Initial owner adoption',1)[0]
+        self.assertIn('== _generation',refused)
+        self.assertIn('"WAIT_AIPass_ClearOrder",nil,true',refused)
+        self.assertIn('false',refused)
         convoy=source('convoyTick')
         self.assertIn('ownerSuspended',convoy)
         self.assertLess(convoy.index('ownerSuspended'),convoy.index('call WAIT_fnc_OperationStart'))

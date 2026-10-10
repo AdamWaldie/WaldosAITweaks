@@ -534,7 +534,7 @@ if (_focus in ["all","features","convoyseats","extensions"]) then {[_check,_phas
 if (_focus in ["all","features","avoidance"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAAvoidance.sqf"};
 if (_focus in ["all","features","deceleration"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQADeceleration.sqf"};
 if (_focus in ["all","features","aircraft","airskills"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAAircraft.sqf"};
-if (_focus in ["all","features","lifecycle","stateflows"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQALifecycle.sqf"};
+if (_focus in ["all","features","lifecycle","stateflows","dangerbuildings"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQALifecycle.sqf"};
 if (_focus in ["all","features","compatibility"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACompatibility.sqf"};
 if (_focus in ["all","features","performance"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAPerformance.sqf"};
 if (_focus == "performancecontact") then {
