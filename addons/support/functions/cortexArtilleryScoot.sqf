@@ -69,7 +69,14 @@ if (count _operation == 0) exitWith {
     call _clear;
     false
 };
-[_group, _spot, 30] call WAIT_fnc_CortexGroupMove;
+private _generation=_operation get "generation";
+private _waypoint=[_group,_spot,30,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) exitWith {
+    [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+    [_group,"ARTILLERY_SCOOT",false] call WAIT_fnc_CortexOwnershipLease;
+    call _clear;
+    false
+};
 _state set ["movementLease",["ARTILLERY_SCOOT",time+120]];
 _state set ["artilleryScootOperationGeneration",_operation get "generation"];
 call _clear;

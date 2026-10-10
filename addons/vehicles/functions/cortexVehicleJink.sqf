@@ -67,8 +67,14 @@ if (count _operation == 0) exitWith {
     [_group,"VEHICLE_JINK",false] call WAIT_fnc_CortexOwnershipLease;
     ["OPERATION_REFUSED"] call _refuse
 };
+private _generation=_operation get "generation";
+private _waypoint=[_group,_destination,25,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) exitWith {
+    [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+    [_group,"VEHICLE_JINK",false] call WAIT_fnc_CortexOwnershipLease;
+    ["MOVEMENT_REJECTED"] call _refuse
+};
 _state deleteAt "vehicleJinkRefusal";
-[_group,_destination,25] call WAIT_fnc_CortexGroupMove;
 _state set ["movementLease",["VEHICLE_JINK",time+25]];
 _state set ["vehicleOperationGeneration",_operation get "generation"];
 _vehicle setVariable ["WAIT_Danger_VehicleJink",[_dangerGeneration,_group,_destination,serverTime+25],true];
