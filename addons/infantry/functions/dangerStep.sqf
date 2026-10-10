@@ -158,7 +158,7 @@ if (_action == "RELEASE") exitWith {
         && {time < (_live select 3)}}) then {0.25} else {-1}
 };
 if (_action != "FORCED" && {!isNull _source} && {alive _source} && {!captive _source}
-    && {!(_source getVariable ["ace_captives_isSurrendering",false])} && {(side _group) getFriend (side _source) < 0.6}
+    && {!(_source getVariable ["ace_captives_isSurrendering",false]) && {!(_source getVariable ["ace_captives_isHandcuffed",false])}} && {(side _group) getFriend (side _source) < 0.6}
     && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
 };

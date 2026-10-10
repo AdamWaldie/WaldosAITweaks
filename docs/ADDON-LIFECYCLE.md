@@ -299,3 +299,5 @@ Danger intake checks actor/cause cadence before group ownership scanning. Thrott
 Danger intake and selection require three numeric coordinates, not merely a three-element position array. Invalid coordinate types are rejected before event storage or geometry consumers. Existing event priority, witness identity and expiry rules remain unchanged. Physical intake acceptance remains pending.
 
 Danger duplicate matching validates record shape and reads cause/witness through typed fields before coalescing. A malformed stored record cannot be indexed as an event or replace a valid witness. The existing selector rejects malformed records and retains its bounded priority pass. Physical malformed-intake acceptance remains pending.
+
+Danger classification rechecks surrender and handcuff state when consuming a queued hostile identity. Intake, inherited-source retention and contact publication also reject handcuffed sources. Native knowledge of a detained or newly surrendering actor cannot alone authorise a fresh engagement. Physical surrender-during-queued-contact acceptance remains pending.
