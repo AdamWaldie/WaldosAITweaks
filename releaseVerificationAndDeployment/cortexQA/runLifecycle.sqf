@@ -160,7 +160,10 @@ if (_targetOwner == 2) then {
     private _editWP=[_editGroup,[2100,1930,0],3,"MOVE"] call WAIT_fnc_CortexGroupMove;
     private _editStarted=[{_editActor distance2D _editOrigin >= 10},30] call _wait;
     private _editDestination=[1990,2030,0];
-    private _editValid=count _editWP == 2 && {(_editWP select 0) == _editGroup};
+    private _editValid=count _editWP == 2 && {(_editWP select 0) == _editGroup}
+        && {(_editWP select 1) >= 0} && {(_editWP select 1) < count waypoints _editGroup}
+        && {waypointDescription _editWP == "WAIT AI PASS"}
+        && {waypointPosition _editWP distance2D [2100,1930,0] < 1};
     ["LIFE-edited-route-physical-prerequisite",_editValid && {_editStarted},str [_editWP,getPosATL _editActor]] call _check;
     if (_editValid) then {
         _editWP setWaypointPosition [_editDestination,0];

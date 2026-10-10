@@ -37,6 +37,12 @@
 params [["_group", grpNull, [grpNull]], ["_position", [], [[]]], ["_radius", 25, [0]], ["_type", "MOVE", [""]], ["_operationGeneration", -1, [0]]];
 if (isNull _group || {!local _group} || {count _position < 2}
     || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull, -1]};
+// Establish the owner epoch before committing an unscoped route on a newly spawned
+// group. Later periodic discovery must not treat this active route as pre-adoption work.
+if !(_group getVariable ["WAIT_AIPass_Adopted",false]) then {
+    [_group,true] call WAIT_fnc_CortexLocality;
+};
+if (!local _group || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull,-1]};
 // A group-wide route cannot preserve an individual boarding, treatment or supply command.
 // Do not convert that native task into MOVE, even when the group's general eligibility is valid.
 // This does not disable sensing, firing or independently eligible actor-level operations.
