@@ -845,11 +845,11 @@ class CortexOperations(unittest.TestCase):
         for marker in [
             'WAIT_AIPass_StaticDeploy_Enable','assembleInfo','assembleTo','"primary") == 1',
             '["PutBag",_assistant]','["Assemble",_supportBag]',
-            'nearestObjects [_deployPos,[_expectedClass],8,true]',
+            'private _assembled=_record param [7,objNull,[objNull]]',
             'assignAsGunner _assembled','orderGetIn true',
             'local _assembled','crew _assembled isEqualTo []',
             'gunner _assembled == _gunner',
-            'count _sector >= 2 && {crew _assembled isEqualTo []}',
+            'count _sector >= 2 && {!(_record param [17,false,[false]])}',
             '_assembled setDir (_assembled getDir _sector)',
             '_assistantBag,-1,+_targetPos,-1]',
             'WAIT_Danger_StaticDeployment','WAIT_Danger_StaticDeployAttempt',
@@ -862,6 +862,11 @@ class CortexOperations(unittest.TestCase):
         ]:
             self.assertIn(marker,deploy)
         self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
+        self.assertIn('_current set [7,_assembled]',deploy)
+        self.assertIn('gunner _assembled == _actor',deploy)
+        self.assertIn('crew _assembled findIf {_x != _actor} < 0',deploy)
+        self.assertIn('_current set [17,true]',deploy)
+        self.assertNotIn('nearestObjects [_deployPos,[_expectedClass],8,true]',deploy)
         self.assertNotIn('moveInGunner',deploy)
         self.assertNotIn('createVehicle',deploy)
         self.assertNotIn('setPos',deploy)

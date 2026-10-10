@@ -211,11 +211,16 @@ if (count _record >= 10) exitWith {
                         && {count _current >= 13} && {(_current select 12) == _thisEventHandler}
                         && {(_current select 1) == "ASSEMBLING"}
                         && {(_current select 2) == _actor} && {typeOf _assembled == (_current select 4)}
-                        && {crew _assembled isEqualTo []}
+                        && {crew _assembled isEqualTo [] || {gunner _assembled == _actor
+                            && {crew _assembled findIf {_x != _actor} < 0}}}
                         && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}
                         && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}) then {
                         private _sector=_current param [11,[],[[]]];
-                        if (count _sector >= 2) then {_assembled setDir (_assembled getDir _sector)};
+                        _current set [7,_assembled];
+                        if (count _sector >= 2) then {
+                            _assembled setDir (_assembled getDir _sector);
+                            _current set [17,true];
+                        };
                     };
                     _actor removeEventHandler ["WeaponAssembled",_thisEventHandler];
                     if (count _current >= 13 && {(_current select 12) == _thisEventHandler}) then {
@@ -310,14 +315,19 @@ if (count _record >= 10) exitWith {
         }
     };
     if (_status == "ASSEMBLING") exitWith {
-        private _matches=nearestObjects [_deployPos,[_expectedClass],8,true];
-        private _assembled=_matches param [0,objNull,[objNull]];
+        // The assembly event identifies our exact new weapon. Nearby identical statics are
+        // not evidence that this pair assembled anything and must never be adopted or rotated.
+        private _assembled=_record param [7,objNull,[objNull]];
         if (!isNull _assembled && {alive _assembled} && {simulationEnabled _assembled} && {local _assembled}
             && {crew _assembled isEqualTo [] || {gunner _assembled == _gunner && {crew _assembled findIf {_x != _gunner} < 0}}}) then {
-            // Orient the newly assembled empty emplacement once, before boarding. Native turret aiming
-            // cannot compensate for a base facing outside its traverse arc. Never rotate an occupied weapon.
+            // Native assembly can auto-board the original carrier before the event fires.
+            // Initial alignment may include that sole owned carrier, never a different crew.
+            // Once aligned, subsequent calls leave the emplacement transform alone.
             private _sector=_record param [11,[],[[]]];
-            if (count _sector >= 2 && {crew _assembled isEqualTo []}) then {_assembled setDir (_assembled getDir _sector)};
+            if (count _sector >= 2 && {!(_record param [17,false,[false]])}) then {
+                _assembled setDir (_assembled getDir _sector);
+                _record set [17,true];
+            };
             _gunner assignAsGunner _assembled;
             [_gunner] orderGetIn true;
             _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",getPosATL _assembled,time+20]];
