@@ -175,7 +175,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 } forEach [[2,"Land_i_House_Small_01_V1_F"],[6,"Land_i_House_Big_01_V1_F"],[12,"Land_i_House_Big_02_V1_F"]];
 
 // A casualty inside the clearing element must not strand the shared room queue. Use ten soldiers
-// so the production eight-worker cap leaves a genuine squad reserve available as a replacement.
+// so the production room-limited entry element leaves genuine reserves available as replacements.
 private _casualtyHouse=createVehicle ["Land_i_House_Big_01_V1_F",[6250,5800,0],[],0,"NONE"];
 _casualtyHouse enableSimulationGlobal true;
 private _casualtyGroup=createGroup [east,true];
@@ -189,20 +189,34 @@ for "_i" from 0 to 9 do {
     _casualtyMembers pushBack _unit;
 };
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_casualtyMembers,true];
-["CQB casualty reinforcement","The ten-person squad starts with eight independent clearing workers and two reserves. One clearing soldier becomes a real casualty. A surviving reserve must join the clear and physically move toward the building; the remaining room queue must stay active.",getPosATL _casualtyHouse] call _phase;
+["CQB casualty reinforcement","The ten-person squad starts with a room-limited clearing element and remaining reserves. One clearing soldier becomes a real casualty. A surviving reserve must join the clear and physically move toward the building; the remaining room queue must stay active.",getPosATL _casualtyHouse] call _phase;
 private _casualtyAccepted=[_casualtyGroup,_casualtyHouse] call WAIT_fnc_CortexClearBuilding;
 ["CLEAR-casualty-order-accepted",_casualtyAccepted] call _check;
 private _jobStarted=[{_casualtyGroup getVariable ["WAIT_AIPass_ClearBuilding",false]},15] call _wait;
 ["CLEAR-casualty-job-started",_jobStarted] call _check;
-private _casualty=_casualtyMembers select 1;
-private _reserve=_casualtyMembers select 9;
-private _reserveStart=getPosATL _reserve;
+private _initialOperation=_casualtyGroup getVariable ["WAIT_Operation",createHashMap];
+private _initialParticipants=+(_initialOperation getOrDefault ["participants",[]]);
+private _casualty=_initialParticipants param [0,objNull];
+private _reservePool=_casualtyMembers select {!(_x in _initialParticipants)};
+private _reserveStarts=_reservePool apply {getPosATL _x};
+private _reserve=objNull;
+private _reserveStart=[];
+["CLEAR-casualty-entry-and-reserve-fixture",!isNull _casualty && {_reservePool isNotEqualTo []},
+    str [_initialParticipants,_reservePool]] call _check;
 private _evidenceBefore=count (_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]]);
 _casualty setDamage 1;
 private _reinforced=[{
     private _evidence=_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]];
-    count _evidence > _evidenceBefore
-        && {_evidence findIf {(_x param [1,""]) == netId _casualty && {(_x param [2,""]) == netId _reserve}} >= 0}
+    private _replacementIndex=_evidence findIf {(_x param [1,""]) == netId _casualty};
+    if (count _evidence > _evidenceBefore && {_replacementIndex >= 0}) then {
+        private _replacementId=(_evidence select _replacementIndex) param [2,""];
+        private _poolIndex=_reservePool findIf {netId _x == _replacementId};
+        if (_poolIndex >= 0) then {
+            _reserve=_reservePool select _poolIndex;
+            _reserveStart=_reserveStarts select _poolIndex;
+        };
+    };
+    !isNull _reserve
 },30] call _wait;
 ["CLEAR-casualty-reserve-assigned",_reinforced,str (_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]])] call _check;
 private _reserveOperation=_casualtyGroup getVariable ["WAIT_Operation",createHashMap];
@@ -212,8 +226,9 @@ private _reserveOperation=_casualtyGroup getVariable ["WAIT_Operation",createHas
     && {(_reserveOperation getOrDefault ["participantProgress",[]]) findIf {(_x select 0) == _reserve} >= 0},
     str [_reserveOperation getOrDefault ["participants",[]],_reserveOperation getOrDefault ["participantProgress",[]]]] call _check;
 private _replacementMoved=[{
-    alive _reserve
-        && {_reserve distance2D _reserveStart >= 8
+    !isNull _reserve && {alive _reserve}
+        && {(_reserve distance2D _reserveStart >= 8
+                && {_reserve distance2D _casualtyHouse <= (_reserveStart distance2D _casualtyHouse)-5})
             || {(_casualtyHouse buildingPos -1) findIf {(getPosASL _reserve) vectorDistance (AGLToASL _x) <= 1.5} >= 0}}
 },60] call _wait;
 ["CLEAR-casualty-reserve-physical-movement",_replacementMoved,format ["start=%1 actual=%2 command=%3 expected=%4",_reserveStart,getPosATL _reserve,currentCommand _reserve,expectedDestination _reserve]] call _check;
