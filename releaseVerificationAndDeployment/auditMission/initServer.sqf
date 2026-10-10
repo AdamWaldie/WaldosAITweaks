@@ -50,9 +50,13 @@ WAIT_fnc_HeadlessMigrateGroup={
     params ["_group","_owner"];
     if (isNull _group || {_owner < 2}) exitWith {false};
     if !(isNil "Waldo_fnc_HeadlessMigrateGroup") exitWith {[_group,_owner] call Waldo_fnc_HeadlessMigrateGroup};
-    _group setGroupOwner _owner;
-    diag_log format ["[WAIT AUDIT] Engine-only HC transfer group=%1 owner=%2; WAIT migration provider unavailable.",_group,_owner];
-    true
+    // The fallback is an engine request, not proof of migration. Respect the fixture's
+    // exclusion contract and retain a failed return so acceptance cannot infer success.
+    if (_owner != 2 && {_group getVariable ["WAIT_Headless_ExcludeGroup",false]}) exitWith {false};
+    if (groupOwner _group == _owner) exitWith {true};
+    private _requested=_group setGroupOwner _owner;
+    diag_log format ["[WAIT AUDIT] Engine-only HC transfer group=%1 owner=%2 requested=%3 actual=%4; WAIT migration provider unavailable.",_group,_owner,_requested,groupOwner _group];
+    _requested
 };
 diag_log "WAIT AUDIT SERVER READY";
 if ((missionNamespace getVariable ["WAIT_CortexQA_Focus", "all"]) isEqualTo "dangerload") then {
