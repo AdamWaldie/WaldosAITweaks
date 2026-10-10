@@ -384,6 +384,39 @@ deleteGroup _liveDisableGroup;
 private _liveDisableReenabled=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
 ["DANGER-live-disable-reenabled",_liveDisableReenabled] call _check;
 
+// Stationary defenders retain posture response without acquiring movement permission.
+private _stationaryGroup=createGroup [east,true];
+_stationaryGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_stationaryGroup setVariable ["acex_headless_blacklist",true,true];
+private _stationaryActor=_stationaryGroup createUnit ["O_Soldier_F",[2840,1320,0],[],0,"NONE"];
+_stationaryActor allowDamage false;
+_stationaryActor setUnitPos "AUTO";
+_stationaryActor disableAI "MOVE";
+_stationaryActor disableAI "PATH";
+_stationaryActor setVariable ["WAIT_CortexQA_Label","STATIONARY DEFENDER",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_stationaryActor],true];
+["Danger FSM: stationary defender","MOVE and PATH remain disabled. An attributed native grenade must produce finite weak posture without travel or enabling movement. This is an instrumented reflex case, not combat effectiveness.",getPosATL _stationaryActor] call _phase;
+private _stationaryOrigin=getPosATL _stationaryActor;
+private _stationaryGrenade=[_stationaryOrigin vectorAdd [3,0,0]] call _spawnRealGrenade;
+private _stationaryStimulusCreated=!isNull _stationaryGrenade;
+private _stationaryResponse=[{
+    private _response=_stationaryActor getVariable ["WAIT_Danger_EngineResponse",[]];
+    count _response == 7 && {(_response select 0) in ["IMMEDIATE","HIDE"]}
+        && {stance _stationaryActor in ["CROUCH","PRONE"]}
+},12] call _wait;
+["DANGER-stationary-defender-physical-posture",_stationaryStimulusCreated && {_stationaryResponse},
+    str [_stationaryActor getVariable ["WAIT_Danger_EngineEntry",[]],stance _stationaryActor]] call _check;
+["DANGER-stationary-defender-movement-preserved",
+    !(_stationaryActor checkAIFeature "MOVE") && {!(_stationaryActor checkAIFeature "PATH")}
+        && {_stationaryActor distance2D _stationaryOrigin < 1},str (getPosATL _stationaryActor)] call _check;
+[_stationaryGroup,false,"AUDIT_STATIONARY_RELEASE"] call WAIT_fnc_CortexReleaseGroup;
+["DANGER-stationary-defender-cleanup-permissions",
+    !(_stationaryActor checkAIFeature "MOVE") && {!(_stationaryActor checkAIFeature "PATH")}
+        && {(_stationaryActor getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}] call _check;
+deleteVehicle _stationaryGrenade;
+deleteVehicle _stationaryActor;
+deleteGroup _stationaryGroup;
+
 // BLUE is an explicit authored hold-fire instruction. With the live danger gate enabled, a real
 // explosion must still reach the engine FSM and may produce a finite actor stance, but it cannot
 // promote fire discipline or authorise a manoeuvre. Native awareness remains valid.
