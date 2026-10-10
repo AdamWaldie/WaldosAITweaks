@@ -287,12 +287,6 @@ if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) the
     };
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
 };
-// Smoke is a supporting reflex, never another movement phase. One unreserved local actor may throw
-// while cover selection and the current operation continue; the helper's generation context cancels
-// the queued release if Zeus, a specialist owner or a newer danger response takes over next frame.
-if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
-    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
-};
 [_group,_state] call WAIT_fnc_CortexSupportMaintain;
 // The drill controller is a separate scheduled job. If it is lost or starved, leaving the
 // drill HashMap in place blocks replacement tactics and can leave Cortex-owned PATH,
@@ -1305,6 +1299,12 @@ switch (_state get "phase") do {
             [_group,_state,"REGROUP",["WITHDRAWAL_COMPLETE","WITHDRAWAL_TIMEOUT"] select _timedOut,_now] call WAIT_fnc_CortexSetPhase;
         };
     };
+};
+// Process native contact first: a severe first-contact response must not read the
+// previous callback's false contactKnowledge flag. Smoke remains a finite supporting
+// opportunity and its helper rechecks expiry, reservations, bearing and external ownership.
+if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
+    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
 };
 // Reaction speed (AI Tuning): above 1 squads re-assess more often, below 1 less often. A small,
 // zero-mean jitter keeps groups off the same scheduler frame and spreads both CPU work and fire orders.
