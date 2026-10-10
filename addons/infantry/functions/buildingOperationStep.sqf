@@ -356,7 +356,14 @@ private _delay=call {
                             private _outward=(getPosATL (_job get "building")) getDir _entryTarget;
                             _entryTarget getPos [3,_outward]
                         } else {
-                            if (_previousPositionIndex >= 0) then {_positions select _previousPositionIndex} else {if (_entryTarget isEqualTo [] || {!_approachingEntry && {_entered}}) then {_target} else {_entryTarget}}
+                            if (_previousPositionIndex >= 0) then {_positions select _previousPositionIndex} else {
+                                if (_entryTarget isEqualTo [] || {_entered}) then {_target} else {
+                                    // Keep first-room security clear of the threshold. Standing on
+                                    // the entrance can physically block the partner's only path inside.
+                                    private _outward=(getPosATL (_job get "building")) getDir _entryTarget;
+                                    _entryTarget getPos [3,_outward+60]
+                                }
+                            }
                         };
                         if (_supportTarget isEqualTo []) then {
                             private _outward=(getPosATL (_job get "building")) getDir _target;
