@@ -109,9 +109,18 @@ if (count _operation == 0) exitWith {
     false
 };
 private _generation=_operation get "generation";
+private _waypoint=[_group,_goal,12,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) exitWith {
+    // A native service task or newer owner can reject movement at the final boundary.
+    // No waypoint means no started reposition: retire its exact operation and reservation now.
+    [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+    [_group,"TACTICAL_REPOSITION",false] call WAIT_fnc_CortexOwnershipLease;
+    _group setVariable ["WAIT_Cortex_TacticalReposition",["BLOCKED",_reason,_target,serverTime],true];
+    _group setVariable ["WAIT_Cortex_TacticalRepositionCooldown",[time+12,_reason,_target]];
+    false
+};
 _state set ["tacticalRepositionOperationGeneration",_generation];
 _state set ["movementLease",["TACTICAL_REPOSITION",time+30]];
-[_group,_goal,12,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
 _group setVariable ["WAIT_Cortex_TacticalReposition",[
     "MOVING",_reason,_target,serverTime,+_origin,+_goal,+_route,_generation
 ],true];
