@@ -3,7 +3,8 @@
  * Checks shared passenger safety before routine unloading or boarding; emergency engine bailouts remain independent.
  * Locality/authority: read-only on the requesting owner unless stated below.
  * Repeat/JIP: no side effects; runtime gates and actor task ownership are read again on every call.
- * Matching boarding may continue, but medical, equipment and replacement boarding tasks yield.
+ * Matching boarding may continue, but medical, equipment, finite actor reservations and replacement
+ * boarding tasks yield without issuing seat or movement commands.
  * Arguments: 0: soldier <OBJECT>, objNull; 1: vehicle <OBJECT>, objNull; 2: boarding <BOOL>, false.
  * Return Value: Boolean.
  * Current callers: ConvoyCrewLocal, Vehicles and RestoreCalm.
@@ -16,6 +17,11 @@ if (isNull _vehicle || {!alive _vehicle} || {!local _unit} || {isPlayer _unit}
     || {"ALL" in ((group _unit) getVariable ["WAIT_AIPass_DisabledFeatures", []])}
     || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner", objNull])}
     || {abs speed _vehicle >= 1}) exitWith {false};
+// A finite actor-level task owns this soldier independently of the passenger group's
+// contact episode. Routine dismount/remount must not supersede its cover or recovery move.
+private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+if (_reservation isNotEqualTo [] && {!(_reservation isEqualType []) || {count _reservation != 3}
+    || {!((_reservation select 2) isEqualType 0)} || {time < (_reservation select 2)}}) exitWith {false};
 // Routine seat changes must not steal an actor's medical, equipment or other authored task.
 // The matching GET IN is our permitted continuation, not permission to replace a different seat.
 private _command=toUpperANSI currentCommand _unit;
