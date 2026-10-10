@@ -30,7 +30,11 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
 _cadence set [_cause,time+0.25];
 _actor setVariable ["WAIT_Danger_EventCadence",_cadence];
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
-private _index=_events findIf {(_x select 0) == _cause && {(_x param [5,objNull,[objNull]]) == _actor}};
+private _index=_events findIf {
+    _x isEqualType [] && {count _x in [4,5,6,7]}
+        && {(_x param [0,"",[""]]) == _cause}
+        && {(_x param [5,objNull,[objNull]]) == _actor}
+};
 // Preserve identity only when the engine supplied a live hostile already known by this observer.
 // The group layer revalidates the object against its native knowledge before using it. This is not
 // reveal or target assignment; objNull remains the normal value for approximate hazards and reports.

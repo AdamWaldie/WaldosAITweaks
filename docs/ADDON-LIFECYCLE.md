@@ -297,3 +297,5 @@ Drill checkpoints record committed mover destinations. Locality formation return
 Danger intake checks actor/cause cadence before group ownership scanning. Throttled duplicates return without that scan; rejected eligibility does not advance cadence, and accepted observations retain the existing quarter-second gate. Physical intake responsiveness and frame-time acceptance remain pending.
 
 Danger intake and selection require three numeric coordinates, not merely a three-element position array. Invalid coordinate types are rejected before event storage or geometry consumers. Existing event priority, witness identity and expiry rules remain unchanged. Physical intake acceptance remains pending.
+
+Danger duplicate matching validates record shape and reads cause/witness through typed fields before coalescing. A malformed stored record cannot be indexed as an event or replace a valid witness. The existing selector rejects malformed records and retains its bounded priority pass. Physical malformed-intake acceptance remains pending.
