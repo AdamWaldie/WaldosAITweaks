@@ -540,8 +540,10 @@ private _phase=toUpperANSI (_job getOrDefault ["phase","ENTRY"]);
 private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _currentOperation > 0
     && {(_currentOperation getOrDefault ["generation",-1]) == (_job getOrDefault ["operationGeneration",-2])}
-    && {(_currentOperation getOrDefault ["intent",""]) == "CLEAR"}) then {
+    && {(_currentOperation getOrDefault ["intent",""]) == "CLEAR"}
+    && {(_currentOperation getOrDefault ["phase",""]) != _phase}) then {
     _currentOperation set ["phase",_phase];
+    _group setVariable ["WAIT_Operation",_currentOperation,true];
 };
 _brain set ["phase",_phase];
 _brain set ["lastStepAt",time];
