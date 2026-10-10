@@ -28,6 +28,15 @@ if (!local _group || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible
 private _previous=_group getVariable ["WAIT_Operation",createHashMap];
 private _generation=(_group getVariable ["WAIT_OperationGeneration",0])+1;
 if (count _previous > 0) then {
+    // Retire a matching outgoing drill while its generation/epoch still own feature holds.
+    // REPLACED suppresses return-to-formation; a new operation supplies its own movement.
+    private _previousState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+    private _previousDrill=_previousState getOrDefault ["drill",createHashMap];
+    if (count _previousDrill > 0
+        && {(_previousDrill getOrDefault ["operationGeneration",-1]) == (_previous getOrDefault ["generation",-2])}
+        && {(_previousDrill getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+        [_group,_previousState,"REPLACED"] call WAIT_fnc_CortexFlankEnd;
+    };
     [_group,_previous getOrDefault ["generation",-1],"REPLACED"] call WAIT_fnc_OperationCancel;
 };
 // A finite danger posture is meaningful only for an on-foot group. Aircraft, vehicles and boats
