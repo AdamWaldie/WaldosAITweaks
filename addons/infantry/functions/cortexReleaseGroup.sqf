@@ -61,6 +61,12 @@ if (_reason == "") then {
     _reason=if (_yieldToZeus) then {"ZEUS_TAKEOVER"} else {if (_yieldToExternal) then {"EXTERNAL_TAKEOVER"} else {"RELEASED"}};
 };
 private _externalTakeover=_yieldToZeus || {_yieldToExternal} || {_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
+// Explicit holding orders can survive without a tactical map while contact automation is off.
+// A terminal release still needs one authoritative diagnostic record, not a stale checkpoint.
+if (local _group && {count _state == 0}
+    && {_reason in ["CORTEX_STOPPED","ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]}) then {
+    _state set ["phase",_group getVariable ["WAIT_AIPass_PublicPhase","CALM"]];
+};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (local _group && {count _operation > 0}) then {
     [_group,_operation getOrDefault ["generation",-1],_reason] call WAIT_fnc_OperationCancel;

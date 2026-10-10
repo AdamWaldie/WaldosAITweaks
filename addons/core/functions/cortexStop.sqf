@@ -189,7 +189,10 @@ if (!isNil "_civilianCreated") then {
     _x setVariable ["WAIT_BuildingBrain",nil];
     _x setVariable ["WAIT_BuildingBrain_FSM",nil];
     if (local _x) then {_x setVariable ["WAIT_AIPass_AreaReport",nil,true]};
-    if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}}) then {
+    if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}
+        || {(_x getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []}
+        || {(_x getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []}
+        || {_x getVariable ["WAIT_AIPass_ClearBuilding",false]}}) then {
         [_x,true,"CORTEX_STOPPED"] call WAIT_fnc_CortexReleaseGroup;
     };
     if (local _x) then {
