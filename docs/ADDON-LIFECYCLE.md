@@ -283,3 +283,5 @@ Tactical drill rebalancing excludes squad members outside its current live fire-
 Danger posture respects a live tactical drill's exact groupCombatMode lease while an operation exists. Renewed engagement cannot replace its applied YELLOW discipline with RED and falsely end movement as ROE_CHANGED. Drill team rebuilding also excludes operation-quarantined unavailable actors. Physical sustained-contact and isolated-stall acceptance remains pending.
 
 Danger's tactical fire-mode exemption requires matching operation generation, current owner epoch, drill operation generation and an active START/MOVE/PAUSE/HOLD phase. A leftover mode lease cannot constrain danger after replacement or migration. Physical stale-record transition acceptance remains pending.
+
+Flank, advance and assault drills record the operation owner epoch at creation. Drill cleanup requires that epoch and its operation generation to match current group ownership before restoring AI features, modes or movement. A stale callback cannot gain restoration authority merely because the operation record was cleared. Physical migration/replacement cleanup acceptance remains pending.

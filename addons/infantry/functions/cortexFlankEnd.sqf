@@ -39,6 +39,9 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 if (isNull _group || {!local _group}) exitWith {};
 private _drill = _state getOrDefault ["drill", createHashMap];
 if (count _drill == 0) exitWith {};
+// An old owner or replaced generation has no authority over feature switches or cleanup.
+if ((_drill getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])
+    || {(_drill getOrDefault ["operationGeneration",-1]) != (_group getVariable ["WAIT_OperationGeneration",0])}) exitWith {};
 private _liveDrill=(_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
 if (count _liveDrill > 0 && {(_liveDrill getOrDefault ["token",""]) != (_drill getOrDefault ["token",""])}) exitWith {};
 private _liveOperation=_group getVariable ["WAIT_Operation",createHashMap];
