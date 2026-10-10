@@ -1330,7 +1330,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('behaviour _postureActor == _ownedBehaviour',reaction)
         self.assertIn('behaviour _postureActor == (_lease select 1)',reaction)
         self.assertNotIn('behaviour leader _group == _ownedBehaviour',reaction)
-        self.assertIn('max (_lease param [4,-1])',reaction)
+        self.assertIn('max (if (_leaseIntact) then {_lease select 4} else {-1})',reaction)
         self.assertIn('"RELEASE"',reaction)
         self.assertIn('_cause == "RELEASE"',reaction)
         self.assertNotIn('WAIT_Danger_Immediate',reaction)

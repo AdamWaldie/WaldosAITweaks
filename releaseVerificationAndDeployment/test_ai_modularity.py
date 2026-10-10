@@ -519,4 +519,13 @@ class SemanticComponentContracts(unittest.TestCase):
         self.assertIn('call WAIT_fnc_CortexCombatEffective', release)
         self.assertLess(release.index('private _protectedTask='), release.index('orderGetIn false'))
 
+    def test_danger_posture_restore_is_generation_and_owner_bound(self):
+        source = (ROOT/'addons/infantry/functions/dangerReact.sqf').read_text()
+        for proof in ['(_lease select 5) == _generation', '(_lease select 6) == _epoch',
+                      '(_lease select 7) == clientOwner']:
+            self.assertIn(proof, source)
+        self.assertIn('count _lease > 0 && {!_leaseOwned}', source)
+        self.assertIn('private _leaseIntact=_leaseOwned', source)
+        self.assertIn('_until,_generation,_epoch,clientOwner', source)
+
 if __name__ == '__main__': unittest.main()
