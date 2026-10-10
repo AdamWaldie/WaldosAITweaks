@@ -24,6 +24,8 @@
 params [["_state",createHashMap,[createHashMap]]];
 private _aircraft=_state getOrDefault ["aircraft",objNull];
 private _missile=_state getOrDefault ["missile",objNull];
+private _projectileKnown=_state getOrDefault ["projectileKnown",!isNull _missile];
+_state set ["projectileKnown",_projectileKnown];
 private _generation=_state getOrDefault ["generation",-1];
 private _side=_state getOrDefault ["side",1];
 private _step=_state getOrDefault ["step",0];
@@ -43,7 +45,7 @@ if (isNull _aircraft || {!local _aircraft}
     || {!([_aircraft] call WAIT_fnc_CortexAircraftEligible)}) exitWith {call _finish};
 // A known projectile disappearing after the initial sample means the threat has ended. Engines and
 // addon weapons that do not expose the projectile retain the same bounded twelve-sample maximum.
-if (_step > 0 && {!isNull _missile} && {!alive _missile}) exitWith {call _finish};
+if (_projectileKnown && {isNull _missile || {!alive _missile}}) exitWith {call _finish};
 
 private _ownsFlightLease=[_aircraft,"MISSILE_DEFENCE",_flightLeaseToken,400] call WAIT_fnc_FlightLeaseAcquire;
 

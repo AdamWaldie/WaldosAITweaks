@@ -202,6 +202,7 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                     [WAIT_fnc_CortexMissileDefenceStep,createHashMapFromArray [
                         ["aircraft",_vehicle],
                         ["missile",_missile],
+                        ["projectileKnown",!isNull _missile],
                         ["generation",_generation],
                         ["side",_side],
                         ["step",0],

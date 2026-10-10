@@ -6049,7 +6049,7 @@ class CortexOperations(unittest.TestCase):
         for requirement in ['params [["_state",createHashMap,[createHashMap]]]',
                             '!= _generation',
                             '_step in [0,4]',
-                            '!isNull _missile} && {!alive _missile',
+                            '_projectileKnown && {isNull _missile || {!alive _missile}}',
                             '_step >= 12',
                             '_aircraft setVelocityModelSpace _candidate']:
             self.assertIn(requirement,defence)
