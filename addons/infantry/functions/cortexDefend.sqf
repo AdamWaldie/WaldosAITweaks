@@ -2,6 +2,8 @@
  * Author: WaldoTheWarfighter
  * Repeat/JIP: A new defence replaces the prior assignment. Published assignments are reapplied by the new local owner after migration or JIP.
  * Orders an AI group to hold a defensive line facing a direction, with a rear reserve.
+ * Line and reserve slots count only local combat-effective actors without player or specialist
+ * ownership; protected actors remain outside the order's allocation and starting strength.
  *
  * About two thirds of the squad form a firing line across the facing
  * direction, spread over the given width. Lateral slots contract towards the centre when the nominal
@@ -56,7 +58,10 @@ if !(_facing isEqualType 0) then {
     private _towards = if (_facing isEqualType objNull) then {getPosATL _facing} else {_facing};
     _facing = _centre getDir _towards;
 };
-private _units = (units _group) select {alive _x && {vehicle _x == _x}};
+private _units = (units _group) select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {vehicle _x == _x} && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}
+};
 if (_units isEqualTo []) exitWith {false};
 // End transient movement before this explicit order takes ownership.
 [_group,false] call WAIT_fnc_CortexReleaseGroup;
