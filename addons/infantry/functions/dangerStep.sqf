@@ -77,7 +77,7 @@ if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
     || {group _responseActor != _group}) then {_responseActor=_actor};
 private _responseCommand=toUpperANSI (currentCommand _responseActor);
 if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
-    || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {
+    || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {
     [_responseActor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];

@@ -51,7 +51,7 @@ if (isNull _candidate || {!alive _candidate} || {!local _candidate} || {isPlayer
     || {group _candidate != _group} || {_candidate == driver _vehicle}
     || {!([_candidate] call WAIT_fnc_CortexCombatEffective)}) exitWith {["COMMANDER_INELIGIBLE"] call _reject};
 private _command=toUpperANSI currentCommand _candidate;
-if (fleeing _candidate || {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {["NATIVE_TASK"] call _reject};
+if (fleeing _candidate || {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {["NATIVE_TASK"] call _reject};
 if (_candidate knowsAbout _hostile <= 0) exitWith {["NO_NATIVE_KNOWLEDGE"] call _reject};
 
 _candidate assignAsGunner _vehicle;

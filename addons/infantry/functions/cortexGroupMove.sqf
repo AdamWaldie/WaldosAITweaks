@@ -41,7 +41,7 @@ if (isNull _group || {!local _group} || {count _position < 2}
 // Do not convert that native task into MOVE, even when the group's general eligibility is valid.
 // This does not disable sensing, firing or independently eligible actor-level operations.
 if ((units _group) findIf {
-    alive _x && {toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}
+    alive _x && {toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}
 } >= 0) exitWith {[grpNull,-1]};
 // Callers do not need to thread an operation token through every tactical helper. When a common
 // operation is active, bind this route to its current generation automatically; ordinary mission

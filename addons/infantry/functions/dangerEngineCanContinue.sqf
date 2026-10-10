@@ -33,7 +33,7 @@ if ("ALL" in _disabled || {"WAIT_AIPass_Danger_Enable" in _disabled}
 // join or fleeing task interrupts before another WAIT stance or recycle. ATTACK deliberately remains
 // eligible because the engine also uses it for ordinary autonomous combat.
 if (behaviour _actor == "CARELESS" || {!_initial && {fleeing _actor
-    || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}}}) exitWith {false};
+    || {toUpperANSI (currentCommand _actor) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}}}) exitWith {false};
 
 // A carrier reservation can begin after this response was classified. Interrupt that old
 // response, but let an already classified FORCED state keep its bounded wait instead of

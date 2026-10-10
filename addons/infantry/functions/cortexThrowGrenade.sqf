@@ -86,7 +86,7 @@ private _thrown = false;
                 if ((_group getVariable ["WAIT_OperationGeneration",0]) != _operationGeneration
                     || {(_group getVariable ["WAIT_AIPass_Epoch",0]) != _ownerEpoch}
                     || {!local _group}
-                    || {currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {
+                    || {currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {
                     ["NEW_TASK"] call _cancel;
                 };
                 if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {vehicle _unit != _unit} || {group _unit != _group}

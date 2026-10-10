@@ -706,7 +706,7 @@ private _enterContact = {
 private _beginContact = {
     // Changing group behaviour also changes actors whose native tasks WAIT does not own.
     private _nativeTaskActive = (_alive findIf {
-        toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]
+        toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]
     }) >= 0;
     if !("baseBehaviour" in _state) then {
         _state set ["baseBehaviour", behaviour _leader];
@@ -718,7 +718,7 @@ private _beginContact = {
         {
             private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
             if (alive _x && {local _x}
-                && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"])}
+                && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
                 && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
                 _x doFollow _leader
             };
