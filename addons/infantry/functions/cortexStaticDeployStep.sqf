@@ -448,7 +448,14 @@ if (count _record >= 10) exitWith {
                     private _context=_actor getVariable ["WAIT_Danger_StaticPackContext",[]];
                     _context params [["_owner",grpNull,[grpNull]],["_recordEpisode",-1,[0]],["_assistant",objNull,[objNull]],["_primaryClass","",[""]],["_baseClass","",[""]]];
                     private _current=if (isNull _owner) then {[]} else {_owner getVariable ["WAIT_Danger_StaticDeployment",[]]};
+                    private _taskFree={
+                        params ["_unit","_ownsDisassemble"];
+                        private _command=currentCommand _unit;
+                        !(_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","TAKE BAG","DROP BAG"])
+                            && {_command != "DISASSEMBLE" || {_ownsDisassemble}}
+                    };
                     if (local _actor && {local _owner} && {!isNull _assistant} && {local _assistant}
+                        && {[_actor,true] call _taskFree} && {[_assistant,false] call _taskFree}
                         && {[_actor] call WAIT_fnc_CortexCombatEffective}
                         && {[_assistant] call WAIT_fnc_CortexCombatEffective}
                         && {group _actor == _owner} && {group _assistant == _owner}
