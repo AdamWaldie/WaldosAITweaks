@@ -92,7 +92,18 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     private _memberVisits=_clearingMembers apply {[]};
     private _accepted=[_group,_house] call WAIT_fnc_CortexClearBuilding;
     [format ["CLEAR-fresh-%1-accepted",_size],_accepted] call _check;
+    private _entryEpoch=_group getVariable ["WAIT_AIPass_Epoch",0];
+    private _entryGeneration=(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1];
+    private _entryOwnerStable=true;
+    [format ["CLEAR-fresh-%1-owner-established",_size],_accepted && {_entryEpoch > 0}
+        && {_group getVariable ["WAIT_AIPass_Adopted",false]} && {_entryGeneration >= 0},
+        str [_entryEpoch,_entryGeneration]] call _check;
     [{
+        private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+        if ((_group getVariable ["WAIT_AIPass_Epoch",0]) != _entryEpoch
+            || {count _currentOperation > 0 && {(_currentOperation getOrDefault ["generation",-1]) != _entryGeneration}}) then {
+            _entryOwnerStable=false;
+        };
         {private _room=_x; private _roomIndex=_forEachIndex; if (_clearingMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _room) <= 1.5}} >= 0) then {_visits set [_roomIndex,true]}} forEach _rooms;
         {
             private _worker=_x;
@@ -102,6 +113,9 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
         missionNamespace setVariable ["WAIT_CortexQA_Rooms",[_rooms,_visits],true];
         ((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) in ["COMPLETE","INCOMPLETE"]
     },245] call _wait;
+    [format ["CLEAR-fresh-%1-owner-continuity",_size],_accepted && {_entryOwnerStable},
+        str [_entryEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],
+            _entryGeneration,_group getVariable ["WAIT_OperationResult",[]]]] call _check;
     private _physical=_rooms isNotEqualTo [] && {_visits findIf {!_x} < 0};
     [format ["CLEAR-fresh-%1-physical-room-visits",_size],_physical,format ["visits=%1 units=%2",_visits,_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x]}]] call _check;
     [format ["CLEAR-fresh-%1-result-agrees",_size],_physical && {((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) == "COMPLETE"}] call _check;
