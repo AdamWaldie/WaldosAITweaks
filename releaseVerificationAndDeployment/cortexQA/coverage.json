@@ -370,6 +370,7 @@
         "WAIT_AIPass_DangerSmoke_Enable",
         "WAIT_AIPass_StaticSupport_Enable",
         "WAIT_AIPass_StaticDeploy_Enable",
+        "WAIT_AIPass_DangerEvasion_Enable",
         "WAIT_AIPass_DangerObservation_Enable",
         "WAIT_AIPass_DangerConcealment_Enable"
       ],

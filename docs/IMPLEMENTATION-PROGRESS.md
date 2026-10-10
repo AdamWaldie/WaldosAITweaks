@@ -634,3 +634,6 @@ Targetless contact-suite grenades now come from an excluded same-side actor. The
 The observer-cover fixture now waits for a native idle command and reports MOVE/PATH readiness before the stimulus, without stopping/resetting the actor. Combined physical cover acceptance requires that prerequisite; native formation movement must not be misclassified as a WAIT cover failure. Retest remains pending.
 
 Queued danger-grenade cancellation now exits the callback scope. The previous nested exitWith left only the context block, allowing stale/expired danger work to reach weapon release. This is an ownership fix, not proof of successful smoke firing. Physical supersession/expiry/disabled/Zeus checks remain pending.
+
+
+Immediate prone evasion uses native lateral actions for idle riflemen after hits or near rounds, with a three-second actor cooldown. The live `WAIT_AIPass_DangerEvasion_Enable` control defaults on and requires danger response. Committed routes, protected native tasks and specialist actors yield. Recorded action requests are not physical acceptance: displacement, disabled state, interruption, cleanup, locality and performance cases remain pending.

@@ -58,6 +58,7 @@ if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
 // Native actions retain engine collision and animation handling. Never roll a committed mover,
 // override another native action, or replay this response on every danger recycle.
 if (_mode == "IMMEDIATE" && {_cause in [2,9]} && {!_committedMover}
+    && {[_group,"WAIT_AIPass_DangerEvasion_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {isNull objectParent _actor} && {stance _actor == "PRONE"}
     && {abs (speed _actor) < 0.5} && {currentCommand _actor == ""}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}

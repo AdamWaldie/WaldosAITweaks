@@ -139,6 +139,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_Convoy_ContactHalt_Enable` | `true` | Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available. |
 | `WAIT_Convoy_Unload_Enable` | `true` | Allows WAIT passenger unloading on halt. Operating crews remain aboard. |
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |
+| `WAIT_AIPass_DangerEvasion_Enable` | `true` | Idle prone riflemen may use finite native evasion; committed movement and specialist/native tasks yield. Physical acceptance pending. |
 | `WAIT_AIPass_DangerObservation_Enable` | `true` | Eligible idle actors glance toward body/scream positions without target revelation or movement authority. Requires danger response. |
 | `WAIT_AIPass_DangerConcealment_Enable` | `true` | Separately budgeted visual screening fallback after solid cover fails; does not imply ballistic protection. |
 | `WAIT_AIPass_DangerSmoke_Enable` | `true` | One available soldier may throw carried smoke during severe finite danger. The current operation continues without waiting for it. |
