@@ -637,3 +637,6 @@ Queued danger-grenade cancellation now exits the callback scope. The previous ne
 
 
 Immediate prone evasion uses native lateral actions for idle riflemen after hits or near rounds, with a three-second actor cooldown. The live `WAIT_AIPass_DangerEvasion_Enable` control defaults on and requires danger response. Committed routes, protected native tasks and specialist actors yield. Recorded action requests are not physical acceptance: displacement, disabled state, interruption, cleanup, locality and performance cases remain pending.
+
+
+Packaged candidate `9b5a9bb`, batch `runtime-20261010-020243-631`, passed the tracked orientation fixture at 02:25:11: native detection, disabled ownership, enabled ownership, physical hull alignment within 20 degrees, less than 8 m travel (measured 0.56 m), and retained crew. This proves only that stationary-tank fixture. Carried deployment still failed in MOVING, before assembly, with carriers 13.55 m and 17.43 m from the selected point. Subsequent current-position anchoring and transient-reservation changes remain pending physical retest. Overall danger acceptance is incomplete.

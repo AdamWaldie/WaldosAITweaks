@@ -26,6 +26,14 @@ private _clearLease={
         private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
         if (count _lease >= 2 && {(_lease select 0) isEqualTo _actor}
             && {(_generation < 0) || {(_lease select 1) == _generation}}) then {
+            if (count _lease >= 4 && {!isNull _actor} && {local _actor}) then {
+                private _ownedMove=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+                if (count _ownedMove == 3 && {(_ownedMove select 0) == "DANGER_COVER"}
+                    && {(_ownedMove select 1) distance2D (_lease select 3) <= 1}
+                    && {(_ownedMove select 2) == (_lease select 2)}) then {
+                    _actor setVariable ["WAIT_Cortex_ActorMove",nil];
+                };
+            };
             _group setVariable ["WAIT_Danger_CoverLease",nil];
         };
     };
