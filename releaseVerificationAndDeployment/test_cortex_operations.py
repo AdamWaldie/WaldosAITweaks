@@ -3103,7 +3103,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_SchedulerReconcile', adopt)
         for token in [
             'WAIT_Headless_ExcludeGroup',
-            'WAIT_Headless_ManagedGroups',
+            'Waldo_Headless_ManagedGroups',
             'LIFE-refused-transfer-owner-retained',
             'LIFE-refused-transfer-registry-retained',
             'groupOwner _group == _targetOwner',

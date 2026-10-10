@@ -47,7 +47,9 @@ if (_targetOwner != 2) then {
         _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         private _refused=!([_group,_otherOwners select 0] call WAIT_fnc_HeadlessMigrateGroup);
         sleep 2;
-        private _registry=missionNamespace getVariable ["WAIT_Headless_ManagedGroups",[]];
+        // Integration evidence must read the actual companion manager's registry.
+        // Standalone engine transfers do not manufacture a substitute registry.
+        private _registry=missionNamespace getVariable ["Waldo_Headless_ManagedGroups",[]];
         private _records=_registry select {(_x select 0) == _group};
         ["LIFE-refused-transfer-owner-retained",_refused && {groupOwner _group == _targetOwner}
             && {_units findIf {owner _x != _targetOwner} < 0},str [groupOwner _group,_units apply {owner _x}]] call _check;
