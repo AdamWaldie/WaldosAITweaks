@@ -1270,6 +1270,10 @@ private _opposition=createGroup [west,true];
     _x setCombatMode "BLUE";
 } forEach [_group,_opposition];
 _opposition setVariable ["WAIT_AIPass_Exclude",true,true];
+// This actor is the controlled sight-line stimulus, not a combat-effectiveness opponent.
+// Preserve native pathfinding while preventing autonomous contact reactions from diverting
+// the authored exposure/reocclusion route. The observers retain ordinary combat behaviour.
+_opposition setBehaviour "CARELESS";
 private _walls=[];
 for "_i" from -4 to 4 do {
     private _wall=createVehicle ["Land_CncWall4_F",[2000+_i*4,1450,0],[],0,"CAN_COLLIDE"];
