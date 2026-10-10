@@ -1030,7 +1030,7 @@ switch (_state get "phase") do {
         // pause. Only its original pair is reserved; the rest of the squad keeps native security.
         // Authored movement cancels packing instead of being delayed or replaced.
         private _staticPack=[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
-        if (_staticPack in ["PACK_MOVING","PACKING","TAKING"]) exitWith {_delay=1};
+        if (_staticPack in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]) exitWith {_delay=1};
         // Responders may finish rallying just as smoke, terrain or a building hides the target.
         // Preserve the prepared action across CONTACT -> SECURITY, then resume the normal search
         // chain as soon as every matching responder has released its finite assault lease.

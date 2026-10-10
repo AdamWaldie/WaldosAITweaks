@@ -885,7 +885,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,restore)
         group_tick=source('cortexGroupTick')
         self.assertIn('[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep',group_tick)
-        self.assertIn('_staticPack in ["PACK_MOVING","PACKING","TAKING"]',group_tick)
+        self.assertIn('_staticPack in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]',group_tick)
         audit=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         for marker in [
             'DANGER-static-deploy-config-prerequisite',
@@ -6601,6 +6601,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('everyBackpack _x',drop)
         deployment_move=deploy.split('if (_status == "MOVING") exitWith',1)[1].split('if (_status == "DROPPING")',1)[0]
         self.assertLess(deployment_move.index('_record set [1,"DROPPING"]'),deployment_move.index('if (time >= _deadline)'))
+        pack_exit=deploy.split('if (_status == "PACK_EXITING") exitWith',1)[1].split('if (_status == "PACK_MOVING")',1)[0]
+        self.assertIn('vehicle _gunner == _gunner',pack_exit)
+        self.assertIn('currentCommand _gunner != "GET OUT"',pack_exit)
+        self.assertIn('time >= _deadline',pack_exit)
+        self.assertIn('_record set [1,"PACK_MOVING"]',pack_exit)
         pack_move=deploy.split('if (_status == "PACK_MOVING") exitWith',1)[1].split('if (_status == "PACKING")',1)[0]
         self.assertLess(pack_move.index('_record set [1,"PACKING"]'),pack_move.index('if (time >= _deadline)'))
         self.assertIn('!(_x in _existingBags)',drop)

@@ -7,7 +7,7 @@
  * Other squad members may manoeuvre beside an existing deployment; overlapping participants or withdrawal preempt it.
  * Repeat/JIP: One contact-episode record owns the exact pair, expected assembled class, position and resulting weapon. Each group-brain call advances at most one finite phase. Locality, Zeus, specialist or newer operation ownership retires WAIT markers without issuing cleanup commands over the new owner. Failed deployment is not retried during the same contact episode.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>; 3 allow post-contact packing <BOOL, default false>.
- * Return Value: STRING - DISABLED, IDLE, MOVING, DROPPING, ASSEMBLING, MOUNTING, ACTIVE, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
+ * Return Value: STRING - DISABLED, IDLE, MOVING, DROPPING, ASSEMBLING, MOUNTING, ACTIVE, PACK_EXITING, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
  * Current callers: WAIT_fnc_CortexStaticSupport when no suitable existing emplacement is available, and WAIT_fnc_CortexGroupTick during SECURITY for finite recovery.
  * Example: [group player,[group player] call WAIT_fnc_CortexGroupState,[]] call WAIT_fnc_CortexStaticDeployStep;
  */
@@ -119,6 +119,8 @@ if (count _record >= 10) exitWith {
         private _command=currentCommand _actor;
         private _ownedAction=(_status == "ASSEMBLING" && {_actor == _gunner} && {_command == "ASSEMBLE"})
             || {_status == "DROPPING" && {_actor == _assistant} && {_command == "DROP BAG"}}
+            || {_status == "PACK_EXITING" && {_actor == _gunner} && {_command == "GET OUT"}
+                && {!isNull _weapon} && {vehicle _actor == _weapon || {isNull objectParent _actor}}}
             || {_status == "PACKING" && {_command == "DISASSEMBLE"}}
             || {_status == "TAKING" && {_command == "TAKE BAG"}}
             || {_status == "MOUNTING" && {_actor == _gunner} && {_command == "GET IN"}
@@ -174,16 +176,13 @@ if (count _record >= 10) exitWith {
         && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}) then {
         [_gunner] orderGetIn false;
         unassignVehicle _gunner;
-        if (vehicle _gunner == _weapon) then {_gunner action ["GetOut",_weapon]};
-        {
-            _x doMove (getPosATL _weapon);
-            _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",getPosATL _weapon,time+15]];
-        } forEach [_gunner,_assistant];
-        _record set [1,"PACK_MOVING"];
-        _record set [6,time+15];
+        _record set [1,"PACK_EXITING"];
+        _record set [6,time+10];
+        _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",getPosATL _weapon,time+10]];
         _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
-        _status="PACK_MOVING";
-        _deadline=time+15;
+        if (vehicle _gunner == _weapon) then {_gunner action ["GetOut",_weapon]};
+        _status="PACK_EXITING";
+        _deadline=time+10;
     };
     if (_phase != "CONTACT" && {!(_phase == "SECURITY" && {_allowPack})}) exitWith {
         [false] call _retire;
@@ -383,6 +382,21 @@ if (count _record >= 10) exitWith {
             [false] call _retire;
             "FAILED"
         } else {"ACTIVE"}
+    };
+    if (_status == "PACK_EXITING") exitWith {
+        if (isNull _weapon || {!alive _weapon}) exitWith {[false] call _retire; "FAILED"};
+        if (vehicle _gunner == _gunner && {currentCommand _gunner != "GET OUT"}) then {
+            {
+                _x doMove (getPosATL _weapon);
+                _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",getPosATL _weapon,time+15]];
+            } forEach [_gunner,_assistant];
+            _record set [1,"PACK_MOVING"];
+            _record set [6,time+15];
+            _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+            "PACK_MOVING"
+        } else {
+            if (time >= _deadline) then {[false] call _retire; "FAILED"} else {"PACK_EXITING"}
+        }
     };
     if (_status == "PACK_MOVING") exitWith {
         if (isNull _weapon || {!alive _weapon}) then {
