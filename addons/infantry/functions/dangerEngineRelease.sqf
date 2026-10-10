@@ -28,7 +28,8 @@ private _evidence={
 if (!local _actor || {!alive _actor} || {isPlayer _actor}) exitWith {["LOST_ACTOR_AUTHORITY"] call _evidence};
 private _group=group _actor;
 if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {["EXTERNAL_OWNER"] call _evidence};
+    || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {["EXTERNAL_OWNER"] call _evidence};
 
 private _prior=toUpperANSI (_lease param [0,"AUTO",[""]]);
 private _applied=toUpperANSI (_lease param [1,"",[""]]);
