@@ -84,9 +84,20 @@ private _killWithRealProjectile={
     _source disableAI "AUTOTARGET";
     _source setVariable ["acex_headless_blacklist",true,true];
     _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source setVariable ["WAIT_CortexQA_RifleShots",0];
+    _source setVariable ["WAIT_CortexQA_ImpactActor",_actor];
     _source addEventHandler ["FiredMan",{
         params ["_unit","","","","","","_projectile"];
+        if (isNull _projectile) exitWith {};
+        private _target=_unit getVariable ["WAIT_CortexQA_ImpactActor",objNull];
+        if (isNull _target) exitWith {};
+        _unit setVariable ["WAIT_CortexQA_RifleShots",(_unit getVariable ["WAIT_CortexQA_RifleShots",0])+1];
         _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+        // Handle the actual engine projectile before a scheduled wait can outlive it.
+        private _impact=eyePos _target vectorAdd [0,0,-0.25];
+        private _origin=_impact vectorAdd [-2,0,0];
+        _projectile setPosASL _origin;
+        _projectile setVelocity ((_impact vectorDiff _origin) vectorMultiply 450);
     }];
     private _rifle=primaryWeapon _source;
     _source selectWeapon _rifle;
@@ -110,17 +121,17 @@ private _killWithRealProjectile={
         sleep 0.02;
         // A selected muzzle can precede the native firing animation's readiness. Retry only
         // this excluded fixture, at most four attempts, and stop once an actual shot exists.
-        if (isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull])
+        if ((_source getVariable ["WAIT_CortexQA_RifleShots",0]) == 0
             && {_attempts < 4} && {diag_tickTime >= _nextRetry}) then {
             private _retryState=weaponState _source;
             _source forceWeaponFire [_retryState param [1,_rifle],_retryState param [2,"Single"]];
             _attempts=_attempts+1;
             _nextRetry=diag_tickTime+0.5;
         };
-        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+        (_source getVariable ["WAIT_CortexQA_RifleShots",0]) > 0 || {diag_tickTime >= _deadline}
     };
     private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
-    if (isNull _projectile) exitWith {
+    if ((_source getVariable ["WAIT_CortexQA_RifleShots",0]) == 0) exitWith {
         diag_log format ["WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile; local=%1 simulation=%2 currentWeapon=%3 before=%4 after=%5 modes=%6 behaviour=%7 combatMode=%8 attempts=%9 canFire=%10 fireFeature=%11 animation=%12",
             local _source,simulationEnabled _source,currentWeapon _source,_weaponState,weaponState _source,
             getArray (configFile >> "CfgWeapons" >> _rifle >> "modes"),behaviour _source,combatMode _sourceGroup,_attempts,canFire _source,_source checkAIFeature "FIREWEAPON",animationState _source];
@@ -128,10 +139,6 @@ private _killWithRealProjectile={
         deleteGroup _sourceGroup;
         objNull
     };
-    private _impact=eyePos _actor vectorAdd [0,0,-0.25];
-    private _origin=_impact vectorAdd [-2,0,0];
-    _projectile setPosASL _origin;
-    _projectile setVelocity ((_impact vectorDiff _origin) vectorMultiply 450);
     [_source,_sourceGroup] spawn {
         params ["_source","_sourceGroup"];
         sleep 5;
