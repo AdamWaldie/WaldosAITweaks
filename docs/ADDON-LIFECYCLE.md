@@ -291,3 +291,5 @@ Operation replacement synchronously ends a matching outgoing drill before changi
 Zeus release ends a matching drill before incrementing the curator generation. ZEUS cleanup releases tracked feature holds while suppressing posture, mode and formation commands; then generation invalidation rejects old callbacks. Locality adoption retains its separate checkpoint restoration path. Physical Zeus-with-held-features acceptance remains pending.
 
 Locality checkpoint actor restoration requires a live local member without player, remote, specialist or declared actor ownership. This gate covers feature switches, unit modes, behaviour and formation return; formation return additionally yields to native service/action commands. Group ownership eligibility remains mandatory. Physical migration-to-specialist/service acceptance remains pending.
+
+Drill checkpoints record committed mover destinations. Locality formation return may replace a MOVE only when its destination matches that actor's recorded spot within one metre and the expected floor band. A different MOVE, or MOVE without destination proof, survives. Physical migration/new-order acceptance remains pending.

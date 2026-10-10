@@ -126,7 +126,17 @@ if (_restoreEligible) then {
         if ([_unit] call _restoreActorEligible) then {_unit enableAI _feature};
     } forEach (_restore getOrDefault ["restoreDisabled", []]);
     {
-        if ([_x] call _restoreActorEligible && {!isNull _restoreAnchor}
+        private _unit=_x;
+        private _moveProof=_restore getOrDefault ["restoreMoveDestinations",[]];
+        private _proofIndex=_moveProof findIf {(_x select 0) == _unit};
+        private _ownedMove=currentCommand _unit != "MOVE";
+        if (!_ownedMove && {_proofIndex >= 0}) then {
+            private _spot=(_moveProof select _proofIndex) select 1;
+            private _destination=(expectedDestination _unit) select 0;
+            _ownedMove=_destination distance2D _spot <= 1
+                && {abs ((_destination param [2,0])-(_spot param [2,0])) <= 1.5};
+        };
+        if ([_x] call _restoreActorEligible && {_ownedMove} && {!isNull _restoreAnchor}
             && {currentCommand _x in ["","MOVE","STOP","ATTACK","FIRE","SUPPRESS"]}) then {_x doFollow _restoreAnchor};
     } forEach (_restore getOrDefault ["restoreMovers", []]);
     {
