@@ -122,14 +122,24 @@ if (_okay && {_adopting || {!_same} || {_attackAllowed && {!(_state getOrDefault
     private _objective=if (_attackAllowed && {count _attack > 0}) then {_attack select ((count _attack)-1)} else {_rally};
     private _operation=[_group,_intent,_objective,_footFit,[_rally],"ACCEPTED"] call WAIT_fnc_OperationStart;
     if (count _operation == 0) exitWith {
-        [_group,_token,false,_lease,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAck",2];
-        -1
+        _okay=false;
+        [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     };
-    _state set ["supportOperationGeneration",_operation get "generation"];
+    private _generation=_operation get "generation";
+    private _movementReady=true;
+    if (!_attackAllowed) then {
+        private _waypoint=[_group,_rally,10,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+        _movementReady=!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0};
+    };
+    if (!_movementReady) exitWith {
+        _okay=false;
+        [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+        [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
+    };
+    _state set ["supportOperationGeneration",_generation];
     if (_attackAllowed) then {
         _state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]];
     } else {
-        [_group,_rally,10,"MOVE"] call WAIT_fnc_CortexGroupMove;
         _state set ["movementLease",["SUPPORT_RALLY",time+(_expiry-serverTime)]];
     };
     _state set ["assaulting",_attackAllowed];
