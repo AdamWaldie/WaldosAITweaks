@@ -269,3 +269,5 @@ Cover-height stance checks inspect at most twelve members and cast at most six r
 The cover-height stance entry point rejects null or non-local groups, current Zeus holds and declared group external control before geometry work or posture changes. Per-actor specialist checks remain separate so ordinary members of a mixed specialist group can participate. Direct-call and locality-handover physical acceptance remains pending.
 
 Danger-cover timeout is terminal for the current actor and danger generation. Exact-owned reservation cleanup and eligible failed-approach recovery still run, but the same observation cannot immediately search and recommit its failed destination. A new danger generation permits reassessment. Physical blocked-cover acceptance remains pending.
+
+Operation start releases its old on-foot danger-posture lease before publishing the new operation generation. A live danger response then acquires MAINTAIN under the new generation using the restored baseline. This prevents generation replacement from silently discarding restoration authority. Physical CONTACT-to-manoeuvre/CQB/withdrawal acceptance remains pending.

@@ -47,6 +47,9 @@ private _operation=createHashMapFromArray [
     ["replans",0], ["recovery",createHashMap], ["recoveryAttempts",createHashMap], ["unavailable",[]], ["restore",createHashMap],
     ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]
 ];
+// Relinquish the old posture before changing its generation proof. Otherwise renewal captures
+// WAIT-applied values as a new baseline and a later release cannot restore the original posture.
+if (_dangerPosture) then {[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact};
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
 _group setVariable ["WAIT_Operation",_operation,true];
 _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_generation,serverTime],true];
@@ -55,9 +58,7 @@ _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_gener
 // the bounded combat posture across CONTACT -> manoeuvre/CQB/withdrawal transitions. A stale
 // posture is released rather than carried into unrelated work.
 if (_dangerPosture) then {
-    if (_liveDanger isEqualTo []) then {
-        [_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact;
-    } else {
+    if (_liveDanger isNotEqualTo []) then {
         _liveDanger params ["_dangerCause","_dangerPosition"];
         [_operationAnchor,_dangerCause,_dangerPosition,"MAINTAIN"] call WAIT_fnc_DangerReact;
     };
