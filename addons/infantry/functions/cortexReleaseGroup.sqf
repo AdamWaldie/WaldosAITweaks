@@ -67,6 +67,11 @@ if (local _group && {_reason == "ZEUS_TAKEOVER"}) then {
     private _curatorToken=_group getVariable ["WAIT_AIPass_ZeusHold",[]];
     if (count _curatorToken == 2
         && {(_group getVariable ["WAIT_OperationCuratorToken",-1]) != (_curatorToken select 0)}) then {
+        // Release exact-owned drill feature holds before invalidating their generation.
+        // ZEUS suppresses posture, mode and formation restoration; the curator keeps its order.
+        if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
+            [_group,_state,"ZEUS"] call WAIT_fnc_CortexFlankEnd;
+        };
         _group setVariable ["WAIT_OperationCuratorToken",_curatorToken select 0];
         _group setVariable ["WAIT_OperationGeneration",(_group getVariable ["WAIT_OperationGeneration",0])+1,true];
     };
