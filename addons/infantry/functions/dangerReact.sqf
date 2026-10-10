@@ -110,7 +110,20 @@ if (!_tacticalModeOwned && {_priorCombat == "WHITE" || {_engaging && {_priorComb
     if (combatMode _group != _desiredCombat) then {_group setCombatMode _desiredCombat};
     _appliedCombat=_desiredCombat;
 };
-private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["BODY_FOUND",1.5],["SCREAM",1.5],["PROXIMITY",1.5],["CANFIRE",1.5],["DETECTED",1.5],["GUNFIRE",1]];
-private _until=(time + (_responseDurations getOrDefault [_cause,1])) max (if (_leaseIntact) then {_lease select 4} else {-1});
+// These finite durations are fixed policy, not mutable state. Avoid allocating the same
+// lookup map for every danger response across a large firefight.
+private _duration=switch (_cause) do {
+    case "HIT": {3};
+    case "EXPLOSION": {2.5};
+    case "SUPPRESSED";
+    case "CASUALTY": {2};
+    case "BODY_FOUND";
+    case "SCREAM";
+    case "PROXIMITY";
+    case "CANFIRE";
+    case "DETECTED": {1.5};
+    default {1};
+};
+private _until=(time + _duration) max (if (_leaseIntact) then {_lease select 4} else {-1});
 _group setVariable ["WAIT_Danger_ReactionLease",[_priorBehaviour,_appliedBehaviour,_priorCombat,_appliedCombat,_until,_generation,_epoch,clientOwner],true];
 "POSTURE"

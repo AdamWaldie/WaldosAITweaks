@@ -954,7 +954,8 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_priorCombat in ["BLUE","GREEN"]',reaction)
         self.assertNotIn('doMove',reaction)
         self.assertNotIn('doTarget',reaction)
-        self.assertIn('"EXPLOSION",2.5',reaction)
+        self.assertIn('case "EXPLOSION": {2.5}',reaction)
+        self.assertNotIn("_responseDurations=createHashMapFromArray",reaction)
 
     def test_native_group_contacts_survive_a_leader_cover_blind_spot(self):
         knowledge=source('cortexKnowledge')
