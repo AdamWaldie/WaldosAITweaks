@@ -44,6 +44,11 @@ private _cause=_event select 0;
 // retained in the event before they can become an engagement. Resolve this before MAINTAIN: an
 // approximate observation during an existing operation may preserve that route, but it cannot gain
 // CONTACT authority merely because WAIT already owns movement.
+private _source=_event param [4,objNull,[objNull]];
+// A retained identity is not permanent hostility. Zeus/mission side changes and surrender
+// invalidate engagement authority even while native knowledge still remembers that object.
+if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {!isNull _source}
+    && {!alive _source || {captive _source} || {(side _group) getFriend (side _source) >= 0.6}}) exitWith {"RELEASE"};
 if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]
     && {isNull (_event param [4,objNull,[objNull]])}) exitWith {"HIDE"};
 // A current operation has already committed a physical route and owns its restoration. A danger
