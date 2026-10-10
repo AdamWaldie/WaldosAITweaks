@@ -36,12 +36,22 @@ if (count _rejectedRole != 7 || {(_rejectedRole select 0) != _token}
 // survives. Retiring the opportunity never cancels the aircraft's existing attack brain.
 _rejected setVariable ["WAIT_Cortex_CombinedRole",nil,true];
 _rejected setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
+if (!([_requester] call WAIT_fnc_CortexIsEligible)
+    || {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)}
+    || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
+    || {(side _requester) getFriend (side _target) >= 0.6}) exitWith {
+    _requester setVariable ["WAIT_Cortex_CombinedAirFallback",nil,true];
+    false
+};
 private _replacement=grpNull;
 while {_cursor < count _candidates && {isNull _replacement}} do {
     private _candidate=_candidates select _cursor;
     _cursor=_cursor+1;
     if (!isNull _candidate && {_candidate != _rejected} && {!isNull ([_candidate] call WAIT_fnc_CortexGroupTransmitter)}
         && {[_candidate] call WAIT_fnc_CortexIsEligible}
+        && {private _role=_candidate getVariable ["WAIT_Cortex_CombinedRole",[]];
+            count _role != 7 || {serverTime >= (_role select 5)} || {(_role select 0) == _token}}
         && {((units _candidate) findIf {
             private _vehicle=vehicle _x;
             _vehicle != _x && {_vehicle isKindOf "Air"} && {!(_vehicle getVariable ["WAIT_Cortex_AirAttackJob",false])}
