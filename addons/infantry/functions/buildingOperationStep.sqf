@@ -65,6 +65,7 @@ private _delay=call {
             _group setVariable ["WAIT_AIPass_ClearApplied", nil];
         };
         private _result = ["INCOMPLETE","COMPLETE"] select (count (_job get "cleared") == count (_job get "positions") && {!(_job getOrDefault ["egressFailed",false])});
+        if (_reason != "COMPLETE") then {_result="CANCELLED"};
         _group setVariable ["WAIT_Cortex_ClearResult",[_result,count (_job get "cleared"),count (_job get "positions")],true];
         _job set ["finished",true];
         _job set ["finishReason",_reason];
@@ -72,8 +73,9 @@ private _delay=call {
         _group setVariable ["WAIT_Cortex_ClearStatus",nil,true];
         private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
         if (_operationGeneration >= 0) then {
-            if (_result == "COMPLETE" && {_reason == "COMPLETE"}) then {
-                [_group,_operationGeneration,"COMPLETE","CLEAR_COMPLETE"] call WAIT_fnc_OperationRelease;
+            if (_reason == "COMPLETE") then {
+                private _outcomeReason=["CLEAR_INCOMPLETE","CLEAR_COMPLETE"] select (_result == "COMPLETE");
+                [_group,_operationGeneration,_result,_outcomeReason] call WAIT_fnc_OperationRelease;
             } else {
                 [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
             };
