@@ -2,6 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Physically assemble one compatible carried static weapon during confirmed contact and give its original carrier a finite chance to occupy the real gunner seat.
  * Locality / Authority: Runs only on the current group owner from the shared group brain. It uses native backpack assembly and boarding actions on local AI actors; it never creates, teleports, rearms, repairs or force-seats a weapon.
+ * A ready pair may deploy at its actual safe firing position instead of waiting for both actors to converge on one exact point.
  * Repeat/JIP: One contact-episode record owns the exact pair, expected assembled class, position and resulting weapon. Each group-brain call advances at most one finite phase. Locality, Zeus, specialist or newer operation ownership retires WAIT markers without issuing cleanup commands over the new owner. Failed deployment is not retried during the same contact episode.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>; 3 allow post-contact packing <BOOL, default false>.
  * Return Value: STRING - DISABLED, IDLE, MOVING, DROPPING, ASSEMBLING, MOUNTING, ACTIVE, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
@@ -136,7 +137,26 @@ if (count _record >= 10) exitWith {
             _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"FAILED",serverTime],true];
             "FAILED"
         } else {
-            if (_gunner distance2D _deployPos <= 3.5 && {_assistant distance2D _deployPos <= 3.5}) then {
+            private _pairTogether=_gunner distance _assistant <= 3;
+            private _atSector=_gunner distance2D _deployPos <= 3.5
+                && {_assistant distance2D _deployPos <= 3.5};
+            // Native combat movement can stop a ready pair short of the requested point.
+            // Accept their actual position only when it still provides the same safe firing sector.
+            // This is physical arrival, not a timer-based assembly or a forced transform.
+            if (!_atSector && {_pairTogether} && {vehicle _gunner == _gunner}
+                && {vehicle _assistant == _assistant}) then {
+                private _actual=getPosATL _gunner;
+                private _sector=_record param [11,[],[[]]];
+                if (count _sector >= 3 && {!surfaceIsWater _actual}
+                    && {(surfaceNormal _actual) select 2 >= 0.92}
+                    && {lineIntersectsSurfaces [eyePos _gunner,
+                        AGLToASL (_sector vectorAdd [0,0,1.2]),_gunner,_assistant,true,1,"GEOM","NONE"] isEqualTo []}) then {
+                    _deployPos=_actual;
+                    _record set [5,+_actual];
+                    _atSector=true;
+                };
+            };
+            if (_atSector && {_pairTogether}) then {
 
                 private _assemblyHandler=_gunner addEventHandler ["WeaponAssembled",{
                     params ["_actor","_assembled"];
