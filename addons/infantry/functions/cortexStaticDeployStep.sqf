@@ -55,7 +55,10 @@ private _retire={
             call {
                 private _bag=_record param [13,objNull,[objNull]];
                 if (isNull _bag) then {[]} else {[netId _bag,typeOf _bag,getPosATL _bag,objectParent _bag]}
-            }]];
+            },[_state getOrDefault ["phase",""],_state getOrDefault ["phaseStart",-1],
+                combatMode _group,_allowPack,
+                _operation getOrDefault ["intent",""],_operation getOrDefault ["generation",-1],
+                _operationActors apply {netId _x}]]];
         private _handler=_record param [10,-1,[0]];
         if (!isNull _gunner && {local _gunner}) then {
             if (_handler >= 0) then {_gunner removeEventHandler ["WeaponDisassembled",_handler]};
