@@ -191,6 +191,55 @@ private _killWithRealProjectile={
     ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
 
+// Physical release-direction regression: test the production helper, not a relocated projectile.
+// Rear-facing requests may cancel; any actual release must travel towards its requested position.
+{
+    private _stance=_x;
+    {
+        private _kind=_x;
+        {
+            private _rear=_x;
+            private _throwGroup=createGroup [east,true];
+            _throwGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+            _throwGroup setVariable ["acex_headless_blacklist",true,true];
+            _throwGroup setCombatMode "BLUE";
+            _throwGroup setVariable ["WAIT_AIPass_DisabledFeatures",["WAIT_AIPass_Danger_Enable"]];
+            private _throwActor=_throwGroup createUnit ["O_Soldier_F",[2860,1250,0],[],0,"NONE"];
+            private _destination=[2860,1275,0];
+            _throwActor setUnitPos _stance;
+            _throwActor setDir (if (_rear) then {180} else {0});
+            _throwActor addMagazine (if (_kind == "FRAG") then {"HandGrenade"} else {"SmokeShell"});
+            _throwActor setVariable ["WAIT_CortexQA_ThrowDestination",_destination];
+            private _throwEH=_throwActor addEventHandler ["FiredMan",{
+                params ["_actor","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
+                if (_weapon != "Throw") exitWith {};
+                private _origin=getPosATL _projectile;
+                [{
+                    params ["_actor","_projectile","_origin"];
+                    private _travel=(getPosATL _projectile) vectorDiff _origin;
+                    _travel set [2,0];
+                    private _target=(_actor getVariable ["WAIT_CortexQA_ThrowDestination",_origin]) vectorDiff _origin;
+                    _target set [2,0];
+                    private _alignment=(vectorNormalized _travel) vectorDotProduct (vectorNormalized _target);
+                    _actor setVariable ["WAIT_CortexQA_ThrowEvidence",[_alignment,_travel,_origin]];
+                    deleteVehicle _projectile;
+                },[_actor,_projectile,_origin],0.1] call CBA_fnc_waitAndExecute;
+            }];
+            private _label=format ["GRENADE-direction-%1-%2-%3",_kind,_stance,if (_rear) then {"rear"} else {"front"}];
+            [_label,"The real carried grenade must depart towards the requested position. Rear-facing actors may cancel safely; front-facing actors must physically throw. No projectile direction or velocity is changed.",getPosATL _throwActor] call _phase;
+            sleep 1;
+            private _queued=[_throwActor,_destination,_kind] call WAIT_fnc_CortexThrowGrenade;
+            private _released=[{(_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]]) isNotEqualTo []},4] call _wait;
+            private _evidence=_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]];
+            [_label,_queued && {if (_released) then {(_evidence select 0) >= 0.866} else {_rear}},
+                str [_queued,_released,_evidence]] call _check;
+            _throwActor removeEventHandler ["FiredMan",_throwEH];
+            deleteVehicle _throwActor;
+            deleteGroup _throwGroup;
+        } forEach [false,true];
+    } forEach ["SMOKE","FRAG"];
+} forEach ["UP","DOWN"];
+
 // The configured engine FSM remains installed when its live CBA gate is off, so prove that the
 // disabled path is inert under a real engine-delivered explosion. Native animation may still react;
 // only WAIT-authored stance, cover, response and tactical phase are prohibited.

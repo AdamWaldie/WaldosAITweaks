@@ -276,7 +276,7 @@ class CortexOperations(unittest.TestCase):
         action=source('dangerActionSelect')
         setup=source('dangerSetup')
         scheduler=source('cortexSchedulerTick')
-        contact_fixture=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        contact_fixture=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         danger_load=(ROOT/'releaseVerificationAndDeployment/cortexQA/runDangerLoad.sqf').read_text(encoding='utf-8')
         server_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runServer.sqf').read_text(encoding='utf-8')
         self.assertIn('_focus == "dangerload"',server_audit)
@@ -332,6 +332,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('time >= _expires', queued)
         self.assertIn('[_retry,+_this,0.25] call CBA_fnc_waitAndExecute', queued)
         self.assertIn('time+1.5,_release,_throwGeneration', queued)
+        throw_qa=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        self.assertIn('GRENADE-direction-%1-%2-%3',throw_qa)
+        self.assertIn('[_throwActor,_destination,_kind] call WAIT_fnc_CortexThrowGrenade',throw_qa)
+        self.assertIn('vectorDotProduct (vectorNormalized _target)',throw_qa)
+        self.assertIn('(_evidence select 0) >= 0.866',throw_qa)
         self.assertLess(queued.index('WAIT_Cortex_ThrowGeneration'), queued.index('_unit doWatch'))
         self.assertLess(queued.index('_bodyError > 30'), queued.index('forceWeaponFire'))
         self.assertLess(queued.index('WAIT_Danger_Generation'),queued.index('_unit doWatch'))
@@ -668,7 +673,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(state,lifecycle)
         self.assertIn('cannot request cover movement from those causes',lifecycle)
         self.assertIn('cannot create a second movement scheduler',lifecycle)
-        contact_audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        contact_audit=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         reflex_fixture=contact_audit.split('// Prove the engine-loaded FSM',1)[1].split('deleteGroup _reflexGroup;',1)[0]
         self.assertIn('_reflexUnit setUnitPos "AUTO";',reflex_fixture)
         self.assertNotIn('_reflexUnit setUnitPos "UP";',reflex_fixture)
@@ -762,7 +767,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(group_tick.index('call WAIT_fnc_CortexStaticSupport'),group_tick.index('call WAIT_fnc_CortexTacticalStart'))
         for marker in ['WAIT_Danger_StaticSupport','orderGetIn false','unassignVehicle','_yieldToExternal']:
             self.assertIn(marker,restore)
-        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        audit=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         for marker in [
             'DANGER-static-support-disabled','DANGER-static-support-physical-seat',
             'DANGER-static-support-composable-fire','DANGER-static-support-contact-cleanup',
@@ -811,7 +816,7 @@ class CortexOperations(unittest.TestCase):
         group_tick=source('cortexGroupTick')
         self.assertIn('[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep',group_tick)
         self.assertIn('_staticPack in ["PACK_MOVING","PACKING","TAKING"]',group_tick)
-        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text(encoding='utf-8')
+        audit=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         for marker in [
             'DANGER-static-deploy-config-prerequisite',
             'DANGER-static-deploy-physical-assembly',
@@ -6169,7 +6174,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[false,true],[true,true],[false,true,false,true]',text)
 
     def test_contact_transition_audit_requires_physical_search_and_resumption(self):
-        text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
+        text=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text()
         for case in ['DANGER-disabled-real-stimulus-inert','DANGER-live-gate-reenabled','DANGER-authored-hold-fire-preserved','DANGER-casualty-alert-no-contact','DANGER-release-mode-no-tactical-handoff','DANGER-active-zeus-replacement','DANGER-leader-loss-physical-continuation','DANGER-forced-order-no-tactical-handoff','DANGER-active-response-native-order-interrupt']:
             self.assertIn(case,text)
         self.assertIn('[_reflexGroup,true,_zeusWaypoint select 1] call WAIT_fnc_CortexZeusMark',text)
