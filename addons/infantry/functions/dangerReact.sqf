@@ -2,6 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Applies a short, local danger posture selected by the danger FSM without replacing an active WAIT or external movement operation.
  * Locality/authority: Runs where the observed actor and its group are local. It changes only group behaviour and combat mode that it records as owned. Explicit BLUE/GREEN hold-fire discipline remains authoritative.
+ * Cleanup may retire a dead observer's group lease using a surviving local posture anchor. New reactions require a live observer.
  * Repeat/JIP: One public lease contains prior/applied values, operation generation, locality epoch and owner. Repeated events extend the lease; restore changes only values still matching WAIT's application and discards its lease on external takeover. DangerStep owns the finite response context.
  * Arguments: 0 actor <OBJECT>; 1 cause <STRING, RESTORE or RELEASE>; 2 approximate danger position <ARRAY, []>; 3 classified action <STRING, "">.
  * Return Value: STRING - RESTORED, ASSESS, POSTURE or IGNORED.
@@ -9,7 +10,7 @@
  * Example: [leader group player,"SUPPRESSED",getPosATL player,"HIDE"] call WAIT_fnc_DangerReact;
  */
 params [["_actor",objNull,[objNull]],["_cause","RESTORE",[""]],["_position",[],[[]]],["_action","",[""]]];
-if (isNull _actor || {!local _actor} || {!alive _actor}) exitWith {"IGNORED"};
+if (isNull _actor || {!local _actor} || {!alive _actor && {!(_cause in ["RESTORE","RELEASE"])}}) exitWith {"IGNORED"};
 private _group=group _actor;
 if (isNull _group || {!local _group}) exitWith {"IGNORED"};
 private _lease=_group getVariable ["WAIT_Danger_ReactionLease",[]];
@@ -24,6 +25,11 @@ private _leaseOwned=count _lease == 8
 // externally changed, or restore a stale posture over the new leader.
 private _postureActor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _postureActor) then {_postureActor=leader _group};
+if (_cause in ["RESTORE","RELEASE"] && {!([_postureActor] call WAIT_fnc_CortexCombatEffective)}) exitWith {
+    // No surviving local posture owner remains. Retire metadata, never command a dead group.
+    _group setVariable ["WAIT_Danger_ReactionLease",nil,true];
+    "YIELDED"
+};
 // Use the shared takeover decision used by every operation cleanup. A partial copy here previously
 // missed player-controlled members and could restore a short WAIT posture over a newer controller.
 private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;
