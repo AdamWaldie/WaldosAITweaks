@@ -5,6 +5,8 @@
  * Repeat/JIP: Uses one machine-local, expiring weak-stance lease. A repeated danger response retains
  * the original authored stance and refreshes only WAIT's applied value. Native or external stance
  * changes invalidate the lease and are not overwritten. A committed mover is never forced prone.
+ * Idle prone riflemen may perform one native lateral evasion after a hit or near round.
+ * A per-actor cooldown prevents repeated actions; committed routes and specialist/native tasks yield.
  * It never creates a movement, target or firing lease.
  * Arguments: 0: soldier <OBJECT>, objNull; 1: mode <STRING>, ASSESS; 2: selected record <ARRAY>, [].
  * Return Value: Number - short observation deadline in seconds.
@@ -23,6 +25,10 @@ if (isNull _group || {!local _group}
     || {[] call WAIT_fnc_CortexIsPaused}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
+// Recheck actor-level authority at the command boundary; group eligibility alone does not
+// cover a specialist actor sharing an otherwise ordinary group.
+if ([_actor] call WAIT_fnc_CompatibilityExternalControl
+    || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {0};
 private _delays=createHashMapFromArray [["FORCED",0.75],["VEHICLE",1],["IMMEDIATE",1],["HIDE",1.25],["ENGAGE",1],["ASSESS",0.75]];
 // A small local offset prevents an entire squad from changing stance on the same frame while
 // retaining a strict upper bound and no recurring work.
@@ -47,6 +53,25 @@ private _actorMove=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time}
     && {(_actorMove param [0,"",[""]]) in ["STATIC_DEPLOY","STATIC_PACK","DANGER_COVER","GRENADE_EVASION","ANTI_ARMOUR","STATIC_SUPPORT"]}) then {
     _committedMover=true;
+};
+// An idle prone rifleman can react physically without a new destination or a tactical worker.
+// Native actions retain engine collision and animation handling. Never roll a committed mover,
+// override another native action, or replay this response on every danger recycle.
+if (_mode == "IMMEDIATE" && {_cause in [2,9]} && {!_committedMover}
+    && {isNull objectParent _actor} && {stance _actor == "PRONE"}
+    && {abs (speed _actor) < 0.5} && {currentCommand _actor == ""}
+    && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
+    && {primaryWeapon _actor != ""} && {currentWeapon _actor == primaryWeapon _actor}
+    && {time >= (_actor getVariable ["WAIT_Danger_EvasionAfter",-1])}) then {
+    private _point=_record param [1,[],[[]]];
+    private _action=selectRandom ["EvasiveLeft","EvasiveRight"];
+    if (count _point >= 2 && {_actor distance2D _point >= 3}) then {
+        _action=["EvasiveRight","EvasiveLeft"] select (_actor getRelDir _point < 180);
+    };
+    _actor setVariable ["WAIT_Danger_EvasionAfter",time+3];
+    _actor playActionNow _action;
+    _actor setVariable ["WAIT_Danger_LastEvasion",[time,_cause,_action,
+        _group getVariable ["WAIT_Danger_Generation",-1],getPosATL _actor]];
 };
 // Body and scream observations deserve a visible finite assessment, not only a stance flag.
 // Use the position form only: an object argument would fully disclose that object.
