@@ -152,11 +152,6 @@ if (count _record >= 10) exitWith {
         "FAILED"
     };
     if (_status == "MOVING") exitWith {
-        if (time >= _deadline) then {
-            [false] call _retire;
-            _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"FAILED",serverTime],true];
-            "FAILED"
-        } else {
             private _pairTogether=_gunner distance _assistant <= 3;
             private _atSector=_gunner distance2D _deployPos <= 3.5
                 && {_assistant distance2D _deployPos <= 3.5};
@@ -217,8 +212,13 @@ if (count _record >= 10) exitWith {
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
                 _gunner action ["PutBag",_assistant];
                 "DROPPING"
-            } else {"MOVING"}
-        }
+            } else {
+                if (time >= _deadline) then {
+                    [false] call _retire;
+                    _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"FAILED",serverTime],true];
+                    "FAILED"
+                } else {"MOVING"}
+            }
     };
     if (_status == "DROPPING") exitWith {
         private _supportBag=_record param [13,objNull,[objNull]];
@@ -307,7 +307,7 @@ if (count _record >= 10) exitWith {
         } else {"ACTIVE"}
     };
     if (_status == "PACK_MOVING") exitWith {
-        if (time >= _deadline || {isNull _weapon} || {!alive _weapon}) then {
+        if (isNull _weapon || {!alive _weapon}) then {
             [false] call _retire;
             "FAILED"
         } else {
@@ -343,7 +343,9 @@ if (count _record >= 10) exitWith {
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
                 _gunner action ["Disassemble",_weapon];
                 "PACKING"
-            } else {"PACK_MOVING"}
+            } else {
+                if (time >= _deadline) then {[false] call _retire; "FAILED"} else {"PACK_MOVING"}
+            }
         }
     };
     if (_status == "PACKING") exitWith {
