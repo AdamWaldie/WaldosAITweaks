@@ -342,6 +342,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('group _actor != _group',recovery)
         self.assertIn('_actor in (_currentOperation getOrDefault ["participants",[]])',recovery)
         self.assertLess(recovery.index('currentCommand _actor'),recovery.index('_recovery set [_key'))
+        support_handoff=source('cortexStaticSupport').split('if (count _lease >= 7) exitWith',1)[1].split('if (_leaseEpisode',1)[0]
+        self.assertIn('_actor in (_operation getOrDefault ["participants",[]])',support_handoff)
+        self.assertIn('[true] call _release',support_handoff)
         roles=source('rebalanceRoles')
         self.assertIn('WAIT_fnc_CortexCombatEffective',roles)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',roles)

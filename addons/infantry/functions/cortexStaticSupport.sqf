@@ -66,6 +66,15 @@ if ((_group getVariable ["WAIT_Danger_StaticDeployment",[]]) isNotEqualTo []) ex
 };
 if (count _lease >= 7) exitWith {
     _lease params ["_leaseEpisode","_actor","_weapon","_issuedAt","_deadline","_status","_startPosition"];
+    private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+    private _operationConflict=count _operation > 0 && {
+        (_operation getOrDefault ["intent",""]) in ["WITHDRAW","VEHICLE_WITHDRAW"]
+            || {_actor in (_operation getOrDefault ["participants",[]])}
+    };
+    if (_operationConflict || {!isNull _actor && {currentCommand _actor in ["GET OUT","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED"]}}) exitWith {
+        [true] call _release;
+        "YIELDED"
+    };
     if (!isNull _actor && {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {
         [true] call _release;
         "YIELDED"
