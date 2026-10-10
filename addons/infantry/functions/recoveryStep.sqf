@@ -4,13 +4,14 @@
  * Locality/authority: Current group owner and current local participant only.
  * Native service/medical/assembly tasks, live finite actor reservations and actors no longer in the roster yield without a recovery command or consuming the retry budget.
  * Repeat/JIP: Each actor receives one attempt per operation generation and owner epoch. The final command boundary rechecks takeover; actors with MOVE or PATH disabled are left untouched.
- * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 actor <OBJECT>; 3 destination <ARRAY>.
+ * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 actor <OBJECT>; 3 destination <ARRAY, two or three numeric coordinates>.
  * Return Value: STRING - RECOVERING, EXHAUSTED, YIELDED or INVALID.
  * Current callers: Operation-backed manoeuvre and building jobs.
  * Example: [group player,4,soldier1,getPosATL player] call WAIT_fnc_RecoveryStep;
  */
 params [["_group",grpNull,[grpNull]],["_generation",-1,[0]],["_actor",objNull,[objNull]],["_destination",[],[[]]]];
-if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor} || {count _destination < 2}) exitWith {"INVALID"};
+if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor} || {!(count _destination in [2,3])}
+    || {_destination findIf {!(_x isEqualType 0)} >= 0}) exitWith {"INVALID"};
 // This is the final direct movement command in a recovery path. Recheck handover at the point of
 // issue because a Zeus or specialist operation can arrive between an earlier operation step and
 // this isolated retry. Recovery must retire rather than overwrite the newer controller's route.
@@ -22,6 +23,7 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {"INVALID"};
 if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])
     || {!(_actor in (_operation getOrDefault ["participants",[]]))}) exitWith {"INVALID"};
+if (_actor in (_operation getOrDefault ["unavailable",[]])) exitWith {"EXHAUSTED"};
 private _reserved={
     private _move=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
     _move isNotEqualTo [] && {!(_move isEqualType []) || {count _move != 3}
@@ -46,6 +48,7 @@ if (count _currentOperation == 0
     || {(_currentOperation getOrDefault ["generation",-2]) != _generation}
     || {(_currentOperation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {!(_actor in (_currentOperation getOrDefault ["participants",[]]))}) exitWith {"INVALID"};
+if (_actor in (_currentOperation getOrDefault ["unavailable",[]])) exitWith {"EXHAUSTED"};
 if (currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]) exitWith {"YIELDED"};
 if (call _reserved) exitWith {"YIELDED"};
 // Progress can retire an observation record, but must not forget the generation's retry budget.
