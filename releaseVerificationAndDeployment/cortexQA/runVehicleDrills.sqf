@@ -888,6 +888,12 @@ if (_hcOwners isNotEqualTo []) then {
     private _replacementWP=_migrateGroup addWaypoint [_replacement,0];
     _replacementWP setWaypointType "MOVE";
     _replacementWP setWaypointCompletionRadius 8;
+    // A MOVE may complete at the engine's vehicle tolerance. The requested persistent
+    // replacement needs an explicit HOLD in the same curator-owned waypoint chain;
+    // otherwise a later fresh withdrawal is permitted after native MOVE completion.
+    private _replacementHold=_migrateGroup addWaypoint [_replacement,0];
+    _replacementHold setWaypointType "HOLD";
+    _replacementHold setWaypointCompletionRadius 8;
     _migrateGroup setCurrentWaypoint _replacementWP;
     [_migrateGroup,true,_replacementWP select 1] call WAIT_fnc_CortexZeusMark;
     private _zeusSnapshot=_migrateGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
@@ -927,7 +933,7 @@ if (_hcOwners isNotEqualTo []) then {
             _migrateGroup getVariable ["WAIT_VehicleReverse",[]],
             _migrateArmour getVariable ["WAIT_VehicleReverseOwner",[]],
             _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap]]] call _check;
-    private _stayedReleased=_replacementArrived;
+    private _stayedReleased=_replacementArrived && {[_migrateGroup] call WAIT_fnc_CortexZeusHeld};
     for "_sample" from 1 to 12 do {
         sleep 1;
         if ((_migrateGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) == "RETREAT"
