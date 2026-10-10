@@ -134,6 +134,8 @@ private _intentTarget=_drill getOrDefault ["target",objNull];
 // Never continue a committed approach against a now-protected object merely because its old
 // native position remains in the drill's route record.
 if (!isNull _intentTarget && {captive _intentTarget
+    || {_intentTarget getVariable ["ace_captives_isSurrendering",false]}
+    || {_intentTarget getVariable ["ace_captives_isHandcuffed",false]}
     || {(side _group) getFriend (side _intentTarget) >= 0.6}}) exitWith {
     "TARGET_NO_LONGER_HOSTILE" call _end
 };
