@@ -305,3 +305,5 @@ Danger classification rechecks surrender and handcuff state when consuming a que
 Active flank, advance and assault drills end hostile intent when the retained target begins surrender or becomes handcuffed, alongside existing captive/side-change checks. Target death remains distinct so a valid clear-through can continue after a casualty. Physical surrender-during-manoeuvre acceptance remains pending.
 
 Shared tactical knowledge prunes surrendering and handcuffed actors from cached observations and hostile candidates alongside captive/side checks. Ending an active drill cannot immediately recreate hostile intent through the same detained target's native knowledge. Physical surrender-to-security acceptance remains pending.
+
+Observed-contact cache pruning validates numeric expiry before comparing time and inspects at most the eight newest records, matching the writer's eight-contact cap. Invalid expiry records do not reach recurring knowledge evaluation. Physical intake and performance acceptance remains pending.

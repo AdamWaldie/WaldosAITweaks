@@ -102,8 +102,8 @@ private _handler=_group addEventHandler ["EnemyDetected",{
     private _observer=if (!isNull _leader && {alive _leader} && {local _leader}
         && {_leader knowsAbout _target >= 1}) then {_leader} else {_spotters select _knowerIndex};
     private _contacts=_observingGroup getVariable ["WAIT_Danger_ObservedContacts",[]];
-    _contacts=_contacts select {
-        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
+    _contacts=(_contacts select [((count _contacts)-8) max 0,8]) select {
+        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType 0}
             && {alive (_x select 0)} && {(_x select 1) > time}
     };
     private _contactIndex=_contacts findIf {(_x select 0) == _target};

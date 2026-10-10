@@ -45,8 +45,8 @@ if (isNull _leader || {!alive _leader}) exitWith {[[], 0]};
 // local candidates. The cache neither shares a target nor bypasses the per-member knowledge check
 // below, and is pruned every normal knowledge pass.
 private _observed=_group getVariable ["WAIT_Danger_ObservedContacts",[]];
-_observed=_observed select {
-    _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
+_observed=(_observed select [((count _observed)-8) max 0,8]) select {
+    _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType 0}
         && {alive (_x select 0)} && {!captive (_x select 0)}
         && {!((_x select 0) getVariable ["ace_captives_isSurrendering",false])}
         && {!((_x select 0) getVariable ["ace_captives_isHandcuffed",false])}
