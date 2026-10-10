@@ -239,7 +239,9 @@ private _setOperationPhase={
     private _generation=_job getOrDefault ["operationGeneration",-1];
     if (_generation < 0 || {isNull _group} || {!local _group}) exitWith {};
     private _operation=_group getVariable ["WAIT_Operation",createHashMap];
-    if (count _operation > 0 && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
+    if (count _operation > 0 && {(_operation getOrDefault ["generation",-2]) == _generation}
+        && {(_operation getOrDefault ["phase",""]) != _phase}) then {
+        // Stable flight samples do not retransmit the common operation payload.
         _operation set ["phase",_phase];
         _group setVariable ["WAIT_Operation",_operation,true];
     };
