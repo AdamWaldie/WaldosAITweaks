@@ -33,7 +33,7 @@ if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 // manoeuvre remain combat-enabled; a stale reservation cannot suppress the danger response.
 private _carrierTask = _actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (count _carrierTask == 3
-    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]}
+    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT"]}
     && {time < (_carrierTask select 2)}) exitWith {"FORCED"};
 if !(_actor checkAIFeature "MOVE") exitWith {"RELEASE"};
 private _cause=_record select 0;

@@ -41,7 +41,7 @@ if (behaviour _actor == "CARELESS" || {!_initial && {fleeing _actor
 private _carrierTask=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 private _response=_actor getVariable ["WAIT_Danger_EngineResponse",[]];
 if (!_initial && {isNull objectParent _actor} && {count _carrierTask == 3}
-    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]}
+    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT"]}
     && {time < (_carrierTask select 2)}
     && {(_response param [0,"",[""]]) != "FORCED"}) exitWith {false};
 

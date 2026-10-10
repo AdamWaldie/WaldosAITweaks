@@ -138,7 +138,7 @@ private _candidates=(units _group) select {
         // Native contact commands such as TARGET and WATCH are transient observations, not an
         // external movement owner. Reject only concrete actor tasks which boarding would actually
         // interrupt; the group-level Zeus/mission-order gate above already protects authored work.
-        && {!(toUpperANSI (currentCommand _x) in ["GET IN","ACTION","HEAL","REARM","JOIN"])}
+        && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
 if (_candidates isEqualTo []) exitWith {
