@@ -338,6 +338,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Cortex_ActorMove',drill_reserves)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',drill_reserves)
         self.assertIn('currentCommand _x',drill_reserves)
+        flight_authority=source('flightLeaseValid')
+        self.assertIn('[_pilot] call WAIT_fnc_CortexCombatEffective',flight_authority)
         release_boundary=source('operationRelease')
         self.assertIn('[_group,_generation,_handoverReason] call WAIT_fnc_OperationCancel',release_boundary)
         self.assertLess(release_boundary.index('WAIT_fnc_CortexExternalTakeover'),release_boundary.index('WAIT_OperationResult'))
