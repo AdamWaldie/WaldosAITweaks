@@ -35,6 +35,9 @@
 params [["_group", grpNull, [grpNull]], ["_range", -1, [0]]];
 if (_range < 0) then {_range = missionNamespace getVariable ["WAIT_AIPass_EngageRange", 800]};
 private _leader = leader _group;
+if (!([_leader] call WAIT_fnc_CortexCombatEffective)) then {
+    _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+};
 if (isNull _leader || {!alive _leader}) exitWith {[[], 0]};
 
 // Native target lists remain the primary candidate source. EnemyDetected may be raised for a
@@ -56,10 +59,10 @@ private _witnesses=[];
 {
     private _target=_x select 0;
     private _witness=_x param [2,objNull,[objNull]];
-    if (!isNull _witness && {alive _witness} && {local _witness} && {group _witness == _group}
+    if ([_witness] call WAIT_fnc_CortexCombatEffective && {local _witness} && {group _witness == _group}
         && {_witness knowsAbout _target >= 1}) then {_witnesses pushBackUnique _witness};
 } forEach _observed;
-private _allMembers = (units _group) select {alive _x};
+private _allMembers = (units _group) select {[_x] call WAIT_fnc_CortexCombatEffective};
 private _members=([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses))
     arrayIntersect ([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses));
 if (count _members > 8) then {_members resize 8};
