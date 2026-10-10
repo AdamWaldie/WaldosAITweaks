@@ -31,7 +31,7 @@ private _clearLease={
     false
 };
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
-    || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {call _clearLease};
+    || {!alive _actor} || {isPlayer _actor} || {group _actor != _group}) exitWith {[] call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
@@ -90,7 +90,7 @@ if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
-    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {call _clearLease};
+    || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {[] call _clearLease};
 // Recheck at the final command boundary. A danger observation recorded before a new order or operation
 // must retire instead of turning its stale observation into a movement instruction.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0
@@ -104,7 +104,7 @@ if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0
     ["OWNERSHIP_OR_COMMAND"] call _clearLease
 };
 _threat=+_threat;
-if (count _threat < 2) exitWith {call _clearLease};
+if (count _threat < 2) exitWith {[] call _clearLease};
 if (count _threat == 2) then {_threat pushBack ((getPosATL _actor) select 2)};
 private _origin=getPosATL _actor;
 // Search around the current actor, including after grenade evasion. An away-offset centre
@@ -141,7 +141,7 @@ if (!_found || {count _spot < 2}
 };
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
-    || {currentCommand _actor != ""}) exitWith {call _clearLease};
+    || {currentCommand _actor != ""}) exitWith {[] call _clearLease};
 _group setVariable ["WAIT_Danger_CoverPending",nil];
 _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_generation,+_spot,_screenMode]];
 // The observation may end before native pathing reaches cover. Retain the committed move
