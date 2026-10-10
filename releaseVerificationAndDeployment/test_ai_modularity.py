@@ -495,4 +495,12 @@ class SemanticComponentContracts(unittest.TestCase):
                      'CARRY SOLDIER', 'ASSEMBLE', 'DISASSEMBLE', 'TAKE BAG', 'DROP BAG']:
             self.assertIn('"'+task+'"', selection)
 
+    def test_passenger_readiness_yields_actor_owned_tasks(self):
+        source = (ROOT/'addons/vehicles/functions/cortexPassengerReady.sqf').read_text()
+        self.assertIn('[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover', source)
+        for task in ['HEAL SOLDIER', 'FIRST AID', 'CARRY SOLDIER', 'DISASSEMBLE']:
+            self.assertIn('"'+task+'"', source)
+        self.assertIn('assignedVehicle _unit != _vehicle', source)
+        self.assertLess(source.index('private _command='), source.index('lineIntersectsSurfaces'))
+
 if __name__ == '__main__': unittest.main()
