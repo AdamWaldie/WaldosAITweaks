@@ -26,7 +26,9 @@ private _retire={
     // A successor operation may have started since this deployment was accepted. Retire
     // bookkeeping and handlers without unassigning actors or pulling them back into formation.
     _commandFree=_commandFree || {[_group] call WAIT_fnc_CortexExternalTakeover}
-        || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0};
+        || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
+        || {[_record param [2,objNull,[objNull]]] call WAIT_fnc_CompatibilityExternalControl}
+        || {[_record param [3,objNull,[objNull]]] call WAIT_fnc_CompatibilityExternalControl};
     if (count _record >= 10) then {
         private _gunner=_record param [2,objNull,[objNull]];
         private _assistant=_record param [3,objNull,[objNull]];
@@ -81,6 +83,11 @@ if (!_enabled || {combatMode _group in ["BLUE","GREEN"]}) exitWith {
 if (count _record >= 10) exitWith {
     _record params ["_recordEpisode","_status","_gunner","_assistant","_expectedClass","_deployPos","_deadline","_weapon","_gunnerBag","_assistantBag"];
     private _handler=_record param [10,-1,[0]];
+    if ([_gunner] call WAIT_fnc_CompatibilityExternalControl
+        || {[_assistant] call WAIT_fnc_CompatibilityExternalControl}) exitWith {
+        [true] call _retire;
+        "YIELDED"
+    };
     if (_phase == "CONTACT" && {_status == "PACK_MOVING"}
         && {!isNull _gunner} && {alive _gunner} && {local _gunner}
         && {!isNull _assistant} && {alive _assistant} && {local _assistant}
@@ -167,7 +174,8 @@ if (count _record >= 10) exitWith {
                         && {(_current select 1) == "ASSEMBLING"}
                         && {(_current select 2) == _actor} && {typeOf _assembled == (_current select 4)}
                         && {crew _assembled isEqualTo []}
-                        && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}) then {
+                        && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}
+                        && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}) then {
                         private _sector=_current param [11,[],[[]]];
                         if (count _sector >= 2) then {_assembled setDir (_assembled getDir _sector)};
                     };
@@ -265,6 +273,8 @@ if (count _record >= 10) exitWith {
                     private _current=if (isNull _owner) then {[]} else {_owner getVariable ["WAIT_Danger_StaticDeployment",[]]};
                     if (local _actor && {local _owner} && {!isNull _assistant} && {local _assistant}
                         && {alive _actor} && {alive _assistant} && {!([_owner] call WAIT_fnc_CortexExternalTakeover)}
+                        && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+                        && {!([_assistant] call WAIT_fnc_CompatibilityExternalControl)}
                         && {count _current >= 11} && {(_current select 0) == _recordEpisode}
                         && {(_current select 1) == "PACKING"} && {(_current select 2) == _actor}
                         && {(_current select 3) == _assistant}
@@ -315,6 +325,7 @@ if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"
 private _ready=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
         && {[_x] call WAIT_fnc_CortexCombatEffective}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {isNull assignedVehicle _x}
         && {!(toUpperANSI (currentCommand _x) in ["GET IN","ACTION","HEAL","REARM","JOIN"])}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
