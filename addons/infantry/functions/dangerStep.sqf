@@ -92,7 +92,15 @@ if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
     };
     -1
 };
-private _events=_group getVariable ["WAIT_Danger_Events",[]];
+// An explicit witness is part of the observation's domain and authority. Do not turn
+// an unavailable crew/foot witness into a different actor's response by substituting the anchor.
+// Older records without witness fields retain their documented group-anchor interpretation.
+private _events=(_group getVariable ["WAIT_Danger_Events",[]]) select {
+    if (_x isEqualType [] && {count _x >= 6}) then {
+        private _witness=_x param [5,objNull,[objNull]];
+        [_witness] call WAIT_fnc_CortexCombatEffective && {local _witness} && {group _witness == _group}
+    } else {true}
+};
 private _selected=[_events] call WAIT_fnc_DangerSelect;
 if (_selected isEqualTo []) exitWith {
     // Expired or malformed observations have no continuing authority. Clear them here while the

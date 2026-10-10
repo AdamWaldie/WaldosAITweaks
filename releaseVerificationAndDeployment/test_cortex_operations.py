@@ -966,6 +966,10 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        danger_step=source('dangerStep')
+        self.assertIn('[_witness] call WAIT_fnc_CortexCombatEffective',danger_step)
+        self.assertLess(danger_step.index('[_witness] call WAIT_fnc_CortexCombatEffective'),danger_step.index('call WAIT_fnc_DangerSelect'))
+        self.assertIn('[_priorObserver] call WAIT_fnc_CortexCombatEffective',source('dangerRequest'))
         for intake in ['dangerRequest','dangerEngineSubmit']:
             self.assertIn('!([_actor] call WAIT_fnc_CortexCombatEffective)',source(intake))
         contact=(ROOT/'releaseVerificationAndDeployment'/'cortexQA'/'runContact.sqf').read_text(encoding='utf-8')

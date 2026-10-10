@@ -40,7 +40,7 @@ if (isNull _hostileSource && {_index >= 0}) then {
     private _priorSource=_prior param [4,objNull,[objNull]];
     private _priorObserver=_prior param [6,_prior param [5,objNull,[objNull]],[objNull]];
     if ((_prior param [3,-1,[0]]) > time && {!isNull _priorSource} && {alive _priorSource}
-        && {!isNull _priorObserver} && {alive _priorObserver} && {local _priorObserver} && {group _priorObserver == _group}
+        && {[_priorObserver] call WAIT_fnc_CortexCombatEffective} && {local _priorObserver} && {group _priorObserver == _group}
         && {(side _group) getFriend (side _priorSource) < 0.6}
         && {_priorObserver knowsAbout _priorSource > 0}) then {
         _hostileSource=_priorSource;
