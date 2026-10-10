@@ -448,6 +448,9 @@ if (count _record >= 10) exitWith {
                 _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",_approach,time+15]];
             } forEach [_gunner,_assistant];
             _record set [21,time+5];
+            _record set [22,time];
+            _record set [23,[_gunner distance2D _weapon,_assistant distance2D _weapon]];
+            _record set [24,0];
             _record set [1,"PACK_MOVING"];
             _record set [6,time+15];
             _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
@@ -457,9 +460,36 @@ if (count _record >= 10) exitWith {
         }
     };
     if (_status == "PACK_MOVING") exitWith {
-        // Retry only an ended native order, at most twice inside the original finite lease.
-        // Keep its committed approach and never extend the packing deadline.
+        // Recent measured approach progress can renew a short completion window, but never
+        // beyond 45 seconds from packing entry. Lateral wandering cannot renew this lease.
+        if (!isNull _weapon && {alive _weapon} && {time < _deadline}) then {
+            private _distances=[_gunner distance2D _weapon,_assistant distance2D _weapon];
+            private _best=_record param [23,+_distances,[[]]];
+            private _progress=false;
+            {
+                if (_x <= (_best param [_forEachIndex,_x])-1) then {
+                    _best set [_forEachIndex,_x];
+                    _progress=true;
+                };
+            } forEach _distances;
+            if (_progress) then {
+                private _oldDeadline=_deadline;
+                _deadline=(_deadline max (time+5)) min ((_record param [22,time,[0]])+45);
+                _record set [6,_deadline];
+                _record set [23,_best];
+                {
+                    private _move=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+                    if (count _move == 3 && {(_move select 0) == "STATIC_PACK"} && {(_move select 2) == _oldDeadline}) then {
+                        _move set [2,_deadline];
+                        _x setVariable ["WAIT_Cortex_ActorMove",_move];
+                    };
+                } forEach [_gunner,_assistant];
+                _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+            };
+        };
+        // Retry an ended native order at most twice; retain its committed approach.
         if (!isNull _weapon && {alive _weapon} && {time < _deadline}
+            && {(_record param [24,0,[0]]) < 2}
             && {time >= (_record param [21,1e12,[0]])}) then {
             {
                 private _move=_x getVariable ["WAIT_Cortex_ActorMove",[]];
@@ -469,6 +499,7 @@ if (count _record >= 10) exitWith {
                 };
             } forEach [_gunner,_assistant];
             _record set [21,time+5];
+            _record set [24,(_record param [24,0,[0]])+1];
             _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
         };
         if (isNull _weapon || {!alive _weapon}) then {
