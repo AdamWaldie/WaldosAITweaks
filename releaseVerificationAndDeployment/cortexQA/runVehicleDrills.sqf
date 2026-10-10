@@ -935,3 +935,40 @@ if (_hcOwners isNotEqualTo []) then {
     deleteGroup _migrateGroup;
     deleteGroup _migrateEnemyGroup;
 };
+
+// A boundary fixture stages an old convoy cover record beside a newer actor reservation.
+// Success requires the real native movement to continue after production cleanup; clearing
+// a variable alone cannot pass. This does not substitute for a full convoy contact scenario.
+private _handoverGroup=createGroup [east,true];
+_handoverGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_handoverGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_handoverGroup setVariable ["acex_headless_blacklist",true,true];
+_handoverGroup setCombatMode "BLUE";
+private _handoverLeader=_handoverGroup createUnit ["O_Soldier_F",[3100,1700,0],[],0,"NONE"];
+private _handoverActor=_handoverGroup createUnit ["O_Soldier_F",[3103,1700,0],[],0,"NONE"];
+private _handoverVehicle=createVehicle ["O_Truck_03_transport_F",[3080,1700,0],[],0,"NONE"];
+doStop _handoverLeader;
+private _handoverStart=getPosATL _handoverActor;
+private _handoverDestination=_handoverStart getPos [45,90];
+_handoverActor setVariable ["WAIT_CortexQA_Label","PASSENGER: NEW ACTOR TASK",true];
+_handoverActor setVariable ["WAIT_CortexQA_Target",_handoverDestination,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_handoverLeader,_handoverActor,_handoverVehicle],true];
+["Passenger cleanup: newer actor task","An old convoy cover record remains while this soldier follows a newer committed destination. Cleanup must remove only its old bookkeeping; the soldier must physically continue away from the stationary leader.",_handoverDestination] call _phase;
+_handoverActor doMove _handoverDestination;
+private _handoverMoving=[{_handoverActor distance2D _handoverStart >= 5},20] call _wait;
+_handoverActor setVariable ["WAIT_Convoy_Dismount",[_handoverGroup,1,serverTime+60,+_handoverDestination],true];
+private _newReservation=["DANGER_COVER",+_handoverDestination,time+90];
+_handoverActor setVariable ["WAIT_Cortex_ActorMove",+_newReservation];
+private _handoverConfiguration=[1,30,20,false,[_handoverVehicle],"HALT",[[_handoverActor,_handoverVehicle]],[],"MANUAL",[],serverTime+60];
+[_handoverGroup,_handoverConfiguration,true] call WAIT_fnc_ConvoyDismountLocal;
+["PASSENGER-cover-cleanup-preserves-reservation",_handoverMoving
+    && {(_handoverActor getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _newReservation}
+    && {(_handoverActor getVariable ["WAIT_Convoy_Dismount",[]]) isEqualTo []},
+    str [currentCommand _handoverActor,expectedDestination _handoverActor]] call _check;
+private _handoverArrived=[{_handoverActor distance2D _handoverDestination <= 5
+    && {_handoverActor distance2D _handoverStart >= 35}},60] call _wait;
+["PASSENGER-cover-cleanup-new-task-physical-arrival",_handoverMoving && {_handoverArrived},
+    str [getPosATL _handoverActor,_handoverDestination,currentCommand _handoverActor]] call _check;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+{deleteVehicle _x} forEach [_handoverActor,_handoverLeader,_handoverVehicle];
+deleteGroup _handoverGroup;
