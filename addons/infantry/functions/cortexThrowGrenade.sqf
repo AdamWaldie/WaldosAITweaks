@@ -68,11 +68,14 @@ private _thrown = false;
             private _drillToken=(((group _unit) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""];
             private _throwGeneration=(_unit getVariable ["WAIT_Cortex_ThrowGeneration",0])+1;
             _unit setVariable ["WAIT_Cortex_ThrowGeneration",_throwGeneration];
+            _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"QUEUED",_kind,_throwGeneration]];
             private _release = {
                 params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context", "_expires", "_retry", "_throwGeneration"];
                 // A newer request supersedes this queued attempt without cancelling its frag token.
                 if ((_unit getVariable ["WAIT_Cortex_ThrowGeneration",-1]) != _throwGeneration) exitWith {};
                 private _cancel = {
+                    params [["_reason","OWNERSHIP_OR_SAFETY",[""]],["_details",[],[[]]]];
+                    _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,_reason,_kind,_throwGeneration,_details]];
                     if (_kind == "FRAG" && {_drillToken != ""}) then {
                         _unit setVariable ["WAIT_Cortex_FragCancelled",_drillToken];
                     };
@@ -82,7 +85,7 @@ private _thrown = false;
                     || {!([_group] call WAIT_fnc_CortexIsEligible)}
                     || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo _hold}
                     || {!(_magazine in magazines _unit)}
-                    || {(((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""]) != _drillToken}) exitWith {call _cancel};
+                    || {(((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""]) != _drillToken}) exitWith {[] call _cancel};
                 // Reject at the callback scope: exitWith inside the context block only left
                 // that block and allowed stale danger work to reach weapon release below.
                 private _dangerInvalid=count _context == 3 && {(_context select 0) == "DANGER"} && {
@@ -92,9 +95,9 @@ private _thrown = false;
                         || {time >= (_context select 2)}
                         || {[_group] call WAIT_fnc_CortexExternalTakeover}
                 };
-                if (_dangerInvalid) exitWith {call _cancel};
+                if (_dangerInvalid) exitWith {[] call _cancel};
                 if (_kind == "FRAG" && {_drillToken != ""}
-                    && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _cancel};
+                    && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {[] call _cancel};
                 _unit doWatch _towards;
                 // setDir changes the object transform without proving the prone throwing animation
                 // has turned. Never force release into the actor's previous facing. A bounded
@@ -105,10 +108,13 @@ private _thrown = false;
                 private _aimBearing = (_aim select 0) atan2 (_aim select 1);
                 private _aimError = abs (((_aimBearing - _bearing + 540) % 360) - 180);
                 if (_bodyError > 30 || {_aimError > 30}) exitWith {
-                    if (time >= _expires) then {call _cancel} else {
+                    if (time >= _expires) then {
+                        ["ALIGNMENT_TIMEOUT",[_bodyError,_aimError,_muzzle,currentWeapon _unit,stance _unit]] call _cancel;
+                    } else {
                         [_retry,+_this,0.25] call CBA_fnc_waitAndExecute;
                     };
                 };
+                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"ALIGNED",_kind,_throwGeneration,[_bodyError,_aimError,_muzzle]]];
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
@@ -116,7 +122,7 @@ private _thrown = false;
                         (_towards nearEntities ["CAManBase",12]) findIf {
                             alive _x && {side group _x == civilian || {_side getFriend (side group _x) >= 0.6}}
                         } >= 0
-                    }) exitWith {call _cancel};
+                    }) exitWith {[] call _cancel};
                     private _old = _unit getVariable ["WAIT_Cortex_FragHandler",-1];
                     if (_old >= 0) then {_unit removeEventHandler ["FiredMan",_old]};
                     _unit setVariable ["WAIT_Cortex_FragFlight",[_drillToken,objNull,false,_magazine,-1]];
@@ -139,8 +145,12 @@ private _thrown = false;
                             _actor setVariable ["WAIT_Cortex_FragHandler",-1];
                         };
                     },[_unit,_handler],10] call CBA_fnc_waitAndExecute;
+                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit]]];
                     _unit forceWeaponFire [_muzzle,_muzzle];
-                } else {_unit forceWeaponFire [_muzzle,_muzzle]};
+                } else {
+                _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"RELEASE_REQUESTED",_kind,_throwGeneration,[_muzzle,currentWeapon _unit,stance _unit]]];
+                    _unit forceWeaponFire [_muzzle,_muzzle];
+                };
             };
             [_release, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context,time+1.5,_release,_throwGeneration]] call CBA_fnc_execNextFrame;
             _thrown = true;

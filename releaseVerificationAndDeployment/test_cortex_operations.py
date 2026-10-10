@@ -2380,7 +2380,7 @@ class CortexOperations(unittest.TestCase):
     def test_cancelled_throw_does_not_block_assault_progression(self):
         throw = source('cortexThrowGrenade')
         self.assertIn('setVariable ["WAIT_Cortex_FragCancelled",_drillToken]', throw)
-        self.assertIn('exitWith {call _cancel}', throw)
+        self.assertIn('exitWith {[] call _cancel}', throw)
         self.assertIn('if (_thrown) exitWith {};', throw)
         self.assertNotIn('if (_thrown) exitWith {call _cancel}', throw)
         step = source('cortexFlankStep')

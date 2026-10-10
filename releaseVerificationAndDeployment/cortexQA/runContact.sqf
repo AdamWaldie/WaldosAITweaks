@@ -232,7 +232,7 @@ private _killWithRealProjectile={
             private _released=[{(_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]]) isNotEqualTo []},4] call _wait;
             private _evidence=_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]];
             [_label,_queued && {if (_released) then {(_evidence select 0) >= 0.866} else {_rear}},
-                str [_queued,_released,_evidence]] call _check;
+                str [_queued,_released,_evidence,_throwActor getVariable ["WAIT_Cortex_ThrowDecision",[]],getDir _throwActor,currentCommand _throwActor]] call _check;
             _throwActor removeEventHandler ["FiredMan",_throwEH];
             deleteVehicle _throwActor;
             deleteGroup _throwGroup;
