@@ -6612,7 +6612,8 @@ class CortexOperations(unittest.TestCase):
         retirement=text.split('private _retire={',1)[1].split('private _enabled=',1)[0]
         self.assertIn('_commandFree=_commandFree ||',retirement)
         self.assertIn('WAIT_fnc_CortexExternalTakeover',retirement)
-        self.assertIn('count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',retirement)
+        self.assertIn('!(_gunner in _operationActors)',retirement)
+        self.assertIn('!(_x in _operationActors)',retirement)
         self.assertLess(retirement.index('_commandFree=_commandFree'),retirement.index('if (!_commandFree)'))
 
     def test_anti_armour_cleanup_does_not_erase_another_actor_move(self):

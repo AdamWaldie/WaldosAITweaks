@@ -117,10 +117,13 @@ private _weapons=(nearestObjects [_anchor,["StaticWeapon"],75,true]) select {
 };
 if (_weapons isEqualTo []) exitWith {
     private _deploy=[_group,_state,_enemies] call WAIT_fnc_CortexStaticDeployStep;
-    if (_deploy != "IDLE") then {
+    // Deployment owns its active phases; only terminal outcomes belong in this parent cache.
+    if (_deploy in ["FAILED","NO_PRIMARY_BAG","NO_BASE_BAG","NO_SAFE_SECTOR"]) then {
         _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,_deploy,serverTime],true];
     } else {
-        _group setVariable ["WAIT_Danger_StaticRetry",[_episode,time+3]];
+        if (_deploy in ["IDLE","YIELDED"]) then {
+            _group setVariable ["WAIT_Danger_StaticRetry",[_episode,time+3]];
+        };
     };
     _deploy
 };

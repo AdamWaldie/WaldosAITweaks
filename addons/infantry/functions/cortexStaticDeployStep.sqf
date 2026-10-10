@@ -3,6 +3,7 @@
  * Purpose: Physically assemble one compatible carried static weapon during confirmed contact and give its original carrier a finite chance to occupy the real gunner seat.
  * Locality / Authority: Runs only on the current group owner from the shared group brain. It uses native backpack assembly and boarding actions on local AI actors; it never creates, teleports, rearms, repairs or force-seats a weapon.
  * A ready pair may deploy at its actual safe firing position instead of waiting for both actors to converge on one exact point.
+ * Other squad members may manoeuvre beside an existing deployment; overlapping participants or withdrawal preempt it.
  * Repeat/JIP: One contact-episode record owns the exact pair, expected assembled class, position and resulting weapon. Each group-brain call advances at most one finite phase. Locality, Zeus, specialist or newer operation ownership retires WAIT markers without issuing cleanup commands over the new owner. Failed deployment is not retried during the same contact episode.
  * Arguments: 0 group <GROUP>; 1 group state <HASHMAP>; 2 known enemies <ARRAY>; 3 allow post-contact packing <BOOL, default false>.
  * Return Value: STRING - DISABLED, IDLE, MOVING, DROPPING, ASSEMBLING, MOUNTING, ACTIVE, PACK_MOVING, PACKING, TAKING, PACKED, FAILED or YIELDED.
@@ -14,6 +15,8 @@ params [["_group",grpNull,[grpNull]],["_state",createHashMap,[createHashMap]],["
 if (isNull _group || {!local _group}) exitWith {"YIELDED"};
 private _record=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
 private _external=[_group] call WAIT_fnc_CortexExternalTakeover;
+private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+private _operationActors=_operation getOrDefault ["participants",[]];
 private _clearActor={
     params ["_actor"];
     if (!isNull _actor && {local _actor}) then {
@@ -23,10 +26,9 @@ private _clearActor={
 };
 private _retire={
     params ["_commandFree"];
-    // A successor operation may have started since this deployment was accepted. Retire
-    // bookkeeping and handlers without unassigning actors or pulling them back into formation.
+    // A successor operation may own only some actors. Retire bookkeeping, but restore
+    // assignments/formation only for actors not claimed by that operation or an external owner.
     _commandFree=_commandFree || {[_group] call WAIT_fnc_CortexExternalTakeover}
-        || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
         || {[_record param [2,objNull,[objNull]]] call WAIT_fnc_CompatibilityExternalControl}
         || {[_record param [3,objNull,[objNull]]] call WAIT_fnc_CompatibilityExternalControl};
     if (count _record >= 10) then {
@@ -55,12 +57,13 @@ private _retire={
         if (!_commandFree) then {
             private _weapon=_record param [7,objNull,[objNull]];
             if (!isNull _gunner && {local _gunner} && {!isNull _weapon}
-                && {assignedVehicle _gunner == _weapon}) then {
+                && {assignedVehicle _gunner == _weapon} && {!(_gunner in _operationActors)}) then {
                 [_gunner] orderGetIn false;
                 unassignVehicle _gunner;
                 if (vehicle _gunner == _weapon) then {_gunner action ["GetOut",_weapon]};
             };
             {if (!isNull _x && {alive _x} && {local _x} && {group _x == _group}
+                && {!(_x in _operationActors)}
                 && {currentCommand _x in ["","MOVE","STOP","ASSEMBLE","DISASSEMBLE"]}) then {
                 _x doFollow (leader _group);
             }} forEach [_gunner,_assistant];
@@ -83,6 +86,16 @@ if (!_enabled || {combatMode _group in ["BLUE","GREEN"]}) exitWith {
 if (count _record >= 10) exitWith {
     _record params ["_recordEpisode","_status","_gunner","_assistant","_expectedClass","_deployPos","_deadline","_weapon","_gunnerBag","_assistantBag"];
     private _handler=_record param [10,-1,[0]];
+    private _reservedActors=if (_status in ["ASSEMBLING","MOUNTING","ACTIVE"]) then {[_gunner]} else {[_gunner,_assistant]};
+    private _operationConflict=count _operation > 0 && {
+        (_operation getOrDefault ["intent",""]) in ["WITHDRAW","VEHICLE_WITHDRAW"]
+            || {_reservedActors findIf {_x in _operationActors} >= 0}
+    };
+    if (_operationConflict) exitWith {
+        [false] call _retire;
+        _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"YIELDED",serverTime],true];
+        "YIELDED"
+    };
     if ([_gunner] call WAIT_fnc_CompatibilityExternalControl
         || {[_assistant] call WAIT_fnc_CompatibilityExternalControl}) exitWith {
         [true] call _retire;
@@ -131,7 +144,7 @@ if (count _record >= 10) exitWith {
     if (isNull _gunner || {isNull _assistant}
         || {!alive _gunner} || {!alive _assistant} || {!local _gunner} || {!local _assistant}
         || {group _gunner != _group} || {group _assistant != _group} || {isPlayer _gunner}
-        || {isPlayer _assistant} || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
+        || {isPlayer _assistant} || {_operationConflict}
         || {_phase == "CONTACT" && {_recordEpisode != _episode}
             && {_status in ["MOVING","DROPPING","ASSEMBLING","MOUNTING","ACTIVE"]}}) exitWith {
         [false] call _retire;
@@ -327,7 +340,8 @@ if (count _record >= 10) exitWith {
 if (_phase != "CONTACT" || {_enemies isEqualTo []}) exitWith {"IDLE"};
 
 private _attempt=_group getVariable ["WAIT_Danger_StaticDeployAttempt",[]];
-if ((_attempt param [0,-1,[0]]) == _episode) exitWith {_attempt param [1,"IDLE",[""]]};
+if ((_attempt param [0,-1,[0]]) == _episode
+    && {(_attempt param [1,"IDLE",[""]]) != "YIELDED"}) exitWith {_attempt param [1,"IDLE",[""]]};
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"IDLE"};
 private _ready=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
