@@ -574,6 +574,16 @@ private _bodyTransitionsBefore=count (_bodyObserverGroup getVariable ["WAIT_Cort
 sleep 1;
 private _bodyProjectile=[_bodyActor] call _killWithRealProjectile;
 private _bodyKilled=[{!alive _bodyActor},5] call _wait;
+// Facing assigned at spawn can be replaced by native formation orientation. Request ordinary
+// observation of the actual corpse position; no reveal, target knowledge or danger is injected.
+_bodyObserver doWatch (getPosATL _bodyActor);
+private _bodyView=[{
+    private _towards=(aimPos _bodyActor) vectorDiff (eyePos _bodyObserver);
+    (vectorNormalized _towards) vectorDotProduct (eyeDirection _bodyObserver) >= 0.707
+        && {lineIntersectsSurfaces [eyePos _bodyObserver,aimPos _bodyActor,_bodyObserver,_bodyActor,true,1,"VIEW","NONE"] isEqualTo []}
+},5] call _wait;
+["DANGER-other-body-view-prerequisite",_bodyKilled && {_bodyView},
+    str [getPosATL _bodyObserver,getPosATL _bodyActor,eyeDirection _bodyObserver,_bodyView]] call _check;
 private _bodyObserved=[{
     private _stats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     "BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])
