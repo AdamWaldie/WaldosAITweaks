@@ -164,9 +164,15 @@ if (_desiredStance != "") then {
     if (_mayApply) then {
         // Weak stance is deliberate: native combat AI and the active movement owner can override it
         // immediately. WAIT records the exact applied value only so cleanup remains generation-safe.
-        _actor setUnitPosWeak _desiredStance;
-        _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay,
-            _group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0],_group]];
+        if (_currentStance != _desiredStance) then {_actor setUnitPosWeak _desiredStance};
+        // Renew proof without reissuing the same engine command. When the authored baseline
+        // already equals the desired stance, WAIT changed nothing and owns no restoration.
+        if (_priorStance != _desiredStance) then {
+            _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay,
+                _group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0],_group]];
+        } else {
+            _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
+        };
     };
 };
 
