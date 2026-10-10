@@ -347,7 +347,9 @@ _liveDisableUnit setVariable ["acex_headless_blacklist",true,true];
 _liveDisableUnit setVariable ["WAIT_CortexQA_Label","DANGER LIVE DISABLE",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_liveDisableUnit],true];
 ["Danger FSM: live gate cleanup","A real explosion first creates a finite WAIT stance. Danger is then disabled while that lease is active; the soldier must return to AUTO immediately without waiting for natural expiry.",getPosATL _liveDisableUnit] call _phase;
-private _liveDisableGrenade=[(getPosATL _liveDisableUnit) getPos [7,90]] call _spawnRealGrenade;
+// Hostile attribution reliably exercises the native response boundary on this engine;
+// friendly-blast callback delivery is measured independently above and is not assumed here.
+private _liveDisableGrenade=[(getPosATL _liveDisableUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _liveDisableReacted=[{
     (_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _liveDisableUnit in ["CROUCH","PRONE"]}
