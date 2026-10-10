@@ -142,6 +142,35 @@ private _thrown = false;
                     };
                 };
                 _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"ALIGNED",_kind,_throwGeneration,[_bodyError,_aimError,_muzzle]]];
+                // Observe the native release once; never steer or replace the projectile.
+                private _oldTrace=_unit getVariable ["WAIT_Cortex_ThrowTraceHandler",-1];
+                if (_oldTrace >= 0) then {_unit removeEventHandler ["FiredMan",_oldTrace]};
+                _unit setVariable ["WAIT_Cortex_ThrowTracePending",[_magazine,+_towards,_kind,_throwGeneration]];
+                private _traceHandler=_unit addEventHandler ["FiredMan",{
+                    params ["_actor","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
+                    private _pending=_actor getVariable ["WAIT_Cortex_ThrowTracePending",[]];
+                    if (_weapon == "Throw" && {count _pending == 4} && {_magazine == (_pending select 0)}) then {
+                        private _velocity=velocity _projectile;
+                        private _bearing=_actor getDir (_pending select 1);
+                        private _launchBearing=(_velocity select 0) atan2 (_velocity select 1);
+                        private _error=abs (((_launchBearing-_bearing+540) % 360)-180);
+                        private _trace=[time,_pending select 2,_pending select 3,+(_pending select 1),_bearing,_launchBearing,_error,_velocity];
+                        _actor setVariable ["WAIT_Cortex_ThrowReleaseTrace",_trace];
+                        diag_log format ["WAIT GRENADE RELEASE TRACE: %1 %2",netId _actor,_trace];
+                        _actor removeEventHandler ["FiredMan",_thisEventHandler];
+                        _actor setVariable ["WAIT_Cortex_ThrowTraceHandler",-1];
+                        _actor setVariable ["WAIT_Cortex_ThrowTracePending",nil];
+                    };
+                }];
+                _unit setVariable ["WAIT_Cortex_ThrowTraceHandler",_traceHandler];
+                [{
+                    params ["_actor","_handler"];
+                    if ((_actor getVariable ["WAIT_Cortex_ThrowTraceHandler",-1]) == _handler) then {
+                        _actor removeEventHandler ["FiredMan",_handler];
+                        _actor setVariable ["WAIT_Cortex_ThrowTraceHandler",-1];
+                        _actor setVariable ["WAIT_Cortex_ThrowTracePending",nil];
+                    };
+                },[_unit,_traceHandler],3] call CBA_fnc_waitAndExecute;
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
