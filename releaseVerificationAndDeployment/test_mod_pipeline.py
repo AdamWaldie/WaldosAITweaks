@@ -37,6 +37,17 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertTrue((mission.parent/'@WaldosAITweaks/addons/main.pbo').is_file())
         with self.assertRaises(ValueError): stage(self.folder, mission.parent, 'airskills')
 
+    def test_standalone_native_stage_has_no_addon_function_dependency(self):
+        mission=stage(self.folder,Path(self.temp.name)/'native','standaloneperformance',native_baseline=True)
+        manifest=json.loads((mission.parent/'audit-manifest.json').read_text())
+        self.assertTrue(manifest['native_baseline'])
+        self.assertIn('"WAIT_QA_PerfExpectedLoaded",false',(mission/'auditIdentity.sqf').read_text())
+        for name in ('initServer.sqf','initPlayerLocal.sqf','cortexQAStandalonePerformance.sqf'):
+            self.assertNotIn('WAIT_fnc_', (mission/name).read_text())
+        self.assertIn('WAIT AUDIT OBSERVER ZEUS READY',(mission/'initServer.sqf').read_text())
+        with self.assertRaises(ValueError):
+            stage(self.folder,Path(self.temp.name)/'invalid','airskills',native_baseline=True)
+
     def test_release_rejects_incomplete_wrong_and_unsigned_evidence(self):
         evidence = Path(self.temp.name)/'results.json'
         for report in ({'status':'PASS', 'complete':False},

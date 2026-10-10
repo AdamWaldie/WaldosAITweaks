@@ -4,12 +4,14 @@
  * Locality/authority: Dedicated server owns fixtures and sampling; no WAIT functions are required.
  * Repeat/JIP: One guarded run per mission. Removes its frame handler and all created actors/groups.
  * Arguments: None. Return Value: Nothing; results are written to the server RPT.
- * Current callers: Standalone benchmark mission staging (integration pending).
+ * Current callers: Standalone performance mission initServer.sqf.
  * Example: [] execVM "cortexQAStandalonePerformance.sqf";
  */
 if (!isServer || {missionNamespace getVariable ["WAIT_QA_StandalonePerfRunning",false]}) exitWith {};
 missionNamespace setVariable ["WAIT_QA_StandalonePerfRunning",true];
 private _loaded=isClass (configFile >> "CfgPatches" >> "WAIT_AI_Tweaks_Main");
+private _expectedLoaded=missionNamespace getVariable ["WAIT_QA_PerfExpectedLoaded",_loaded];
+if (_loaded != _expectedLoaded) exitWith {diag_log "WAIT STANDALONE PERF INVALID: addon identity mismatch"};
 private _fsm=getText (configFile >> "CfgVehicles" >> "O_Soldier_F" >> "fsmDanger");
 private _groups=[];
 private _actors=[];
@@ -33,6 +35,7 @@ for "_i" from 0 to 49 do {
     _groups pushBack _group;
     sleep 0.01;
 };
+{_x addCuratorEditableObjects [_actors,true]} forEach allCurators;
 diag_log format ["WAIT STANDALONE PERF IDENTITY: %1",[_loaded,_fsm,50,300,"INFANTRY_PATROL",groupOwner (_groups select 0)]];
 sleep 20;
 private _origins=_groups apply {getPosATL leader _x};

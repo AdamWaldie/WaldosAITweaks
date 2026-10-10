@@ -11,6 +11,7 @@ param(
     [ValidateRange(10,120)][int]$ClientWindowTimeoutSeconds=60,
     [ValidateRange(0,2)][int]$HeadlessClients=2,
     [switch]$WithZen,
+    [switch]$NativeBaseline,
     [switch]$ServerOnly,
     [switch]$StageOnly
 )
@@ -24,6 +25,7 @@ if (!$ArmaPath) {
 if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyContinue)) {
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
+if ($NativeBaseline -and $Focus -ne 'standaloneperformance') {throw 'NativeBaseline requires standaloneperformance focus'}
 $stageDefaultDependencies=!$Mods.Count
 if ($stageDefaultDependencies) {
     $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')
@@ -31,7 +33,11 @@ if ($stageDefaultDependencies) {
 }
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-& $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
+if ($NativeBaseline) {
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline
+} else {
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
+}
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
 $launchMods=$Mods
 if ($stageDefaultDependencies) {
@@ -69,7 +75,9 @@ localClient[]={"127.0.0.1"};
 persistent=1;
 class Missions {class Audit {template="$missionName.VR"; difficulty="Regular";};};
 "@ | Set-Content $config
-$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
+$modArg=if ($NativeBaseline) {'-mod='+($launchMods -join ';')} else {
+    '-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
+}
 function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interactive) {
     $quoted=$arguments | ForEach-Object {'"'+$_+'"'}
     # Background server/HC helpers stay hidden. The observer is an interactive game client:
