@@ -129,10 +129,13 @@ private _killWithRealProjectile={
         _unit setVariable ["WAIT_CortexQA_RifleShots",(_unit getVariable ["WAIT_CortexQA_RifleShots",0])+1];
         _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
         // Handle the actual engine projectile before a scheduled wait can outlive it.
-        private _impact=eyePos _target vectorAdd [0,0,-0.25];
+        private _impact=aimPos _target;
         private _origin=_impact vectorAdd [-2,0,0];
         _projectile setPosASL _origin;
-        _projectile setVelocity ((_impact vectorDiff _origin) vectorMultiply 450);
+        // Match direction and velocity at the actor's engine aim point. Eye-height offsets can
+        // miss a prone actor; changing velocity alone leaves the shot's orientation inconsistent.
+        _projectile setVectorDir (vectorNormalized (_impact vectorDiff _origin));
+        _projectile setVelocity ((vectorNormalized (_impact vectorDiff _origin)) vectorMultiply 900);
     }];
     private _rifle=primaryWeapon _source;
     _source selectWeapon _rifle;
