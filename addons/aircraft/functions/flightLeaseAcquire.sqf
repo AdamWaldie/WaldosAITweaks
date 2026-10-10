@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Acquires the single owner-local WAIT flight-mutation lease for an AI aircraft.
  * Locality / Authority: Aircraft-owner local. Player, curator, specialist and non-local aircraft are rejected before lease mutation.
- * Repeat/JIP: Re-acquiring the same controller/token refreshes its lease. A strictly higher priority may replace an older WAIT controller; public state is diagnostic only and grants no remote authority.
+ * Repeat/JIP: Re-acquiring the same controller/token retains its lease identity; controller deadlines remain separate. A strictly higher priority may replace an older WAIT controller; public state is diagnostic only and grants no remote authority.
  * Arguments: 0 aircraft <OBJECT>; 1 controller <STRING>; 2 token <STRING>; 3 priority <NUMBER>.
  * Return Value: Boolean - true only when the caller owns the current flight lease.
  * Current callers: aircraft attack, helicopter landing, missile defence and helicopter braking controllers.
@@ -16,7 +16,8 @@ params [
 ];
 if (isNull _aircraft || {!local _aircraft} || {!alive _aircraft} || {_controller == ""} || {_token == ""}) exitWith {false};
 private _pilot=currentPilot _aircraft;
-if (isNull _pilot || {!alive _pilot} || {isPlayer _pilot} || {!isNull (remoteControlled _pilot)}) exitWith {false};
+if (isNull _pilot || {!([_pilot] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _pilot} || {!isNull (remoteControlled _pilot)}) exitWith {false};
 private _group=group _pilot;
 if (isNull _group || {[_group] call WAIT_fnc_CortexZeusHeld} || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _lease=_aircraft getVariable ["WAIT_FlightLease",createHashMap];

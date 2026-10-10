@@ -4,6 +4,24 @@ Status checked on 2026-10-10. WAIT is not production-ready. All 65 registered fe
 
 Audit processes are closed. Further game launches are suspended at the user's request. Static development can continue.
 
+## Module progress toward completion
+
+Overall: 0 of 65 feature families have full acceptance. All eight addon modules are packaged and statically validated, but their behavioural implementation remains partial. This is accepted completion, not a percentage of code written. No release candidate is accepted.
+
+| Addon module | Implementation progress | Completion blocker |
+| --- | --- | --- |
+| Core | Shared lifecycle, scheduling, configuration and ownership implemented; transition repairs continue | Full interruption, migration, JIP, queue stability and performance acceptance |
+| Danger | Engine danger FSM and finite response handoff implemented; some physical subcases passed | Response-depth baseline, intake, cover and cleanup failures; recent fixes await retest |
+| Infantry | Tactical, CQB, morale, fire and coordination controllers present; continuity repairs continue | Reliable movement, room progression, casualty replacement and multi-squad combat |
+| Vehicles | Driving, convoy, passengers and gunnery present | Mixed columns, obstructions, passenger orders, tracked reverse and replacement travel |
+| Aircraft | Attack, defence, landing and braking present; release/handover repairs continue | Effective weapon delivery, distinct profiles, clearance, air-to-air and controller transitions |
+| Support | Artillery, medical, ammunition, civilian and delivery capabilities present or partial | Complete physical outcomes, safety, interruption and cleanup |
+| Compatibility | Ownership adapters and actual headless-provider fixture present | Native HC registration; real specialist coexistence, disconnect and migration |
+| Main | Function registration, settings and operation FSM integration packaged | Complete settings persistence/parity and exact-candidate end-to-end acceptance |
+| Optional engine policies | Separate policy PBOs absent | Implementation, packaging and player-accuracy exclusion proof |
+
+The category table below gives feature-level detail. Blockers B1-B7 define the progression order. Static validation is a gate; physical subsystem acceptance, cross-cutting handover and matched performance checks remain separate gates.
+
 ## Implementation and acceptance by category
 
 | Category | Implementation present | Acceptance and remaining work |
