@@ -78,10 +78,11 @@ if (isNull _leader) then {_leader=leader _group};
 // Entry selection must use the same capable/task-free contract as casualty reserves.
 // An unavailable actor must not consume a lane until the later callback discovers it.
 private _available = (units _group) select {
+    private _canMove=_x checkAIFeature "MOVE" && {_x checkAIFeature "PATH"};
     private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
     private _reservationFree=_reservation isEqualTo []
         || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
-    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+    _canMove && {[_x] call WAIT_fnc_CortexCombatEffective} && {local _x} && {!isPlayer _x}
         && {isNull objectParent _x} && {_reservationFree}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}

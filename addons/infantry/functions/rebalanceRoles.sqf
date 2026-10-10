@@ -24,6 +24,7 @@ private _capable=(units _group) select {
         || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
     local _x && {!isPlayer _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
         && {isNull objectParent _x} && {!(_x in _blocked)}
+        && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
         && {_reservationFree}
