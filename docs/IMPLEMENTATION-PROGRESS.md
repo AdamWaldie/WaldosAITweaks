@@ -1,4 +1,20 @@
-## Current acceptance boundary
+## Current acceptance boundary — 2026-10-10
+
+WAIT is not production accepted. The latest completed packaged candidate, `85acef3`, finished at 08:08:32 with 45 server findings, zero client findings and 603 recorded checks. Its report found zero matched SQF errors, zero fatal runtime failures and one content-load warning. Failed prerequisites and failed physical outcomes remain distinct; neither is counted as acceptance.
+
+Clean candidate `c669996` is running in `runtime-20261010-081100-784` at 3840×2160 with observer Zeus and two headless clients. The mission skips role selection. Fresh results passed carried static assembly, original-carrier seating, facing (about 0.06 degrees error), real firing and existing-static contact cleanup. Carried native packing failed. The batch has not completed, so these are individual case results rather than a subsystem promotion. The content-load warning persists.
+
+Subsequent commits through `dd0af6b` are queued for physical validation. They protect building entry, active lanes, room claims, egress and cancellation from unavailable or newly owned actors; retain each lane's entrance between room claims; prevent entered lanes from restaging outside; and correct carried-static packing handoff and asynchronous pickup ownership. Regression checks and package validation passed. They do not prove room traversal or successful packing.
+
+The next sequential acceptance candidate must include these queued changes and exercise the building suite across its models and squad sizes, together with the unresolved static packing transition. No concurrent game batch is required. Keep the current runtime and its exact package separate from later working-tree changes.
+
+Danger baseline parity, complete CQB/traversal, coordination, combined arms, convoy/driving, aircraft/support and specialist handovers remain unaccepted. Matched 50-group baseline comparisons have not established the required 5% median / 10% p95 frame-time budget. The full goal remains active.
+
+## Historical evidence
+
+The entries below describe earlier candidates and superseded running states. The current boundary above takes precedence.
+
+### Earlier acceptance boundary
 
 The completed `dangerparity` run used clean commit `24bdee3`. Its server reported 69 findings:
 39 danger, 24 passenger/vehicle, four tactical and two withdrawal cases. The client completed
