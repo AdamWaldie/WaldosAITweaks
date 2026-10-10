@@ -890,7 +890,31 @@ if (_hcOwners isNotEqualTo []) then {
         && {(_zeusSnapshot select 1) distance2D _replacement < 1}
         && {(_zeusSnapshot select 5) == (_replacementWP select 1)},str _zeusSnapshot] call _check;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _migrateCrew;
-    private _replacementArrived=[{_migrateArmour distance2D _replacement <= 22},100] call _wait;
+    // Observe the engine completion boundary independently from the final position. A MOVE
+    // order does not promise a stationary hold after native waypoint completion.
+    private _replacementClosest=1e9;
+    private _replacementCompleted=[];
+    private _replacementResumed=[];
+    private _replacementArrived=[{
+        private _distance=_migrateArmour distance2D _replacement;
+        _replacementClosest=_replacementClosest min _distance;
+        private _current=currentWaypoint _migrateGroup;
+        if (_replacementCompleted isEqualTo [] && {_current > (_replacementWP select 1)}) then {
+            _replacementCompleted=[time,_current,_distance,getPosATL _migrateArmour];
+        };
+        private _move=_migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+        if (_replacementResumed isEqualTo [] && {count _move > 0}) then {
+            _replacementResumed=[time,_current,_distance,+_replacementCompleted,
+                _move getOrDefault ["operationGeneration",-1],_move getOrDefault ["position",[]],
+                _migrateGroup getVariable ["WAIT_AIPass_ZeusWaypoints",false]];
+        };
+        _distance <= 22
+    },100] call _wait;
+    diag_log format ["WAIT WITHDRAW ZEUS ORDER TRACE: %1",[
+        _replacementClosest,_replacementCompleted,_replacementResumed,
+        currentWaypoint _migrateGroup,_replacementWP select 1,
+        waypointCompletionRadius _replacementWP,
+        _migrateGroup getVariable ["WAIT_AIPass_ZeusWaypoints",false]]];
     ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},
         str [getPosATL _migrateArmour,getForcedSpeed _migrateArmour,vehicleMoveInfo _migrateArmour,
             currentCommand driver _migrateArmour,behaviour driver _migrateArmour,
