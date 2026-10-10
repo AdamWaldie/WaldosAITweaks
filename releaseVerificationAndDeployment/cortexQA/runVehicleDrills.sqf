@@ -827,6 +827,7 @@ if (_hcOwners isNotEqualTo []) then {
     },45] call _wait;
     diag_log format ["WAIT WITHDRAW REVERSE END TRACE: %1",[
         _migrateGroup getVariable ["WAIT_VehicleReverseEnd",[]],
+        _migrateGroup getVariable ["WAIT_VehicleReverseFallback",[]],
         _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap],
         currentCommand driver _migrateArmour,vehicleMoveInfo _migrateArmour]];
     ["WITHDRAW-MIGRATION-production-start",_migrationContact && {_migrationStarted},str [_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""],_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],getPosATL _migrateArmour]] call _check;

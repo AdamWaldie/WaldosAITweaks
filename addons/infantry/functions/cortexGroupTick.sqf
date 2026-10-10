@@ -318,7 +318,20 @@ if (count _reverseRecord == 9) then {
             (_current getOrDefault ["generation",-1]) == (_reverseRecord select 1)
                 && {(_current getOrDefault ["intent",""]) == "VEHICLE_WITHDRAW"}}) then {
         private _escape=_state getOrDefault ["retreatTarget",[]];
-        if (count _escape >= 2) then {[_group,_escape,40] call WAIT_fnc_CortexGroupMove};
+        if (count _escape >= 2) then {
+            private _fallback=[_group,_escape,40] call WAIT_fnc_CortexGroupMove;
+            _group setVariable ["WAIT_VehicleReverseFallback",[serverTime,_reverseResult,
+                _reverseRecord select 1,_state getOrDefault ["phase",""],+_escape,_fallback,
+                (units _group) apply {[netId _x,currentCommand _x]}],true];
+        };
+    } else {
+        if (_reverseResult in ["COMPLETE","FALLBACK"]) then {
+            private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            _group setVariable ["WAIT_VehicleReverseFallback",[serverTime,"HANDOVER_BLOCKED",
+                _reverseRecord select 1,_state getOrDefault ["phase",""],
+                _current getOrDefault ["intent",""],_current getOrDefault ["generation",-1],
+                [_group] call WAIT_fnc_CortexExternalTakeover],true];
+        };
     };
 };
 private _movementLease = _state getOrDefault ["movementLease",[]];
