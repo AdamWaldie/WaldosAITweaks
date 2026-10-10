@@ -113,13 +113,18 @@ if (!_yieldToExternal && {count _retreatModeLease == 2} && {combatMode _group ==
 {if (alive _x) then {[_x,true,false] call _releaseOwnedHold}} forEach (_state getOrDefault ["holders", []]);
 {
     if (local _x && {_x getVariable ["WAIT_AIPass_StanceSet", false]}) then {
-        if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        if (!_yieldToExternal && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
+            if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        };
         _x setVariable ["WAIT_Cortex_AppliedStance",nil,true];
         _x setVariable ["WAIT_AIPass_StanceSet", nil, true];
     };
     if (local _x) then {
         private _target = _x getVariable ["WAIT_AIPass_VehicleTarget",objNull];
-        if (!isNull _target && {assignedTarget _x == _target}) then {_x doTarget objNull};
+        if (!_yieldToExternal && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!isNull _target} && {assignedTarget _x == _target}) then {_x doTarget objNull};
         _x setVariable ["WAIT_AIPass_VehicleTarget",nil,true];
         _x setVariable ["WAIT_AIPass_TargetHold",nil];
         _x setVariable ["WAIT_Cortex_ActorMove",nil];

@@ -76,6 +76,8 @@ for "_offset" from 0 to (_count-1) do {
     if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {isNull objectParent _unit}
         && {_reservationFree}
         && {!(toUpperANSI currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+        && {!isPlayer _unit} && {isNull (remoteControlled _unit)}
+        && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
         && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
         && {abs speed _unit < 1} && {!(_unit in _drillUnits)}
         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
