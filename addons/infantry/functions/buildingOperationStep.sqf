@@ -143,12 +143,18 @@ private _delay=call {
     private _rotatedOut=_job getOrDefault ["rotatedOut",[]];
     {_rotatedOut pushBackUnique _x} forEach (_reserved select {_x in _unavailable});
     _job set ["rotatedOut",_rotatedOut];
-    private _reserves=(units _group) select {
-        alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-        && {isNull objectParent _x} && {!(_x in _reserved)} && {!(_x in _rotatedOut)} && {_x != _leader}
+    private _reserveReady={
+        params ["_candidate"];
+        private _reservation=_candidate getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _reservationFree=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        [_candidate] call WAIT_fnc_CortexCombatEffective && {local _candidate} && {!isPlayer _candidate}
+            && {isNull objectParent _candidate} && {!(_candidate in _reserved)} && {!(_candidate in _rotatedOut)}
+            && {_reservationFree} && {!([_candidate] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _candidate in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
     };
-    if (_reserves isEqualTo [] && {alive _leader} && {local _leader} && {!isPlayer _leader}
-        && {lifeState _leader != "INCAPACITATED"} && {isNull objectParent _leader} && {!(_leader in _reserved)}) then {
+    private _reserves=(units _group) select {[_x] call _reserveReady && {_x != _leader}};
+    if (_reserves isEqualTo [] && {[_leader] call _reserveReady}) then {
         _reserves pushBack _leader;
     };
     {
@@ -157,10 +163,11 @@ private _delay=call {
         private _state=_pairStates select _pairIndex;
         for "_slot" from 0 to ((count _pair)-1) do {
             private _member=_pair select _slot;
-            if ((!alive _member || {!local _member} || {isPlayer _member} || {lifeState _member == "INCAPACITATED"}
+            if ((!([_member] call WAIT_fnc_CortexCombatEffective) || {!local _member} || {isPlayer _member}
                 || {group _member != _group} || {!isNull objectParent _member} || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
                 private _replacement=_reserves deleteAt 0;
                 _pair set [_slot,_replacement];
+                _rotatedOut pushBackUnique _member;
                 private _team=_job get "team";
                 _team pushBackUnique _replacement;
                 (_job get "assigned") pushBack [];
@@ -177,13 +184,14 @@ private _delay=call {
             };
         };
     } forEach _pairs;
+    _job set ["rotatedOut",_rotatedOut];
     // Release reservations before selection so another soldier can visit a casualty's room.
     // Reassigned units belong to their new commander and must receive no further orders here.
-    private _activeWorkers=(_job get "team") select {alive _x && {local _x} && {!isPlayer _x}
-        && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
+    private _activeWorkers=(_job get "team") select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {!(_x in _rotatedOut)} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
     private _failureThreshold=(count (_job get "pairs")) min 2 max 1;
     {
-        if (!alive _x || {!local _x} || {isPlayer _x} || {lifeState _x == "INCAPACITATED"} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
+        if (!([_x] call WAIT_fnc_CortexCombatEffective) || {!local _x} || {isPlayer _x} || {_x in _rotatedOut} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
             _assigned set [_forEachIndex,[]];
         };
     } forEach (_job get "team");

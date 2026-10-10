@@ -352,6 +352,10 @@ class CortexOperations(unittest.TestCase):
         support_handoff=source('cortexStaticSupport').split('if (count _lease >= 7) exitWith',1)[1].split('if (_leaseEpisode',1)[0]
         self.assertIn('_actor in (_operation getOrDefault ["participants",[]])',support_handoff)
         self.assertIn('[true] call _release',support_handoff)
+        building_reserves=source('buildingOperationStep')
+        self.assertIn('[_leader] call _reserveReady',building_reserves)
+        self.assertIn('!(_candidate in _rotatedOut)',building_reserves)
+        self.assertIn('[_member] call WAIT_fnc_CortexCombatEffective',building_reserves)
         roles=source('rebalanceRoles')
         self.assertIn('WAIT_fnc_CortexCombatEffective',roles)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',roles)
@@ -1488,10 +1492,10 @@ class CortexOperations(unittest.TestCase):
     def test_clearance_releases_casualty_and_transferred_member_reservations(self):
         text=source('cortexClearBuilding')+source('buildingOperationStep')
         release=text.split('// Release reservations before selection',1)[1].split('private _now',1)[0]
-        self.assertIn('!alive _x',release)
+        self.assertIn('!([_x] call WAIT_fnc_CortexCombatEffective)',release)
         self.assertIn('group _x != _group',release)
         self.assertIn('isPlayer _x',release)
-        self.assertIn('lifeState _x == "INCAPACITATED"',release)
+        self.assertIn('lifeState _unit != "INCAPACITATED"',source('cortexCombatEffective'))
         self.assertIn('_assigned set [_forEachIndex,[]]',release)
         self.assertIn('if (_restore) then {',text)
         release=source('cortexClearRelease')
@@ -1640,7 +1644,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _reserves=(units _group) select',text)
         self.assertIn('_pair set [_slot,_replacement]',text)
         self.assertIn('WAIT_Cortex_ClearReinforcements',text)
-        self.assertIn('lifeState _member == "INCAPACITATED"',text)
+        self.assertIn('[_member] call WAIT_fnc_CortexCombatEffective',text)
+        self.assertIn('_rotatedOut pushBackUnique _member',text)
 
     def test_clearance_rotates_operation_quarantined_workers_without_stalling_other_lanes(self):
         text=source('cortexClearBuilding')+source('buildingOperationStep')
