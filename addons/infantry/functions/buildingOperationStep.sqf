@@ -95,6 +95,16 @@ private _delay=call {
     if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {[false,"EXTERNAL"] call _finish};
     // Check ownership at every local movement write as a Zeus, player or specialist controller
     // can take over during this queued callback after the operation-level eligibility check.
+    private _actorAvailable={
+        params ["_actor"];
+        private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _free=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        [_actor] call WAIT_fnc_CortexCombatEffective && {local _actor} && {!isPlayer _actor}
+            && {group _actor == _group} && {isNull objectParent _actor} && {_free}
+            && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+    };
     private _mayIssueMovement = {
         !([_group] call WAIT_fnc_CortexExternalTakeover)
     };
@@ -163,8 +173,7 @@ private _delay=call {
         private _state=_pairStates select _pairIndex;
         for "_slot" from 0 to ((count _pair)-1) do {
             private _member=_pair select _slot;
-            if ((!([_member] call WAIT_fnc_CortexCombatEffective) || {!local _member} || {isPlayer _member}
-                || {group _member != _group} || {!isNull objectParent _member} || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
+            if ((!([_member] call _actorAvailable) || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
                 private _replacement=_reserves deleteAt 0;
                 _pair set [_slot,_replacement];
                 _rotatedOut pushBackUnique _member;
@@ -187,8 +196,8 @@ private _delay=call {
     _job set ["rotatedOut",_rotatedOut];
     // Release reservations before selection so another soldier can visit a casualty's room.
     // Reassigned units belong to their new commander and must receive no further orders here.
-    private _activeWorkers=(_job get "team") select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
-        && {!(_x in _rotatedOut)} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
+    private _activeWorkers=(_job get "team") select {[_x] call _actorAvailable
+        && {!(_x in _rotatedOut)} && {!(_x in _unavailable)}};
     private _failureThreshold=(count (_job get "pairs")) min 2 max 1;
     {
         if (!([_x] call WAIT_fnc_CortexCombatEffective) || {!local _x} || {isPlayer _x} || {_x in _rotatedOut} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
@@ -236,7 +245,7 @@ private _delay=call {
     private _pairRoutes=_job get "pairRoutes";
     {
         private _pairIndex=_forEachIndex;
-        private _pair=_x select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
+        private _pair=_x select {[_x] call _actorAvailable && {!(_x in _unavailable)}};
         if (_pair isEqualTo []) then {
             private _state=_pairStates select _pairIndex;
             private _route=_pairRoutes select _pairIndex;

@@ -358,7 +358,8 @@ class CortexOperations(unittest.TestCase):
         building_reserves=source('buildingOperationStep')
         self.assertIn('[_leader] call _reserveReady',building_reserves)
         self.assertIn('!(_candidate in _rotatedOut)',building_reserves)
-        self.assertIn('[_member] call WAIT_fnc_CortexCombatEffective',building_reserves)
+        self.assertIn('[_member] call _actorAvailable',building_reserves)
+        self.assertIn('[_actor] call WAIT_fnc_CortexCombatEffective',source('buildingOperationStep'))
         roles=source('rebalanceRoles')
         self.assertIn('WAIT_fnc_CortexCombatEffective',roles)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',roles)
@@ -1775,7 +1776,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('private _reserves=(units _group) select',text)
         self.assertIn('_pair set [_slot,_replacement]',text)
         self.assertIn('WAIT_Cortex_ClearReinforcements',text)
-        self.assertIn('[_member] call WAIT_fnc_CortexCombatEffective',text)
+        self.assertIn('[_member] call _actorAvailable',text)
+        self.assertIn('[_actor] call WAIT_fnc_CortexCombatEffective',text)
         self.assertIn('_rotatedOut pushBackUnique _member',text)
 
     def test_clearance_rotates_operation_quarantined_workers_without_stalling_other_lanes(self):
@@ -1784,7 +1786,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_reserved select {_x in _unavailable})',text)
         self.assertIn('|| {_member in _unavailable}) && {_reserves isNotEqualTo []})',text)
         self.assertIn('&& {!(_x in _unavailable)} && {group _x == _group}',text)
-        self.assertIn('private _pair=_x select {alive _x',text)
+        self.assertIn('private _pair=_x select {[_x] call _actorAvailable',text)
         self.assertIn('!(_x in _unavailable)',text)
 
     def test_clearance_egresses_before_terminal_handover(self):
