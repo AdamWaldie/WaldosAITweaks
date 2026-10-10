@@ -25,6 +25,7 @@ if (_yieldToOwner) exitWith {
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -38,6 +39,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -51,6 +53,7 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -86,6 +89,7 @@ if (_nativeHandover) then {
     };
     _group setVariable ["WAIT_Danger_Events",_otherWitnesses];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -121,6 +125,7 @@ if (_selected isEqualTo []) exitWith {
         // operation. Do not restore a stale WAIT posture across that ownership boundary.
         if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact};
         _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         _group setVariable ["WAIT_Danger_Contact",nil,true];
         _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -178,6 +183,7 @@ if (_action == "FORCED") exitWith {
     if (_anotherWitness) exitWith {0.25};
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -203,6 +209,7 @@ if (_replace) then {
     // lease from the newest observation.
     [_observer,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",+_selected];
     // Keep the responder beside the action lease. WAIT_Danger_LastAssessment is intentionally the
     // newest evaluated record and may therefore change while this higher-priority response survives;
     // it cannot be used as durable ownership for the physical reaction.

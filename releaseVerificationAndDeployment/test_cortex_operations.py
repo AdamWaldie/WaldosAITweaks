@@ -1077,7 +1077,9 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;',release)
         self.assertIn('[_dangerActor,"RELEASE"] call WAIT_fnc_DangerReact',release)
         for completion in [cancel,release]:
-            self.assertIn('private _dangerEvent=_dangerResponse select [0,4];',completion)
+            self.assertIn('private _dangerEvent=_group getVariable ["WAIT_Danger_ResponseEvent",[]];',completion)
+            self.assertIn('_dangerEvent=_dangerResponse select [0,4];',completion)
+            self.assertIn('(_dangerEvent param [2,-1,[0]]) != (_dangerResponse select 2)',completion)
             self.assertIn('call WAIT_fnc_DangerActionSelect',completion)
             self.assertIn('call WAIT_fnc_DangerReact',completion)
             self.assertLess(completion.index('_group setVariable ["WAIT_Operation",nil,true]'),completion.index('private _dangerEvent='))

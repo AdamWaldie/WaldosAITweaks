@@ -225,6 +225,7 @@ if (count _dangerResponse == 5) then {
         _state deleteAt "dangerResponse";
         _state deleteAt "dangerVehicleProfile";
         _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     };

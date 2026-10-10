@@ -133,6 +133,7 @@ if (local _group) then {
     // A release or Zeus takeover invalidates any still-published danger handoff before another
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
