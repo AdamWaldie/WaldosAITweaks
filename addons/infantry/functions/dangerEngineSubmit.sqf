@@ -18,7 +18,7 @@
  */
 
 params [['_actor',objNull,[objNull]],['_records',[],[[]]],['_mode','ASSESS',['']]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
