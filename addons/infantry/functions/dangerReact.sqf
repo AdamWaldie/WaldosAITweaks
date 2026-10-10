@@ -98,8 +98,13 @@ private _desiredCombat=if (_engaging || {_keepEngagement}) then {"RED"} else {"Y
 // A committed tactical drill owns its YELLOW discipline. Danger response may retain
 // posture but cannot turn that exact lease into RED and falsely trigger ROE_CHANGED.
 private _tacticalState=_group getVariable ["WAIT_AIPass_State",createHashMap];
-private _tacticalMode=(_tacticalState getOrDefault ["drill",createHashMap]) getOrDefault ["groupCombatMode",[]];
+private _tacticalDrill=_tacticalState getOrDefault ["drill",createHashMap];
+private _tacticalMode=_tacticalDrill getOrDefault ["groupCombatMode",[]];
 private _tacticalModeOwned=count _operation > 0 && {count _tacticalMode == 2}
+    && {(_operation getOrDefault ["generation",-2]) == _generation}
+    && {(_operation getOrDefault ["ownerEpoch",-1]) == _epoch}
+    && {(_tacticalDrill getOrDefault ["operationGeneration",-1]) == _generation}
+    && {(_tacticalDrill getOrDefault ["stage",""]) in ["START","MOVE","PAUSE","HOLD"]}
     && {combatMode _group == (_tacticalMode select 1)};
 if (!_tacticalModeOwned && {_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}}) then {
     if (combatMode _group != _desiredCombat) then {_group setCombatMode _desiredCombat};

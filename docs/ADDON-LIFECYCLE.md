@@ -281,3 +281,5 @@ Role rebalancing filters specialist identities, remote-controlled actors and act
 Tactical drill rebalancing excludes squad members outside its current live fire-team element. The operation roster therefore tracks actual drill participants rather than unrelated security/support movement. Existing casualty team assignment remains authoritative; physical stalled-bound and replacement acceptance remains pending.
 
 Danger posture respects a live tactical drill's exact groupCombatMode lease while an operation exists. Renewed engagement cannot replace its applied YELLOW discipline with RED and falsely end movement as ROE_CHANGED. Drill team rebuilding also excludes operation-quarantined unavailable actors. Physical sustained-contact and isolated-stall acceptance remains pending.
+
+Danger's tactical fire-mode exemption requires matching operation generation, current owner epoch, drill operation generation and an active START/MOVE/PAUSE/HOLD phase. A leftover mode lease cannot constrain danger after replacement or migration. Physical stale-record transition acceptance remains pending.
