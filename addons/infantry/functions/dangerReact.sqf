@@ -91,7 +91,10 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 // firing command. This closes the gap where an active advance/flank/CQB operation suppressed its
 // own danger response merely because it already owned movement.
 private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]}};
-private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
+// Suppression renews the finite response without withdrawing an already-authorised engagement.
+// Exact ownership is required; an external mode change and BLUE/GREEN orders remain authoritative.
+private _keepEngagement=_combatIntact && {_appliedCombat == "RED"};
+private _desiredCombat=if (_engaging || {_keepEngagement}) then {"RED"} else {"YELLOW"};
 if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
     if (combatMode _group != _desiredCombat) then {_group setCombatMode _desiredCombat};
     _appliedCombat=_desiredCombat;
