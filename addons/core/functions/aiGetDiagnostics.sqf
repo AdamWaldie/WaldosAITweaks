@@ -519,6 +519,18 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
 } forEach (_localGroups select [0,20]);
 {
     private _group=_x;
+    // On-demand only: actor-local throw records never create a diagnostics poller or network stream.
+    private _throwDecisions=[];
+    {
+        private _decision=_x getVariable ["WAIT_Cortex_ThrowDecision",[]];
+        if (_decision isNotEqualTo []) then {
+            _throwDecisions pushBack [netId _x,currentCommand _x,(time-(_decision param [0,time,[0]])) max 0,_decision];
+        };
+    } forEach ((units _group) select [0,8]);
+    if (_throwDecisions isNotEqualTo []) then {
+        _checks pushBack ["ai",format ["wait-grenade-decisions-%1",netId leader _group],"LOADED",
+            format ["group=%1 owner=%2 samples=[actor,currentCommand,ageSeconds,decision]=%3. Latest queued, alignment-timeout, new-task, safety or release-request evidence only; release requests do not prove a projectile or impact. Maximum eight actors per sampled local group; HC-private decisions require a report on that owner.",groupId _group,groupOwner _group,_throwDecisions]];
+    };
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     private _brainPhase=_brain getOrDefault ["phase","MISSING"];
