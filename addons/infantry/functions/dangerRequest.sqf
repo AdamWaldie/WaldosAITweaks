@@ -21,13 +21,14 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 // Eligibility was checked at observer installation and is rechecked before dispatch. Keep bullet
-// callbacks cheap; repeated events of one cause cannot scan the squad or start extra FSMs.
-private _cadence=_group getVariable ["WAIT_Danger_EventCadence",createHashMap];
+// callbacks cheap; each observer keeps at most the ten accepted causes, with no squad scan.
+// One witness must not throttle or replace another witness in a different occupied domain.
+private _cadence=_actor getVariable ["WAIT_Danger_EventCadence",createHashMap];
 if (time < (_cadence getOrDefault [_cause,-1])) exitWith {false};
 _cadence set [_cause,time+0.25];
-_group setVariable ["WAIT_Danger_EventCadence",_cadence];
+_actor setVariable ["WAIT_Danger_EventCadence",_cadence];
 private _events=_group getVariable ["WAIT_Danger_Events",[]];
-private _index=_events findIf {(_x select 0) == _cause};
+private _index=_events findIf {(_x select 0) == _cause && {(_x param [5,objNull,[objNull]]) == _actor}};
 // Preserve identity only when the engine supplied a live hostile already known by this observer.
 // The group layer revalidates the object against its native knowledge before using it. This is not
 // reveal or target assignment; objNull remains the normal value for approximate hazards and reports.
@@ -56,7 +57,9 @@ if (isNull _hostileSource && {_index >= 0}) then {
 // approximate event inherits a still-live hostile identity from the previous coalesced record.
 private _event=[_cause,+_position,time,time+2,_hostileSource,_actor,_sourceObserver];
 if (_index >= 0) then {_events set [_index,_event]} else {_events pushBack _event};
-_group setVariable ["WAIT_Danger_Events",_events select [0,16]];
+// Retain recent observations at the fixed group limit; a full queue must not permanently
+// reject a newly hit witness while its earlier occupants remain in the front slots.
+_group setVariable ["WAIT_Danger_Events",_events select [((count _events)-16) max 0,16]];
 private _running=_group getVariable ["WAIT_Danger_FSM",[]];
 if (count _running == 3 && {(_running select 0) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
     && {(_running select 1) == (_group getVariable ["WAIT_Danger_Generation",0])}
