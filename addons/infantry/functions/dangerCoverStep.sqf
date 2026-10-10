@@ -47,7 +47,8 @@ private _clearLease={
     false
 };
 if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
-    || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor} || {group _actor != _group}) exitWith {[] call _clearLease};
+    || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor} || {!isNull remoteControlled _actor}
+    || {([_actor] call WAIT_fnc_CortexExternalOwner) != ""} || {group _actor != _group}) exitWith {[] call _clearLease};
 // A delayed old observation cannot retire the lease belonging to the current danger generation.
 if (_generation >= 0 && {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {[] call _clearLease};
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
@@ -114,7 +115,8 @@ if (count _lease >= 4) then {
             && {(_actorMove select 1) distance2D _leasedSpot <= 1}
             && {(_actorMove select 2) == _expires}) then {
             _leasedActor setVariable ["WAIT_Cortex_ActorMove",nil];
-            if (!_releaseOnly && {alive _leasedActor} && {!isPlayer _leasedActor} && {group _leasedActor == _group}
+            if (!_releaseOnly && {alive _leasedActor} && {!isPlayer _leasedActor} && {isNull remoteControlled _leasedActor}
+                && {([_leasedActor] call WAIT_fnc_CortexExternalOwner) == ""} && {group _leasedActor == _group}
                 && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
                 // Successful arrival is useful cover, not a reason to run back across exposure.
                 // Only a failed owned approach needs this bounded return-to-formation recovery.
