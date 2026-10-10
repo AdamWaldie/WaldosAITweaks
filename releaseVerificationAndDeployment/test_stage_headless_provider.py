@@ -27,5 +27,7 @@ class HeadlessProviderStagingTests(unittest.TestCase):
             loader=(destination/'init.sqf').read_text()
             self.assertIn('Waldo_fnc_HeadlessMigrateGroup=compile',loader)
             self.assertIn('[] call Waldo_fnc_HeadlessDetectLocal',loader)
+            self.assertIn('private _result=_this call WAIT_QA_NativeRegisterOriginal;',loader)
+            self.assertIn('_observed < 30',loader)
             self.assertEqual(evidence['scope'],'EXPLICIT_NATIVE_TRANSFERS_ONLY')
             with self.assertRaises(ValueError): stage_provider(root/'repo',mission)

@@ -47,6 +47,27 @@ if (isNil "Waldo_Headless_Enable") then {Waldo_Headless_Enable=true};
 if (isNil "Waldo_Headless_Debug") then {Waldo_Headless_Debug=false};
 if (isNil "Waldo_Headless_MinGroupAgeSeconds") then {Waldo_Headless_MinGroupAgeSeconds=3600};
 if (isNil "Waldo_AIRebalance_Enable") then {Waldo_AIRebalance_Enable=false};
+// Audit observation only: keep the original provider return and remote sender context.
+WAIT_QA_NativeRegisterOriginal=Waldo_fnc_HeadlessRegisterClient;
+Waldo_fnc_HeadlessRegisterClient={
+    private _sender=remoteExecutedOwner;
+    private _enabled=missionNamespace getVariable ["Waldo_Headless_Enable",false];
+    private _result=_this call WAIT_QA_NativeRegisterOriginal;
+    private _observed=missionNamespace getVariable ["WAIT_QA_NativeRegisterObserved",0];
+    if (_observed < 30) then {
+        missionNamespace setVariable ["WAIT_QA_NativeRegisterObserved",_observed+1];
+        diag_log format ["WAIT NATIVE HC REGISTER RESULT: %1",[clientOwner,isServer,_sender,_enabled,_result,
+            (entities "HeadlessClient_F") apply {owner _x},
+            (allPlayers select {_x isKindOf "HeadlessClient_F"}) apply {owner _x}]];
+    };
+    _result
+};
+diag_log format ["WAIT NATIVE HC REMOTE POLICY: %1",[configFile,missionConfigFile] apply {
+    private _functions=_x >> "CfgRemoteExec" >> "Functions";
+    [isClass _functions,isNumber (_functions >> "mode"),getNumber (_functions >> "mode"),
+        isClass (_functions >> "Waldo_fnc_HeadlessRegisterClient"),
+        getNumber (_functions >> "Waldo_fnc_HeadlessRegisterClient" >> "allowedTargets")]
+}];
 [] call Waldo_fnc_HeadlessDetectLocal;
 diag_log "WAIT NATIVE HEADLESS PROVIDER INSTALLED";
 """
