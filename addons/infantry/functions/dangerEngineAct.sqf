@@ -21,9 +21,9 @@ private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}
+    || {!([_group,false,true,false,_actor] call WAIT_fnc_CortexIsEligible)}
     || {[] call WAIT_fnc_CortexIsPaused}
-    || {[_group] call WAIT_fnc_CortexExternalTakeover}
+    || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {0};
 // Recheck actor-level authority at the command boundary; group eligibility alone does not
 // cover a specialist actor sharing an otherwise ordinary group.

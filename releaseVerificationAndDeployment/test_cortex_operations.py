@@ -1230,7 +1230,7 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(move.count('WAIT_fnc_CortexExternalTakeover'),2)
         self.assertLess(move.index('WAIT_fnc_CortexExternalTakeover'),move.index('_group addWaypoint'))
         eligible=source('cortexIsEligible')
-        self.assertIn('[_group,_ignoreZeusHold] call WAIT_fnc_CortexExternalTakeover',eligible)
+        self.assertIn('[_group,_ignoreZeusHold,_actorContext] call WAIT_fnc_CortexExternalTakeover',eligible)
         self.assertIn('Direct remote control and all other',source('cortexExternalTakeover'))
         self.assertIn('if (isNull _group || {!local _group}',clear)
         self.assertIn('_group setVariable ["WAIT_Cortex_GroupMoveIntent", nil, true]',clear)
@@ -2822,7 +2822,8 @@ class CortexOperations(unittest.TestCase):
     def test_external_takeover_uses_one_cached_member_scan(self):
         takeover=source('cortexExternalTakeover')
         self.assertIn('private _members=units _group;',takeover)
-        self.assertIn('_members findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',takeover)
+        self.assertIn('_specialistSubjects findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""}',takeover)
+        self.assertIn('if (isNull _actorContext) then {_members} else {[_actorContext]}',takeover)
         self.assertNotIn('([leader _group] call WAIT_fnc_CortexExternalOwner)',takeover)
         self.assertNotIn('isPlayer leader _group',takeover)
 

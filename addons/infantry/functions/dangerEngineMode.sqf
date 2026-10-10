@@ -17,9 +17,9 @@ private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {!([_group,false,true] call WAIT_fnc_CortexIsEligible)}
+    || {!([_group,false,true,false,_actor] call WAIT_fnc_CortexIsEligible)}
     || {[] call WAIT_fnc_CortexIsPaused}
-    || {[_group] call WAIT_fnc_CortexExternalTakeover}
+    || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
     || {behaviour _actor == "CARELESS"}) exitWith {"RELEASE"};
 // ATTACK is also the engine's ordinary autonomous combat command. Treating it as authored
 // ownership made the danger FSM observation-only for the exact actors already fighting. Zeus,

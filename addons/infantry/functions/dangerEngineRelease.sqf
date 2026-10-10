@@ -27,7 +27,7 @@ private _evidence={
 };
 if (!local _actor || {!alive _actor} || {isPlayer _actor}) exitWith {["LOST_ACTOR_AUTHORITY"] call _evidence};
 private _group=group _actor;
-if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexExternalTakeover}
+if (isNull _group || {!local _group} || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {["EXTERNAL_OWNER"] call _evidence};
 

@@ -640,3 +640,6 @@ Immediate prone evasion uses native lateral actions for idle riflemen after hits
 
 
 Packaged candidate `9b5a9bb`, batch `runtime-20261010-020243-631`, passed the tracked orientation fixture at 02:25:11: native detection, disabled ownership, enabled ownership, physical hull alignment within 20 degrees, less than 8 m travel (measured 0.56 m), and retained crew. This proves only that stationary-tank fixture. Carried deployment still failed in MOVING, before assembly, with carriers 13.55 m and 17.43 m from the selected point. Subsequent current-position anchoring and transient-reservation changes remain pending physical retest. Overall danger acceptance is incomplete.
+
+
+Immediate danger eligibility has an explicit actor-local context for ordinary members of mixed specialist groups. Player, curator and explicit group ownership remain group-wide exclusions; tactical discovery and group waypoints retain full-group eligibility. This does not establish mixed-group manoeuvre or real specialist compatibility: those require separate physical acceptance.

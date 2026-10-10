@@ -24,7 +24,7 @@ private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ['WAIT_AIPass_Active',false])}
     || {!([_group,'WAIT_AIPass_Danger_Enable',true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {[_group] call WAIT_fnc_CortexExternalTakeover}
+    || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
 // Preserve the engine distinction between losing a member of this group and finding another body.
