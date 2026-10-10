@@ -86,6 +86,12 @@ if (_vehicle distance2D (_record select 7) >= 2) then {_record set [6,time]; _re
 if (time >= (_record select 5) || {time-(_record select 6) > 6}) exitWith {[["NO_PROGRESS","TIME_LIMIT"] select (time >= (_record select 5))] call _release; "FALLBACK"};
 private _bearing=_vehicle getRelDir (_record select 4);
 private _turn=if (_bearing <= 20 || {_bearing >= 340}) then {"STOPTURNING"} else {["LEFT","RIGHT"] select (_bearing < 180)};
-if (_turn != (_record select 8)) then {_vehicle sendSimpleCommand _turn; _record set [8,_turn]};
+if (_turn != (_record select 8)) then {
+    _vehicle sendSimpleCommand _turn;
+    // Native steering can cancel or lock the longitudinal command during a turn.
+    // Resume reverse once when that turn is cancelled, not on every scheduler step.
+    if (_turn == "STOPTURNING") then {_vehicle sendSimpleCommand "BACK"};
+    _record set [8,_turn];
+};
 _group setVariable ["WAIT_VehicleReverse",_record,true];
 "REVERSE"
