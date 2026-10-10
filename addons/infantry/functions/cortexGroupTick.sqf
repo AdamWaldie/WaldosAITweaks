@@ -341,6 +341,28 @@ if (count _reverseRecord == 9) then {
 };
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
+// Follow the committed screened corridor rather than skipping to its final endpoint. This
+// callback advances at most one leg, only after physical arrival, without another worker.
+if (_movementOwner == "TACTICAL_REPOSITION" && {count _movementLease == 2} && {time < (_movementLease select 1)}) then {
+    private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+    private _generation=_state getOrDefault ["tacticalRepositionOperationGeneration",-1];
+    private _route=_operation getOrDefault ["route",[]];
+    private _leg=_state getOrDefault ["tacticalRepositionLeg",0];
+    if ((_operation getOrDefault ["generation",-2]) == _generation
+        && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+        && {count _route > 1} && {count _route <= 16} && {_leg >= 0} && {_leg < count _route-1}) then {
+        private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+        private _point=_route select _leg;
+        if (!isNull _anchor && {_anchor distance2D _point <= 6}
+            && {abs (((getPosATL _anchor) select 2)-(_point param [2,0])) <= 1.5}) then {
+            private _next=_leg+1;
+            private _waypoint=[_group,_route select _next,6,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+            if (!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0}) then {
+                _state set ["tacticalRepositionLeg",_next];
+            };
+        };
+    };
+};
 private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLease select 1)} && {
     switch (_movementOwner) do {
         case "TACTICAL_DRILL": {count (_state getOrDefault ["drill",createHashMap]) > 0};
@@ -424,6 +446,7 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         };
         if (_generation >= 0) then {[_group,_generation,_movementResult,_movementReason] call WAIT_fnc_OperationRelease};
         if (_movementOwner == "TACTICAL_REPOSITION") then {
+            _state deleteAt "tacticalRepositionLeg";
             private _reposition=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
             if (count _reposition >= 8 && {(_reposition select 7) == _generation}) then {
                 _reposition set [0,_movementResult];
