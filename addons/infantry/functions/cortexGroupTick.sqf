@@ -361,8 +361,16 @@ if (_movementOwner == "TACTICAL_REPOSITION" && {count _movementLease == 2} && {t
             private _attempts=_current getOrDefault ["recoveryAttempts",createHashMap];
             if (count _members <= 64) then {
                 private _stuck=_members findIf {
+                    private _move=_x getVariable ["WAIT_Cortex_ActorMove",[]];
                     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
                         && {!(_x in _unavailable)} && {abs speed _x <= 0.5}
+                        && {isNull objectParent _x} && {!isPlayer _x} && {isNull remoteControlled _x}
+                        && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
+                        && {currentCommand _x in ["","MOVE","ATTACK","FIRE","SUPPRESS","STOP"]}
+                        && {_move isEqualTo [] || {_move isEqualType [] && {count _move == 3}
+                            && {(_move param [2,1e12,[0]]) <= time}}}
+                        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
                         && {_x distance2D _point > 6}
                         && {(_recovery getOrDefault [netId _x,[]]) isEqualTo []}
                         && {(_attempts getOrDefault [netId _x,0]) < 1}
