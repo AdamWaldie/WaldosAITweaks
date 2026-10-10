@@ -22,6 +22,7 @@ private _priority=createHashMapFromArray [["HIT",9],["CANFIRE",8],["SUPPRESSED",
     if (_x isEqualType [] && {count _x in [4,5,6,7]}) then {
         _x params ["_cause","_position","_created","_expires"];
         if (_cause isEqualType "" && {_position isEqualType []} && {count _position == 3}
+            && {_position findIf {!(_x isEqualType 0)} < 0}
             && {_created isEqualType 0} && {_expires isEqualType 0} && {_expires > _now}) then {
             private _rank=_priority getOrDefault [_cause,-1];
             if (_rank > _best || {_rank >= 0 && {_rank == _best} && {_created > _latest}}) then {

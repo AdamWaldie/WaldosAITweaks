@@ -295,3 +295,5 @@ Locality checkpoint actor restoration requires a live local member without playe
 Drill checkpoints record committed mover destinations. Locality formation return may replace a MOVE only when its destination matches that actor's recorded spot within one metre and the expected floor band. A different MOVE, or MOVE without destination proof, survives. Physical migration/new-order acceptance remains pending.
 
 Danger intake checks actor/cause cadence before group ownership scanning. Throttled duplicates return without that scan; rejected eligibility does not advance cadence, and accepted observations retain the existing quarter-second gate. Physical intake responsiveness and frame-time acceptance remain pending.
+
+Danger intake and selection require three numeric coordinates, not merely a three-element position array. Invalid coordinate types are rejected before event storage or geometry consumers. Existing event priority, witness identity and expiry rules remain unchanged. Physical intake acceptance remains pending.
