@@ -488,4 +488,11 @@ class SemanticComponentContracts(unittest.TestCase):
         local = (ROOT/'addons/infantry/functions/cortexCombinedArmsLocal.sqf').read_text()
         self.assertLess(local.index('captive _target'), local.index('_group reveal'))
 
+    def test_static_pair_selection_preserves_existing_native_tasks(self):
+        source = (ROOT/'addons/infantry/functions/cortexStaticDeployStep.sqf').read_text()
+        selection = source[source.index('private _ready='):source.index('private _gunnerIndex=')]
+        for task in ['GET OUT', 'REPAIR', 'REFUEL', 'SCRIPTED', 'FIRST AID',
+                     'CARRY SOLDIER', 'ASSEMBLE', 'DISASSEMBLE', 'TAKE BAG', 'DROP BAG']:
+            self.assertIn('"'+task+'"', selection)
+
 if __name__ == '__main__': unittest.main()

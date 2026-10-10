@@ -505,12 +505,14 @@ private _attempt=_group getVariable ["WAIT_Danger_StaticDeployAttempt",[]];
 if ((_attempt param [0,-1,[0]]) == _episode
     && {(_attempt param [1,"IDLE",[""]]) != "YIELDED"}) exitWith {_attempt param [1,"IDLE",[""]]};
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {"IDLE"};
+// Apply the complete native-task boundary before the first movement command, not only
+// after reserving the pair. Equipment and medical tasks belong to their existing owner.
 private _ready=(units _group) select {
     alive _x && {local _x} && {!isPlayer _x} && {vehicle _x == _x}
         && {[_x] call WAIT_fnc_CortexCombatEffective}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {isNull assignedVehicle _x}
-        && {!(toUpperANSI (currentCommand _x) in ["GET IN","ACTION","HEAL","REARM","JOIN"])}
+        && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
         && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
 };
 private _gunnerIndex=_ready findIf {
