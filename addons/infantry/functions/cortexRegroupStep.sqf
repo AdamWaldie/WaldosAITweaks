@@ -17,6 +17,7 @@
  * becomes invalid, the step returns to EVALUATE.
  * An external takeover retires the merge and releases only Cortex-owned STOP/ATTACK/FIRE holds.
  * A newer direct movement, boarding, action or scripted command is preserved.
+ * A current shared operation retires remnant regroup; cleanup cannot recall its participants.
  * Hosts on other machines are never used, so a merge never moves a unit's locality.
  * Unconscious ACE casualties stay where they are.
  * Locality and authority: runs on the group owner's scheduler. doMove and joinSilent are issued for
@@ -50,8 +51,11 @@ private _mayRestoreHeld = {
 private _finish = {
     if (!isNull _group) then {
         if ([_group] call _mayRestoreHeld) then {
+            private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+            private _participants=_operation getOrDefault ["participants",[]];
             {
-                if (alive _x && {local _x}) then {
+                if (alive _x && {local _x} && {!(_x in _participants)}
+                    && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}) then {
                     private _command = toUpperANSI currentCommand _x;
                     if (_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]) then {
                         _x doFollow (leader group _x);
@@ -66,6 +70,9 @@ private _finish = {
     -1
 };
 if (isNull _group || {!local _group}) exitWith {call _finish};
+// Remnant merging is opportunistic and subordinate to a committed group operation. Retiring
+// the old merge also leaves its actors' newer finite movement reservations untouched.
+if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {call _finish};
 if !([_group,"WAIT_AIPass_Regroup_Enable",true] call WAIT_fnc_CortexFeatureEnabled) exitWith {call _finish};
 
 private _movers = (units _group) select {

@@ -19,26 +19,31 @@ params [
     ["_vehicle",objNull,[objNull]], ["_threatPosition",[],[[]]],
     ["_threat",objNull,[objNull]], ["_dangerGeneration",-1,[0]]
 ];
+private _refuse={
+    params ["_reason"];
+    _state set ["vehicleJinkRefusal",[_reason,serverTime,_vehicle,_dangerGeneration]];
+    false
+};
 if (isNull _group || {!local _group} || {isNull _vehicle} || {!local _vehicle}
-    || {count _threatPosition < 2} || {_dangerGeneration < 0}) exitWith {false};
+    || {count _threatPosition < 2} || {_dangerGeneration < 0}) exitWith {["INVALID_OWNER"] call _refuse};
 if !([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled
-    && {[_group,"WAIT_AIPass_VehicleJink_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) exitWith {false};
+    && {[_group,"WAIT_AIPass_VehicleJink_Enable",true] call WAIT_fnc_CortexFeatureEnabled}) exitWith {["DISABLED"] call _refuse};
 if ([_group] call WAIT_fnc_CortexExternalTakeover
     || {_vehicle getVariable ["WAIT_Convoy_Active",false]}
     || {_vehicle isKindOf "StaticWeapon"} || {!(_vehicle isKindOf "LandVehicle")}
     || {!alive _vehicle} || {!canMove _vehicle} || {abs speed _vehicle > 25}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
-    || {(_state getOrDefault ["movementLease",[]]) isNotEqualTo []}) exitWith {false};
+    || {(_state getOrDefault ["movementLease",[]]) isNotEqualTo []}) exitWith {["MOVEMENT_OR_PLATFORM"] call _refuse};
 private _driver=driver _vehicle;
 if (isNull _driver || {!alive _driver} || {!local _driver} || {isPlayer _driver}
-    || {group _driver != _group} || {!isNull (remoteControlled _driver)}) exitWith {false};
+    || {group _driver != _group} || {!isNull (remoteControlled _driver)}) exitWith {["DRIVER"] call _refuse};
 // A vehicle carrying passengers first owes them the normal task-safe dismount decision. The jink
 // is reserved for a crewed fighting platform and cannot drag an unloading squad away.
 if ((fullCrew [_vehicle,"",false]) findIf {
     private _role=_x select 1;
     alive (_x select 0) && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
-} >= 0) exitWith {false};
-if ((units _group) findIf {alive _x && {vehicle _x == _x}} >= 0) exitWith {false};
+} >= 0) exitWith {["PASSENGERS"] call _refuse};
+if ((units _group) findIf {alive _x && {vehicle _x == _x}} >= 0) exitWith {["FOOT_ELEMENT"] call _refuse};
 private _hasWeapon=([[-1]]+allTurrets [_vehicle,true]) findIf {
     (_vehicle weaponsTurret _x) findIf {
         private _config=configFile >> "CfgWeapons" >> _x;
@@ -46,23 +51,30 @@ private _hasWeapon=([[-1]]+allTurrets [_vehicle,true]) findIf {
             && {getText (_config >> "simulation") != "cmlauncher"}
     } >= 0
 } >= 0;
-if (!_hasWeapon) exitWith {false};
+if (!_hasWeapon) exitWith {["NO_WEAPON"] call _refuse};
 private _origin=getPosATL _vehicle;
 private _awayBearing=_threatPosition getDir _origin;
 private _candidates=[];
 {
-    _candidates pushBack (_origin getPos [_x select 0,_awayBearing+(_x select 1)]);
+    _candidates pushBack [_origin getPos [_x select 0,_awayBearing+(_x select 1)]];
 } forEach [[35,0],[40,-30],[40,30],[45,-55],[45,55]];
 private _route=[_origin,_candidates,_threatPosition,[],_threat,"VEHICLE"] call WAIT_fnc_CortexSelectAvenue;
-if (_route isEqualTo []) exitWith {false};
+if (_route isEqualTo []) exitWith {["NO_ROUTE"] call _refuse};
 private _destination=+(_route select -1);
-if !([_group,"VEHICLE_JINK",true,serverTime+25] call WAIT_fnc_CortexOwnershipLease) exitWith {false};
+if !([_group,"VEHICLE_JINK",true,serverTime+25] call WAIT_fnc_CortexOwnershipLease) exitWith {["LEASE_BUSY"] call _refuse};
 private _operation=[_group,"VEHICLE_JINK",_threat,crew _vehicle,[_destination],"MOVING"] call WAIT_fnc_OperationStart;
 if (count _operation == 0) exitWith {
     [_group,"VEHICLE_JINK",false] call WAIT_fnc_CortexOwnershipLease;
-    false
+    ["OPERATION_REFUSED"] call _refuse
 };
-[_group,_destination,25] call WAIT_fnc_CortexGroupMove;
+private _generation=_operation get "generation";
+private _waypoint=[_group,_destination,25,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) exitWith {
+    [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+    [_group,"VEHICLE_JINK",false] call WAIT_fnc_CortexOwnershipLease;
+    ["MOVEMENT_REJECTED"] call _refuse
+};
+_state deleteAt "vehicleJinkRefusal";
 _state set ["movementLease",["VEHICLE_JINK",time+25]];
 _state set ["vehicleOperationGeneration",_operation get "generation"];
 _vehicle setVariable ["WAIT_Danger_VehicleJink",[_dangerGeneration,_group,_destination,serverTime+25],true];

@@ -33,6 +33,8 @@
  * 3: allow current WAIT feature ownership <BOOL>, default false. Internal continuation paths use
  *    this only to inspect their own active feature while every player, Zeus, external-controller,
  *    faction and unit safety exclusion remains enforced.
+ * 4: actor-local context <OBJECT>, objNull. Native reflex callers may inspect one member;
+ * group movement/coordination callers omit this and retain whole-group exclusions.
  * Repeat/JIP: read-only apart from the documented local hold cache; safe to repeat.
  *
  * Return Value:
@@ -46,9 +48,9 @@
  * building, support and locality controllers.
  */
 
-params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]], ["_allowFeatureOwner",false,[true]]];
+params [["_group", grpNull, [grpNull]], ["_ignoreZeusHold",false,[true]], ["_groundPass",false,[true]], ["_allowFeatureOwner",false,[true]], ["_actorContext",objNull,[objNull]]];
 if (isNull _group) exitWith {false};
-if ([_group,_ignoreZeusHold] call WAIT_fnc_CortexExternalTakeover || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
+if ([_group,_ignoreZeusHold,_actorContext] call WAIT_fnc_CortexExternalTakeover || {"ALL" in (_group getVariable ["WAIT_AIPass_DisabledFeatures", []])}) exitWith {false};
 // The optional preflight exemption skips only the expiring Zeus waypoint-hold cache. It never
 // bypasses direct curator remote control, player, specialist or declared external ownership.
 if (_group getVariable ["WAIT_AI_Exclude", false]
@@ -57,6 +59,8 @@ if (_group getVariable ["WAIT_AI_Exclude", false]
 
 private _alive = (units _group) select {alive _x};
 if (_alive isEqualTo [] || {_alive findIf {isPlayer _x} >= 0}) exitWith {false};
+if (!isNull _actorContext) then {_alive=_alive select {_x == _actorContext}};
+if (_alive isEqualTo []) exitWith {false};
 if (_groundPass && {_alive findIf {
     private _vehicle=vehicle _x;
     _vehicle != _x && {_vehicle isKindOf "Air"}

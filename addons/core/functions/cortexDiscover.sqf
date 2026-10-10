@@ -68,7 +68,9 @@ private _spotters = [];
             [_group, true] call WAIT_fnc_CortexLocality;
         };
     } else {
-        [_group,true] call WAIT_fnc_CortexHearingLocal;
+        // Hearing decides observation eligibility independently of movement ownership. A Zeus
+        // waypoint can retain uncertain sound reports without waking this group controller.
+        [_group] call WAIT_fnc_CortexHearingLocal;
         [_group,true] call WAIT_fnc_DangerSetup;
         if (local _group && {_group getVariable ["WAIT_AIPass_Managed",false]}) then {
             [_group,true,"AIRCRAFT_DEDICATED"] call WAIT_fnc_CortexReleaseGroup;
@@ -150,7 +152,10 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
             if (_airAttackEligible) then {
                 {
                     private _candidate=assignedTarget _x;
-                    if (!isNull _candidate && {alive _candidate} && {(side group _pilot) getFriend side _candidate < 0.6}) exitWith {_airAttackTarget=_candidate};
+                    if (!isNull _candidate && {alive _candidate} && {!captive _candidate}
+                        && {!(_candidate getVariable ["ace_captives_isSurrendering",false])}
+                        && {!(_candidate getVariable ["ace_captives_isHandcuffed",false])}
+                        && {(side group _pilot) getFriend side _candidate < 0.6}) exitWith {_airAttackTarget=_candidate};
                 } forEach ([effectiveCommander _vehicle,driver _vehicle,gunner _vehicle,commander _vehicle]+crew _vehicle);
                 // A contact can be detected and shared before the engine assigns it to a particular
                 // seat. Requiring assignedTarget or the pilot's transient current-target list made
@@ -161,7 +166,9 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                     private _knownTargets=(_pilot nearTargets ([8000,5000] select !(_vehicle isKindOf "Plane"))) select [0,16];
                     private _knownIndex=_knownTargets findIf {
                         private _knownObject=_x param [4,objNull];
-                        !isNull _knownObject && {alive _knownObject}
+                        !isNull _knownObject && {alive _knownObject} && {!captive _knownObject}
+                            && {!(_knownObject getVariable ["ace_captives_isSurrendering",false])}
+                            && {!(_knownObject getVariable ["ace_captives_isHandcuffed",false])}
                             && {(side group _pilot) getFriend side _knownObject < 0.6}
                     };
                     if (_knownIndex >= 0) then {_airAttackTarget=(_knownTargets select _knownIndex) param [4,objNull]};
@@ -200,6 +207,7 @@ if (_wantArtillery || _wantFlares || _wantAttackFlares || _wantAirAttack) then {
                     [WAIT_fnc_CortexMissileDefenceStep,createHashMapFromArray [
                         ["aircraft",_vehicle],
                         ["missile",_missile],
+                        ["projectileKnown",!isNull _missile],
                         ["generation",_generation],
                         ["side",_side],
                         ["step",0],

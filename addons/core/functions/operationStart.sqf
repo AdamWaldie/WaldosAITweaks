@@ -17,9 +17,26 @@ if (isNull _group || {!local _group} || {_intent == ""}) exitWith {createHashMap
 // retiring an earlier route: a delayed job must not cancel WAIT state or issue cleanup after
 // Zeus, a player or a specialist controller has claimed the group.
 if !([_group,false,false,true] call WAIT_fnc_CortexIsEligible) exitWith {createHashMap};
+// Explicit feature orders can arrive before periodic discovery adopts a fresh local group.
+// Establish its owner epoch first; adopting after publication would cancel this new operation
+// as if it were inherited from another machine. Locality adoption marks itself before resuming
+// durable intents, so any nested operation start sees the already-established owner.
+if (!(_group getVariable ["WAIT_AIPass_Adopted",false])) then {
+    [_group,true] call WAIT_fnc_CortexLocality;
+};
+if (!local _group || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {createHashMap};
 private _previous=_group getVariable ["WAIT_Operation",createHashMap];
 private _generation=(_group getVariable ["WAIT_OperationGeneration",0])+1;
 if (count _previous > 0) then {
+    // Retire a matching outgoing drill while its generation/epoch still own feature holds.
+    // REPLACED suppresses return-to-formation; a new operation supplies its own movement.
+    private _previousState=_group getVariable ["WAIT_AIPass_State",createHashMap];
+    private _previousDrill=_previousState getOrDefault ["drill",createHashMap];
+    if (count _previousDrill > 0
+        && {(_previousDrill getOrDefault ["operationGeneration",-1]) == (_previous getOrDefault ["generation",-2])}
+        && {(_previousDrill getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+        [_group,_previousState,"REPLACED"] call WAIT_fnc_CortexFlankEnd;
+    };
     [_group,_previous getOrDefault ["generation",-1],"REPLACED"] call WAIT_fnc_OperationCancel;
 };
 // A finite danger posture is meaningful only for an on-foot group. Aircraft, vehicles and boats
@@ -29,16 +46,36 @@ private _operationAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _operationAnchor) then {_operationAnchor=leader _group};
 private _dangerPosture=(vehicle _operationAnchor) isEqualTo _operationAnchor;
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
-private _liveDanger=if (count _dangerResponse == 5 && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
-private _capable=_participants select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}};
+private _liveDanger=if (count _dangerResponse == 5
+    && {(_dangerResponse select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerResponse select 3)}) then {+_dangerResponse} else {[]};
+private _capable=_participants select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+        && {!isPlayer _x} && {isNull (remoteControlled _x)}
+        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+};
 private _operation=createHashMapFromArray [
     ["intent",toUpperANSI _intent], ["generation",_generation], ["ownerEpoch",_group getVariable ["WAIT_AIPass_Epoch",0]],
-    ["objective",_objective], ["participants",_capable], ["route",+_route], ["phase",toUpperANSI _phase],
+    ["objective",_objective], ["participants",_capable], ["participantsRequired",_participants isNotEqualTo []], ["route",+_route], ["phase",toUpperANSI _phase],
     ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL _operationAnchor],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
-    ["replans",0], ["recovery",createHashMap], ["unavailable",[]], ["restore",createHashMap],
+    ["replans",0], ["recovery",createHashMap], ["recoveryAttempts",createHashMap], ["unavailable",[]], ["restore",createHashMap],
     ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]
 ];
+// Relinquish the old posture before changing its generation proof. Otherwise renewal captures
+// WAIT-applied values as a new baseline and a later release cannot restore the original posture.
+if (_dangerPosture) then {
+    [_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact;
+    // Retire weak posture while its original generation still grants restoration authority.
+    // New committed movers must not inherit a temporary danger stance as an authored baseline.
+    {
+        if (local _x && {count (_x getVariable ["WAIT_Danger_EngineStanceLease",[]]) > 0}) then {
+            [_x] call WAIT_fnc_DangerEngineRelease;
+        };
+    } forEach ((units _group) select [0,64]);
+    [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
+};
 _group setVariable ["WAIT_OperationGeneration",_generation,true];
 _group setVariable ["WAIT_Operation",_operation,true];
 _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_generation,serverTime],true];
@@ -47,11 +84,17 @@ _group setVariable ["WAIT_OperationResult",[toUpperANSI _intent,"RUNNING",_gener
 // the bounded combat posture across CONTACT -> manoeuvre/CQB/withdrawal transitions. A stale
 // posture is released rather than carried into unrelated work.
 if (_dangerPosture) then {
-    if (_liveDanger isEqualTo []) then {
-        [_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact;
-    } else {
+    if (_liveDanger isNotEqualTo []) then {
         _liveDanger params ["_dangerCause","_dangerPosition"];
-        [_operationAnchor,_dangerCause,_dangerPosition,"MAINTAIN"] call WAIT_fnc_DangerReact;
+        private _dangerEvent=_group getVariable ["WAIT_Danger_ResponseEvent",[]];
+        if (!(count _dangerEvent in [4,5,6,7])
+            || {(_dangerEvent param [0,"",[""]]) != _dangerCause}
+            || {(_dangerEvent param [2,-1,[0]]) != (_liveDanger select 2)}) then {
+            _dangerEvent=_liveDanger select [0,4];
+        };
+        private _dangerAction=[_group,_dangerEvent] call WAIT_fnc_DangerActionSelect;
+        private _dangerObserver=_dangerEvent param [5,_operationAnchor,[objNull]];
+        [_dangerObserver,_dangerCause,_dangerPosition,_dangerAction] call WAIT_fnc_DangerReact;
     };
 };
 _operation

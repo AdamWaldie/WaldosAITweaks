@@ -59,6 +59,13 @@ private _movementLeaseActive = count _movementLease == 2 && {time < (_movementLe
 private _supportOwnsMovement = _same && {_movementOwner in ["SUPPORT_RALLY","COORDINATED_ASSAULT"]};
 private _fit = (units _group) select {[_x] call WAIT_fnc_CortexCombatEffective};
 private _footFit = _fit select {isNull objectParent _x};
+// Group-level rally destinations also reach native operating crews. A foot subset alone does
+// not make that authority safe: vehicle support retains its own movement operation.
+private _operatingCrew = (units _group) findIf {
+    private _platform=objectParent _x;
+    alive _x && {!isNull _platform}
+        && {_x in [driver _platform,gunner _platform,commander _platform]}
+} >= 0;
 private _phase = _state getOrDefault ["phase","CALM"];
 private _requesterReinforce = !isNull _requester && {[_requester,"WAIT_AIPass_Reinforce_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _requesterCoordinated = !isNull _requester && {[_requester,"WAIT_AIPass_CoordinatedAssault_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
@@ -83,7 +90,7 @@ private _okay = missionNamespace getVariable ["WAIT_AIPass_Active",false] && {!(
     && {!isNull _groupTransmitter} && {!isNull _requesterTransmitter}
     && {[_group] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Contact_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {_supportEnabled}
-    && {count _footFit >= 3} && {!isNull _anchor} && {behaviour _anchor != "CARELESS"} && {!fleeing _anchor}
+    && {!_operatingCrew} && {count _footFit >= 3} && {!isNull _anchor} && {behaviour _anchor != "CARELESS"} && {!fleeing _anchor}
     && {_same || {getSuppression _anchor <= ([0.2,0.65] select _contactPeer)}}
     && {_groupTransmitter distance2D _requesterTransmitter <= (missionNamespace getVariable ["WAIT_AIPass_Reinforce_Radius",600])}
     && {(_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo []} && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []}
@@ -115,14 +122,24 @@ if (_okay && {_adopting || {!_same} || {_attackAllowed && {!(_state getOrDefault
     private _objective=if (_attackAllowed && {count _attack > 0}) then {_attack select ((count _attack)-1)} else {_rally};
     private _operation=[_group,_intent,_objective,_footFit,[_rally],"ACCEPTED"] call WAIT_fnc_OperationStart;
     if (count _operation == 0) exitWith {
-        [_group,_token,false,_lease,clientOwner] remoteExecCall ["WAIT_fnc_CortexSupportAck",2];
-        -1
+        _okay=false;
+        [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
     };
-    _state set ["supportOperationGeneration",_operation get "generation"];
+    private _generation=_operation get "generation";
+    private _movementReady=true;
+    if (!_attackAllowed) then {
+        private _waypoint=[_group,_rally,10,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+        _movementReady=!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0};
+    };
+    if (!_movementReady) exitWith {
+        _okay=false;
+        [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+        [_group,"SUPPORT",false] call WAIT_fnc_CortexOwnershipLease;
+    };
+    _state set ["supportOperationGeneration",_generation];
     if (_attackAllowed) then {
         _state set ["movementLease",["COORDINATED_ASSAULT",time+(_expiry-serverTime)]];
     } else {
-        [_group,_rally,10,"MOVE"] call WAIT_fnc_CortexGroupMove;
         _state set ["movementLease",["SUPPORT_RALLY",time+(_expiry-serverTime)]];
     };
     _state set ["assaulting",_attackAllowed];

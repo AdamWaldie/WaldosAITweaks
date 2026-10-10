@@ -35,6 +35,9 @@
 params [["_group", grpNull, [grpNull]], ["_range", -1, [0]]];
 if (_range < 0) then {_range = missionNamespace getVariable ["WAIT_AIPass_EngageRange", 800]};
 private _leader = leader _group;
+if (!([_leader] call WAIT_fnc_CortexCombatEffective)) then {
+    _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
+};
 if (isNull _leader || {!alive _leader}) exitWith {[[], 0]};
 
 // Native target lists remain the primary candidate source. EnemyDetected may be raised for a
@@ -42,9 +45,12 @@ if (isNull _leader || {!alive _leader}) exitWith {[[], 0]};
 // local candidates. The cache neither shares a target nor bypasses the per-member knowledge check
 // below, and is pruned every normal knowledge pass.
 private _observed=_group getVariable ["WAIT_Danger_ObservedContacts",[]];
-_observed=_observed select {
-    _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
-        && {alive (_x select 0)} && {(_x select 1) > time}
+_observed=(_observed select [((count _observed)-8) max 0,8]) select {
+    _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType 0}
+        && {alive (_x select 0)} && {!captive (_x select 0)}
+        && {!((_x select 0) getVariable ["ace_captives_isSurrendering",false])}
+        && {!((_x select 0) getVariable ["ace_captives_isHandcuffed",false])}
+        && {(side _group) getFriend (side (_x select 0)) < 0.6} && {(_x select 1) > time}
 };
 if (_observed isEqualTo []) then {_group setVariable ["WAIT_Danger_ObservedContacts",nil]} else {
     _group setVariable ["WAIT_Danger_ObservedContacts",_observed]
@@ -56,10 +62,10 @@ private _witnesses=[];
 {
     private _target=_x select 0;
     private _witness=_x param [2,objNull,[objNull]];
-    if (!isNull _witness && {alive _witness} && {local _witness} && {group _witness == _group}
+    if ([_witness] call WAIT_fnc_CortexCombatEffective && {local _witness} && {group _witness == _group}
         && {_witness knowsAbout _target >= 1}) then {_witnesses pushBackUnique _witness};
 } forEach _observed;
-private _allMembers = (units _group) select {alive _x};
+private _allMembers = (units _group) select {[_x] call WAIT_fnc_CortexCombatEffective};
 private _members=([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses))
     arrayIntersect ([_leader]+_witnesses+(_allMembers-[_leader]-_witnesses));
 if (count _members > 8) then {_members resize 8};
@@ -68,7 +74,10 @@ private _candidateTargets=+(_leader targets [true, _range]);
 private _candidates = [];
 {
     private _enemy = _x;
-    if (alive _enemy && {!captive _enemy}) then {
+    if (alive _enemy && {!captive _enemy}
+        && {!(_enemy getVariable ["ace_captives_isSurrendering",false])}
+        && {!(_enemy getVariable ["ace_captives_isHandcuffed",false])}
+        && {(side _group) getFriend (side _enemy) < 0.6}) then {
         // Use a native knower's believed position. A leader that has not seen the contact must not
         // erase a wingman's valid group knowledge or replace it with an exact object position.
         private _knower=_members param [_members findIf {_x knowsAbout _enemy >= 1},objNull];

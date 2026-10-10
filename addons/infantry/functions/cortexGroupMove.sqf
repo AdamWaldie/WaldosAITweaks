@@ -5,7 +5,8 @@
  * that makes an engine group stop, turn around or continuously re-form.
  * Locality/authority: Call on the current group owner. The function exits without issuing a
  * command if the group is not local or has become ineligible; addWaypoint and setCurrentWaypoint
- * must remain owner-local. The shared gate prevents delayed callbacks from adding a WAIT route after
+ * must remain owner-local. A protected native task on a living member blocks a new group waypoint,
+ * because a group waypoint cannot exclude that actor; independent actor operations remain available. The shared gate prevents delayed callbacks from adding a WAIT route after
  * Zeus, a player, or an external controller has taken ownership.
  * Repeat/JIP: The public intent record survives locality transfer. The new owner can reuse a
  * still-valid waypoint instead of injecting a duplicate. A materially changed request replaces
@@ -18,12 +19,13 @@
  *
  * Arguments:
  * 0: group <GROUP>
- * 1: position <ARRAY> - ATL destination
+ * 1: position <ARRAY> - two or three numeric ATL coordinates; omitted height defaults to zero
  * 2: completion radius <NUMBER> - metres (optional, default: 25)
  * 3: type <STRING> - waypoint type, MOVE or SAD (optional, default: "MOVE")
+ * 4: operation generation <NUMBER> - matching operation identity, -1 adopts the current operation
  *
  * Return Value:
- * Array - the waypoint [group, index]
+ * Array - the waypoint [group, index], or [grpNull,-1] when refused before movement
  *
  * Example:
  * [_group, _rallyPoint] call WAIT_fnc_CortexGroupMove;
@@ -34,8 +36,21 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_position", [], [[]]], ["_radius", 25, [0]], ["_type", "MOVE", [""]], ["_operationGeneration", -1, [0]]];
-if (isNull _group || {!local _group} || {count _position < 2}
+if (isNull _group || {!local _group} || {!(count _position in [2,3])}
+    || {_position findIf {!(_x isEqualType 0)} >= 0}
     || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull, -1]};
+// Establish the owner epoch before committing an unscoped route on a newly spawned
+// group. Later periodic discovery must not treat this active route as pre-adoption work.
+if !(_group getVariable ["WAIT_AIPass_Adopted",false]) then {
+    [_group,true] call WAIT_fnc_CortexLocality;
+};
+if (!local _group || {!([_group,false,false,true] call WAIT_fnc_CortexIsEligible)}) exitWith {[grpNull,-1]};
+// A group-wide route cannot preserve an individual boarding, treatment or supply command.
+// Do not convert that native task into MOVE, even when the group's general eligibility is valid.
+// This does not disable sensing, firing or independently eligible actor-level operations.
+if ((units _group) findIf {
+    alive _x && {toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}
+} >= 0) exitWith {[grpNull,-1]};
 // Callers do not need to thread an operation token through every tactical helper. When a common
 // operation is active, bind this route to its current generation automatically; ordinary mission
 // support moves remain intentionally unscoped.
@@ -44,6 +59,7 @@ if (_operationGeneration < 0) then {
 };
 
 private _desired = +_position;
+if (count _desired == 2) then {_desired pushBack 0};
 _desired resize 3;
 _radius = _radius max 1;
 _type = toUpper _type;
@@ -58,28 +74,55 @@ private _hasOwnedWaypoint = count _previousWaypoint == 2
     && {(_previousWaypoint select 1) < count waypoints _group}
     && {waypointDescription _previousWaypoint == "WAIT AI PASS"};
 
+// The internal description is not sufficient ownership proof: Zeus or mission code can
+// edit an existing WAIT waypoint without changing its label. Treat that edit as a newer order
+// before adopting this route or inserting another waypoint ahead of it.
+if (_hasOwnedWaypoint && {count _previousPosition < 2
+    || {waypointPosition _previousWaypoint distance2D _previousPosition > 1}
+    || {abs (((waypointPosition _previousWaypoint) param [2,0])-(_previousPosition param [2,0])) > 1.5}
+    || {waypointType _previousWaypoint != _previousType}
+    || {abs (waypointCompletionRadius _previousWaypoint-_previousRadius) > 0.1}}) exitWith {
+    [_group,true,_previousWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+    [grpNull,-1]
+};
+
 // Keep an established engine route until a meaningful tactical change. Position drift inside the
 // current completion radius and a small retask tolerance cannot justify a new waypoint.
 private _sameDestination = count _previousPosition >= 2
-    && {_desired distance2D _previousPosition <= ((_radius max _previousRadius) min 15)};
+    && {_desired distance2D _previousPosition <= ((_radius max _previousRadius) min 15)}
+    && {abs ((_desired param [2,0])-(_previousPosition param [2,0])) <= 1.5};
 private _sameRequest = _hasOwnedWaypoint
     && {_sameDestination}
     && {abs (_radius - _previousRadius) <= 2}
     && {_type == _previousType};
-if (_sameRequest) exitWith {_previousWaypoint};
+if (_sameRequest) exitWith {
+    // A new operation may adopt the same committed route. Keep native movement uninterrupted,
+    // but bind cleanup to its current generation; an unscoped old token otherwise survives cancel.
+    if ((_intent getOrDefault ["operationGeneration",-1]) != _operationGeneration) then {
+        _intent set ["operationGeneration",_operationGeneration];
+        _group setVariable ["WAIT_Cortex_GroupMoveIntent",_intent,true];
+    };
+    _previousWaypoint
+};
 // A curator, player or specialist can take the group after the earlier eligibility gate but before
 // the waypoint write. Recheck at the mutation boundary so no delayed WAIT route is inserted over it.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 [_group] call WAIT_fnc_CortexGroupMoveClear;
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
-private _waypoint = _group addWaypoint [_position, 0, currentWaypoint _group];
+// Radius-zero placement may be adjusted by the engine. Explicit elevated destinations need
+// exact ASL placement; ordinary ground routes retain native safe placement.
+private _elevated=abs (_desired select 2) > 1.5;
+private _placement=[_desired,ATLToASL _desired] select _elevated;
+private _placementRadius=[0,-1] select _elevated;
+private _waypoint = _group addWaypoint [_placement, _placementRadius, currentWaypoint _group];
 _waypoint setWaypointType _type;
 _waypoint setWaypointCompletionRadius _radius;
 _waypoint setWaypointDescription "WAIT AI PASS";
 _group setCurrentWaypoint _waypoint;
 _group setVariable ["WAIT_Cortex_GroupMoveIntent", createHashMapFromArray [
     ["waypoint", _waypoint],
-    ["position", _desired],
+    ["position", waypointPosition _waypoint],
+    ["requestedPosition", _desired],
     ["radius", _radius],
     ["type", _type],
     ["issuedAt", serverTime],

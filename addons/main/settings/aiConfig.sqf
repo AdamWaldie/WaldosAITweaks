@@ -107,6 +107,9 @@
  * - WAIT_AIPass_VehicleJink_Enable (MISSION MAKER): One short terrain-checked escape for an intact crewed fighting vehicle under close or severe danger. Default true.
  * - WAIT_AIPass_CoverValidation_Enable (MISSION MAKER): Bounded footprint, slope and geometry validation for cover candidates. Default true.
  * - WAIT_AIPass_Danger_Enable (MISSION MAKER): Enables WAIT's bounded local danger reflex and tactical group handoff. Disabled means the configured FSM exits without issuing WAIT commands. Default true.
+ * - WAIT_AIPass_DangerEvasion_Enable (MISSION MAKER): Enables finite native prone evasion; committed movement and external/native tasks yield. Default true.
+ * - WAIT_AIPass_DangerObservation_Enable (MISSION MAKER): Enables position-only body/scream glances for idle infantry. Requires danger response. Default true.
+ * - WAIT_AIPass_DangerConcealment_Enable (MISSION MAKER): Allows visual screening fallback after failed solid cover. Default true.
  * - WAIT_AIPass_DangerSmoke_Enable (MISSION MAKER): Allows one carried smoke screen during severe finite danger without holding the current operation. Default true.
  * - WAIT_AIPass_StaticSupport_Enable (MISSION MAKER): Allows one uncommitted soldier to physically occupy a nearby useful empty static weapon during confirmed contact. Default true.
  * - WAIT_AIPass_StaticDeploy_Enable (MISSION MAKER): Allows a compatible two-person bag team to physically assemble and occupy its carried static weapon. Default true.
@@ -237,7 +240,7 @@
  *   A group uses WAIT_AIPass_Profile set on the group, then WAIT_AIPass_FactionProfiles, then the
  *   active WAIT_AIRebalance_Profile, then LINE.
  * - WAIT_AIPass_FactionProfiles (MISSION MAKER): optional map of faction classname to behaviour profile name, overriding the AI Rebalance profile for that faction's squads.
- * - WAIT_AIPass_ZeusHoldSeconds (MISSION MAKER): seconds the pass leaves a group alone after Zeus selects, edits or orders it; Zeus waypoints hold it until they are finished.
+ * - WAIT_AIPass_ZeusHoldSeconds (MISSION MAKER): seconds the pass leaves a group alone after a direct Zeus edit; Zeus waypoints hold movement until they finish and then release immediately.
  * - WAIT_AIPass_Investigate_Enable (MISSION MAKER): squads send two riflemen (the whole squad beyond 150 m) to check enemies they know about but have not seen (reported, or heard firing).
  * - WAIT_AIPass_Investigate_Range (ADVANCED): how far away a known but unseen enemy may be to be investigated.
  * - WAIT_AIPass_Investigate_Seconds (ADVANCED): time limit for an investigation.
@@ -373,6 +376,7 @@ createHashMapFromArray [
         ["WAIT_AIPass_AntiArmour_Enable", true], // BOOL: best AT gunner engages known armour, clear of backblast.
         ["WAIT_AIPass_VehicleDismount_Enable", true], // Unloads capable passengers only when safely stopped on dry ground.
         ["WAIT_AIPass_VehicleRemount_Enable", true], // Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit.
+        ["WAIT_AIPass_VehicleReverse_Enable", true], // Tracked armour attempts one bounded threat-facing reverse leg.
         ["WAIT_AIPass_VehicleWithdraw_Enable", true], // Allows damaged vehicles to withdraw and use existing smoke.
         ["WAIT_AIPass_VehicleJink_Enable", true], // One bounded escape by an eligible intact fighting vehicle.
         ["WAIT_AIPass_CoverValidation_Enable", true], // Adds bounded slope and body clearance checks to shared cover selection.
@@ -387,6 +391,9 @@ createHashMapFromArray [
         ["WAIT_Convoy_ContactHalt_Enable", true], // Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available.
         ["WAIT_Convoy_Unload_Enable", true], // Allows WAIT passenger unloading on halt. Operating crews remain aboard.
         ["WAIT_AIPass_Danger_Enable", true], // Bounded danger events; one shared decision owner.
+        ["WAIT_AIPass_DangerEvasion_Enable", true], // Finite native idle prone evasion.
+        ["WAIT_AIPass_DangerObservation_Enable", true], // Position-only idle alert observation.
+        ["WAIT_AIPass_DangerConcealment_Enable", true], // Separately budgeted visual screening fallback.
         ["WAIT_AIPass_DangerSmoke_Enable", true], // One generation-scoped carried smoke response; movement does not wait.
         ["WAIT_AIPass_StaticSupport_Enable", true], // One actor may occupy a nearby empty friendly static without holding squad movement.
         ["WAIT_AIPass_StaticDeploy_Enable", true], // A compatible pair may physically assemble a carried static without holding squad movement.
@@ -443,7 +450,7 @@ createHashMapFromArray [
             ["ELITE", createHashMapFromArray [["flankChance", 0.9], ["assaultChance", 0.7], ["advanceChance", 0.4], ["investigateChance", 0.85], ["coordinatedChance", 0.6], ["moraleShaken", 0.4], ["moraleBroken", 0.18], ["retreatScale", 0.7], ["surrenderSurvivors", 1]]]
         ]],
         ["WAIT_AIPass_FactionProfiles", createHashMap], // MAP: CfgFactionClasses name to behaviour profile, for example OPF_F to ELITE.
-        ["WAIT_AIPass_ZeusHoldSeconds", 120], // SECONDS: the pass leaves a group alone this long after Zeus selects or edits it.
+        ["WAIT_AIPass_ZeusHoldSeconds", 120], // SECONDS: direct Zeus edit hold; waypoint chains release when complete.
         ["WAIT_AIPass_Investigate_Enable", true], // BOOL: squads check out enemies they know about but have not seen.
         ["WAIT_AIPass_Investigate_Range", 300], // METRES: how far away a known enemy may be to be investigated.
         ["WAIT_AIPass_Investigate_Seconds", 60], // SECONDS: investigation time limit.

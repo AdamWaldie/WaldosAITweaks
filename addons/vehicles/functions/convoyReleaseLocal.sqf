@@ -2,6 +2,8 @@
  * Author: WaldoTheWarfighter
  * Restores recorded formation, attack permission, vehicle speed and unload settings; cancels only follower paths. A speed baseline is restored only when the
  * vehicle is leaving WAIT control, WAIT still owns the current cap and no newer controller owns it.
+ * Crew target cleanup also checks actor ownership and combat effectiveness; a newer target owner
+ * keeps its command while obsolete convoy target metadata is retired.
  * Locality/authority: server owns registration; driving commands execute only on current owners.
  * Repeat/JIP: ordered registry snapshots replace old settings; owner-local paths rebuild on migration.
  * Arguments: 0: group <GROUP>, grpNull; 1: forget baseline <BOOL>, true; 2: baseline <ARRAY>, [] reads the locally received baseline; 3: still-controlled vehicles <ARRAY>, []; 4: cancellation reason <STRING, RELEASED>.
@@ -53,7 +55,9 @@ if (_restore isNotEqualTo []) then {
             };
             private _target = _unit getVariable ["WAIT_Convoy_Target", objNull];
             if (local _unit && {!isPlayer _unit} && {!isNull _target}) then {
-                if (assignedTarget _unit == _target) then {_unit doTarget objNull};
+                if ([_unit] call WAIT_fnc_CortexCombatEffective
+                    && {!([group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover)}
+                    && {assignedTarget _unit == _target}) then {_unit doTarget objNull};
                 _unit setVariable ["WAIT_Convoy_Target", nil, true];
             };
         } forEach crew _vehicle;

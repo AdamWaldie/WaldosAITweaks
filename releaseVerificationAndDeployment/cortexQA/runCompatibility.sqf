@@ -40,6 +40,28 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_units,true];
 ]] call WAIT_fnc_CortexTuning;
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
 
+// Ownership diagnostic only: an active marker tests WAIT's boundary, not the external mod.
+// Real specialist animation, damage, release and locality acceptance remain separate requirements.
+private _ordinaryActor=_units select 0;
+private _specialistActor=_units select 2;
+_specialistActor setVariable ["IMS_ISAI",true];
+["COMPAT: mixed actor ownership diagnostic","An explicit specialist marker must exclude that actor and block group orders while an ordinary member retains actor-local danger eligibility. This does not validate an external mod's behaviour.",getPosATL _ordinaryActor] call _phase;
+["COMPAT-mixed-ordinary-actor-danger-eligible",
+    [_group,false,true,false,_ordinaryActor] call WAIT_fnc_CortexIsEligible,
+    "Actor-local permission with a specialist teammate"] call _check;
+["COMPAT-mixed-specialist-actor-excluded",
+    !([_group,false,true,false,_specialistActor] call WAIT_fnc_CortexIsEligible),
+    "Specialist actor must retain its controller"] call _check;
+["COMPAT-mixed-group-orders-excluded",!([_group] call WAIT_fnc_CortexIsEligible),
+    "Default whole-group permission remains restricted"] call _check;
+private _mixedWaypointCount=count waypoints _group;
+private _mixedRoute=[_group,[2600,2470,0],5] call WAIT_fnc_CortexGroupMove;
+["COMPAT-mixed-group-route-rejected",_mixedRoute isEqualTo [grpNull,-1]
+    && {count waypoints _group == _mixedWaypointCount},str _mixedRoute] call _check;
+_specialistActor setVariable ["IMS_ISAI",nil];
+["COMPAT-mixed-marker-release-eligibility",[_group] call WAIT_fnc_CortexIsEligible,
+    "Removing the diagnostic marker restores ordinary group eligibility"] call _check;
+
 private _hold=[2600,2470,0];
 {_x setVariable ["WAIT_CortexQA_Target",_hold,true]} forEach _units;
 ["COMPAT: standalone WAIT movement","The whole squad must move north and hold separate defence positions. An accepted order alone cannot pass.",_hold] call _phase;

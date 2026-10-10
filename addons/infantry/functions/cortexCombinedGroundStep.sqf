@@ -21,13 +21,16 @@ private _target=_job getOrDefault ["target",objNull];
 private _token=_job getOrDefault ["token",""];
 private _destination=_job getOrDefault ["destination",[]];
 private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
+private _ownerEpoch=_job getOrDefault ["ownerEpoch",-1];
 private _finish={
     params ["_reason"];
-    if (!isNull _group && {local _group}) then {
+    if (!isNull _group && {local _group}
+        && {_ownerEpoch == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
         private _operationMatches=count _operation > 0
             && {(_operation getOrDefault ["generation",-2]) == _operationGeneration}
-            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"};
+            && {(_operation getOrDefault ["intent",""]) == "COMBINED_GROUND"}
+            && {(_operation getOrDefault ["ownerEpoch",-1]) == _ownerEpoch};
         if (_operationMatches) then {
             if (_reason == "POSITION_REACHED") then {
                 [_group,_operationGeneration,"COMPLETE","FIRING_POSITION_REACHED"] call WAIT_fnc_OperationRelease;
@@ -35,7 +38,7 @@ private _finish={
                 [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
             };
         };
-        if (_operationGeneration >= 0) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
+        if (_operationMatches && {_operationGeneration >= 0}) then {[_group,_operationGeneration] call WAIT_fnc_CortexGroupMoveClear;};
         private _state=[_group] call WAIT_fnc_CortexGroupState;
         private _lease=_state getOrDefault ["movementLease",[]];
         // The label alone is not ownership. A late callback from an older role can observe the
@@ -51,14 +54,21 @@ private _finish={
     -1
 };
 if (isNull _group || {isNull _asset} || {!alive _asset}) exitWith {["ASSET_LOST"] call _finish};
-if (!local _group) exitWith {-1};
+if (!local _group || {_ownerEpoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {-1};
 private _role=_group getVariable ["WAIT_Cortex_CombinedRole",[]];
 if (count _role != 7 || {(_role select 0) != _token} || {(_role select 4) != "GROUND_MANOEUVRE"}) exitWith {["ROLE_RELEASED"] call _finish};
 if ([_group] call WAIT_fnc_CortexZeusHeld) exitWith {["ZEUS_HANDOVER"] call _finish};
 if (!([_group] call WAIT_fnc_CortexIsEligible)
     || {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {["FEATURE_CLOSED"] call _finish};
+private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if ((_currentOperation getOrDefault ["generation",-2]) != _operationGeneration
+    || {(_currentOperation getOrDefault ["intent",""]) != "COMBINED_GROUND"}
+    || {(_currentOperation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {["REPLACED"] call _finish};
 if (isNull _target || {!alive _target}) exitWith {["TARGET_LOST"] call _finish};
+if (captive _target || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
+    || {(side _group) getFriend (side _target) >= 0.6}) exitWith {["TARGET_NO_LONGER_HOSTILE"] call _finish};
 if (serverTime >= (_job getOrDefault ["expiry",serverTime])) exitWith {["EXPIRED"] call _finish};
 if (_asset distance2D _destination <= 70) exitWith {
     _group reveal [_target,3];
@@ -71,11 +81,14 @@ if (time >= (_job getOrDefault ["progressAt",time])+10) then {
     if (_travel < 8) then {
         private _stalls=_job getOrDefault ["stalls",0];
         if (_stalls >= 1) exitWith {_job set ["terminal","BLOCKED"]};
-        // Ask the engine to rebuild the same tactical route once. The destination is unchanged,
-        // so this cannot walk a scripted obstacle-avoidance spiral around a deliberate roadblock.
+        // Reacquire a missing route once; a still-owned destination remains committed.
+        // This cannot create an obstacle-avoidance spiral around a deliberate roadblock.
         if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
-            [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+            private _waypoint=[_group,_destination,55,"MOVE",_operationGeneration] call WAIT_fnc_CortexGroupMove;
             _job set ["stalls",_stalls+1];
+            if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}) then {
+                _job set ["terminal","MOVEMENT_REJECTED"];
+            };
         };
     };
     _job set ["lastPosition",getPosATL _asset];

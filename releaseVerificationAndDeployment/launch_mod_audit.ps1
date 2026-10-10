@@ -2,15 +2,21 @@ param(
     [string]$ArmaPath='',
     [string]$Package='',
     [string]$Focus='all',
+    [string]$HeadlessProvider='',
     [string[]]$Mods=@(),
     [string]$Python='python',
     [int]$Port=24142,
     [int]$ResolutionWidth=3840,
     [int]$ResolutionHeight=2160,
     [ValidateRange(30,600)][int]$ClientReadyTimeoutSeconds=180,
+    [ValidateRange(10,120)][int]$ClientWindowTimeoutSeconds=60,
     [ValidateRange(0,2)][int]$HeadlessClients=2,
     [switch]$WithZen,
+    [switch]$NativeBaseline,
+    [ValidateSet("infantry","mixed")][string]$PerformanceComposition="infantry",
     [switch]$ServerOnly,
+    [switch]$WaitForCompletion,
+    [ValidateRange(60,21600)][int]$BatchTimeoutSeconds=14400,
     [switch]$StageOnly
 )
 $ErrorActionPreference='Stop'
@@ -23,6 +29,8 @@ if (!$ArmaPath) {
 if (!$StageOnly -and (Get-Process arma3*,arma3server* -ErrorAction SilentlyContinue)) {
     throw 'An Arma process is already running. Finish that session before launching this batch.'
 }
+if ($NativeBaseline -and $Focus -ne 'standaloneperformance') {throw 'NativeBaseline requires standaloneperformance focus'}
+if ($Focus -eq 'standaloneperformance' -and $HeadlessClients -ne 0) {throw 'Standalone server-owned performance requires HeadlessClients 0; use the migration audit for headless cases'}
 $stageDefaultDependencies=!$Mods.Count
 if ($stageDefaultDependencies) {
     $Mods=@(Join-Path $ArmaPath '!Workshop/@CBA_A3')
@@ -30,7 +38,16 @@ if ($stageDefaultDependencies) {
 }
 foreach ($mod in $Mods) {if (!(Test-Path -LiteralPath $mod)) {throw "Dependency folder missing: $mod"}}
 $runtime=Join-Path $repo ('.qa/runtime-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-& $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus
+$providerArguments=@()
+if ($HeadlessProvider) {
+    if ($HeadlessClients -lt 1) {throw 'Native headless integration requires a connected headless client'}
+    $providerArguments=@('--headless-provider',(Resolve-Path -LiteralPath $HeadlessProvider).Path)
+}
+if ($NativeBaseline) {
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --native-baseline --performance-composition $PerformanceComposition @providerArguments
+} else {
+    & $Python (Join-Path $PSScriptRoot 'mod_pipeline.py') stage $Package $runtime --focus $Focus --performance-composition $PerformanceComposition @providerArguments
+}
 if ($LASTEXITCODE) {throw 'Audit staging failed'}
 $launchMods=$Mods
 if ($stageDefaultDependencies) {
@@ -47,6 +64,7 @@ $manifest=Get-Content -Raw (Join-Path $runtime 'audit-manifest.json') | ConvertF
 $manifest | Add-Member dependencySources ($Mods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member dependencies ($launchMods | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
 $manifest | Add-Member resolution @($ResolutionWidth,$ResolutionHeight)
+$manifest | Add-Member headlessClients $HeadlessClients
 $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $runtime 'audit-manifest.json')
 if ($StageOnly) {Write-Output "Staged packaged audit: $runtime"; return}
 $mission=Join-Path $runtime 'WAIT_Audit.VR'
@@ -68,13 +86,43 @@ localClient[]={"127.0.0.1"};
 persistent=1;
 class Missions {class Audit {template="$missionName.VR"; difficulty="Regular";};};
 "@ | Set-Content $config
-$modArg='-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
+$modArg=if ($NativeBaseline) {'-mod='+($launchMods -join ';')} else {
+    '-mod='+(@((Join-Path $runtime '@WaldosAITweaks'))+$launchMods -join ';')
+}
 function Start-AuditProcess([string]$exe,[string[]]$arguments,[switch]$Interactive) {
     $quoted=$arguments | ForEach-Object {'"'+$_+'"'}
     # Background server/HC helpers stay hidden. The observer is an interactive game client:
     # it must expose its lobby/window so mission entry and physical behaviour can be verified.
     $auditWindowStyle = if ($Interactive) {'Normal'} else {'Hidden'}
-    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WindowStyle $auditWindowStyle -PassThru
+    Start-Process -FilePath (Join-Path $ArmaPath $exe) -ArgumentList $quoted -WorkingDirectory $ArmaPath -WindowStyle $auditWindowStyle -PassThru
+}
+if (-not ('WaitAuditWindow' -as [type])) {
+    Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class WaitAuditWindow {
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+'@
+}
+function Show-AuditClientWindow([System.Diagnostics.Process]$Process,[int]$TimeoutSeconds) {
+    $windowDeadline=(Get-Date).AddSeconds($TimeoutSeconds)
+    $windowHandle=[IntPtr]::Zero
+    while ((Get-Date) -lt $windowDeadline -and !$Process.HasExited) {
+        $Process.Refresh()
+        $windowHandle=$Process.MainWindowHandle
+        if ($windowHandle -ne [IntPtr]::Zero -and [WaitAuditWindow]::IsWindowVisible($windowHandle)) {break}
+        Start-Sleep -Milliseconds 250
+    }
+    if ($windowHandle -eq [IntPtr]::Zero -or !$([WaitAuditWindow]::IsWindowVisible($windowHandle))) {
+        throw "Arma audit client did not expose a visible window within $TimeoutSeconds seconds. The batch is not considered launched."
+    }
+    # SW_RESTORE also handles a client which Windows opened minimized behind another application.
+    [WaitAuditWindow]::ShowWindowAsync($windowHandle,9) | Out-Null
+    [WaitAuditWindow]::SetForegroundWindow($windowHandle) | Out-Null
+    return $windowHandle
 }
 $serverProfile=Join-Path $runtime 'server'
 $server=Start-AuditProcess 'arma3server_x64.exe' @('-noBattlEye','-autoInit','-netlog',"-port=$Port","-config=$config","-profiles=$serverProfile",$modArg)
@@ -90,6 +138,7 @@ while ((Get-Date) -lt $deadline -and !$server.HasExited) {
 }
 if (!$ready) {throw "Server did not reach WAIT audit readiness. Inspect $runtime; processes have been left available for inspection."}
 $processes=@($server.Id)
+$auditProcessHandles=@($server)
 if ($ServerOnly) {
     @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
     Write-Output "WAIT danger loader diagnostic entered WAIT_Audit.VR server-side. Runtime: $runtime"
@@ -98,6 +147,7 @@ if ($ServerOnly) {
 for ($i=1; $i -le $HeadlessClients; $i++) {
     $hc=Start-AuditProcess 'arma3server_x64.exe' @('-client','-noBattlEye','-netlog','-connect=127.0.0.1',"-port=$Port",("-profiles="+(Join-Path $runtime "hc$i")),"-name=WAIT_HC$i",$modArg)
     $processes+=$hc.Id
+    $auditProcessHandles+=$hc
 }
 $clientProfile=Join-Path $runtime 'client'
 New-Item -ItemType Directory -Force $clientProfile | Out-Null
@@ -111,9 +161,11 @@ resolutionH=$ResolutionHeight;
 Windowed=1;
 "@ | Set-Content (Join-Path $clientProfile 'Arma3.cfg')
 $clientConfig=Join-Path $clientProfile 'Arma3.cfg'
-$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
+$client=Start-AuditProcess 'arma3_x64.exe' @('-noBattlEye','-netlog','-window','-noPause','-skipIntro','-noSplash','-showScriptErrors','-world=empty','-connect=127.0.0.1',"-port=$Port","-profiles=$clientProfile","-cfg=$clientConfig","-x=$ResolutionWidth","-y=$ResolutionHeight","-windowWidth=$ResolutionWidth","-windowHeight=$ResolutionHeight",'-name=WAIT_Audit',$modArg) -Interactive
 $processes+=$client.Id
+$auditProcessHandles+=$client
 @{runtime=$runtime; mission=$installedMission; process_ids=$processes; fingerprint=$manifest.package.fingerprint} | ConvertTo-Json | Set-Content (Join-Path $runtime 'launch.json')
+$clientWindowHandle=Show-AuditClientWindow $client $ClientWindowTimeoutSeconds
 $clientDeadline=(Get-Date).AddSeconds($ClientReadyTimeoutSeconds)
 $observerReady=$false
 while ((Get-Date) -lt $clientDeadline -and !$client.HasExited -and !$server.HasExited) {
@@ -127,4 +179,37 @@ while ((Get-Date) -lt $clientDeadline -and !$client.HasExited -and !$server.HasE
 if (!$observerReady) {
     throw "Client did not enter WAIT_Audit.VR with observer Zeus within $ClientReadyTimeoutSeconds seconds. Inspect $runtime; this batch is not valid and its processes have been left available for inspection."
 }
-Write-Output "WAIT batch entered WAIT_Audit.VR. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"
+$client.Refresh()
+if ($client.MainWindowHandle -eq [IntPtr]::Zero -or !$([WaitAuditWindow]::IsWindowVisible($client.MainWindowHandle))) {
+    throw "Client entered WAIT_Audit.VR but its interactive window is no longer visible. Inspect $runtime; this batch is not valid."
+}
+[WaitAuditWindow]::ShowWindowAsync($client.MainWindowHandle,9) | Out-Null
+[WaitAuditWindow]::SetForegroundWindow($client.MainWindowHandle) | Out-Null
+Write-Output "WAIT batch entered WAIT_Audit.VR in a visible ${ResolutionWidth}x${ResolutionHeight} client window. The audit mission skips role selection and assigns the sole observer Zeus slot automatically. Runtime: $runtime"
+if ($WaitForCompletion) {
+    # Retain the actual Process handles: a later process inventory cannot recover exit codes
+    # and PID reuse must not make an unrelated application look like this audit.
+    $trackedProcesses=$auditProcessHandles
+    $batchDeadline=(Get-Date).AddSeconds($BatchTimeoutSeconds)
+    $batchState='RUNNING'
+    do {
+        $records=@($trackedProcesses | ForEach-Object {
+            $_.Refresh()
+            @{id=$_.Id; exited=$_.HasExited; exitCode=if ($_.HasExited) {$_.ExitCode} else {$null}}
+        })
+        $serverComplete=$false
+        $clientComplete=$false
+        foreach ($rpt in (Get-ChildItem $runtime -Filter '*.rpt' -Recurse)) {
+            if (Select-String -LiteralPath $rpt.FullName -Pattern 'WAIT CORTEX QA SERVER COMPLETE:|WAIT STANDALONE PERF COMPLETE' -Quiet) {$serverComplete=$true}
+            if (Select-String -LiteralPath $rpt.FullName -SimpleMatch 'WAIT CORTEX QA CLIENT COMPLETE:' -Quiet) {$clientComplete=$true}
+        }
+        if ($serverComplete -and ($clientComplete -or $Focus -eq 'standaloneperformance')) {$batchState='COMPLETED'}
+        elseif ($server.HasExited -or $client.HasExited) {$batchState='PROCESS_EXIT_BEFORE_COMPLETION'}
+        elseif ((Get-Date) -ge $batchDeadline) {$batchState='OBSERVATION_TIMEOUT'}
+        @{state=$batchState; observedAt=(Get-Date).ToUniversalTime().ToString('o'); processes=$records;
+            serverComplete=$serverComplete; clientComplete=$clientComplete; fingerprint=$manifest.package.fingerprint
+        } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $runtime 'batch-status.json')
+        if ($batchState -eq 'RUNNING') {Start-Sleep -Seconds 2}
+    } while ($batchState -eq 'RUNNING')
+    Write-Output "WAIT batch observation: $batchState. Processes are left untouched. Evidence: $runtime/batch-status.json"
+}

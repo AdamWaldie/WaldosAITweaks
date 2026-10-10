@@ -1,6 +1,8 @@
 /*
  * Author: WaldoTheWarfighter
  * Installs optional local FiredNear hearing on group leaders, recording uncertain areas rather than targets.
+ * Zeus waypoint chains may retain this observation-only listener. It never starts movement or
+ * reveals an enemy; direct edits, remote control, players and specialist ownership still yield.
  * Locality/authority: each AI owner installs only on its current eligible leader; no remote reveal.
  * Repeat/JIP: tracked handlers are removed after transfer, disable, leader change or stop; reports expire.
  * Arguments: 0: group <GROUP>, grpNull; 1: force cleanup <BOOL>, false.
@@ -11,8 +13,11 @@
 params [["_group",grpNull,[grpNull]],["_cleanup",false,[true]]];
 private _tracked = _group getVariable ["WAIT_AIPass_HearingHandler",[]];
 private _leader = leader _group;
+private _waypointObservation=(_group getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "WAYPOINT"
+    && {_group getVariable ["WAIT_AIPass_ZeusWaypoints",false]};
 private _enabled = !_cleanup && {local _group} && {alive _leader} && {!isPlayer _leader}
-    && {[_group] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Hearing_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
+    && {missionNamespace getVariable ["WAIT_AIPass_Active",false]}
+    && {[_group,_waypointObservation,true] call WAIT_fnc_CortexIsEligible} && {[_group,"WAIT_AIPass_Hearing_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 if (_tracked isNotEqualTo [] && {!_enabled || {(_tracked select 0) != _leader}}) then {
     (_tracked select 0) removeEventHandler ["FiredNear",_tracked select 1];
     _group setVariable ["WAIT_AIPass_HearingHandler",nil]; _tracked = [];
@@ -21,8 +26,10 @@ if (!_enabled || {_tracked isNotEqualTo []}) exitWith {};
 private _handler = _leader addEventHandler ["FiredNear",{
     params ["_observer","_firer","_distance","_weapon","_muzzle","_mode","_ammo"];
     private _group = group _observer;
+    private _waypointObservation=(_group getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "WAYPOINT"
+        && {_group getVariable ["WAIT_AIPass_ZeusWaypoints",false]};
     if (!local _observer || {isNull _firer} || {!alive _observer} || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
-        || {[] call WAIT_fnc_CortexIsPaused} || {!([_group] call WAIT_fnc_CortexIsEligible)}
+        || {[] call WAIT_fnc_CortexIsPaused} || {!([_group,_waypointObservation,true] call WAIT_fnc_CortexIsEligible)}
         || {!([_group,"WAIT_AIPass_Hearing_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
         // FiredNear may report a vehicle weapon source. Compare the source object's actual side so
         // hostile platform fire is neither discarded nor treated as an infantry-only event.

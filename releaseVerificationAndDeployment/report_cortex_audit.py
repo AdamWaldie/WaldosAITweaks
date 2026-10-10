@@ -7,13 +7,14 @@ import re
 CASE = re.compile(r"WAIT CORTEX QA\|([^|]+)\|(PASS|FAIL)\|([^\r\n]*)")
 DONE = re.compile(r"WAIT CORTEX QA (SERVER|CLIENT) COMPLETE: (\d+) finding")
 SOURCE = re.compile(r"WAIT CORTEX QA SOURCE\|fingerprint=([0-9a-f]{64})", re.I)
-ERROR = re.compile(r"Error in expression|Error position:|Error Undefined variable|Error Missing", re.I)
+ERROR = re.compile(r"Error in expression|Error position:|Error Undefined variable|Error Missing|Error Params:|Error Type |Error Generic error|Error Zero divisor", re.I)
 FATAL_RUNTIME_ERROR = re.compile(
     r"DX11 - device removed - reason:|ErrorMessage:\s*DX11|Exception code:\s*[0-9A-F]+",
     re.I,
 )
 LOAD_ERROR = re.compile(
     r"Warning Message:\s*FSM\s+['\"].+?['\"]\s+cannot be loaded|"
+    r"(?:Warning Message:\s*)?Script\s+[^\r\n]+?\s+(?:not found|cannot be loaded)\b|"
     r"dependent on downloadable content that has been deleted",
     re.I,
 )
@@ -84,7 +85,7 @@ def summarize(logs):
 
 def attach_assessments(report, assessments):
     """Attach evidence-backed review without changing assertion or run outcomes."""
-    categories = {'functional_failure', 'partial_success', 'test_problem', 'unresolved'}
+    categories = {'functional_failure', 'partial_success', 'test_problem', 'detection_blocked', 'unresolved'}
     known = {case['case'] for case in report['cases']}
     reviewed = []
     for case_id, review in assessments.items():
@@ -123,7 +124,7 @@ def render_markdown(report):
     reviewed_ids = {item['case'] for item in assessments}
     unreviewed = sorted({case['case'] for case in failed_cases} - reviewed_ids)
     counts = {category: sum(item['category'] == category for item in assessments)
-              for category in ('functional_failure', 'partial_success', 'test_problem', 'unresolved')}
+              for category in ('functional_failure', 'partial_success', 'test_problem', 'detection_blocked', 'unresolved')}
     lines[4:4] = [
         'Review coverage: ' + ', '.join(f"{category.replace('_', ' ')}: {count}" for category, count in counts.items()) + '.',
         f"Failed case IDs awaiting evidence review: {len(unreviewed)}. These are unresolved, not automatically confirmed feature failures.",
@@ -165,7 +166,7 @@ def main():
     report = summarize(logs)
     manifest_path=root/'audit-manifest.json'
     if manifest_path.is_file():
-        from mod_pipeline import digest, verify
+        from mod_pipeline import mission_hashes, verify
         manifest=json.loads(manifest_path.read_text())
         report['focus']=manifest['focus']
         report['package_commit']=manifest['package']['commit']
@@ -174,7 +175,7 @@ def main():
             if identity['fingerprint'] != manifest['package']['fingerprint'] or identity['fingerprint'] != report['source_fingerprint']:
                 raise ValueError('RPT, package and audit manifest identity disagree')
             mission=root/'WAIT_Audit.VR'
-            if {p.name:digest(p) for p in mission.iterdir() if p.is_file()} != manifest['mission_files']:
+            if mission_hashes(mission) != manifest['mission_files']:
                 raise ValueError('Audit scripts changed after staging')
         except (ValueError, OSError) as error:
             report['provenance_issues'].append(str(error))

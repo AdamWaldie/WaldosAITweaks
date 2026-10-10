@@ -34,3 +34,12 @@ class AssessmentTests(unittest.TestCase):
         self.assertIn('partial success: 1', rendered)
         self.assertIn('Failed case IDs awaiting evidence review: 0', rendered)
         self.assertIn('Failed checks:', rendered)
+
+    def test_detection_blocked_does_not_pass_response(self):
+        report = summarize({'server.rpt': 'WAIT CORTEX QA|response|FAIL|knowledge=0'})
+        attach_assessments(report, {'response': {'category': 'detection_blocked',
+            'reason': 'Native enemy knowledge prerequisite was absent',
+            'evidence': 'server.rpt:1 knowledge=0'}})
+        self.assertEqual(report['status'], 'FAIL')
+        self.assertEqual(report['cases'][0]['result'], 'FAIL')
+        self.assertIn('detection blocked: 1', '\n'.join(render_markdown(report)))

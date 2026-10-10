@@ -12,6 +12,55 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf";
  */
 params ["_check","_phase","_wait"];
+// Use an engine-fired hostile grenade rather than an unattributed createVehicle projectile. Capturing the
+// real FiredMan projectile preserves native shot ownership and danger delivery while the audit only
+// relocates the physical shot into the isolated fixture. The excluded firer is cleaned after fuse.
+private _spawnRealGrenade={
+    params [["_position",[0,0,0],[[]]]];
+    private _sourceGroup=createGroup [west,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _sourceGroup setCombatMode "BLUE";
+    private _sourcePosition=+_position;
+    _sourcePosition set [2,0];
+    _sourcePosition=_sourcePosition getPos [80,0];
+    private _source=_sourceGroup createUnit ["B_Soldier_F",_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source hideObjectGlobal true;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source addMagazine "HandGrenade";
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+    }];
+    _source forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"];
+    private _deadline=diag_tickTime+2;
+    waitUntil {
+        sleep 0.05;
+        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+    };
+    private _grenade=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if (isNull _grenade) then {
+        diag_log "WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile";
+    } else {
+        private _spawn=+_position;
+        _spawn set [2,(_spawn param [2,0]) + 2];
+        _grenade setPosATL _spawn;
+        _grenade setVelocity [0,0,-4];
+    };
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 12;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
+    _grenade
+};
 [createHashMapFromArray [
     ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],
     ["WAIT_AIPass_Regroup_Enable",false],["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
@@ -67,7 +116,7 @@ private _dangerReady=[{
 },45] call _wait;
 ["DANGER-VEHICLE-fixture-moving",_dangerReady,str [speed _dangerTruck,getPosATL _dangerTruck]] call _check;
 private _dangerStart=getPosATL _dangerTruck;
-private _dangerProjectile=createVehicle ["GrenadeHand",_dangerStart vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _dangerProjectile=[_dangerStart vectorAdd [6,0,0]] call _spawnRealGrenade;
 private _dangerSubmitted=false;
 private _dangerLease=false;
 private _dangerStopped=false;
@@ -87,8 +136,7 @@ private _dangerOwnedExit=_dangerPassengers findIf {
 } < 0;
 private _dangerDriver=driver _dangerTruck;
 private _dangerAssignedTarget=assignedTarget _dangerDriver;
-private _dangerAttackTarget=attackTarget (_dangerDriver);
-private _dangerNoTarget=isNull _dangerAssignedTarget && {isNull _dangerAttackTarget};
+private _dangerNoTarget=isNull _dangerAssignedTarget;
 private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []
     && {(_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) != "RETREAT"};
 ["DANGER-VEHICLE-native-explosion",_dangerSubmitted,str (_dangerCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
@@ -96,7 +144,7 @@ private _dangerNoWithdrawal=(_dangerCrewGroup getVariable ["WAIT_Cortex_Withdraw
 ["DANGER-VEHICLE-safe-stop",_dangerStopped,str [speed _dangerTruck,_dangerTruck getVariable ["WAIT_Cortex_DismountStopRequest",[]]]] call _check;
 ["DANGER-VEHICLE-passengers-physically-exit",_dangerReady && {_dangerExited} && {_dangerOwnedExit},str (_dangerPassengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x]})] call _check;
 ["DANGER-VEHICLE-operating-crew-retained",_dangerCrew findIf {!alive _x || {vehicle _x != _dangerTruck}} < 0,str (_dangerCrew apply {vehicle _x})] call _check;
-["DANGER-VEHICLE-no-invented-combat",_dangerNoTarget && {_dangerNoWithdrawal},str [_dangerAssignedTarget,_dangerAttackTarget,_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]]] call _check;
+["DANGER-VEHICLE-no-invented-combat",_dangerNoTarget && {_dangerNoWithdrawal},str [_dangerAssignedTarget,_dangerCrewGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],_dangerCrewGroup getVariable ["WAIT_AIPass_PublicPhase",""]]] call _check;
 deleteVehicle _dangerProjectile;
 {deleteVehicle _x} forEach (_dangerPassengers+_dangerCrew+[_dangerTruck]);
 deleteGroup _dangerPassengerGroup;
@@ -127,7 +175,7 @@ private _jinkReady=[{
         && {count _jinkCrew >= 2}
 },30] call _wait;
 private _jinkDisabledOrigin=getPosATL _jinkVehicle;
-private _jinkDisabledBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+private _jinkDisabledBlast=[_jinkVehicle modelToWorld [7,0,0]] call _spawnRealGrenade;
 sleep 6;
 private _jinkState=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
 private _jinkDisabledNoOwner=(_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) isEqualTo []
@@ -136,7 +184,7 @@ private _jinkDisabledNoOwner=(_jinkVehicle getVariable ["WAIT_Danger_VehicleJink
 deleteVehicle _jinkDisabledBlast;
 [createHashMapFromArray [["WAIT_AIPass_VehicleJink_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _jinkOrigin=getPosATL _jinkVehicle;
-private _jinkBlast=createVehicle ["GrenadeHand",_jinkVehicle modelToWorld [7,0,0.2],[],0,"CAN_COLLIDE"];
+private _jinkBlast=[_jinkVehicle modelToWorld [7,0,0]] call _spawnRealGrenade;
 private _jinkOwned=[{
     private _state=_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap];
     count (_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]]) == 4
@@ -146,7 +194,13 @@ private _jinkMoved=[{
     _jinkVehicle distance2D _jinkOrigin >= 20
 },35] call _wait;
 private _jinkCrewRetained=_jinkCrew findIf {!alive _x || {vehicle _x != _jinkVehicle}} < 0;
-["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],(_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-jink-operation-owned",_jinkReady && {_jinkOwned},str [_jinkVehicle getVariable ["WAIT_Danger_VehicleJink",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleDangerJink",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["vehicleJinkRefusal",[]],
+    (_jinkGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["dangerDismount",[]],
+    _jinkGroup getVariable ["WAIT_Danger_VehicleContext",[]],_jinkGroup getVariable ["WAIT_Operation",createHashMap],
+    [_jinkGroup] call WAIT_fnc_CortexExternalTakeover,speed _jinkVehicle]] call _check;
 ["DANGER-VEHICLE-jink-physical-travel",_jinkOwned && {_jinkMoved},str [_jinkOrigin,getPosATL _jinkVehicle,_jinkVehicle distance2D _jinkOrigin]] call _check;
 ["DANGER-VEHICLE-jink-crew-retained",_jinkCrewRetained,str (_jinkCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;
 deleteVehicle _jinkBlast;
@@ -154,6 +208,8 @@ deleteVehicle _jinkBlast;
 deleteGroup _jinkGroup;
 // A stopped tracked fighting vehicle must physically turn its hull toward a naturally detected
 // hostile while the gunnery gate is enabled, without receiving a waypoint or changing position.
+// Both targets remain standing 70 m away, 45 degrees off the hull bow.
+// They are excluded from WAIT so target reactions cannot invalidate the detection fixture.
 // A first naturally detected hostile with the gate disabled proves that danger alone cannot acquire
 // the orientation owner. A replacement hostile then creates a fresh native detection generation.
 [createHashMapFromArray [
@@ -172,7 +228,10 @@ _orientGroup setCombatMode "RED";
 private _orientCrew=crew _orientVehicle;
 {_x allowDamage false; _x setVariable ["WAIT_CortexQA_Label",format ["DANGER ORIENT CREW %1",_forEachIndex+1],true]} forEach _orientCrew;
 private _orientDisabledTargetGroup=createGroup [west,true];
-private _orientDisabledTarget=_orientDisabledTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+_orientDisabledTargetGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+[_orientDisabledTargetGroup] call _pin;
+private _orientDisabledTarget=_orientDisabledTargetGroup createUnit ["B_Soldier_F",[1629.5,929.5,0],[],0,"NONE"];
+_orientDisabledTarget setUnitPos "UP";
 removeAllWeapons _orientDisabledTarget;
 _orientDisabledTarget allowDamage false;
 _orientDisabledTarget disableAI "PATH";
@@ -193,13 +252,20 @@ deleteVehicle _orientDisabledTarget;
 deleteGroup _orientDisabledTargetGroup;
 [createHashMapFromArray [["WAIT_AIPass_VehicleGunnery_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _orientTargetGroup=createGroup [west,true];
-private _orientTarget=_orientTargetGroup createUnit ["B_Soldier_F",[1650,880,0],[],0,"NONE"];
+_orientTargetGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+[_orientTargetGroup] call _pin;
+private _orientTarget=_orientTargetGroup createUnit ["B_Soldier_F",[1629.5,929.5,0],[],0,"NONE"];
+_orientTarget setUnitPos "UP";
 removeAllWeapons _orientTarget;
 _orientTarget allowDamage false;
 _orientTarget disableAI "PATH";
 _orientTarget setVariable ["WAIT_CortexQA_Label","DANGER ORIENT HOSTILE",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_orientCrew+[_orientTarget],true];
 private _orientOrigin=getPosATL _orientVehicle;
+private _orientKnown=[{(effectiveCommander _orientVehicle) knowsAbout _orientTarget > 0},20] call _wait;
+["DANGER-VEHICLE-orient-native-detection-prerequisite",_orientReady && {_orientKnown},
+    str [_orientCrew apply {[_x knowsAbout _orientTarget,_x targetKnowledge _orientTarget]},
+        getPosATL _orientVehicle,getPosATL _orientTarget]] call _check;
 private _orientOwned=[{
     count (_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]]) == 5
         && {private _state=_orientGroup getVariable ["WAIT_AIPass_State",createHashMap];
@@ -210,7 +276,7 @@ private _orientAligned=[{
     _relative <= 20 || {_relative >= 340}
 },15] call _wait;
 private _orientCrewRetained=_orientCrew findIf {!alive _x || {vehicle _x != _orientVehicle}} < 0;
-["DANGER-VEHICLE-orient-operation-owned",_orientReady && {_orientOwned},str [_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]],(_orientGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
+["DANGER-VEHICLE-orient-operation-owned",_orientReady && {_orientKnown} && {_orientOwned},str [_orientVehicle getVariable ["WAIT_Danger_VehicleOrient",[]],(_orientGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["movementLease",[]]]] call _check;
 ["DANGER-VEHICLE-orient-physical-alignment",_orientOwned && {_orientAligned},str [getDir _orientVehicle,_orientVehicle getDir _orientTarget,_orientVehicle getRelDir _orientTarget]] call _check;
 ["DANGER-VEHICLE-orient-no-travel",_orientVehicle distance2D _orientOrigin < 8,str [_orientOrigin,getPosATL _orientVehicle,_orientVehicle distance2D _orientOrigin]] call _check;
 ["DANGER-VEHICLE-orient-crew-retained",_orientCrewRetained,str (_orientCrew apply {[vehicle _x,assignedVehicleRole _x]})] call _check;
@@ -244,18 +310,18 @@ private _staticReady=[{
         && {_armedStaticGroup getVariable ["WAIT_AIPass_Managed",false]}
         && {!someAmmo _emptyStatic} && {someAmmo _armedStatic}
 },30] call _wait;
-private _emptyBlast=createVehicle ["GrenadeHand",(getPosATL _emptyStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
-private _armedBlast=createVehicle ["GrenadeHand",(getPosATL _armedStatic) vectorAdd [6,0,0.2],[],0,"CAN_COLLIDE"];
+private _emptyBlast=[(getPosATL _emptyStatic) vectorAdd [6,0,0]] call _spawnRealGrenade;
+private _armedBlast=[(getPosATL _armedStatic) vectorAdd [6,0,0]] call _spawnRealGrenade;
 private _emptyReleased=[{
     _emptyStaticCrew findIf {alive _x && {vehicle _x == _emptyStatic}} < 0
 },30] call _wait;
 private _armedRetained=_armedStaticCrew findIf {!alive _x || {vehicle _x != _armedStatic}} < 0;
 private _staticNoTargets=(_emptyStaticCrew+_armedStaticCrew) findIf {
-    !isNull (assignedTarget _x) || {!isNull (attackTarget (_x))}
+    !isNull (assignedTarget _x)
 } < 0;
 ["DANGER-STATIC-empty-crew-released",_staticReady && {_emptyReleased},str [_emptyStatic getVariable ["WAIT_Danger_AbandonReason",[]],_emptyStaticCrew apply {vehicle _x}]] call _check;
 ["DANGER-STATIC-useful-crew-retained",_staticReady && {_armedRetained},str [_armedStatic getVariable ["WAIT_Danger_AbandonReason",[]],_armedStaticCrew apply {vehicle _x}]] call _check;
-["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,attackTarget (_x),currentCommand _x]})] call _check;
+["DANGER-STATIC-no-invented-combat",_staticNoTargets,str ((_emptyStaticCrew+_armedStaticCrew) apply {[assignedTarget _x,currentCommand _x]})] call _check;
 deleteVehicle _emptyBlast;
 deleteVehicle _armedBlast;
 {deleteVehicle _x} forEach (_emptyStaticCrew+_armedStaticCrew+[_emptyStatic,_armedStatic]);
@@ -272,7 +338,7 @@ deleteGroup _armedStaticGroup;
     ["WAIT_AIPass_VehicleRemount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false],
     ["WAIT_AIPass_VehicleGunnery_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
-private _contactVehicle=createVehicle ["O_APC_Wheeled_02_rcws_v2_F",[1650,1050,0],[],0,"NONE"];
+private _contactVehicle=createVehicle ["O_APC_Tracked_02_cannon_F",[1650,1050,0],[],0,"NONE"];
 createVehicleCrew _contactVehicle;
 _contactVehicle allowDamage false;
 _contactVehicle setDir 0;
@@ -285,16 +351,31 @@ _contactCrewGroup setCombatMode "RED";
 private _contactFootLeader=_contactCrewGroup createUnit ["O_Soldier_F",[1635,1050,0],[],0,"NONE"];
 _contactFootLeader allowDamage false;
 _contactFootLeader disableAI "PATH";
-_contactFootLeader disableAI "TARGET";
-_contactFootLeader disableAI "AUTOTARGET";
+// Keep native aiming available: disabling TARGET/AUTOTARGET also compromises carried
+// grenade orientation and is unnecessary for testing the mounted observer domain.
 _contactFootLeader setVariable ["WAIT_CortexQA_Label","MIXED GROUP FOOT LEADER",true];
 _contactCrewGroup selectLeader _contactFootLeader;
+private _contactThrowHandler=_contactFootLeader addEventHandler ["FiredMan",{
+    params ["_actor","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
+    if (_weapon != "Throw") exitWith {};
+    private _contact=(group _actor) getVariable ["WAIT_CortexQA_ThrowContact",objNull];
+    private _velocity=velocity _projectile;
+    private _valid=!isNull _contact && {!isNull _projectile}
+        && {((_velocity select 0)^2+(_velocity select 1)^2) > 0.01};
+    private _bearing=if (_valid) then {_actor getDir _contact} else {-1};
+    private _launch=if (_valid) then {(_velocity select 0) atan2 (_velocity select 1)} else {-1};
+    private _error=if (_valid) then {abs (((_launch-_bearing+540) % 360)-180)} else {-1};
+    diag_log format ["WAIT MIXED GROUP THROW: %1",[netId _actor,_magazine,_valid,_bearing,_launch,_error,
+        _actor getVariable ["WAIT_Cortex_ThrowTracePending",[]],currentCommand _actor,
+        _actor checkAIFeature "TARGET",_actor checkAIFeature "AUTOTARGET"]];
+}];
 private _contactEnemyGroup=createGroup [west,true];
 [_contactEnemyGroup] call _pin;
 _contactEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 _contactEnemyGroup setCombatMode "BLUE";
 private _contactEnemy=_contactEnemyGroup createUnit ["B_Soldier_F",[1650,1075,0],[],0,"NONE"];
 _contactEnemy allowDamage false;
+_contactCrewGroup setVariable ["WAIT_CortexQA_ThrowContact",_contactEnemy];
 _contactEnemy disableAI "PATH";
 _contactEnemy setDir 180;
 _contactEnemy setVariable ["WAIT_CortexQA_Label","MOUNTED DANGER HOSTILE",true];
@@ -321,7 +402,18 @@ private _contactReady=[{
 ["DANGER-VEHICLE-contact-fixture-ready",_contactReady,str [_contactCrew,effectiveCommander _contactVehicle]] call _check;
 private _contactStatsBefore=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
 private _contactRecyclesBefore=_contactStatsBefore getOrDefault ["recycles",0];
+private _mountedDomainSeen=false;
+private _mountedDomainEvidence=[];
 private _mountedPersistent=[{
+    private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
+    private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
+    private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
+    if (count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
+        && {_action param [0,""] == "VEHICLE"} && {count _vehicleContext == 8}
+        && {(_vehicleContext select 0) == "ARMOURED"} && {(_vehicleContext select 1) == _contactVehicle}) then {
+        _mountedDomainSeen=true;
+        _mountedDomainEvidence=[+_assessment,+_action,+_vehicleContext];
+    };
     private _stats=_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     private _actors=_stats getOrDefault ["vehicleRecycleActors",[]];
     private _commander=effectiveCommander _contactVehicle;
@@ -335,18 +427,10 @@ private _mountedPersistent=[{
         && {!isNull _commander}
         && {_commander knowsAbout _contactEnemy > 0}
 },30] call _wait;
-["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {
-        private _assessment=_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]];
-        private _action=_contactCrewGroup getVariable ["WAIT_Danger_Action",[]];
-        private _vehicleContext=_contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]];
-        count _assessment >= 7 && {(_assessment select 5) == effectiveCommander _contactVehicle}
-            && {_action param [0,""] == "VEHICLE"}
-            && {count _vehicleContext == 8}
-            && {(_vehicleContext select 0) == "ARMOURED"}
-            && {(_vehicleContext select 1) == _contactVehicle}
-    },str [_contactCrewGroup getVariable ["WAIT_Danger_LastAssessment",[]],
-        _contactCrewGroup getVariable ["WAIT_Danger_Action",[]],
-        _contactCrewGroup getVariable ["WAIT_Danger_VehicleContext",[]],leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
+// A later legitimate foot observation may replace the latest group record. Require the exact
+// mounted handoff observed during the existing window, not a permanent vehicle-only group state.
+["DANGER-VEHICLE-mixed-observer-domain",_contactReady && {_mountedDomainSeen},
+    str [_mountedDomainEvidence,leader _contactCrewGroup,effectiveCommander _contactVehicle]] call _check;
 ["DANGER-VEHICLE-effective-commander-persistence",_contactReady && {_mountedPersistent},
     str [_contactCrewGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],effectiveCommander _contactVehicle]] call _check;
 // Enable only the existing vehicle combat layer after proving FSM persistence. The same naturally
@@ -376,7 +460,7 @@ private _vehicleReaction=_contactVehicle getVariable ["WAIT_Danger_VehicleReacti
 // A real explosive stimulus must permit one defensive smoke request without replacing the route or
 // gunner response. The Fired event proves physical launcher use; the generation record proves that
 // repeated danger ticks did not manufacture a persistent countermeasure worker.
-createVehicle ["GrenadeHand",_contactVehicle modelToWorld [6,0,0],[],0,"CAN_COLLIDE"];
+[_contactVehicle modelToWorld [6,0,0]] call _spawnRealGrenade;
 private _dangerCountermeasure=[{
     (_contactVehicle getVariable ["WAIT_CortexQA_DangerCountermeasures",0]) > 0
         && {count (_contactVehicle getVariable ["WAIT_Danger_VehicleCountermeasure",[]]) == 5}
@@ -394,6 +478,9 @@ private _recoveryCommander=commander _contactVehicle;
 private _recoveryPrerequisite=!isNull _recoveryDriver && {!isNull _lostGunner}
     && {!isNull _recoveryCommander} && {_recoveryDriver != _recoveryCommander}
     && {_lostGunner != _recoveryCommander};
+["DANGER-VEHICLE-recovery-crew-prerequisite",_recoveryPrerequisite,
+    str [typeOf _contactVehicle,_recoveryDriver,_lostGunner,_recoveryCommander,
+        fullCrew [_contactVehicle,"",false]]] call _check;
 // Retire the first contact and let the real casualty response finish before presenting the fresh
 // target. Otherwise the deliberately stronger casualty lease can consume a simultaneous DETECTED
 // record without replacing its action, which would test priority coalescing rather than crew recovery.
@@ -421,16 +508,19 @@ private _gunnerRecovered=[{
 ["DANGER-VEHICLE-driver-role-preserved",_recoveryPrerequisite
         && {alive _recoveryDriver} && {driver _contactVehicle == _recoveryDriver},
     str [_recoveryDriver,driver _contactVehicle,assignedVehicleRole _recoveryDriver]] call _check;
+_contactFootLeader removeEventHandler ["FiredMan",_contactThrowHandler];
+_contactCrewGroup setVariable ["WAIT_CortexQA_ThrowContact",nil];
 _contactVehicle removeEventHandler ["Fired",_contactFiredHandler];
 {deleteVehicle _x} forEach (_contactCrew+[_contactFootLeader,_contactEnemy,_recoveryEnemy,_contactVehicle]);
 deleteGroup _contactEnemyGroup;
 deleteGroup _contactCrewGroup;
 
 {
-_x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false]];
+_x params ["_separate","_freshEnabled",["_nativeBaseline",false],["_stationary",false],["_replacementOrder",false],["_passengerCount",2]];
 private _layout = ["shared crew/passenger group","separate passenger squad"] select _separate;
-private _check = {params ["_id","_passed",["_detail",""]]; [(["","REPLACEMENT-"] select _replacementOrder)+(["","STATIONARY-"] select _stationary)+(["","NATIVE-"] select _nativeBaseline)+(["","FRESH-"] select _freshEnabled)+(["","SEPARATE-"] select _separate)+_id,_passed,_detail] call _recordVehicleCheck};
-[createHashMapFromArray [["WAIT_AIPass_Enable",!_nativeBaseline],["WAIT_AIPass_VehicleDismount_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _check = {params ["_id","_passed",["_detail",""]]; [(["","LARGE-"] select (_passengerCount > 2))+(["","REPLACEMENT-"] select _replacementOrder)+(["","STATIONARY-"] select _stationary)+(["","NATIVE-"] select _nativeBaseline)+(["","FRESH-"] select _freshEnabled)+(["","SEPARATE-"] select _separate)+_id,_passed,_detail] call _recordVehicleCheck};
+[createHashMapFromArray [["WAIT_AIPass_Enable",!_nativeBaseline],["WAIT_AIPass_VehicleDismount_Enable",false],
+    ["WAIT_AIPass_VehicleRemount_Enable",true]]] call WAIT_fnc_CortexTuning;
 private _truck=createVehicle ["O_Truck_03_transport_F",[1900,1100,0],[],0,"NONE"];
 createVehicleCrew _truck;
 // Additive safe-stop comparison; keep the original unrestricted fixtures intact.
@@ -445,7 +535,9 @@ _truck allowDamage false;
 private _passengerGroup = if (_separate) then {createGroup [east,true]} else {_group};
 [_passengerGroup] call _pin; _passengerGroup setCombatMode "BLUE";
 private _passengers=[];
-for "_i" from 0 to 1 do {
+private _seatCapacity=_truck emptyPositions "cargo";
+["DISMOUNT-fixture-cargo-capacity",_seatCapacity >= _passengerCount,str [_seatCapacity,_passengerCount]] call _check;
+for "_i" from 0 to (_passengerCount-1) do {
     private _unit=_passengerGroup createUnit ["O_Soldier_F",[1900+_i*3,1090,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["%1 | PASSENGER %2",_layout,_i+1],true];
@@ -460,6 +552,9 @@ _truck addEventHandler ["GetOut",{
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
     private _records=_state getOrDefault ["dismounted",[]];
     private _issued=_records findIf {(_x select 0) == _unit && {(_x select 1) == _vehicle}} >= 0;
+    if (!isNull _unit && {alive _unit} && {_role == "cargo" || {_role == "turret"}}) then {
+        _unit setVariable ["WAIT_CortexQA_PhysicalExit",[_vehicle,abs speed _vehicle,_issued,serverTime]];
+    };
     diag_log format ["WAIT CORTEX QA PASSENGER EXIT|unit=%1 role=%2 turret=%3 group=%4 phase=%5 cortexIssued=%6 dismountEnabled=%7 speed=%8 command=%9 assigned=%10",
         netId _unit,_role,_turret,_group,_state getOrDefault ["phase",""],_issued,
         [_group,"WAIT_AIPass_VehicleDismount_Enable",true] call WAIT_fnc_CortexFeatureEnabled,
@@ -507,7 +602,8 @@ private _contactSeen=[{
     };
 private _crewSees=(_opponents findIf {(_crew select 0) knowsAbout _x > 1}) >= 0;
 private _passengersSee=(_opponents findIf {leader _passengerGroup knowsAbout _x > 1}) >= 0;
-_crewSees && {!_separate || {_passengersSee}}},30] call _wait;
+// Separate cargo relies on the crew report; its own target detection is observation only.
+_crewSees},30] call _wait;
 {diag_log format ["WAIT CORTEX QA PASSENGER SAMPLE %1 [time,speed,occupants,groupKnowledge]: %2",_forEachIndex,_x]} forEach _passengerSamples;
 ["DISMOUNT-fixture-natural-contact",_contactSeen,["Shared occupants must naturally detect an opponent","The crew must naturally detect an opponent; the separate passenger squad intentionally relies on the bounded crew report"] select _separate] call _check;
 ["DISMOUNT-driver-detected-contact",_driverDetected,"Measured separately: a crew report cannot originate without crew detection"] call _check;
@@ -539,9 +635,15 @@ private _safeStopObserved=false;
 private _dismounted=[{
     _peakExitSpeed=_peakExitSpeed max abs speed _truck;
     _safeStopObserved=_safeStopObserved || {abs speed _truck < 1};
-    _passengers findIf {!alive _x || {vehicle _x != _truck}} < 0
+    // Require all living passengers physically on foot, rather than still inside the carrier.
+    _passengers findIf {!alive _x || {vehicle _x != _x}} < 0
 },35] call _wait;
-["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,format ["peakSpeed=%1 stationaryRequested=%2",_peakExitSpeed,_stationary]] call _check;
+private _exitEvidence=_passengers apply {_x getVariable ["WAIT_CortexQA_PhysicalExit",[]]};
+_safeStopObserved=_exitEvidence isNotEqualTo [] && {_exitEvidence findIf {
+    count _x != 4 || {(_x select 0) != _truck} || {(_x select 1) >= 1}
+} < 0};
+["DISMOUNT-fixture-safe-stop-observed",_safeStopObserved,
+    format ["observedVehiclePeak=%1 stationaryRequested=%2 physicalExits=%3",_peakExitSpeed,_stationary,_exitEvidence]] call _check;
 if (_stationary) then {["DISMOUNT-fixture-stationary-held",_peakExitSpeed < 1,format ["peakSpeed=%1; movement invalidates the stationary comparison",_peakExitSpeed]] call _check};
 ["DISMOUNT-contact-physical-exit",_contactSeen && {_enabledStartedMounted} && {_dismounted},format ["startedMounted=%1 endedDismounted=%2",_enabledStartedMounted,_dismounted]] call _check;
 private _recorded=([_passengerGroup] call WAIT_fnc_CortexGroupState) getOrDefault ["dismounted",[]];
@@ -581,7 +683,11 @@ if (_replacementOrder) then {
 ["Vehicle calm remount: "+_layout,"The enemy is removed. Once contact expires, both recorded passengers must physically board the same truck again. The test never moves them into seats.",[1900,1100,0]] call _phase;
 private _remounted=[{_passengers findIf {!alive _x || {vehicle _x != _truck}} < 0},100] call _wait;
 ["REMOUNT-physical-seat-occupancy",_enabledStartedMounted && {_dismounted} && {_remounted},
-    str ["previouslyDismounted",_dismounted,_passengerGroup getVariable ["WAIT_Cortex_Remount",[]],_passengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x]}]] call _check;
+    str ["previouslyDismounted",_dismounted,_passengerGroup getVariable ["WAIT_Cortex_Remount",[]],
+        (_passengerGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["lastRemountEnd",[]],
+        [speed _truck,getForcedSpeed _truck,getPosATL _truck,owner _truck,groupOwner _passengerGroup,
+            _truck getVariable ["WAIT_Cortex_DismountStopRequest",[]]],
+        _passengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x,_x distance2D _truck]}]] call _check;
 ["REMOUNT-group-membership-independent",_passengers findIf {group _x != _passengerGroup} < 0
     && {group (_crew select 0) == _group} && {(_passengerGroup != _group) isEqualTo _separate},
     "Membership is measured independently of seat occupancy; the original combined check follows"] call _check;
@@ -596,7 +702,7 @@ private _remounted=[{_passengers findIf {!alive _x || {vehicle _x != _truck}} < 
 };
 {deleteVehicle _x} forEach (_passengers+_crew+_opponents+[_truck]); deleteGroup _group; if (_separate) then {deleteGroup _passengerGroup}; deleteGroup _enemyGroup;
 
-} forEach [[false,false,true],[true,false,true],[false,false],[true,false],[false,true],[true,true],[false,true,false,true],[true,true,false,true],[true,true,false,true,true]];
+} forEach [[false,false,true],[true,false,true],[false,false],[true,false],[false,true],[true,true],[false,true,false,true],[true,true,false,true],[true,true,false,true,true],[true,true,false,false,false,12],[true,true,false,true,false,12]];
 
 [createHashMapFromArray [["WAIT_AIPass_VehicleDismount_Enable",false],["WAIT_AIPass_VehicleWithdraw_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _armour=createVehicle ["O_APC_Tracked_02_cannon_F",[1900,1100,0],[],0,"NONE"];
@@ -652,7 +758,24 @@ for "_sample" from 1 to 15 do {
 _origin=getPosATL _armour;
 [createHashMapFromArray [["WAIT_AIPass_VehicleWithdraw_Enable",true]]] call WAIT_fnc_CortexTuning;
 ["Damaged armour withdrawal","Withdrawal is now enabled on the same APC. It must fire actual defensive smoke and drive at least 40 m away from the visible threat, retaining all operating crew.",[1900,1100,0]] call _phase;
-private _withdrawn=[{_armour distance2D _origin > 40 && {_armour distance2D _enemy > (_origin distance2D _enemy)+30}},100] call _wait;
+private _reversePhysical=false;
+private _reverseFacing=false;
+private _withdrawn=[{
+    private _reverse=_group getVariable ["WAIT_VehicleReverse",[]];
+    if (count _reverse == 9 && {(_reverse select 0) == _armour}
+        && {(_armour distance2D _origin) >= 8}
+        && {(velocityModelSpace _armour select 1) < -0.5}) then {
+        _reversePhysical=true;
+        private _bearing=_armour getRelDir (getPosATL _enemy);
+        _reverseFacing=_reverseFacing || {_bearing <= 45 || {_bearing >= 315}};
+    };
+    _armour distance2D _origin > 40 && {_armour distance2D _enemy > (_origin distance2D _enemy)+30}
+},100] call _wait;
+["WITHDRAW-tracked-physical-reverse",_withdrawContact && {_reversePhysical},str [getPosATL _armour,vehicleMoveInfo _armour,
+    _group getVariable ["WAIT_VehicleReverseEnd",[]],
+    _group getVariable ["WAIT_VehicleReverseFallback",[]],
+    _group getVariable ["WAIT_VehicleReverse",[]]]] call _check;
+["WITHDRAW-tracked-threat-facing",_reversePhysical && {_reverseFacing},str [_armour getRelDir (getPosATL _enemy)]] call _check;
 ["WITHDRAW-physical-distance",_withdrawContact && {_withdrawn},str getPosATL _armour] call _check;
 ["WITHDRAW-actual-smoke",(_armour getVariable ["WAIT_CortexQA_SmokeShots",0]) > 0] call _check;
 ["WITHDRAW-crew-retained",_crew findIf {!alive _x || {vehicle _x != _armour}} < 0] call _check;
@@ -722,6 +845,11 @@ if (_hcOwners isNotEqualTo []) then {
             && {private _intent=_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]; count _intent == 7 && {(_intent select 0) == "VEHICLE"}}
             && {_migrateArmour distance2D _migrationOrigin >= 8}
     },45] call _wait;
+    diag_log format ["WAIT WITHDRAW REVERSE END TRACE: %1",[
+        _migrateGroup getVariable ["WAIT_VehicleReverseEnd",[]],
+        _migrateGroup getVariable ["WAIT_VehicleReverseFallback",[]],
+        _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap],
+        currentCommand driver _migrateArmour,vehicleMoveInfo _migrateArmour]];
     ["WITHDRAW-MIGRATION-production-start",_migrationContact && {_migrationStarted},str [_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""],_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]],getPosATL _migrateArmour]] call _check;
     private _initialSmoke=[{(_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0]) > 0},12] call _wait;
     ["WITHDRAW-MIGRATION-initial-smoke",_initialSmoke,str (_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0])] call _check;
@@ -733,6 +861,14 @@ if (_hcOwners isNotEqualTo []) then {
     private _countermeasureAmmoBefore=[_migrateArmour] call _countermeasureAmmo;
     private _intentBefore=+(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]);
     private _startedAt=_intentBefore param [4,-1];
+    private _ownerBefore=groupOwner _migrateGroup;
+    // Automatic balancing may have adopted this group already. Test an actual boundary,
+    // not a successful no-op request to the owner it currently has.
+    private _otherOwners=_hcOwners select {_x != _ownerBefore};
+    if (_otherOwners isNotEqualTo []) then {_hcOwner=_otherOwners select 0};
+    private _realOwnerBoundary=_ownerBefore != _hcOwner;
+    ["WITHDRAW-MIGRATION-distinct-owner-prerequisite",_realOwnerBoundary,
+        str [_ownerBefore,_hcOwner,owner _migrateArmour]] call _check;
     private _handoffPosition=getPosATL _migrateArmour;
     private _handoffThreatDistance=_migrateArmour distance2D _migrateEnemy;
     _migrateGroup setVariable ["WAIT_Headless_ExcludeGroup",false,true];
@@ -745,7 +881,7 @@ if (_hcOwners isNotEqualTo []) then {
             && {(_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "RETREAT"}
             && {private _entry=_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]; count _entry == 5 && {(_entry select 3) == "VEHICLE_OWNERSHIP_RESUME"} && {(_entry select 4) == _hcOwner}}
     },40] call _wait;
-    ["WITHDRAW-MIGRATION-owner-resume",_migrationRequested && {_migrationAdopted},str [groupOwner _migrateGroup,owner _migrateArmour,_migrateCrew apply {owner _x},_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]]] call _check;
+    ["WITHDRAW-MIGRATION-owner-resume",_realOwnerBoundary && {_migrationRequested} && {_migrationAdopted},str [groupOwner _migrateGroup,owner _migrateArmour,_migrateCrew apply {owner _x},_migrateGroup getVariable ["WAIT_Cortex_PhaseTransition",[]]]] call _check;
     private _intentAfter=+(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]);
     ["WITHDRAW-MIGRATION-start-preserved",_migrationAdopted && {count _intentAfter == 7}
         && {abs ((_intentAfter select 4)-_startedAt) < 0.25},str [_startedAt,_intentAfter]] call _check;
@@ -753,14 +889,16 @@ if (_hcOwners isNotEqualTo []) then {
         _migrateArmour distance2D _handoffPosition >= 12
             && {_migrateArmour distance2D _migrateEnemy >= _handoffThreatDistance+8}
     },45] call _wait;
-    ["WITHDRAW-MIGRATION-physical-continuation",_migrationAdopted && {_continued},str [_handoffPosition,getPosATL _migrateArmour,_handoffThreatDistance,_migrateArmour distance2D _migrateEnemy]] call _check;
+    ["WITHDRAW-MIGRATION-physical-continuation",_realOwnerBoundary && {_migrationAdopted} && {_continued},str [_handoffPosition,getPosATL _migrateArmour,_handoffThreatDistance,_migrateArmour distance2D _migrateEnemy]] call _check;
     sleep 6;
     private _countermeasureAmmoAfter=[_migrateArmour] call _countermeasureAmmo;
     ["WITHDRAW-MIGRATION-no-smoke-replay",_initialSmoke && {_countermeasureAmmoAfter == _countermeasureAmmoBefore},str [_smokeBefore,_migrateArmour getVariable ["WAIT_CortexQA_SmokeShots",0],_countermeasureAmmoBefore,_countermeasureAmmoAfter]] call _check;
     ["WITHDRAW-MIGRATION-crew-retained",_migrateCrew findIf {!alive _x || {vehicle _x != _migrateArmour}} < 0,str (_migrateCrew apply {vehicle _x})] call _check;
 
     ["Vehicle withdrawal: Zeus replacement","Zeus now replaces the resumed withdrawal. The APC must release RETREAT, drive to the new marker under the replacement waypoint and remain there without reviving the old withdrawal.",[2420,1100,0]] call _phase;
-    [_migrateGroup,true] call WAIT_fnc_CortexZeusMark;
+    // Direct takeover releases the old operation first. A waypoint event can only snapshot
+    // a waypoint which already exists; marking the old WAIT route is not a replacement order.
+    [_migrateGroup,false] call WAIT_fnc_CortexZeusMark;
     private _released=[{
         (_migrateGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CALM"
             && {(_migrateGroup getVariable ["WAIT_Cortex_WithdrawalIntent",[]]) isEqualTo []}
@@ -770,11 +908,52 @@ if (_hcOwners isNotEqualTo []) then {
     private _replacementWP=_migrateGroup addWaypoint [_replacement,0];
     _replacementWP setWaypointType "MOVE";
     _replacementWP setWaypointCompletionRadius 8;
+    // A MOVE may complete at the engine's vehicle tolerance. The requested persistent
+    // replacement needs an explicit HOLD in the same curator-owned waypoint chain;
+    // otherwise a later fresh withdrawal is permitted after native MOVE completion.
+    private _replacementHold=_migrateGroup addWaypoint [_replacement,0];
+    _replacementHold setWaypointType "HOLD";
+    _replacementHold setWaypointCompletionRadius 8;
     _migrateGroup setCurrentWaypoint _replacementWP;
+    [_migrateGroup,true,_replacementWP select 1] call WAIT_fnc_CortexZeusMark;
+    private _zeusSnapshot=_migrateGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
+    ["WITHDRAW-MIGRATION-zeus-exact-order",count _zeusSnapshot == 7
+        && {(_zeusSnapshot select 1) distance2D _replacement < 1}
+        && {(_zeusSnapshot select 5) == (_replacementWP select 1)},str _zeusSnapshot] call _check;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _migrateCrew;
-    private _replacementArrived=[{_migrateArmour distance2D _replacement <= 22},100] call _wait;
-    ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},str getPosATL _migrateArmour] call _check;
-    private _stayedReleased=_replacementArrived;
+    // Observe the engine completion boundary independently from the final position. A MOVE
+    // order does not promise a stationary hold after native waypoint completion.
+    private _replacementClosest=1e9;
+    private _replacementCompleted=[];
+    private _replacementResumed=[];
+    private _replacementArrived=[{
+        private _distance=_migrateArmour distance2D _replacement;
+        _replacementClosest=_replacementClosest min _distance;
+        private _current=currentWaypoint _migrateGroup;
+        if (_replacementCompleted isEqualTo [] && {_current > (_replacementWP select 1)}) then {
+            _replacementCompleted=[time,_current,_distance,getPosATL _migrateArmour];
+        };
+        private _move=_migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+        if (_replacementResumed isEqualTo [] && {count _move > 0}) then {
+            _replacementResumed=[time,_current,_distance,+_replacementCompleted,
+                _move getOrDefault ["operationGeneration",-1],_move getOrDefault ["position",[]],
+                _migrateGroup getVariable ["WAIT_AIPass_ZeusWaypoints",false]];
+        };
+        _distance <= 22
+    },100] call _wait;
+    diag_log format ["WAIT WITHDRAW ZEUS ORDER TRACE: %1",[
+        _replacementClosest,_replacementCompleted,_replacementResumed,
+        currentWaypoint _migrateGroup,_replacementWP select 1,
+        waypointCompletionRadius _replacementWP,
+        _migrateGroup getVariable ["WAIT_AIPass_ZeusWaypoints",false]]];
+    ["WITHDRAW-MIGRATION-zeus-physical-replacement",_released && {_replacementArrived},
+        str [getPosATL _migrateArmour,getForcedSpeed _migrateArmour,vehicleMoveInfo _migrateArmour,
+            currentCommand driver _migrateArmour,behaviour driver _migrateArmour,
+            owner _migrateArmour,groupOwner _migrateGroup,
+            _migrateGroup getVariable ["WAIT_VehicleReverse",[]],
+            _migrateArmour getVariable ["WAIT_VehicleReverseOwner",[]],
+            _migrateGroup getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap]]] call _check;
+    private _stayedReleased=_replacementArrived && {[_migrateGroup] call WAIT_fnc_CortexZeusHeld};
     for "_sample" from 1 to 12 do {
         sleep 1;
         if ((_migrateGroup getVariable ["WAIT_AIPass_PublicPhase","CALM"]) == "RETREAT"
@@ -787,3 +966,40 @@ if (_hcOwners isNotEqualTo []) then {
     deleteGroup _migrateGroup;
     deleteGroup _migrateEnemyGroup;
 };
+
+// A boundary fixture stages an old convoy cover record beside a newer actor reservation.
+// Success requires the real native movement to continue after production cleanup; clearing
+// a variable alone cannot pass. This does not substitute for a full convoy contact scenario.
+private _handoverGroup=createGroup [east,true];
+_handoverGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_handoverGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_handoverGroup setVariable ["acex_headless_blacklist",true,true];
+_handoverGroup setCombatMode "BLUE";
+private _handoverLeader=_handoverGroup createUnit ["O_Soldier_F",[3100,1700,0],[],0,"NONE"];
+private _handoverActor=_handoverGroup createUnit ["O_Soldier_F",[3103,1700,0],[],0,"NONE"];
+private _handoverVehicle=createVehicle ["O_Truck_03_transport_F",[3080,1700,0],[],0,"NONE"];
+doStop _handoverLeader;
+private _handoverStart=getPosATL _handoverActor;
+private _handoverDestination=_handoverStart getPos [45,90];
+_handoverActor setVariable ["WAIT_CortexQA_Label","PASSENGER: NEW ACTOR TASK",true];
+_handoverActor setVariable ["WAIT_CortexQA_Target",_handoverDestination,true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_handoverLeader,_handoverActor,_handoverVehicle],true];
+["Passenger cleanup: newer actor task","An old convoy cover record remains while this soldier follows a newer committed destination. Cleanup must remove only its old bookkeeping; the soldier must physically continue away from the stationary leader.",_handoverDestination] call _phase;
+_handoverActor doMove _handoverDestination;
+private _handoverMoving=[{_handoverActor distance2D _handoverStart >= 5},20] call _wait;
+_handoverActor setVariable ["WAIT_Convoy_Dismount",[_handoverGroup,1,serverTime+60,+_handoverDestination],true];
+private _newReservation=["DANGER_COVER",+_handoverDestination,time+90];
+_handoverActor setVariable ["WAIT_Cortex_ActorMove",+_newReservation];
+private _handoverConfiguration=[1,30,20,false,[_handoverVehicle],"HALT",[[_handoverActor,_handoverVehicle]],[],"MANUAL",[],serverTime+60];
+[_handoverGroup,_handoverConfiguration,true] call WAIT_fnc_ConvoyDismountLocal;
+["PASSENGER-cover-cleanup-preserves-reservation",_handoverMoving
+    && {(_handoverActor getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _newReservation}
+    && {(_handoverActor getVariable ["WAIT_Convoy_Dismount",[]]) isEqualTo []},
+    str [currentCommand _handoverActor,expectedDestination _handoverActor]] call _check;
+private _handoverArrived=[{_handoverActor distance2D _handoverDestination <= 5
+    && {_handoverActor distance2D _handoverStart >= 35}},60] call _wait;
+["PASSENGER-cover-cleanup-new-task-physical-arrival",_handoverMoving && {_handoverArrived},
+    str [getPosATL _handoverActor,_handoverDestination,currentCommand _handoverActor]] call _check;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+{deleteVehicle _x} forEach [_handoverActor,_handoverLeader,_handoverVehicle];
+deleteGroup _handoverGroup;

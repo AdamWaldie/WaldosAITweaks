@@ -3,6 +3,8 @@
  * Repeat/JIP: Repeat calls recompute or update the same bounded state; public state is replayable to JIP where this function publishes it.
  * Applies a defence order on the machine that owns the group: moves soldiers to their spots and holds
  * them there facing their sectors.
+ * Actor combat effectiveness and ownership are rechecked before movement and holding. Lost
+ * group eligibility retires the job and published order instead of perpetually delaying it.
  *
  * Runs on the original owner and again on any new owner (WAIT_fnc_CortexDiscover), because unit
  * orders are held by the owning machine. A reserve reinforcement may pass only its newly reassigned
@@ -55,7 +57,8 @@ private _mayIssueMovement = {
     private _routeGeneration=(_x getVariable ["WAIT_AIPass_DefendRouteGeneration",0])+1;
     _x setVariable ["WAIT_AIPass_DefendRouteGeneration",_routeGeneration];
     private _assignment = _x getVariable ["WAIT_AIPass_DefendPos", []];
-    if (alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {_assignment isNotEqualTo []}) then {
+    if ([_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)} && {_assignment isNotEqualTo []}) then {
         _routes pushBack [_x,getPosATL _x,time,0,_routeGeneration];
         if (_x distance2D (_assignment select 0) > 2 && {call _mayIssueMovement}) then {
             _x doMove (_assignment select 0);
@@ -68,7 +71,10 @@ private _mayIssueMovement = {
     if (isNull _group || {!local _group} || {(_group getVariable ["WAIT_AIPass_Defend", []]) isEqualTo []}) exitWith {-1};
     if ((_group getVariable ["WAIT_AIPass_DefendGeneration", -1]) != (_job get "generation")) exitWith {-1};
     // External control has priority. Do not age or reissue an owned movement while Zeus is active.
-    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {2};
+    if !([_group] call WAIT_fnc_CortexIsEligible) exitWith {
+        [_group,false] call WAIT_fnc_CortexDefendRelease;
+        -1
+    };
     private _mayIssueMovement = {
         !([_group] call WAIT_fnc_CortexExternalTakeover)
     };
@@ -81,8 +87,8 @@ private _mayIssueMovement = {
         private _assignment = _unit getVariable ["WAIT_AIPass_DefendPos", []];
         if (_routeIndex >= 0
             && {(_unit getVariable ["WAIT_AIPass_DefendRouteGeneration",-2]) == _routeGeneration}
-            && {alive _unit} && {local _unit} && {!isPlayer _unit}
-            && {lifeState _unit != "INCAPACITATED"} && {_assignment isNotEqualTo []}
+            && {[_unit] call WAIT_fnc_CortexCombatEffective} && {local _unit} && {!isPlayer _unit}
+            && {!([_group,false,_unit] call WAIT_fnc_CortexExternalTakeover)} && {_assignment isNotEqualTo []}
             && {!(_unit getVariable ["WAIT_AIPass_DefendHolding", false])}
             && {!(_unit getVariable ["WAIT_AIPass_DefendFailed",false])}) then {
             if (_unit distance2D (_assignment select 0) <= 3) then {

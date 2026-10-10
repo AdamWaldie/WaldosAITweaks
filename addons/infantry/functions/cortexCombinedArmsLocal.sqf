@@ -24,6 +24,7 @@ _opportunity params ["_token","_requester","_target","_position","_role","_expir
 if ((_group getVariable ["WAIT_Cortex_CombinedRole",[]]) isNotEqualTo _opportunity
     || {serverTime >= _expiry} || {isNull _requester} || {isNull _target} || {!alive _target}
     || {side _group != side _requester} || {(side _group) getFriend side _target >= 0.6}
+    || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
     || {!(_role in ["GROUND_FIRE","GROUND_MANOEUVRE","AIR_ATTACK"])}) exitWith {false};
 private _asset=objNull;
 {
@@ -111,13 +112,22 @@ if (_role == "GROUND_MANOEUVRE") exitWith {
         _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"OWNER_LOST",serverTime,_target],true];
         false
     };
-    if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
-    [_group,_destination,55] call WAIT_fnc_CortexGroupMove;
+    private _generation=_operation get "generation";
+    private _waypoint=[_group,_destination,55,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+    if (isNull (_waypoint param [0,grpNull,[grpNull]]) || {(_waypoint param [1,-1,[0]]) < 0}
+        || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {
+        [_group,_generation,"INCOMPLETE","MOVEMENT_REJECTED"] call WAIT_fnc_OperationRelease;
+        [_group,"COMBINED_GROUND",false] call WAIT_fnc_CortexOwnershipLease;
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"MOVEMENT_REJECTED",serverTime,_target],true];
+        false
+    };
     private _state=[_group] call WAIT_fnc_CortexGroupState;
     _state set ["movementLease",["COMBINED_GROUND",time+((_expiry-serverTime) max 5)]];
     [WAIT_fnc_CortexCombinedGroundStep,createHashMapFromArray [
         ["group",_group],["asset",_asset],["target",_target],["token",_token],
-        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],["lastPosition",_start],
+        ["expiry",_expiry],["destination",_destination],["operationGeneration",_operation get "generation"],
+        ["ownerEpoch",_operation get "ownerEpoch"],["lastPosition",_start],
         ["progressAt",time],["stalls",0]
     ],1] call WAIT_fnc_CortexQueueJob;
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
@@ -136,10 +146,13 @@ if (_role == "AIR_ATTACK") exitWith {
         false
     };
     if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
-    if !(_asset getVariable ["WAIT_Cortex_AirAttackJob",false]) then {
-        // The server already authenticated this live hostile. Pass it into the finite controller;
-        // doTarget is asynchronous and assignedTarget may not be populated half a second later.
-        [createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_AirAttackOperationStart;
+    // Acceptance must correspond to this target, not merely an aircraft's busy marker.
+    private _started=[createHashMapFromArray [["aircraft",_asset],["group",_group],["target",_target]],0.5] call WAIT_fnc_AirAttackOperationStart;
+    if (!_started) exitWith {
+        _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
+        _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"AIR_BUSY_OR_REFUSED",serverTime,_target],true];
+        [_requester,_group,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
+        false
     };
     _group setVariable ["WAIT_Cortex_CombinedApplied",[_token,clientOwner,serverTime],true];
     _group setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"APPLIED",serverTime,_target],true];

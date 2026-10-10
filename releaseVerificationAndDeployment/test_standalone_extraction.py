@@ -90,7 +90,10 @@ class StandaloneExtractionContracts(unittest.TestCase):
         transmitter = (ROOT / "addons/infantry/functions/cortexGroupTransmitter.sqf").read_text(encoding="utf-8")
         self.assertIn('class CortexGroupAnchor', functions)
         self.assertIn('CortexCombatEffective', anchor)
-        self.assertIn('local _x', anchor)
+        self.assertIn('local _actor', anchor)
+        self.assertIn('(units _group) select [0,12]', anchor)
+        self.assertIn('isNull remoteControlled _actor', anchor)
+        self.assertIn('CortexExternalOwner', anchor)
         self.assertNotIn('CortexCanTransmit', anchor)
         self.assertIn('CortexCanTransmit', transmitter)
 

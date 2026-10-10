@@ -37,6 +37,19 @@ class PackagePipelineTests(unittest.TestCase):
         self.assertTrue((mission.parent/'@WaldosAITweaks/addons/main.pbo').is_file())
         with self.assertRaises(ValueError): stage(self.folder, mission.parent, 'airskills')
 
+    def test_standalone_native_stage_has_no_addon_function_dependency(self):
+        mission=stage(self.folder,Path(self.temp.name)/'native','standaloneperformance',native_baseline=True)
+        manifest=json.loads((mission.parent/'audit-manifest.json').read_text())
+        self.assertTrue(manifest['native_baseline'])
+        self.assertIn('"WAIT_QA_PerfExpectedLoaded",false',(mission/'auditIdentity.sqf').read_text())
+        for name in ('initServer.sqf','initPlayerLocal.sqf','cortexQAStandalonePerformance.sqf'):
+            self.assertNotIn('WAIT_fnc_', (mission/name).read_text())
+        self.assertIn('WAIT AUDIT OBSERVER ZEUS READY',(mission/'initServer.sqf').read_text())
+        self.assertNotIn('HeadlessClient_F',(mission/'mission.sqm').read_text())
+        self.assertIn('B_Soldier_F',(mission/'mission.sqm').read_text())
+        with self.assertRaises(ValueError):
+            stage(self.folder,Path(self.temp.name)/'invalid','airskills',native_baseline=True)
+
     def test_release_rejects_incomplete_wrong_and_unsigned_evidence(self):
         evidence = Path(self.temp.name)/'results.json'
         for report in ({'status':'PASS', 'complete':False},
@@ -116,6 +129,27 @@ class PackagePipelineTests(unittest.TestCase):
         record['dirty']=True
         (self.folder/'wait-build.json').write_text(json.dumps(record))
         with self.assertRaises(ValueError): release_gate(self.folder,evidence)
+
+    def test_native_headless_stage_installs_all_machines_and_seals_provider_files(self):
+        from stage_headless_provider import REQUIRED
+        provider=Path(self.temp.name)/'provider'
+        source=provider/'MissionScripts/Headless'; source.mkdir(parents=True)
+        for name in REQUIRED:
+            (source/name).write_text('/* native provider fixture */\ntrue;')
+        mission=stage(self.folder,Path(self.temp.name)/'native-hc','lifecycle',headless_provider=provider)
+        manifest=json.loads((mission.parent/'audit-manifest.json').read_text())
+        self.assertEqual(manifest['headless_provider']['scope'],'EXPLICIT_NATIVE_TRANSFERS_ONLY')
+        for name in ('initServer.sqf','initPlayerLocal.sqf','init.sqf'):
+            self.assertIn(r'compatibilityHeadlessProvider\init.sqf',(mission/name).read_text())
+        for name in REQUIRED:
+            self.assertIn('compatibilityHeadlessProvider/'+name,manifest['mission_files'])
+        from mod_pipeline import mission_hashes
+        self.assertEqual(mission_hashes(mission),manifest['mission_files'])
+        nested=mission/'compatibilityHeadlessProvider'/REQUIRED[0]
+        nested.write_text('modified provider')
+        self.assertNotEqual(mission_hashes(mission),manifest['mission_files'])
+        with self.assertRaises(ValueError):
+            stage(self.folder,Path(self.temp.name)/'invalid-perf','standaloneperformance',headless_provider=provider)
 
 if __name__ == '__main__':
     unittest.main()

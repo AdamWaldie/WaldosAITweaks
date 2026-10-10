@@ -23,7 +23,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Cohesion` | Cohesion | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How much punishment squads take before morale breaks. Above 1 they hold longer, below 1 they break sooner. |
 | `WAIT_AIPass_ReactionSpeed` | Reaction speed | SLIDER | 1 | [0.5, 2, 2] | NEXT_OPERATION | How often squads re-assess. Above 1 they react faster and use more server time; below 1 slower. |
 | `WAIT_AIPass_EngageRange` | Engagement range (m) | SLIDER | 800 | [200, 1500, 0] | NEXT_OPERATION | Known enemies within this range of a squad leader are acted on. |
-| `WAIT_AIPass_ZeusHoldSeconds` | Zeus hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long Cortex leaves a squad alone after Zeus edits it or opens its attributes. Selecting a squad for inspection does not interrupt it. |
+| `WAIT_AIPass_ZeusHoldSeconds` | Zeus direct-control hold (s) | SLIDER | 120 | [0, 600, 0] | NEXT_OPERATION | How long WAIT leaves a squad alone after Zeus directly edits it or opens its attributes. Zeus waypoints own movement until their chain finishes and then release immediately. Selecting a squad for inspection does not interrupt it. |
 
 ### 03 Performance
 
@@ -61,6 +61,9 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_PostContact_Enable` | Post-contact search | CHECKBOX | true | [] | NEXT_OPERATION | After contact is lost: hold, send two soldiers to check the last known position, regroup. |
 | `WAIT_AIPass_Investigate_Enable` | Investigation | CHECKBOX | true | [] | NEXT_OPERATION | Squads send two riflemen to check enemies they know about but have not seen. |
 | `WAIT_AIPass_Danger_Enable` | Danger response | CHECKBOX | true | [] | LIVE | Enables WAIT's bounded local danger reflex and tactical group handoff. When disabled, the configured FSM exits without issuing WAIT stance, movement, targeting or planning commands. |
+| `WAIT_AIPass_DangerEvasion_Enable` | Immediate prone evasion | CHECKBOX | true | [] | LIVE | Allows idle prone riflemen to use a bounded native lateral evasion after a hit or near round. Committed movement, specialist ownership and native tasks take priority. Requires danger response. |
+| `WAIT_AIPass_DangerObservation_Enable` | Body and scream observation | CHECKBOX | true | [] | LIVE | Allows eligible idle infantry to glance toward body or scream positions without granting target knowledge or movement orders. Requires danger response. |
+| `WAIT_AIPass_DangerConcealment_Enable` | Concealment fallback | CHECKBOX | true | [] | LIVE | Allows a separate visual-screening search after solid cover fails. Concealment does not establish protection from bullets. Requires danger response. |
 | `WAIT_AIPass_DangerSmoke_Enable` | Danger smoke screen | CHECKBOX | true | [] | LIVE | Allows one available soldier to throw carried smoke during severe incoming danger. The operation continues without waiting for the throw. |
 | `WAIT_AIPass_Hearing_Enable` | Nearby gunfire investigation | CHECKBOX | true | [] | NEXT_OPERATION | Hostile FiredNear events create a throttled, approximate 50 m area for investigation, never a target reveal. |
 | `WAIT_AIPass_PostContact_LostSeconds` | Contact lost delay (s) | SLIDER | 30 | [3, 120, 0] | NEXT_OPERATION | Seconds without a sighting before Cortex leaves contact. Active manoeuvres finish or abort before this handover. |
@@ -178,6 +181,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | `WAIT_AIPass_Vehicles_Enable` | Enable Cortex vehicle tactics | CHECKBOX | true | [] | NEXT_OPERATION | Parent control for Cortex passenger dismount, remount and damaged-vehicle withdrawal. Convoy route control remains independent. |
 | `WAIT_AIPass_VehicleGunnery_Enable` | Vehicle gunnery | CHECKBOX | true | [] | NEXT_OPERATION | Armed crews make one safe immediate suppression response to a known danger source, then engage AT soldiers first, armour second and preserve distance from AT teams. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | Damage: withdraw mobile vehicle | CHECKBOX | true | [] | NEXT_OPERATION | Under Enable Cortex vehicle tactics, allows a damaged mobile vehicle to withdraw and use existing smoke. |
+| `WAIT_AIPass_VehicleReverse_Enable` | Withdrawal: tracked reverse leg | CHECKBOX | true | [] | LIVE | Under damaged vehicle withdrawal, tracked armour attempts a short threat-facing reverse before native escape. Disabling releases the reverse command and retains the escape route. Wheeled vehicles retain forward escape. |
 | `WAIT_AIPass_VehicleJink_Enable` | Danger: short vehicle escape | CHECKBOX | true | [] | NEXT_OPERATION | Allows one intact crewed fighting vehicle to make a short terrain-checked escape from a close hostile, hit or explosion. Convoys, passenger loads and existing movement owners are excluded. |
 
 ### 03 Passengers

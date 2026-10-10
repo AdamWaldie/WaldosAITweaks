@@ -4,7 +4,7 @@
  * migration and published handover reasons on the server and two headless owners.
  * Locality/authority: server fixture; WAIT migration and production owner-local defence/release paths.
  * Ordinary waypoints are issued after returning the group to the server while Cortex is disabled.
- * Also checks that a refused HC-to-HC transfer preserves actual ownership and its registry record.
+ * Also checks that a refused HC-to-HC transfer preserves actual ownership and honours the provider's registry policy.
  * Repeat/JIP: fresh group and public destination markers; caller restores tuning; fixture cleaned here.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; required audit callbacks.
  * Return: Nothing. Current caller: cortexQAServer.sqf.
@@ -13,6 +13,18 @@
 params ["_recordCheck","_phase","_wait"];
 private _owners=(missionNamespace getVariable ["WAIT_Headless_Clients",[]]) apply {_x select 0};
 ["LIFE-two-headless-clients",count _owners >= 2] call _recordCheck;
+private _nativeProvider=missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false];
+private _nativeReady=true;
+if (_nativeProvider) then {
+    _nativeReady=[{
+        private _registered=(missionNamespace getVariable ["Waldo_Headless_Clients",[]]) apply {_x select 0};
+        count _owners >= 2 && {_owners findIf {!(_x in _registered)} < 0}
+    },30] call _wait;
+    ["LIFE-native-provider-registration",_nativeReady,
+        str (missionNamespace getVariable ["Waldo_Headless_Clients",[]])] call _recordCheck;
+};
+// A missing provider registration is a failed fixture prerequisite, not a transfer failure.
+if (!_nativeReady) exitWith {};
 private _variants=[["",2]];
 {_variants pushBack [format ["HC%1-",_forEachIndex+1],_x]} forEach (_owners select [0,2]);
 {
@@ -45,14 +57,31 @@ if (_targetOwner != 2) then {
     private _otherOwners=_owners select {_x != _targetOwner};
     if (_otherOwners isNotEqualTo []) then {
         _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            _group setVariable ["Waldo_Headless_ExcludeGroup",true,true];
+        };
         private _refused=!([_group,_otherOwners select 0] call WAIT_fnc_HeadlessMigrateGroup);
         sleep 2;
-        private _registry=missionNamespace getVariable ["WAIT_Headless_ManagedGroups",[]];
+        // Integration evidence must read the actual companion manager's registry.
+        // Standalone engine transfers do not manufacture a substitute registry.
+        private _registry=missionNamespace getVariable ["Waldo_Headless_ManagedGroups",[]];
         private _records=_registry select {(_x select 0) == _group};
         ["LIFE-refused-transfer-owner-retained",_refused && {groupOwner _group == _targetOwner}
             && {_units findIf {owner _x != _targetOwner} < 0},str [groupOwner _group,_units apply {owner _x}]] call _check;
-        ["LIFE-refused-transfer-registry-retained",count _records == 1 && {(_records select 0 select 1) == _targetOwner},str _records] call _check;
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            // The native provider removes excluded groups from its management registry while
+            // retaining their actual owner. Do not demand the standalone adapter's policy.
+            ["LIFE-refused-transfer-registry-pruned",_refused && {_records isEqualTo []},str _records] call _check;
+            private _adoption=_group getVariable ["Waldo_Headless_LastAdoption",[]];
+            ["LIFE-native-provider-adoption",count _adoption == 5 && {_adoption select 2}
+                && {(_adoption select 1) == _targetOwner},str _adoption] call _check;
+        } else {
+            ["LIFE-refused-transfer-registry-retained",count _records == 1 && {(_records select 0 select 1) == _targetOwner},str _records] call _check;
+        };
         _group setVariable ["WAIT_Headless_ExcludeGroup",false,true];
+        if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) then {
+            _group setVariable ["Waldo_Headless_ExcludeGroup",false,true];
+        };
     };
 };
 [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
@@ -99,7 +128,23 @@ _arrived=[{_units findIf {!alive _x || {_x distance2D _newPosition > 10}} < 0},9
 ["LIFE-restarted-new-physical-order",_accepted && {_arrived},str (_units apply {getPosATL _x})] call _check;
 // Exercise the production takeover marker without a waypoint flag. This tests
 // the owner cleanup path; actual curator event delivery remains a separate UI case.
+private _curatorGenerationBefore=_group getVariable ["WAIT_OperationGeneration",0];
 [_group,false] call WAIT_fnc_CortexZeusMark;
+private _curatorGenerationAdvanced=[{
+    (_group getVariable ["WAIT_OperationGeneration",0]) == _curatorGenerationBefore+1
+},10] call _wait;
+["LIFE-zeus-idle-generation-invalidated",_curatorGenerationAdvanced,
+    str [_curatorGenerationBefore,_group getVariable ["WAIT_OperationGeneration",0]]] call _check;
+private _curatorGenerationAfter=_group getVariable ["WAIT_OperationGeneration",0];
+if (local _group) then {
+    [_group,false,"ZEUS_TAKEOVER"] call WAIT_fnc_CortexReleaseGroup;
+} else {
+    [_group,false,"ZEUS_TAKEOVER"] remoteExecCall ["WAIT_fnc_CortexReleaseGroup",groupOwner _group];
+};
+sleep 2;
+["LIFE-zeus-repeat-cleanup-generation-stable",_curatorGenerationAdvanced
+    && {(_group getVariable ["WAIT_OperationGeneration",0]) == _curatorGenerationAfter},
+    "Bookkeeping diagnostic; physical replacement arrival is tested separately below"] call _check;
 ["Lifecycle: Zeus interrupts defence","Zeus takeover now interrupts the held defence without a waypoint-change flag. The owner must release the holding order. After return to server, both soldiers must physically obey a replacement waypoint.",_newPosition] call _phase;
 private _zeusReleased=[{
     (_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []
@@ -135,11 +180,11 @@ if (_targetOwner == 2) then {
     },30] call _wait;
     private _beforeArrival=_units findIf {_x distance2D [2130,1920,0] < 30} < 0;
     ["LIFE-zeus-midmove-stimulus",_started && {_beforeArrival}] call _check;
-    [_group,true] call WAIT_fnc_CortexZeusMark;
     private _replacement=[2030,1850,0];
     private _replacementWP=_group addWaypoint [_replacement,0];
     _replacementWP setWaypointType "MOVE"; _replacementWP setWaypointCompletionRadius 3;
     _group setCurrentWaypoint _replacementWP;
+    [_group,true,_replacementWP select 1] call WAIT_fnc_CortexZeusMark;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _units;
     private _replacementReached=[{_units findIf {!alive _x || {_x distance2D _replacement > 12}} < 0},90] call _wait;
     ["LIFE-zeus-midmove-replacement-arrival",_started && {_beforeArrival} && {_replacementReached},str (_units apply {getPosATL _x})] call _check;
@@ -147,6 +192,37 @@ if (_targetOwner == 2) then {
     for "_sample" from 1 to 15 do {sleep 1; {_maxDrift=_maxDrift max (_x distance2D _replacement)} forEach _units};
     ["LIFE-zeus-midmove-no-resurrection",_replacementReached && {_maxDrift <= 15}
         && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []},str _maxDrift] call _check;
+    // Independent live route: edit the actual WAIT waypoint rather than adding another one.
+    private _editGroup=createGroup [east,true];
+    _editGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _editGroup setVariable ["acex_headless_blacklist",true,true];
+    _editGroup setCombatMode "BLUE";
+    private _editActor=_editGroup createUnit ["O_Soldier_F",[1990,1930,0],[],0,"NONE"];
+    _editActor setVariable ["acex_headless_blacklist",true,true];
+    _editActor setVariable ["WAIT_CortexQA_Label","EDITED WAIT ROUTE",true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[_editActor],true];
+    private _editOrigin=getPosATL _editActor;
+    private _editWP=[_editGroup,[2100,1930,0],3,"MOVE"] call WAIT_fnc_CortexGroupMove;
+    private _editStarted=[{_editActor distance2D _editOrigin >= 10},30] call _wait;
+    private _editDestination=[1990,2030,0];
+    private _editValid=count _editWP == 2 && {(_editWP select 0) == _editGroup}
+        && {(_editWP select 1) >= 0} && {(_editWP select 1) < count waypoints _editGroup}
+        && {waypointDescription _editWP == "WAIT AI PASS"}
+        && {waypointPosition _editWP distance2D [2100,1930,0] < 1};
+    ["LIFE-edited-route-physical-prerequisite",_editValid && {_editStarted},str [_editWP,getPosATL _editActor]] call _check;
+    if (_editValid) then {
+        _editWP setWaypointPosition [_editDestination,0];
+        [_editGroup,true,_editWP select 1] call WAIT_fnc_CortexZeusMark;
+        ["LIFE-edited-route-order-preserved",(_editWP select 1) < count waypoints _editGroup
+            && {waypointPosition _editWP distance2D _editDestination < 1}
+            && {waypointType _editWP == "MOVE"}
+            && {waypointDescription _editWP != "WAIT AI PASS"},str (waypoints _editGroup)] call _check;
+        _editActor setVariable ["WAIT_CortexQA_Target",_editDestination,true];
+        private _editArrived=[{_editActor distance2D _editDestination <= 12},90] call _wait;
+        ["LIFE-edited-route-physical-arrival",_editStarted && {_editArrived},str (getPosATL _editActor)] call _check;
+    };
+    deleteVehicle _editActor;
+    deleteGroup _editGroup;
 };
 [_group] call WAIT_fnc_CortexDefendRelease;
 {deleteVehicle _x} forEach _units; deleteGroup _group;

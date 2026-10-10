@@ -4,6 +4,10 @@ Waldos AI Tweaks (WAIT) is a standalone CBA mod for Arma 3 that makes AI aggress
 tactically sound. Its work stays bounded and locality-aware, and it always yields to Zeus and to
 mission-authored orders.
 
+Current builds are under development. The descriptions below state intended behaviour;
+packaging and static validation do not establish physical acceptance. See the
+[implementation progress](../IMPLEMENTATION-PROGRESS.md) for recorded outcomes and pending tests.
+
 ## Get started
 
 1. Load **Arma 3 2.18+**, **CBA_A3** and Waldos AI Tweaks on the server and every client. ZEN is optional.

@@ -317,7 +317,7 @@ for "_i" from 0 to 3 do {
     _rifleSquad pushBack _unit;
 };
 _group setCombatMode "YELLOW";
-_armour=createVehicle ["B_APC_Tracked_01_rcws_F",[2285,1270,0],[],0,"NONE"];
+_armour=createVehicle ["B_APC_Tracked_01_rcws_F",[2285,1190,0],[],0,"NONE"];
 createVehicleCrew _armour;
 _enemyGroup=group driver _armour;
 _enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];

@@ -8,7 +8,7 @@
  * These local height probes are approximate clearance checks, not proof of a clear shot to a target.
  * With no cover in front, the stance is handed back to the engine (AUTO). Each soldier is re-checked
  * at most every 10 s. A soldier briefly reserved for an opportunistic grenade keeps his stance
- * during that action; the grenade never blocks the manoeuvre state. A rotating cursor limits each group step to two sampled soldiers (six rays),
+ * during that action; the grenade never blocks the manoeuvre state. A rotating cursor limits each group step to two sampled soldiers (six rays) and twelve inspected members,
  * avoiding a whole-squad ray burst; ineligible soldiers do not consume the sampling allowance. Only soldiers whose stance was AUTO, or was set by
  * the pass, are changed, so mission-maker stances are respected. The pass returns every stance it set
  * to AUTO when the squad goes back to CALM only while it still matches the applied stance.
@@ -32,6 +32,9 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_enemies", [], [[]]]];
+// Direct callers and delayed scheduler callbacks obey the same group ownership boundary.
+if (isNull _group || {!local _group} || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {[_group] call WAIT_fnc_CompatibilityExternalControl}) exitWith {0};
 private _enemyPos = _state getOrDefault ["enemyPos", []];
 if (count _enemyPos < 2) exitWith {0};
 private _now = time;
@@ -49,7 +52,7 @@ private _count=count _members;
 if (_count == 0) exitWith {0};
 private _cursor=(_state getOrDefault ["stanceCursor",0]) mod _count;
 private _sampled=0;
-for "_offset" from 0 to (_count-1) do {
+for "_offset" from 0 to ((_count min 12)-1) do {
     if (_sampled >= 2) exitWith {};
     private _index=(_cursor+_offset) mod _count;
     private _unit=_members select _index;
@@ -60,7 +63,26 @@ for "_offset" from 0 to (_count-1) do {
         _unit setVariable ["WAIT_AIPass_StanceSet",nil,true];
         _unit setVariable ["WAIT_Cortex_AppliedStance",nil,true];
     };
-    if (alive _unit && {local _unit} && {isNull objectParent _unit} && {abs speed _unit < 1} && {!(_unit in _drillUnits)}
+    private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _reservationFree=_reservation isEqualTo []
+        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= _now}};
+    if (!_reservationFree && {count _reservation == 3}
+        && {(_reservation select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT","DANGER_COVER"]}
+        && {local _unit} && {_unit getVariable ["WAIT_AIPass_StanceSet",false]}
+        && {_currentStance == (_unit getVariable ["WAIT_Cortex_AppliedStance",""])}
+        && {!([_group,false,_unit] call WAIT_fnc_CortexExternalTakeover)}) then {
+        _unit setUnitPos "AUTO";
+        _unit setVariable ["WAIT_AIPass_StanceSet",nil,true];
+        _unit setVariable ["WAIT_Cortex_AppliedStance",nil,true];
+        _changed=_changed+1;
+    };
+    if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {isNull objectParent _unit}
+        && {_reservationFree}
+        && {!(toUpperANSI currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+        && {!isPlayer _unit} && {isNull (remoteControlled _unit)}
+        && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+        && {abs speed _unit < 1} && {!(_unit in _drillUnits)}
         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
         && {_now >= (_unit getVariable ["WAIT_AIPass_StanceAt", -1])}
         && {_currentStance == "AUTO" || {_unit getVariable ["WAIT_AIPass_StanceSet", false]}}) then {

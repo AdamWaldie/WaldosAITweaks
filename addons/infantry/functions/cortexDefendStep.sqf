@@ -9,6 +9,8 @@
  * already validated line spot when rough terrain would otherwise strand a reserve soldier. Only the
  * committed reserve is reapplied: the existing line retains its hold, watch sector and route generation.
  * The reserve then holds at the reinforced line, watching the same sector.
+ * Unconscious, captive and specialist-controlled actors cannot be committed. Loss checks count
+ * combat-effective line members rather than treating every living member as an available defender.
  * Locality and authority: call where the group is local.
  *
  * Arguments:
@@ -27,14 +29,19 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_enemies", [], [[]]]];
+if (isNull _group || {!local _group}) exitWith {false};
 if (_state getOrDefault ["reserveCommitted", false] || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
 private _lineUnits = (units _group) select {((_x getVariable ["WAIT_AIPass_DefendPos", []]) param [2, ""]) == "LINE"};
-private _reserve = (units _group) select {alive _x && {local _x} && {((_x getVariable ["WAIT_AIPass_DefendPos", []]) param [2, ""]) == "RESERVE"}};
+private _reserve = (units _group) select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}
+        && {((_x getVariable ["WAIT_AIPass_DefendPos", []]) param [2, ""]) == "RESERVE"}
+};
 if (_reserve isEqualTo [] || {_lineUnits isEqualTo []}) exitWith {false};
-private _aliveLine = _lineUnits select {alive _x};
+private _aliveLine = _lineUnits select {[_x] call WAIT_fnc_CortexCombatEffective};
 private _target = [];
 if (count _aliveLine / count _lineUnits <= 0.67) then {
-    private _fallen = _lineUnits select {!alive _x};
+    private _fallen = _lineUnits select {!([_x] call WAIT_fnc_CortexCombatEffective)};
     if (_fallen isNotEqualTo []) then {_target = (_fallen select 0) getVariable ["WAIT_AIPass_DefendPos", []]};
 };
 if (_target isEqualTo []) then {
@@ -55,7 +62,7 @@ _target params ["_spot", "_sector"];
             if (!surfaceIsWater _alternative && {((surfaceNormal _alternative) select 2) >= 0.55}) exitWith {_position=_alternative};
         } forEach [0.65,0.35,0];
     };
-    if !([_group] call WAIT_fnc_CortexExternalTakeover) then {
+    if !([_group,false,_x] call WAIT_fnc_CortexExternalTakeover) then {
         _x setVariable ["WAIT_AIPass_DefendPos", [_position, _sector, "LINE"], true];
     };
 } forEach _reserve;

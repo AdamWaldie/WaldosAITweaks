@@ -209,9 +209,9 @@ class ExtendedSourceOwnershipContracts(unittest.TestCase):
         self.assertIn('requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"}', config)
         self.assertNotIn('@LAMBS_Danger.fsm', launcher)
         self.assertNotIn('fsmDanger =', config)
-        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', infantry)
+        self.assertIn('requiredAddons[] = {"cba_main"}', infantry)
         self.assertNotIn('fsmDanger =', infantry)
-        self.assertIn('requiredAddons[] = {"A3_Characters_F"}', danger)
+        self.assertIn('requiredAddons[] = {"cba_main", "A3_Characters_F"}', danger)
         for base in ['SoldierWB','SoldierEB','SoldierGB']:
             self.assertIn('class '+base+': CAManBase', danger)
         self.assertEqual(danger.count('fsmDanger = "z\\wait\\danger\\danger.fsm"'),3)
@@ -463,5 +463,70 @@ class SemanticComponentContracts(unittest.TestCase):
         self.assertIn('core', schedulers[0].parts)
         validator = (ROOT/'releaseVerificationAndDeployment/sqf_validator.py').read_text()
         self.assertIn("['addons',", validator)
+
+    def test_danger_throw_rechecks_contact_before_release(self):
+        source = (ROOT/'addons/infantry/functions/cortexThrowGrenade.sqf').read_text()
+        check = source.index('if (_contactChanged) exitWith')
+        self.assertLess(check, source.index('_unit forceWeaponFire'))
+        self.assertIn('"CONTACT_CHANGED"', source)
+        self.assertIn('_throwBearing-_contactBearing', source)
+        self.assertIn('stance _unit,+_towards,getDir _unit,eyeDirection _unit', source)
+
+    def test_smoke_fixture_retires_hostile_before_later_contact_cases(self):
+        source = (ROOT/'releaseVerificationAndDeployment/cortexQA/runContact.sqf').read_text()
+        creation = source.index('private _smokeEnemy=_smokeEnemyGroup createUnit')
+        cleanup = source.index('deleteVehicle _smokeEnemy;', creation)
+        self.assertLess(cleanup, source.index('private _closeTarget='))
+        self.assertIn('deleteGroup _smokeEnemyGroup;', source[cleanup:cleanup+150])
+
+    def test_ground_support_rechecks_generation_and_hostility_before_fire(self):
+        source = (ROOT/'addons/infantry/functions/cortexCombinedGroundStep.sqf').read_text()
+        fire = source.index('_gunner doFire')
+        self.assertLess(source.index('private _currentOperation='), fire)
+        self.assertLess(source.index('"TARGET_NO_LONGER_HOSTILE"'), fire)
+        self.assertIn('getOrDefault ["intent",""]) != "COMBINED_GROUND"', source)
+        self.assertIn('getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])', source)
+        local = (ROOT/'addons/infantry/functions/cortexCombinedArmsLocal.sqf').read_text()
+        self.assertLess(local.index('captive _target'), local.index('_group reveal'))
+
+    def test_static_pair_selection_preserves_existing_native_tasks(self):
+        source = (ROOT/'addons/infantry/functions/cortexStaticDeployStep.sqf').read_text()
+        selection = source[source.index('private _ready='):source.index('private _gunnerIndex=')]
+        for task in ['GET OUT', 'REPAIR', 'REFUEL', 'SCRIPTED', 'FIRST AID',
+                     'CARRY SOLDIER', 'ASSEMBLE', 'DISASSEMBLE', 'TAKE BAG', 'DROP BAG']:
+            self.assertIn('"'+task+'"', selection)
+
+    def test_passenger_readiness_yields_actor_owned_tasks(self):
+        source = (ROOT/'addons/vehicles/functions/cortexPassengerReady.sqf').read_text()
+        self.assertIn('[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover', source)
+        for task in ['HEAL SOLDIER', 'FIRST AID', 'CARRY SOLDIER', 'DISASSEMBLE']:
+            self.assertIn('"'+task+'"', source)
+        self.assertIn('assignedVehicle _unit != _vehicle', source)
+        self.assertLess(source.index('private _command='), source.index('lineIntersectsSurfaces'))
+
+    def test_convoy_cover_cleanup_preserves_new_actor_tasks(self):
+        source = (ROOT/'addons/vehicles/functions/convoyDismountLocal.sqf').read_text()
+        self.assertIn('private _operator = _nativeTask || {_reservedMove}', source)
+        self.assertIn('[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover', source)
+        self.assertIn('private _ownedExit=_ours', source)
+        self.assertLess(source.index('private _nativeTask='), source.index('_unit doFollow'))
+        self.assertLess(source.index('private _reservedMove='), source.index('_unit doMove'))
+
+    def test_static_support_release_preserves_new_actor_tasks(self):
+        source = (ROOT/'addons/infantry/functions/cortexStaticSupport.sqf').read_text()
+        release = source[source.index('private _release='):source.index('private _enabled=')]
+        self.assertIn('private _ownedBoarding=', release)
+        self.assertIn('&& {!_protectedTask} && {!_newMove}', release)
+        self.assertIn('call WAIT_fnc_CortexCombatEffective', release)
+        self.assertLess(release.index('private _protectedTask='), release.index('orderGetIn false'))
+
+    def test_danger_posture_restore_is_generation_and_owner_bound(self):
+        source = (ROOT/'addons/infantry/functions/dangerReact.sqf').read_text()
+        for proof in ['(_lease select 5) == _generation', '(_lease select 6) == _epoch',
+                      '(_lease select 7) == clientOwner']:
+            self.assertIn(proof, source)
+        self.assertIn('count _lease > 0 && {!_leaseOwned}', source)
+        self.assertIn('private _leaseIntact=_leaseOwned', source)
+        self.assertIn('_until,_generation,_epoch,clientOwner', source)
 
 if __name__ == '__main__': unittest.main()

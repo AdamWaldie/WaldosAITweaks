@@ -25,6 +25,7 @@ if (_yieldToOwner) exitWith {
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -38,6 +39,7 @@ if (!(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -51,6 +53,7 @@ if ([] call WAIT_fnc_CortexIsPaused) exitWith {
     if (!_yieldToOwner) then {[_actor,"RELEASE"] call WAIT_fnc_DangerReact};
     _group setVariable ["WAIT_Danger_Events",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -73,14 +76,26 @@ private _responseActor=if (count _activeAction >= 6
 } else {
     _lastAssessment param [5,_actor,[objNull]]
 };
-if (isNull _responseActor || {!alive _responseActor} || {!local _responseActor}
+private _retiredWitness=_responseActor;
+private _responseUnavailable=count _activeAction >= 6
+    && {(_activeAction param [4,-1,[0]]) == _generation}
+    && {time < (_activeAction param [3,-1,[0]])}
+    && {!([_responseActor] call WAIT_fnc_CortexCombatEffective)
+        || {!local _responseActor} || {group _responseActor != _group}};
+if (!([_responseActor] call WAIT_fnc_CortexCombatEffective) || {!local _responseActor}
     || {group _responseActor != _group}) then {_responseActor=_actor};
 private _responseCommand=toUpperANSI (currentCommand _responseActor);
-if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
-    || {_responseCommand in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {
+private _nativeHandover=_responseUnavailable || {behaviour _responseActor == "CARELESS"} || {fleeing _responseActor}
+    || {_responseCommand in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]};
+if (_nativeHandover) then {
     [_responseActor,"RELEASE"] call WAIT_fnc_DangerReact;
-    _group setVariable ["WAIT_Danger_Events",nil];
+    private _otherWitnesses=(_group getVariable ["WAIT_Danger_Events",[]]) select {
+        _x isEqualType [] && {count _x >= 6}
+            && {(_x param [5,objNull,[objNull]]) != _retiredWitness}
+    };
+    _group setVariable ["WAIT_Danger_Events",_otherWitnesses];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -90,9 +105,17 @@ if (behaviour _responseActor == "CARELESS" || {fleeing _responseActor}
         _nativeBrain set ["wakeAt",time];
         _nativeBrain set ["nextAt",time];
     };
-    -1
 };
-private _events=_group getVariable ["WAIT_Danger_Events",[]];
+if (_nativeHandover && {(_group getVariable ["WAIT_Danger_Events",[]]) isEqualTo []}) exitWith {-1};
+// An explicit witness is part of the observation's domain and authority. Do not turn
+// an unavailable crew/foot witness into a different actor's response by substituting the anchor.
+// Older records without witness fields retain their documented group-anchor interpretation.
+private _events=(_group getVariable ["WAIT_Danger_Events",[]]) select {
+    if (_x isEqualType [] && {count _x >= 6}) then {
+        private _witness=_x param [5,objNull,[objNull]];
+        [_witness] call WAIT_fnc_CortexCombatEffective && {local _witness} && {group _witness == _group}
+    } else {true}
+};
 private _selected=[_events] call WAIT_fnc_DangerSelect;
 if (_selected isEqualTo []) exitWith {
     // Expired or malformed observations have no continuing authority. Clear them here while the
@@ -108,6 +131,7 @@ if (_selected isEqualTo []) exitWith {
         // operation. Do not restore a stale WAIT posture across that ownership boundary.
         if (!_yieldToOwner) then {[_actor,"RESTORE"] call WAIT_fnc_DangerReact};
         _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         _group setVariable ["WAIT_Danger_Contact",nil,true];
         _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -136,25 +160,42 @@ if (isNull _observer || {!alive _observer} || {!local _observer} || {group _obse
 private _sourceObserver=_selected param [6,_observer,[objNull]];
 if (isNull _sourceObserver || {!alive _sourceObserver} || {!local _sourceObserver}
     || {group _sourceObserver != _group}) then {_sourceObserver=_observer};
-if (!isNull _source && {alive _source} && {(side _group) getFriend (side _source) < 0.6}
+private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
+if (_action == "RELEASE") exitWith {
+    // Refusal is not a new response or contact. Preserve an independent live response and
+    // let other valid queued witnesses drain, without starting or waking another brain.
+    private _live=_group getVariable ["WAIT_Danger_Response",[]];
+    if (_remaining isNotEqualTo [] || {count _live == 5 && {(_live select 4) == _generation}
+        && {time < (_live select 3)}}) then {0.25} else {-1}
+};
+if (_action != "FORCED" && {!isNull _source} && {alive _source} && {!captive _source}
+    && {!(_source getVariable ["ace_captives_isSurrendering",false]) && {!(_source getVariable ["ace_captives_isHandcuffed",false])}} && {(side _group) getFriend (side _source) < 0.6}
     && {_sourceObserver knowsAbout _source > 0}) then {
     _group setVariable ["WAIT_Danger_Contact",[_source,_observedAt,time+2,_generation],true];
 };
-private _action=[_group,_selected] call WAIT_fnc_DangerActionSelect;
 // A concrete native task is an ownership boundary, not a tactical response mode. The engine FSM may
 // record the event and perform its observation-only FORCED state, but the assessment layer must not
 // publish a group response, wake the tactical brain or retain an older WAIT posture. Otherwise a
 // soldier boarding, healing, rearming or joining can be pulled into CONTACT by the same event that
 // correctly classified that task as authoritative.
 if (_action == "FORCED") exitWith {
+    private _retainedAction=_group getVariable ["WAIT_Danger_Action",[]];
+    private _anotherWitness=count _retainedAction >= 6
+        && {(_retainedAction param [4,-1,[0]]) == _generation}
+        && {time < (_retainedAction param [3,-1,[0]])}
+        && {(_retainedAction param [5,objNull,[objNull]]) != _observer};
+    // A forced task on one actor is not authority to erase another actor's finite response.
+    // Keep its existing expiry; this event neither refreshes it nor wakes a new tactical job.
+    if (_anotherWitness) exitWith {0.25};
     [_actor,"RELEASE"] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     private _forcedBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _forcedBrain > 0) then {_forcedBrain deleteAt "responsiveUntil"};
-    -1
+    if (_remaining isNotEqualTo []) then {0.25} else {-1}
 };
 // This is a finite handoff, not a target assignment or movement order. The group tactics FSM can
 // respond on its already-owned scheduler cycle while retaining route, operation and external ownership.
@@ -174,6 +215,7 @@ if (_replace) then {
     // lease from the newest observation.
     [_observer,_cause,_position,_action] call WAIT_fnc_DangerReact;
     _group setVariable ["WAIT_Danger_Response",_response,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",+_selected];
     // Keep the responder beside the action lease. WAIT_Danger_LastAssessment is intentionally the
     // newest evaluated record and may therefore change while this higher-priority response survives;
     // it cannot be used as durable ownership for the physical reaction.

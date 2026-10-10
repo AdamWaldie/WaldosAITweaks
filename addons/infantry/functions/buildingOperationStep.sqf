@@ -21,15 +21,50 @@ private _delay=call {
     private _group = _job get "group";
     if (isNull _group || {!local _group}) exitWith {-1};
     if ((_group getVariable ["WAIT_AIPass_ClearGeneration", -1]) != (_job get "generation")) exitWith {-1};
+    private _actorAvailable={
+        params ["_actor"];
+        private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _free=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        [_actor] call WAIT_fnc_CortexCombatEffective && {local _actor} && {!isPlayer _actor}
+            && {group _actor == _group} && {isNull objectParent _actor} && {_free}
+            && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
+            && {isNull (remoteControlled _actor)}
+            && {([_actor] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+    };
     private _finish = {
         params [["_restore",true,[true]],["_reason","CANCELLED",[""]]];
+        // Old-owner callbacks may finish their local FSM, but never retire a successor's
+        // durable order, results, assignments or restoration evidence.
+        if (isNull _group || {!local _group}
+            || {(_brain getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
+            || {(_job getOrDefault ["generation",-1]) != (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}) exitWith {
+            _job set ["finished",true];
+            _job set ["finishReason","OWNERSHIP_LOST"];
+            -1
+        };
+        _restore=_restore && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
+        // One bounded terminal snapshot preserves the route which actually failed before cleanup
+        // clears actors' destinations. No geometry query or recurring trace is added to the hot path.
+        private _routeActors=+(_job getOrDefault ["team",[]]);
+        _routeActors resize ((count _routeActors) min 16);
+        private _routeStates=+(_job getOrDefault ["pairStates",[]]);
+        _routeStates resize ((count _routeStates) min 8);
+        private _routeEvidence=[serverTime,_reason,_routeStates,_routeActors apply {
+            [netId _x,getPosATL _x,currentCommand _x,expectedDestination _x,
+                _x checkAIFeature "MOVE",_x checkAIFeature "PATH"]
+        }];
+        _group setVariable ["WAIT_Cortex_ClearRouteEvidence",_routeEvidence,true];
+        diag_log format ["WAIT CLEAR ROUTE END: %1",_routeEvidence];
         if (!isNull _group) then {
             private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
             if (isNull _leader) then {_leader=leader _group};
             {
                 if (local _x && {!isPlayer _x} && {group _x == _group}) then {
-                    if (alive _x && {lifeState _x != "INCAPACITATED"}) then {
+                    if ([_x] call _actorAvailable) then {
                         // Do not undo a replacement controller's stance or speed. The clear job
                         // restores temporary movement state only when it is returning to formation.
                         if (_restore && {unitPos _x == "UP"} && {!isNil {_x getVariable "WAIT_Cortex_ClearStance"}}) then {
@@ -43,9 +78,9 @@ private _delay=call {
                             _x doFollow _leader;
                         };
                     };
-                    _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil];
-                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil];
-                    _x setVariable ["WAIT_Cortex_ClearStance",nil];
+                    _x setVariable ["WAIT_Cortex_ClearForcedSpeed",nil,true];
+                    _x setVariable ["WAIT_Cortex_ClearAppliedSpeed",nil,true];
+                    _x setVariable ["WAIT_Cortex_ClearStance",nil,true];
                 };
             } forEach (_job get "team");
             _group setVariable ["WAIT_AIPass_ClearBuilding", nil, true];
@@ -54,6 +89,7 @@ private _delay=call {
             _group setVariable ["WAIT_AIPass_ClearApplied", nil];
         };
         private _result = ["INCOMPLETE","COMPLETE"] select (count (_job get "cleared") == count (_job get "positions") && {!(_job getOrDefault ["egressFailed",false])});
+        if (_reason != "COMPLETE") then {_result="CANCELLED"};
         _group setVariable ["WAIT_Cortex_ClearResult",[_result,count (_job get "cleared"),count (_job get "positions")],true];
         _job set ["finished",true];
         _job set ["finishReason",_reason];
@@ -61,13 +97,15 @@ private _delay=call {
         _group setVariable ["WAIT_Cortex_ClearStatus",nil,true];
         private _operationGeneration=_job getOrDefault ["operationGeneration",-1];
         if (_operationGeneration >= 0) then {
-            if (_result == "COMPLETE" && {_reason == "COMPLETE"}) then {
-                [_group,_operationGeneration,"COMPLETE","CLEAR_COMPLETE"] call WAIT_fnc_OperationRelease;
+            if (_reason == "COMPLETE") then {
+                private _outcomeReason=["CLEAR_INCOMPLETE","CLEAR_COMPLETE"] select (_result == "COMPLETE");
+                [_group,_operationGeneration,_result,_outcomeReason] call WAIT_fnc_OperationRelease;
             } else {
                 [_group,_operationGeneration,_reason] call WAIT_fnc_OperationCancel;
             };
         };
         diag_log format ["[WAIT] %1 clear building %2 (%3 of %4 positions)",_group,_result,count (_job get "cleared"),count (_job get "positions")];
+        diag_log format ["WAIT CLEAR END TRACE: %1",[_reason,_operationGeneration,(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1],_group getVariable ["WAIT_AIPass_Epoch",0],_brain getOrDefault ["ownerEpoch",-1]]];
         -1
     };
     if (isNull _group || {!local _group} || {!(_group getVariable ["WAIT_AIPass_ClearBuilding", false])}
@@ -101,14 +139,23 @@ private _delay=call {
     if ((_job getOrDefault ["phase","CLEAR"]) == "EGRESS") exitWith {
         private _assignments=(_job get "egressAssignments") select {
             _x params ["_unit"];
-            alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"}
-                && {group _unit == _group} && {isNull objectParent _unit}
+            [_unit] call _actorAvailable && {!(_unit in _unavailable)}
         };
-        private _arrived=_assignments findIf {(_x select 0) distance2D (_x select 1) > 5} < 0;
+        // A diverted/unavailable actor is no longer ours to route, but its unfinished exit
+        // must remain visible instead of counting an empty eligible set as successful egress.
+        if (count _assignments < count (_job get "egressAssignments")) then {_job set ["egressFailed",true]};
+        private _outsideExit={
+            params ["_assignment"];
+            _assignment params ["_unit","_target"];
+            _unit distance2D _target > 5
+                || {abs (((getPosATL _unit) select 2)-(_target param [2,0])) > 1.5}
+        };
+        // Matching a ground exit horizontally is insufficient when still upstairs.
+        private _arrived=_assignments findIf {[_x] call _outsideExit} < 0;
         if (_arrived || {_assignments isEqualTo []} || {time >= (_job get "egressDeadline")}) then {
             if (!_arrived && {_assignments isNotEqualTo []}) then {
                 _job set ["egressFailed",true];
-                diag_log format ["[WAIT] %1 clear egress incomplete (%2 still inside)",_group,{(_x select 0) distance2D (_x select 1) > 5} count _assignments];
+                diag_log format ["[WAIT] %1 clear egress incomplete (%2 still inside)",_group,{[_x] call _outsideExit} count _assignments];
             };
             [true,"COMPLETE"] call _finish
         } else {
@@ -143,12 +190,21 @@ private _delay=call {
     private _rotatedOut=_job getOrDefault ["rotatedOut",[]];
     {_rotatedOut pushBackUnique _x} forEach (_reserved select {_x in _unavailable});
     _job set ["rotatedOut",_rotatedOut];
-    private _reserves=(units _group) select {
-        alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-        && {isNull objectParent _x} && {!(_x in _reserved)} && {!(_x in _rotatedOut)} && {_x != _leader}
+    private _reserveReady={
+        params ["_candidate"];
+        private _reservation=_candidate getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _reservationFree=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        [_candidate] call WAIT_fnc_CortexCombatEffective && {local _candidate} && {!isPlayer _candidate}
+            && {isNull objectParent _candidate} && {!(_candidate in _reserved)} && {!(_candidate in _rotatedOut)}
+            && {!(_candidate in _unavailable)} && {isNull (remoteControlled _candidate)}
+            && {([_candidate] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {_reservationFree} && {_candidate checkAIFeature "MOVE"} && {_candidate checkAIFeature "PATH"}
+            && {!([_candidate] call WAIT_fnc_CompatibilityExternalControl)}
+            && {!(currentCommand _candidate in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
     };
-    if (_reserves isEqualTo [] && {alive _leader} && {local _leader} && {!isPlayer _leader}
-        && {lifeState _leader != "INCAPACITATED"} && {isNull objectParent _leader} && {!(_leader in _reserved)}) then {
+    private _reserves=(units _group) select {[_x] call _reserveReady && {_x != _leader}};
+    if (_reserves isEqualTo [] && {[_leader] call _reserveReady}) then {
         _reserves pushBack _leader;
     };
     {
@@ -157,12 +213,35 @@ private _delay=call {
         private _state=_pairStates select _pairIndex;
         for "_slot" from 0 to ((count _pair)-1) do {
             private _member=_pair select _slot;
-            if ((!alive _member || {!local _member} || {isPlayer _member} || {lifeState _member == "INCAPACITATED"}
-                || {group _member != _group} || {!isNull objectParent _member} || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
+            if ((!([_member] call _actorAvailable) || {_member in _unavailable}) && {_reserves isNotEqualTo []}) then {
                 private _replacement=_reserves deleteAt 0;
                 _pair set [_slot,_replacement];
+                _rotatedOut pushBackUnique _member;
                 private _team=_job get "team";
                 _team pushBackUnique _replacement;
+                // The pair and common lifecycle must account for the same replacement.
+                // A reserve's real travel cannot renew progress while absent from this roster.
+                private _liveOperation=_group getVariable ["WAIT_Operation",createHashMap];
+                if ((_liveOperation getOrDefault ["generation",-1]) == _operationGeneration
+                    && {(_liveOperation getOrDefault ["intent",""]) == "CLEAR"}
+                    && {(_liveOperation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+                    private _participants=+(_liveOperation getOrDefault ["participants",[]]);
+                    _participants=_participants-[_member];
+                    _participants pushBackUnique _replacement;
+                    private _progressRecords=(_liveOperation getOrDefault ["participantProgress",[]]) select {(_x select 0) != _member};
+                    if (_progressRecords findIf {(_x select 0) == _replacement} < 0) then {
+                        _progressRecords pushBack [_replacement,getPosATL _replacement];
+                    };
+                    // Retire only the removed actor's active observation. Its retry budget and
+                    // unavailable status remain generation-owned, preventing reserve rotation from
+                    // making a failed actor eligible for unlimited recovery attempts.
+                    private _recovery=_liveOperation getOrDefault ["recovery",createHashMap];
+                    _recovery deleteAt (netId _member);
+                    _liveOperation set ["recovery",_recovery];
+                    _liveOperation set ["participants",_participants];
+                    _liveOperation set ["participantProgress",_progressRecords];
+                    _group setVariable ["WAIT_Operation",_liveOperation,true];
+                };
                 (_job get "assigned") pushBack [];
                 private _lastPositions=_state select 2;
                 _lastPositions set [_slot,getPosATL _replacement];
@@ -177,13 +256,14 @@ private _delay=call {
             };
         };
     } forEach _pairs;
+    _job set ["rotatedOut",_rotatedOut];
     // Release reservations before selection so another soldier can visit a casualty's room.
     // Reassigned units belong to their new commander and must receive no further orders here.
-    private _activeWorkers=(_job get "team") select {alive _x && {local _x} && {!isPlayer _x}
-        && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
+    private _activeWorkers=(_job get "team") select {[_x] call _actorAvailable
+        && {!(_x in _rotatedOut)} && {!(_x in _unavailable)}};
     private _failureThreshold=(count (_job get "pairs")) min 2 max 1;
     {
-        if (!alive _x || {!local _x} || {isPlayer _x} || {lifeState _x == "INCAPACITATED"} || {_x in _unavailable} || {group _x != _group} || {!isNull objectParent _x}) then {
+        if (!([_x] call _actorAvailable) || {_x in _rotatedOut} || {_x in _unavailable}) then {
             _assigned set [_forEachIndex,[]];
         };
     } forEach (_job get "team");
@@ -206,8 +286,10 @@ private _delay=call {
     _job set ["visitCursor",(_visitCursor+_visitBudget) mod (count _positions)];
     {
         private _visitor = _x;
-        if (alive _visitor && {local _visitor} && {!isPlayer _visitor}
-            && {lifeState _visitor != "INCAPACITATED"} && {group _visitor == _group}
+        if ([_visitor] call WAIT_fnc_CortexCombatEffective && {local _visitor} && {!isPlayer _visitor}
+            && {isNull (remoteControlled _visitor)}
+            && {([_visitor] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_visitor] call WAIT_fnc_CompatibilityExternalControl)} && {group _visitor == _group}
             && {isNull objectParent _visitor}) then {
             private _actual = getPosASL _visitor;
             {
@@ -228,7 +310,7 @@ private _delay=call {
     private _pairRoutes=_job get "pairRoutes";
     {
         private _pairIndex=_forEachIndex;
-        private _pair=_x select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}};
+        private _pair=_x select {[_x] call _actorAvailable && {!(_x in _unavailable)}};
         if (_pair isEqualTo []) then {
             private _state=_pairStates select _pairIndex;
             private _route=_pairRoutes select _pairIndex;
@@ -252,6 +334,11 @@ private _delay=call {
                     private _pairId=format ["PAIR_%1",_pairIndex];
                     private _candidates=_pending select {!(_pairId in (_failedBy select _x))};
                     if (_candidates isNotEqualTo []) then {
+                        // The shared queue's floor ordering must survive each actor's nearest-room
+                        // ranking. Otherwise a close upstairs window can win before ground entry.
+                        private _lowestFloor=1e12;
+                        {_lowestFloor=_lowestFloor min ((_positions select _x) select 2)} forEach _candidates;
+                        _candidates=_candidates select {abs (((_positions select _x) select 2)-_lowestFloor) < 1.8};
                         private _point=_pair select (_moverIndex mod count _pair);
                         private _ranked=_candidates apply {
                             private _candidate=_positions select _x;
@@ -265,8 +352,10 @@ private _delay=call {
                         _lastTarget=-1;
                         _retries=0;
                         _triedEntries=[];
-                        _entryIndex=-1;
-                        if ((_job get "entries") isNotEqualTo []) then {
+                        // Keep this lane's chosen entrance between room claims. Re-select only
+                        // when it has no valid entry; an entered lane must not rally outside again.
+                        if ((_entryIndex < 0 || {_entryIndex >= count (_job get "entries")})
+                            && {(_job get "entries") isNotEqualTo []}) then {
                             private _entryRanks=(_job get "entries") apply {[_point distance2D _x,_forEachIndex]};
                             _entryRanks sort true;
                             _entryIndex=(_entryRanks select 0) select 1;
@@ -276,7 +365,7 @@ private _delay=call {
                         // near the building keep the faster direct route.
                         private _entryTarget=if (_entryIndex >= 0) then {(_job get "entries") select _entryIndex} else {[]};
                         private _entryProbe=_pair select (_moverIndex mod count _pair);
-                        _approachingEntry=_entryTarget isNotEqualTo [] && {_entryProbe distance2D _entryTarget > 8};
+                        _approachingEntry=!_entered && {_entryTarget isNotEqualTo []} && {_entryProbe distance2D _entryTarget > 8};
                     };
                 };
                 if (_cursor < count _route) then {
@@ -286,7 +375,8 @@ private _delay=call {
                     } else {[]};
                     if (_approachingEntry && {_entryTarget isNotEqualTo []} && {_pair findIf {_x distance2D _entryTarget <= 3} >= 0}) then {
                         _approachingEntry=false;
-                        _entered=true;
+                        // Reaching the entrance only completes approach staging. Interior entry
+                        // is established by a physically visited room below, never doorway proximity.
                         _triedEntries pushBackUnique _entryIndex;
                         _lastTarget=-1;
                         _retries=0;
@@ -294,13 +384,26 @@ private _delay=call {
                     private _target=[_positions select _positionIndex,_entryTarget] select _approachingEntry;
                     private _issue=_lastTarget != _positionIndex;
                     private _point=_pair select (_moverIndex mod count _pair);
+                    private _bestDistance=_state param [13,1e12,[0]];
+                    private _bestTarget=_state param [14,[],[[]]];
+                    if (_bestTarget isNotEqualTo _target) then {
+                        _bestTarget=+_target;
+                        _bestDistance=(getPosATL _point) vectorDistance _target;
+                    };
                     private _supportTarget=[];
                     if (count _pair > 1) then {
                         _supportTarget=if (_approachingEntry) then {
                             private _outward=(getPosATL (_job get "building")) getDir _entryTarget;
                             _entryTarget getPos [3,_outward]
                         } else {
-                            if (_previousPositionIndex >= 0) then {_positions select _previousPositionIndex} else {if (_entryTarget isEqualTo [] || {!_approachingEntry && {_entered}}) then {_target} else {_entryTarget}}
+                            if (_previousPositionIndex >= 0) then {_positions select _previousPositionIndex} else {
+                                if (_entryTarget isEqualTo [] || {_entered}) then {_target} else {
+                                    // Keep first-room security clear of the threshold. Standing on
+                                    // the entrance can physically block the partner's only path inside.
+                                    private _outward=(getPosATL (_job get "building")) getDir _entryTarget;
+                                    _entryTarget getPos [3,_outward+60]
+                                }
+                            }
                         };
                         if (_supportTarget isEqualTo []) then {
                             private _outward=(getPosATL (_job get "building")) getDir _target;
@@ -314,16 +417,24 @@ private _delay=call {
                             private _started=_job get "started";
                             if !(_unit in _started) then {
                                 doStop _unit;
-                                _unit setVariable ["WAIT_Cortex_ClearStance",unitPos _unit];
-                                _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
+                                // Preserve the original baseline across owner-local worker rebuilds.
+                                // A later different setting becomes the new baseline, not old WAIT state.
+                                private _priorStance=_unit getVariable ["WAIT_Cortex_ClearStance",unitPos _unit];
+                                if (toUpperANSI (unitPos _unit) != "UP") then {_priorStance=unitPos _unit};
+                                private _priorSpeed=_unit getVariable ["WAIT_Cortex_ClearForcedSpeed",getForcedSpeed _unit];
+                                if (abs ((getForcedSpeed _unit)-(_unit getVariable ["WAIT_Cortex_ClearAppliedSpeed",getForcedSpeed _unit])) > 0.1) then {
+                                    _priorSpeed=getForcedSpeed _unit;
+                                };
+                                _unit setVariable ["WAIT_Cortex_ClearStance",_priorStance,true];
+                                _unit setVariable ["WAIT_Cortex_ClearForcedSpeed",_priorSpeed,true];
                                 _unit setUnitPos "UP";
                                 private _clearSpeed=[4.5,5] select (combatMode _group in ["YELLOW","RED"]);
-                                _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed];
+                                _unit setVariable ["WAIT_Cortex_ClearAppliedSpeed",_clearSpeed,true];
                                 _unit forceSpeed _clearSpeed;
                                 _started pushBack _unit;
                             };
                             private _unitTarget=if (_unit == _point || {_supportTarget isEqualTo []}) then {_target} else {_supportTarget};
-                            _unit doMove _unitTarget;
+                            if (call _mayIssueMovement) then {_unit doMove _unitTarget;};
                         };
                         _assigned set [(_job get "team") find _unit,[_positionIndex,_lastProgress,getPosATL _unit,_retries,_approachingEntry]];
                     } forEach _pair;
@@ -333,20 +444,28 @@ private _delay=call {
                     // counting that movement hid doorway stalls and prevented recovery indefinitely.
                     private _moverSlot=_moverIndex mod count _pair;
                     private _moverPrevious=_lastPositions param [_moverSlot,getPosATL _point];
-                    private _moved=_point distance2D _moverPrevious >= 1;
+                    private _moved=(getPosATL _point) vectorDistance _moverPrevious >= 1;
                     if (_approachingEntry && {!_moved}) then {
                         _moved=_pair findIf {
                             private _old=_lastPositions param [_forEachIndex,getPosATL _x];
-                            _x distance2D _old >= 1
+                            (getPosATL _x) vectorDistance _old >= 1
                         } >= 0;
                     };
                     if (_moved) then {
                         _lastPositions=_pair apply {getPosATL _x};
-                        _lastProgress=_now;
-                        _job set ["deadline",(_job get "deadline") max (serverTime+120)];
-                        _job set ["lastProgressAt",serverTime];
+                        // Walking can be legitimate navigation without approaching this node.
+                        // Only new best approach progress renews retry and operation budgets;
+                        // circles must eventually reach the bounded retry/recovery path.
+                        private _targetDistance=(getPosATL _point) vectorDistance _target;
+                        if (_bestDistance-_targetDistance >= 1) then {
+                            _bestDistance=_targetDistance;
+                            _lastProgress=_now;
+                            _job set ["lastProgressAt",serverTime];
+                            _job set ["deadline",(_job get "deadline") max (serverTime+120)];
+                        };
                     };
                     if (_positionIndex in _cleared) then {
+                        _entered=true;
                         _previousPositionIndex=_positionIndex;
                         _cursor=_cursor+1;
                         _roomsCleared=_roomsCleared+1;
@@ -433,6 +552,7 @@ private _delay=call {
                     _state set [9,_entryIndex]; _state set [10,_triedEntries];
                     _state set [11,_roomsCleared];
                     _state set [12,_entered];
+                    _state set [13,_bestDistance]; _state set [14,_bestTarget];
                 };
             };
         };
@@ -440,22 +560,21 @@ private _delay=call {
     private _madeProgress=count _cleared != _before || {count _unreachable != _unreachableBefore};
     if (_pairStates findIf {_x param [12,false]} >= 0 && {(_job getOrDefault ["phase","ENTRY"]) == "ENTRY"}) then {_job set ["phase","SWEEP"]};
     if (_madeProgress) then {_job set ["phase","SWEEP"]} else {if (_retryChanged) then {_job set ["phase","REPLAN"]}};
-    if (_madeProgress) then {
-        // The total lease is a safety net, not a performance assumption. Genuine physical
-        // progress renews it so a busy server or delayed HC does not expire a working clear.
+    if (count _cleared != _before) then {
+        // Physical room visits renew the safety lease. An unreachable classification advances
+        // the finite queue but is not successful physical progress and cannot extend its budget.
         _job set ["lastProgressAt",serverTime];
         _job set ["deadline",(_job get "deadline") max (serverTime+120)];
     };
     if (_madeProgress || {_retryChanged}) then {
-        _group setVariable ["WAIT_AIPass_ClearOrder", [_job get "building", +_cleared, _job get "deadline", _job get "baseBehaviour", +_unreachable, +_retryCounts, +_failedBy, _job get "lastProgressAt"], true];
+        _group setVariable ["WAIT_AIPass_ClearOrder", [_job get "building", +_cleared, _job get "deadline", _job get "baseBehaviour", +_unreachable, +_retryCounts, +_failedBy, _job get "lastProgressAt",_job getOrDefault ["baseAttack",true]], true];
         _group setVariable ["WAIT_Cortex_ClearStatus",[_job getOrDefault ["phase","SWEEP"],count _cleared,count _unreachable,count (_job get "positions"),count (_job get "pairs"),_job get "lastProgressAt"],true];
     };
-    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {(_job get "team") findIf {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {!(_x in _unavailable)} && {group _x == _group} && {isNull objectParent _x}} < 0}) exitWith {
+    if ((count _cleared + count _unreachable) >= count _positions || {serverTime > (_job get "deadline")} || {_activeWorkers isEqualTo []}) exitWith {
         private _active=[];
         {_active append _x} forEach (_job get "pairs");
         _active=_active arrayIntersect _active;
-        _active=_active select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}
-            && {group _x == _group} && {isNull objectParent _x}};
+        _active=_active select {[_x] call _actorAvailable && {!(_x in _unavailable)}};
         private _entries=_job get "entries";
         private _buildingPos=getPosATL (_job get "building");
         private _egressAssignments=_active apply {
@@ -490,6 +609,15 @@ private _delay=call {
 };
 if (isNil "_delay" || {!(_delay isEqualType 0)}) then {_delay=-1};
 private _phase=toUpperANSI (_job getOrDefault ["phase","ENTRY"]);
+private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if (count _currentOperation > 0 && {local _group}
+    && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_currentOperation getOrDefault ["generation",-1]) == (_job getOrDefault ["operationGeneration",-2])}
+    && {(_currentOperation getOrDefault ["intent",""]) == "CLEAR"}
+    && {(_currentOperation getOrDefault ["phase",""]) != _phase}) then {
+    _currentOperation set ["phase",_phase];
+    _group setVariable ["WAIT_Operation",_currentOperation,true];
+};
 _brain set ["phase",_phase];
 _brain set ["lastStepAt",time];
 _brain set ["lastDelay",_delay];
@@ -501,7 +629,9 @@ if (_delay < 0) then {
 } else {
     _brain set ["nextAt",time+_delay];
 };
-if (!isNull _group) then {
+if (!isNull _group && {local _group}
+    && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_job getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}) then {
     _group setVariable ["WAIT_BuildingBrain_State",[
         _phase,
         _brain getOrDefault ["generation",-1],

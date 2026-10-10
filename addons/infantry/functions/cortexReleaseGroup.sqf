@@ -61,6 +61,27 @@ if (_reason == "") then {
     _reason=if (_yieldToZeus) then {"ZEUS_TAKEOVER"} else {if (_yieldToExternal) then {"EXTERNAL_TAKEOVER"} else {"RELEASED"}};
 };
 private _externalTakeover=_yieldToZeus || {_yieldToExternal} || {_reason in ["ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
+// New curator intent invalidates pending operation work even when no common record
+// is active. Advance on the owner once per token; repeated cleanup is a no-op here.
+if (local _group && {_reason == "ZEUS_TAKEOVER"}) then {
+    private _curatorToken=_group getVariable ["WAIT_AIPass_ZeusHold",[]];
+    if (count _curatorToken == 2
+        && {(_group getVariable ["WAIT_OperationCuratorToken",-1]) != (_curatorToken select 0)}) then {
+        // Release exact-owned drill feature holds before invalidating their generation.
+        // ZEUS suppresses posture, mode and formation restoration; the curator keeps its order.
+        if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
+            [_group,_state,"ZEUS"] call WAIT_fnc_CortexFlankEnd;
+        };
+        _group setVariable ["WAIT_OperationCuratorToken",_curatorToken select 0];
+        _group setVariable ["WAIT_OperationGeneration",(_group getVariable ["WAIT_OperationGeneration",0])+1,true];
+    };
+};
+// Explicit holding orders can survive without a tactical map while contact automation is off.
+// A terminal release still needs one authoritative diagnostic record, not a stale checkpoint.
+if (local _group && {count _state == 0}
+    && {_reason in ["CORTEX_STOPPED","ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]}) then {
+    _state set ["phase",_group getVariable ["WAIT_AIPass_PublicPhase","CALM"]];
+};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (local _group && {count _operation > 0}) then {
     [_group,_operation getOrDefault ["generation",-1],_reason] call WAIT_fnc_OperationCancel;
@@ -80,6 +101,9 @@ if (_externalTakeover) then {
 // WAIT building operations are movement owners too. Zeus replacement orders terminate them before
 // general group state is restored.
 if (_externalTakeover) then {
+    // Defence is an explicit movement owner too. Retire its public assignment so
+    // discovery/locality replay cannot restore the old line after a curator edit.
+    [_group,false] call WAIT_fnc_CortexDefendRelease;
     [_group,false] call WAIT_fnc_CortexClearRelease;
     [_group,false] call WAIT_fnc_CortexGarrisonRelease;
 };
@@ -89,10 +113,12 @@ if (local _group && {count _state > 0 || {_markedSupportHold} || {(_group getVar
     [_group, _state, false, _externalTakeover, _reason] call WAIT_fnc_CortexRestoreCalm;
 };
 if (local _group) then {
+    _group setVariable ["WAIT_Cortex_DismountContinuation",nil,true];
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
+    _group setVariable ["WAIT_Danger_CoverPending",nil];
     private _dangerCoverLease=_group getVariable ["WAIT_Danger_CoverLease",[]];
     if (count _dangerCoverLease >= 2) then {
-        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1] call WAIT_fnc_DangerCoverStep;
+        [_group,_dangerCoverLease select 0,[],_dangerCoverLease select 1,true] call WAIT_fnc_DangerCoverStep;
     };
     private _dangerActor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _dangerActor) then {_dangerActor=leader _group};
@@ -107,6 +133,7 @@ if (local _group) then {
     // A release or Zeus takeover invalidates any still-published danger handoff before another
     // controller can consume it. Event handlers will create a fresh, owner-local response later.
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -139,6 +166,7 @@ private _releasedVehicles=[];
             _vehicle forceSpeed (_saved param [0,-1]);
         };
         _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
         _vehicle setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
     };

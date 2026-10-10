@@ -21,24 +21,37 @@ if (isNull _group || {!local _group} || {!(count _event in [4,5,6,7])}) exitWith
 // in the group) to receive a reaction after the other danger paths had already yielded.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {"RELEASE"};
 private _actor=_event param [5,objNull,[objNull]];
-// The event observer is authoritative only while it remains a living local member. Older scripted
-// callers and events surviving a casualty fall back to the current combat-effective anchor.
-if (isNull _actor || {!alive _actor} || {!local _actor} || {group _actor != _group}) then {
+// An explicit witness carries response-domain ownership. Its loss cannot be repaired by
+// substituting a foot leader for a crew member or an unrelated surviving soldier.
+if (count _event >= 6 && {!([_actor] call WAIT_fnc_CortexCombatEffective)
+    || {!local _actor} || {group _actor != _group}}) exitWith {"RELEASE"};
+// Only older position-only callers intentionally use the current group representative.
+if (count _event < 6) then {
     _actor=[_group] call WAIT_fnc_CortexGroupAnchor;
     if (isNull _actor) then {_actor=leader _group};
 };
-if (isNull _actor || {!alive _actor}) exitWith {"RELEASE"};
+if (!([_actor] call WAIT_fnc_CortexCombatEffective) || {!local _actor} || {isPlayer _actor}
+    || {group _actor != _group}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {"RELEASE"};
 // A concrete native task remains authoritative through the group handoff as well as the immediate
 // engine branch. ATTACK is deliberately absent: Arma also assigns it during ordinary autonomous
 // combat, and WAIT's response changes only a finite posture while native targeting and movement stay
 // authoritative. Zeus, players and declared external owners have already yielded above.
-if (fleeing _actor || {currentCommand _actor in ["GET IN","ACTION","HEAL","REARM","JOIN"]}) exitWith {"FORCED"};
+if (fleeing _actor || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {"FORCED"};
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
 private _cause=_event select 0;
 // Detection, proximity, a firing opportunity and audible fire require the native-known hostile
 // retained in the event before they can become an engagement. Resolve this before MAINTAIN: an
 // approximate observation during an existing operation may preserve that route, but it cannot gain
 // CONTACT authority merely because WAIT already owns movement.
+private _source=_event param [4,objNull,[objNull]];
+// A retained identity is not permanent hostility. Zeus/mission side changes and surrender
+// invalidate engagement authority even while native knowledge still remembers that object.
+if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"] && {!isNull _source}
+    && {!alive _source || {captive _source}
+        || {_source getVariable ["ace_captives_isSurrendering",false]}
+        || {_source getVariable ["ace_captives_isHandcuffed",false]}
+        || {(side _group) getFriend (side _source) >= 0.6}}) exitWith {"RELEASE"};
 if (_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]
     && {isNull (_event param [4,objNull,[objNull]])}) exitWith {"HIDE"};
 // A current operation has already committed a physical route and owns its restoration. A danger

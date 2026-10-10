@@ -18,12 +18,13 @@
  */
 
 params [['_actor',objNull,[objNull]],['_records',[],[[]]],['_mode','ASSESS',['']]];
-if (isNull _actor || {!local _actor} || {!alive _actor} || {isPlayer _actor}) exitWith {false};
+if (isNull _actor || {!local _actor} || {!([_actor] call WAIT_fnc_CortexCombatEffective)} || {isPlayer _actor}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 private _group=group _actor;
 if (isNull _group || {!local _group}
     || {!(missionNamespace getVariable ['WAIT_AIPass_Active',false])}
     || {!([_group,'WAIT_AIPass_Danger_Enable',true] call WAIT_fnc_CortexFeatureEnabled)}
-    || {[_group] call WAIT_fnc_CortexExternalTakeover}
+    || {[_group,false,_actor] call WAIT_fnc_CortexExternalTakeover}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 
 // Preserve the engine distinction between losing a member of this group and finding another body.
@@ -40,21 +41,25 @@ private _reflexOnly=0;
         private _cause=_x param [0,-1,[0]];
         private _position=_x param [1,[],[[]]];
         private _expires=_x param [2,time,[0]];
-        if (_cause >= 0 && {_cause < count _causeNames} && {count _position >= 2} && {_expires >= time - 0.25}) then {
+        if (_cause >= 0 && {_cause < count _causeNames} && {count _position in [2,3]} && {_position findIf {!(_x isEqualType 0)} < 0} && {_expires >= time - 0.25}) then {
             _processed=true;
             if (count _position == 2) then {_position pushBack ((getPosATL _actor) select 2)};
             private _source=_x param [3,objNull,[objNull]];
             private _knownFriendly=!isNull _source && {(side _group) getFriend (side _source) >= 0.6};
-            private _hostileSource=!isNull _source && {alive _source}
+            private _hostileSource=!isNull _source && {alive _source} && {!captive _source}
+                && {!(_source getVariable ["ace_captives_isSurrendering",false])}
+                && {!(_source getVariable ["ace_captives_isHandcuffed",false])}
                 && {(side _group) getFriend (side _source) < 0.6};
             private _hostileEngage=_cause in [0,3,8] && {_hostileSource};
+            // Discovering a friendly body from another group is still an alert; native cause 6
+            // must not be discarded merely because that casualty shares the observer's side.
             // Immediate hazards remain a local reflex even when a friendly weapon caused them, but
             // they may not manufacture group contact. Engage causes require a confirmed hostile.
             // The engine FSM has already classified concrete boarding, treatment, supply, action
             // and join tasks as FORCED. Keep their danger evidence actor-local: publishing even a
             // transient group record can wake CONTACT before the later group step clears it.
             private _groupRelevant=if (_mode in ['FORCED','RELEASE'] || {_cause == 10}) then {false} else {
-                if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,7]}}
+                if (_cause in [0,3,8]) then {_hostileEngage} else {!_knownFriendly || {_cause in [5,6,7]}}
             };
             if (count _position == 3 && {_groupRelevant}) then {
                 private _causeName=_causeNames select _cause;

@@ -3,6 +3,7 @@
  * Purpose: Executes one bounded physical convoy step and derives its semantic FSM phase from the authoritative snapshot, contact evidence, recovery leases and measured predecessor gaps.
  * Locality / Authority: Runs through WAIT's shared scheduler on the convoy group owner. ConvoyTick rechecks authority at every vehicle command boundary.
  * Repeat/JIP: One-shot callback. Registry revision, configuration identity and job token reject stale work after settings changes, JIP replay or headless migration.
+ * Spacing diagnostics reuse ConvoyTick's cached vehicle dimensions and aligned forward-gap rule.
  * Arguments: 0 convoy brain <HASHMAP> created by WAIT_fnc_ConvoyOperationStart.
  * Return Value: Number - always -1 because the FSM schedules each later step separately.
  * Current caller: WAIT_fnc_ConvoyOperationQueue through WAIT_fnc_CortexQueueJob.
@@ -21,19 +22,29 @@ if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {["EXTERNAL_OWNER"] 
 [_group,_configuration] call WAIT_fnc_ConvoyTick;
 private _state=_group getVariable ["WAIT_Convoy_LocalState",createHashMap];private _reason=toUpperANSI (_configuration param [8,"NONE"]);private _phase="CRUISE";private _delay=1;private _spacingPairs=0;private _recoveryActors=0;
 if ((_configuration param [5,"TRAVEL"]) == "HALT") then {
- _delay=30;_phase=switch (_reason) do {case "ARRIVED":{"ARRIVED"};case "AMBUSH":{"CONTACT_HOLD"};case "MANUAL":{"ORDERED_HOLD"};default {"OBSTRUCTION"}};
+ // Slow cadence belongs to a physically settled hold, not merely an accepted HALT flag.
+ // Keep bounded braking/crew correction responsive while any local vehicle still moves.
+ private _haltMoving=(_configuration param [4,[]]) findIf {!isNull _x && {local _x} && {alive _x} && {abs speed _x >= 1}} >= 0;
+ _delay=[30,1] select _haltMoving;_phase=switch (_reason) do {case "ARRIVED":{"ARRIVED"};case "AMBUSH":{"CONTACT_HOLD"};case "MANUAL":{"ORDERED_HOLD"};case "IMMOBILE":{"IMMOBILE"};default {"OBSTRUCTION"}};
 } else {
  if (_state getOrDefault ["contact",false]) then {_phase="CONTACT_HOLD"};
  if ((_state getOrDefault ["routeRecoveryAt",-1]) > time) then {_recoveryActors=_recoveryActors+1};
  private _followers=_state getOrDefault ["followers",createHashMap];
  {if (((_followers getOrDefault [_x,[]]) param [4,0]) > 0) then {_recoveryActors=_recoveryActors+1}} forEach (keys _followers);
  private _vehicles=_configuration param [4,[]];private _requested=_configuration param [2,30];
+ private _specs=_state getOrDefault ["specs",createHashMap];
  for "_i" from 1 to (count _vehicles-1) do {
   private _vehicle=_vehicles select _i;private _front=_vehicles select (_i-1);
   if (!isNull _vehicle && {!isNull _front}) then {
-   private _bv=boundingBoxReal _vehicle;private _bf=boundingBoxReal _front;
-   private _lv=abs (((_bv select 1) select 1)-((_bv select 0) select 1));private _lf=abs (((_bf select 1) select 1)-((_bf select 0) select 1));
+   private _lv=(_specs getOrDefault [netId _vehicle,[0,0]]) param [1,0];
+   private _lf=(_specs getOrDefault [netId _front,[0,0]]) param [1,0];
    private _target=_requested max ((_lv+_lf)*0.5+5);private _tolerance=(_target*0.2) max 3;private _gap=_vehicle distance2D _front;
+   private _headingDifference=abs (((getDir _vehicle-getDir _front+540) mod 360)-180);
+   if (_headingDifference <= 25 && {_gap <= _target*1.8}) then {
+    private _direction=vectorDir _front;_direction set [2,0];
+    private _delta=(getPosATL _front) vectorDiff (getPosATL _vehicle);_delta set [2,0];
+    _gap=(_delta vectorDotProduct _direction) max 0;
+   };
    if (_gap < (_target-_tolerance) || {_gap > (_target+_tolerance)}) then {_spacingPairs=_spacingPairs+1};
   };
  };

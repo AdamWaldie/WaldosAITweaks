@@ -53,7 +53,19 @@ private _evidence=_assessment getOrDefault ["evidence",[]];
 _group setVariable ["WAIT_Cortex_TacticalAssessment",[
     _intent,_reason,serverTime,_evidence,_enemies apply {_x param [0,objNull,[objNull]]}
 ],true];
-if (_targetIndex < 0 || {_candidates isEqualTo []}) exitWith {false};
+if (_targetIndex < 0 || {_candidates isEqualTo []}) exitWith {
+    private _handoff=switch (_reason) do {
+        case "VEHICLE_DOMAIN": {"VEHICLE_LAYER_HANDOFF"};
+        case "MORALE_NOT_STEADY": {"MORALE_HANDOFF"};
+        case "NO_MANOEUVRE_TARGET": {"WEAPON_LAYER_HANDOFF"};
+        case "NO_VIABLE_CONTACT": {"NATIVE_CONTACT_HANDOFF"};
+        default {"NATIVE_COMBAT_HANDOFF"};
+    };
+    _group setVariable ["WAIT_Cortex_TacticalAssessment",[
+        _intent,_reason,serverTime,_evidence,_enemies apply {_x param [0,objNull,[objNull]]},_handoff
+    ],true];
+    false
+};
 private _prioritiseContact={
     params ["_contacts","_index"];
     if (_index <= 0) exitWith {+_contacts};
@@ -68,12 +80,27 @@ private _started=false;
         case "ASSAULT": {_started=[_group,_state,_orderedEnemies] call WAIT_fnc_CortexAssaultStart};
         case "FLANK": {_started=[_group,_state,_orderedEnemies] call WAIT_fnc_CortexFlankStart};
         case "ADVANCE": {_started=[_group,_state,_orderedEnemies] call WAIT_fnc_CortexAdvanceStart};
+        case "REPOSITION": {_started=[_group,_state,_orderedEnemies,0,_reason] call WAIT_fnc_CortexTacticalReposition};
     };
     if (_started) exitWith {};
 } forEach _candidates;
+// A viable manoeuvre can still be rejected by terrain, a live-fire lane or a temporary role loss.
+// Do not convert that refusal into an unexplained pause: make one short screened improvement and
+// reassess from there. The helper is generation-owned and cooldown-bound, so it cannot churn routes.
+if (!_started && {!(_intent in ["HOLD","REPOSITION"])} && {_orderedEnemies isNotEqualTo []}) then {
+    _started=[_group,_state,_orderedEnemies,0,"NO_SAFE_MANOEUVRE"] call WAIT_fnc_CortexTacticalReposition;
+    if (_started) then {
+        _intent="REPOSITION";
+        _reason="NO_SAFE_MANOEUVRE";
+    };
+};
 if (_started) then {
     _group setVariable ["WAIT_Cortex_TacticalAssessment",[
         _intent,_reason,serverTime,_evidence,_enemies apply {_x param [0,objNull,[objNull]]},"STARTED"
+    ],true];
+} else {
+    _group setVariable ["WAIT_Cortex_TacticalAssessment",[
+        _intent,_reason,serverTime,_evidence,_enemies apply {_x param [0,objNull,[objNull]]},"NATIVE_REASSESS"
     ],true];
 };
 _started

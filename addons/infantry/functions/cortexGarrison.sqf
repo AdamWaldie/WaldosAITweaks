@@ -7,6 +7,8 @@
  * Defenders duck under fire; local handlers and assignments replay after ownership changes.
  * Positions: building positions within the radius, roofed positions first, then highest first.
  * Each soldier is sent to his own position, then held there with PATH disabled, watching outward.
+ * Only local, combat-effective ordinary actors receive slots; protected actors cannot consume
+ * an interior assignment or inflate the order's capable starting strength.
  * Suppressed or hit, he drops to a lower stance for a few seconds, then stands back up. The order
  * breaks when the group falls to WAIT_AIPass_Garrison_BreakFraction of its strength at the time of
  * the order, or its morale breaks: PATH is re-enabled and the survivors fight normally.
@@ -49,7 +51,10 @@ if (_centre isEqualType objNull) then {_centre = getPosATL _centre};
 private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _anchor) then {_anchor=leader _group};
 if (count _centre < 2) then {_centre = getPosATL _anchor};
-private _units = (units _group) select {alive _x && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {vehicle _x == _x}};
+private _units = (units _group) select {
+    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+        && {vehicle _x == _x} && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}
+};
 if (_units isEqualTo []) exitWith {false};
 // Refuse an empty search before releasing the existing order or claiming success.
 if (!(_options getOrDefault ["inPlace",false]) && {(nearestObjects [_centre,["House","Building"],_radius,true]) findIf {(_x buildingPos -1) isNotEqualTo []} < 0}) exitWith {false};

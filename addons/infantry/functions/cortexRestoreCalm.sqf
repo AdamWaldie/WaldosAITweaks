@@ -49,6 +49,10 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap]], ["_allowRemount",true,[true]], ["_yieldToExternal",false,[true]], ["_reason","RESTORED",[""]], ["_forcePhase",false,[true]]];
+private _reverseCleanup=_group getVariable ["WAIT_VehicleReverse",[]];
+if (local _group && {count _reverseCleanup == 9}) then {
+    [_group,_state,objNull,[],"RELEASE",_reverseCleanup select 1] call WAIT_fnc_CortexVehicleReverseStep;
+};
 if (isNull _group || {!local _group}) exitWith {};
 // A cleanup can run before the engine elects a replacement leader. All WAIT-owned followers use
 // this viable local anchor; external handovers still suppress the follow command below.
@@ -109,13 +113,18 @@ if (!_yieldToExternal && {count _retreatModeLease == 2} && {combatMode _group ==
 {if (alive _x) then {[_x,true,false] call _releaseOwnedHold}} forEach (_state getOrDefault ["holders", []]);
 {
     if (local _x && {_x getVariable ["WAIT_AIPass_StanceSet", false]}) then {
-        if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        if (!_yieldToExternal && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
+            if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        };
         _x setVariable ["WAIT_Cortex_AppliedStance",nil,true];
         _x setVariable ["WAIT_AIPass_StanceSet", nil, true];
     };
     if (local _x) then {
         private _target = _x getVariable ["WAIT_AIPass_VehicleTarget",objNull];
-        if (!isNull _target && {assignedTarget _x == _target}) then {_x doTarget objNull};
+        if (!_yieldToExternal && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!isNull _target} && {assignedTarget _x == _target}) then {_x doTarget objNull};
         _x setVariable ["WAIT_AIPass_VehicleTarget",nil,true];
         _x setVariable ["WAIT_AIPass_TargetHold",nil];
         _x setVariable ["WAIT_Cortex_ActorMove",nil];
@@ -141,6 +150,8 @@ if (count _staticDeployment >= 10) then {
     private _packHandler=_staticDeployment param [10,-1,[0]];
     if (!isNull _deployGunner && {local _deployGunner}) then {
         if (_packHandler >= 0) then {_deployGunner removeEventHandler ["WeaponDisassembled",_packHandler]};
+        private _assemblyHandler=_staticDeployment param [12,-1,[0]];
+        if (_assemblyHandler >= 0) then {_deployGunner removeEventHandler ["WeaponAssembled",_assemblyHandler]};
         _deployGunner setVariable ["WAIT_Danger_StaticPackContext",nil];
         private _deployMove=_deployGunner getVariable ["WAIT_Cortex_ActorMove",[]];
         if ((_deployMove param [0,""]) in ["STATIC_DEPLOY","STATIC_PACK"]) then {
@@ -188,8 +199,11 @@ if (!_yieldToExternal && {_state getOrDefault ["behaviourChanged", false]} && {b
     if (_base == "SAFE" && {_state getOrDefault ["hadContact", false]}) then {_base = "AWARE"};
     _group setBehaviour _base;
 };
-if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]}) then {
-    _group setSpeedMode (_state getOrDefault ["baseSpeed", "NORMAL"]);
+private _retreatSpeedLease=_state getOrDefault ["retreatSpeedMode",[]];
+if (!_yieldToExternal && {count _retreatSpeedLease == 2}
+    && {speedMode _group == (_retreatSpeedLease select 1)}
+    && {(_retreatSpeedLease select 0) != (_retreatSpeedLease select 1)}) then {
+    _group setSpeedMode (_retreatSpeedLease select 0);
 };
 {
     _x params ["_unit", "_vehicle"];
@@ -200,6 +214,7 @@ if (!_yieldToExternal && {_state getOrDefault ["speedChanged", false]}) then {
 } forEach (_state getOrDefault ["dismounted", []]);
 // Retain boarding intent until seats are actually occupied. The public record lets
 // a new HC owner continue the bounded attempt; it never moves units into seats.
+_group setVariable ["WAIT_Cortex_DismountContinuation",nil,true];
 private _boarding = _state getOrDefault ["dismounted", []];
 if (_allowRemount && {_boarding isNotEqualTo []}) then {
     _group setVariable ["WAIT_Cortex_Remount",[serverTime+60,+_boarding],true];
@@ -211,11 +226,13 @@ if (!_allowRemount) then {
 {_state deleteAt _x} forEach [
     "consolidationRoutes", "baseAttack", "attackChanged", "areaInvestigation", "enemyPos", "behaviourChanged", "speedChanged", "searchTeam", "dismounted", "onboardContactUntil", "reinforceRequested", "reinforceDispatchedAt",
     "withdrawn", "contactLeader", "lastSeen", "contactKnowledge", "dangerDismount", "holders", "baseBehaviour", "baseSpeed", "armourSeen",
-    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
+    "armourRequested", "antiArmourRelocation", "coordinated", "coordinatedPendingUntil", "retreatCombatMode", "retreatSpeedMode", "retreatRetryAt", "movementLease", "retreatStart", "retreatTarget", "retreatProgress", "withdrawOperationGeneration", "vehicleDangerJink", "vehicleDangerOrient", "reserveCommitted", "arrivedAt", "assaulting", "hadContact"
 ];
 _group setVariable ["WAIT_Cortex_Withdrawal",nil,true];
 _group setVariable ["WAIT_Cortex_WithdrawalIntent",nil,true];
 _group setVariable ["WAIT_Cortex_TransitionIntent",nil,true];
 _group setVariable ["WAIT_AIPass_Checkpoint", [], true];
+// Explicit terminal handovers remain observable even when the tactical phase was already CALM.
+_forcePhase=_forcePhase || {_reason in ["CORTEX_STOPPED","ZEUS_TAKEOVER","EXTERNAL_TAKEOVER"]};
 [_group,_state,"CALM",_reason,time,_forcePhase] call WAIT_fnc_CortexSetPhase;
 if (missionNamespace getVariable ["WAIT_AIPass_Debug", false]) then {diag_log format ["[WAIT] %1 CALM restored", _group]};

@@ -3,6 +3,7 @@
  * Shows concise local feedback through CBA without depending on Waldos Mission Pack UI functions.
  * Locality / Authority: Interface-local presentation only; callers must target the intended player owner.
  * Repeat/JIP: Stateless and safe to repeat; no JIP message is retained.
+ * Title and body are separate CBA content lines; the body must never occupy the numeric size slot.
  * Arguments: 0 title <STRING>; 1 message <STRING>; 2 severity <STRING>, optional; remaining legacy fields ignored.
  * Return Value: BOOL - true when displayed, false without an interface.
  * Current callers: AI order results, convoy warnings and optional ZEN modules.
@@ -21,5 +22,5 @@ private _prefix = switch (toUpperANSI _severity) do {
     case "SUCCESS": {"SUCCESS"};
     default {"INFO"};
 };
-[[format ["%1 | %2", _title, _prefix], _message]] call CBA_fnc_notify;
+[[format ["%1 | %2", _title, _prefix]], [_message]] call CBA_fnc_notify;
 true

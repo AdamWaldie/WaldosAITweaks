@@ -137,6 +137,7 @@ if (count _operation == 0) exitWith {
     ["OPERATION_OWNER_LOST"] call _refuse
 };
 (_state get "drill") set ["operationGeneration",_operation get "generation"];
+(_state get "drill") set ["ownerEpoch",_operation get "ownerEpoch"];
 [_group,_state get "drill","START","ASSAULT_COMMITTED"] call WAIT_fnc_CortexDrillSetStage;
 _group setVariable ["WAIT_Cortex_AssaultRefusal",nil,true];
 _state set ["movementLease",["TACTICAL_DRILL",time+90]];

@@ -1,7 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Purpose: Finds one combat-effective, owner-local actor for finite local lifecycle work when a
- * group leader is killed, incapacitated or under player control. Unlike a transmitter, this helper
+ * group leader is killed, incapacitated, player-controlled or specialist-owned. Unlike a transmitter, this helper
  * does not require a radio and must not be used to authorise communication or support requests.
  * Locality/authority: Read-only; returns only an actor local to the calling machine. The bounded
  * twelve-member scan performs no target, movement, inventory or network mutation.
@@ -14,10 +14,17 @@
 
 params [["_group",grpNull,[grpNull]]];
 if (isNull _group) exitWith {objNull};
-private _members=(units _group) select {
-    local _x && {!isPlayer _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
+private _eligible={
+    params ["_actor"];
+    !isNull _actor && {local _actor} && {!isPlayer _actor}
+        && {isNull remoteControlled _actor}
+        && {[_actor] call WAIT_fnc_CortexCombatEffective}
+        && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+        && {([_actor] call WAIT_fnc_CortexExternalOwner) == ""}
 };
-if (_members isEqualTo []) exitWith {objNull};
 private _leader=leader _group;
-if (_leader in _members) then {_members=[_leader]+(_members-[_leader])};
-_members param [0,objNull]
+if ([_leader] call _eligible) exitWith {_leader};
+private _members=(units _group) select [0,12];
+private _index=_members findIf {[_x] call _eligible};
+if (_index < 0) exitWith {objNull};
+_members select _index

@@ -16,6 +16,25 @@ class CortexReportTests(unittest.TestCase):
     def test_empty_run_is_incomplete(self):
         self.assertEqual('INCOMPLETE',summarize({})['status'])
 
+    def test_missing_script_is_load_failure_with_or_without_warning_prefix(self):
+        for prefix in ['', 'Warning Message: ']:
+            with self.subTest(prefix=prefix):
+                message=prefix+'Script compatibilityHeadlessProvider/init.sqf not found'
+                report=summarize({'client.rpt':message})
+                self.assertEqual('FAIL',report['status'])
+                self.assertEqual(1,len(report['load_errors']))
+                self.assertEqual(message,report['load_errors'][0]['message'])
+
+    def test_standalone_parameter_and_arithmetic_errors_fail_without_trace_prefix(self):
+        for error in ['Error Params: Type String, expected Number',
+                      'Error Type Array, expected Number', 'Error Generic error in expression',
+                      'Error Zero divisor']:
+            with self.subTest(error=error):
+                report=summarize({'client.rpt':error})
+                self.assertEqual('FAIL',report['status'])
+                self.assertEqual(1,len(report['errors']))
+                self.assertEqual(error,report['errors'][0]['message'])
+
     def test_device_hung_is_a_bounded_fatal_failure(self):
         report=summarize({'client.rpt':'\n'.join([
             'DX11 - device removed - reason: DXGI_ERROR_DEVICE_HUNG',

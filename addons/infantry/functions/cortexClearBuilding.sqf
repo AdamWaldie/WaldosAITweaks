@@ -75,7 +75,20 @@ if (_positions isEqualTo []) then {_positions=+_allPositions};
 if (_positions isEqualTo []) exitWith {false};
 private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
-private _available = (units _group) select {alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {isNull objectParent _x}};
+// Entry selection must use the same capable/task-free contract as casualty reserves.
+// An unavailable actor must not consume a lane until the later callback discovers it.
+private _available = (units _group) select {
+    private _canMove=_x checkAIFeature "MOVE" && {_x checkAIFeature "PATH"};
+    private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _reservationFree=_reservation isEqualTo []
+        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+    _canMove && {[_x] call WAIT_fnc_CortexCombatEffective} && {local _x} && {!isPlayer _x}
+        && {isNull objectParent _x} && {_reservationFree}
+        && {isNull (remoteControlled _x)}
+        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+        && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+};
 private _team = +_available;
 if (_team isEqualTo []) exitWith {false};
 // Keep enough distinct lanes for a real squad clear without crowding every reported room node.
@@ -113,7 +126,8 @@ if (serverTime >= _deadline) exitWith {[_group] call WAIT_fnc_CortexClearRelease
 // Validate the new building/team first; an invalid request must preserve the current order.
 // HC resume keeps the published progress/deadline rather than starting a new episode.
 if (!_resume && {_previous isNotEqualTo []}) then {[_group] call WAIT_fnc_CortexClearRelease};
-_group setVariable ["WAIT_AIPass_ClearOrder", [_building, _cleared, _deadline, _baseBehaviour, _unreachable, _retryCounts, _failedBy, _lastProgressAt], true];
+private _baseAttack=if (_resume) then {_previous param [8,attackEnabled _leader,[true]]} else {attackEnabled _leader};
+_group setVariable ["WAIT_AIPass_ClearOrder", [_building, _cleared, _deadline, _baseBehaviour, _unreachable, _retryCounts, _failedBy, _lastProgressAt, _baseAttack], true];
 _group setVariable ["WAIT_AIPass_ClearApplied", true];
 _group setVariable ["WAIT_Cortex_ClearResult",["RUNNING",count _cleared,count _positions],true];
 _group setVariable ["WAIT_Cortex_ClearEvidence",nil,true];
@@ -124,7 +138,32 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["ENTRY",count _cleared,count _unr
 private _generation = (_group getVariable ["WAIT_AIPass_ClearGeneration", 0]) + 1;
 _group setVariable ["WAIT_AIPass_ClearGeneration", _generation];
 private _operation=[_group,"CLEAR",_building,_team,_positions,"ENTRY"] call WAIT_fnc_OperationStart;
-if (count _operation == 0) exitWith {false};
+if (count _operation == 0) exitWith {
+    // A refused operation has no worker. Retire only this attempted generation's public
+    // order so discovery cannot resurrect it after a newer owner/task has taken over.
+    if ((_group getVariable ["WAIT_AIPass_ClearGeneration",-1]) == _generation) then {
+        _group setVariable ["WAIT_AIPass_ClearOrder",nil,true];
+        _group setVariable ["WAIT_AIPass_ClearApplied",nil];
+        _group setVariable ["WAIT_Cortex_ClearStatus",nil,true];
+        _group setVariable ["WAIT_Cortex_ClearResult",["CANCELLED",count _cleared,count _positions],true];
+    };
+    false
+};
+// Suppress only competing autonomous group attack assignment during the clear. Native
+// targeting, weapons and suppression remain enabled. Mixed specialist/player groups retain
+// their command policy; only ordinary groups acquire this exact-owned reversible setting.
+private _delegationMembers=units _group;
+if (count _delegationMembers <= 64
+    && {_delegationMembers findIf {isPlayer _x || {[_x] call WAIT_fnc_CompatibilityExternalControl}} < 0}
+    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+    && {((_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1]) == (_operation get "generation")}
+    && {(_operation get "ownerEpoch") == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
+    (_operation get "restore") set ["groupAttack",[_baseAttack,false]];
+    _group setVariable ["WAIT_Operation",_operation,true];
+    _group enableAttack false;
+};
+// Initial owner adoption may reset replay markers; this successfully created job now owns them.
+_group setVariable ["WAIT_AIPass_ClearApplied",true];
 private _operationGeneration=_operation get "generation";
 _group setVariable ["WAIT_AIPass_ClearBuilding", true, true];
 private _entries=[];
@@ -209,7 +248,7 @@ _group setVariable ["WAIT_Cortex_ClearStatus",["ENTRY",count _cleared,count _unr
 private _job=createHashMapFromArray [
     ["group", _group], ["team", _team], ["started", []], ["positions", _positions], ["cleared", _cleared], ["building", _building], ["assigned", _team apply {[]}], ["unreachable",_unreachable], ["retryCounts",_retryCounts],
     ["entry",_entryRoute], ["entries",_entries], ["pairs",_pairs], ["pairRoutes",_pairRoutes], ["pairStates",_pairStates], ["pending",_pending],
-    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt], ["visitCursor",0],
+    ["deadline", _deadline], ["baseBehaviour", _baseBehaviour], ["baseAttack",_baseAttack], ["generation", _generation], ["operationGeneration",_operationGeneration], ["failedBy",_failedBy], ["lastProgressAt",_lastProgressAt], ["visitCursor",0],
     ["phase","ENTRY"],["rotatedOut",[]],["egressAssignments",[]],["egressDeadline",0],["egressReissue",0],["egressFailed",false]
 ];
 [_job] call WAIT_fnc_BuildingOperationStart;

@@ -519,6 +519,18 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
 } forEach (_localGroups select [0,20]);
 {
     private _group=_x;
+    // On-demand only: actor-local throw records never create a diagnostics poller or network stream.
+    private _throwDecisions=[];
+    {
+        private _decision=_x getVariable ["WAIT_Cortex_ThrowDecision",[]];
+        if (_decision isNotEqualTo []) then {
+            _throwDecisions pushBack [netId _x,currentCommand _x,(time-(_decision param [0,time,[0]])) max 0,_decision];
+        };
+    } forEach ((units _group) select [0,8]);
+    if (_throwDecisions isNotEqualTo []) then {
+        _checks pushBack ["ai",format ["wait-grenade-decisions-%1",netId leader _group],"LOADED",
+            format ["group=%1 owner=%2 samples=[actor,currentCommand,ageSeconds,decision]=%3. Latest queued, alignment-timeout, new-task, safety or release-request evidence only; release requests do not prove a projectile or impact. Maximum eight actors per sampled local group; HC-private decisions require a report on that owner.",groupId _group,groupOwner _group,_throwDecisions]];
+    };
     private _state=_group getVariable ["WAIT_AIPass_State",createHashMap];
     private _brain=_group getVariable ["WAIT_GroupBrain",createHashMap];
     private _brainPhase=_brain getOrDefault ["phase","MISSING"];
@@ -576,6 +588,36 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _transitionHealthy=serverTime < _transitionDeadline && {_transitionGateOpen} && {_transitionCurrent == _transitionPhase};
         _checks pushBack ["ai",format ["cortex-transition-ownership-%1",netId _group],["ERROR","LOADED"] select _transitionHealthy,format ["group=%1 intentPhase=%2 currentPhase=%3 source=%4 gateOpen=%5 ageSeconds=%6 secondsRemaining=%7 teamAlive=%8 target=%9. A durable transition exists only to resume INVESTIGATE or SEARCH after locality migration; it must not survive its gate, deadline or phase.",groupId _group,_transitionPhase,_transitionCurrent,_transitionSource,_transitionGateOpen,(serverTime-_transitionStarted) max 0,(_transitionDeadline-serverTime) max 0,{alive _x} count _transitionTeam,_transitionTarget]];
     };
+    private _crewDecision=_group getVariable ["WAIT_Danger_CrewRecoveryDecision",[]];
+    if (count _crewDecision == 8) then {
+        _checks pushBack ["ai",format ["danger-crew-recovery-refusal-%1",netId _group],"LOADED",
+            format ["group=%1 ageSeconds=%2 observedOwner=%3 generation=%4 refusal=%5 cause=%6 speed=%7 nativeCommand=%8 nativeKnowledge=%9. Last owner-local refusal; a seat-change request and physical recovery are separate acceptance requirements.",
+                groupId _group,(serverTime-(_crewDecision select 0)) max 0,_crewDecision select 1,
+                _crewDecision select 2,_crewDecision select 3,_crewDecision select 4,
+                _crewDecision select 5,_crewDecision select 6,_crewDecision select 7]];
+    };
+    private _staticEnd=_group getVariable ["WAIT_Danger_StaticDeployEnd",[]];
+    if (count _staticEnd == 9) then {
+        _checks pushBack ["ai",format ["danger-static-deploy-end-%1",netId _group],"LOADED",
+            format ["group=%1 endAgeSeconds=%2 observedOwner=%3 observedEpoch=%4 episode=%5 lastPhase=%6 deadline=%7 destination=%8 actorEvidence=%9 commandFree=%10. Last owner-local retirement only; actor evidence is ID, position, native command, distance, backpack and vehicle. It does not prove assembly, firing or packing.",
+                groupId _group,(serverTime-(_staticEnd select 0)) max 0,_staticEnd select 1,
+                _staticEnd select 2,_staticEnd select 3,_staticEnd select 4,_staticEnd select 5,
+                _staticEnd select 6,_staticEnd select 7,_staticEnd select 8]];
+    };
+    private _coverEnd=_group getVariable ["WAIT_Danger_CoverEnd",[]];
+    if (count _coverEnd == 9) then {
+        _checks pushBack ["ai",format ["danger-cover-end-%1",netId _group],"LOADED",
+            format ["group=%1 owner=%2 endAgeSeconds=%3 actor=%4 generation=%5 reason=%6 horizontalDistance=%7 verticalDistance=%8 destination=%9 observedOwner=%10 observedEpoch=%11. Last owner-local retirement observation only; destination proximity does not prove screening or replicated HC history.",
+                groupId _group,groupOwner _group,(time-(_coverEnd select 0)) max 0,_coverEnd select 1,
+                _coverEnd select 2,_coverEnd select 3,_coverEnd select 4,_coverEnd select 5,_coverEnd select 6,_coverEnd select 7,_coverEnd select 8]];
+    };
+    private _remountEnd=_state getOrDefault ["lastRemountEnd",[]];
+    if (count _remountEnd == 3) then {
+        _checks pushBack ["ai",format ["cortex-remount-end-%1",netId _group],"LOADED",
+            format ["group=%1 currentOwner=%2 observedLocally=%3 endAgeSeconds=%4 reason=%5 pendingEvidence=%6. Evidence fields are actor ID, vehicle ID, speed, distance, assignment ID and native command. This is the last owner-local retirement observation, not proof of boarding success or a replicated HC history.",
+                groupId _group,groupOwner _group,local _group,(serverTime-(_remountEnd select 0)) max 0,
+                _remountEnd select 1,_remountEnd select 2]];
+    };
     private _supportLease=_group getVariable ["WAIT_AIPass_SupportLease",[]];
     private _supportToken=_state getOrDefault ["supportToken",""];
     private _supportRole=_group getVariable ["WAIT_Cortex_SupportRole",[]];
@@ -605,7 +647,7 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
     };
     private _operation=_group getVariable ["WAIT_Operation",createHashMap];
     if (count _operation > 0) then {
-        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 recoveryAttempts=%10 unavailableActors=%11 cancellation=%12. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],count (keys (_operation getOrDefault ["recovery",createHashMap])),count (_operation getOrDefault ["unavailable",[]]),_operation getOrDefault ["cancelReason",""]]];
+        _checks pushBack ["ai",format ["wait-operation-%1",netId _group],"LOADED",format ["group=%1 intent=%2 generation=%3 ownerEpoch=%4 phase=%5 participants=%6 routePoints=%7 progressAgeSeconds=%8 replans=%9 recoveryAttempts=%10 unavailableActors=%11 cancellation=%12 activeRecoveryActors=%13. Operation status records WAIT ownership only; a physical result still requires travel, firing or room-visit evidence.",groupId _group,_operation getOrDefault ["intent","UNKNOWN"],_operation getOrDefault ["generation",-1],_operation getOrDefault ["ownerEpoch",-1],_operation getOrDefault ["phase","UNKNOWN"],count (_operation getOrDefault ["participants",[]]),count (_operation getOrDefault ["route",[]]),time-(_operation getOrDefault ["lastProgressAt",time]),_operation getOrDefault ["replans",0],count (keys (_operation getOrDefault ["recoveryAttempts",createHashMap])),count (_operation getOrDefault ["unavailable",[]]),_operation getOrDefault ["cancelReason",""],count (keys (_operation getOrDefault ["recovery",createHashMap]))]];
     };
     _checks pushBack ["ai",format ["cortex-group-context-%1",netId _group],"LOADED",format ["group=%1 phaseAgeSeconds=%2 lastSeenAgeSeconds=%3 morale=%4 moraleState=%5 investigating=%6 searchMembers=%7 reinforcementResponding=%8 dismounted=%9 withdrawnVehicles=%10 disabledFeatures=%11 externalControl=%12. Ages are owner-local; unknown uses -1. Stored intentions are not physical completion.",groupId _group,if ("phaseStart" in _state) then {time-(_state get "phaseStart")} else {-1},if ("lastSeen" in _state) then {time-(_state get "lastSeen")} else {-1},_state getOrDefault ["morale",-1],_state getOrDefault ["moraleState","UNKNOWN"],_state getOrDefault ["areaInvestigation",""],count (_state getOrDefault ["searchTeam",[]]),_state getOrDefault ["responding",false],count (_state getOrDefault ["dismounted",[]]),count (_state getOrDefault ["withdrawn",[]]),_group getVariable ["WAIT_AIPass_DisabledFeatures",[]],[_group] call WAIT_fnc_CompatibilityExternalControl]];
     private _actors=_members apply {[_x,currentCommand _x,round speed _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x,unitCombatMode _x]};

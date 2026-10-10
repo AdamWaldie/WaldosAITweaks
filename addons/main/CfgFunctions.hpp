@@ -94,6 +94,7 @@ class CfgFunctions {
             class OperationStep {file = "\z\waldo_ai_tweaks\addons\core\functions\operationStep.sqf";};
             class OperationCancel {file = "\z\waldo_ai_tweaks\addons\core\functions\operationCancel.sqf";};
             class OperationRelease {file = "\z\waldo_ai_tweaks\addons\core\functions\operationRelease.sqf";};
+            class OperationRestore {file = "\z\waldo_ai_tweaks\addons\core\functions\operationRestore.sqf";};
             class RebalanceRoles {file = "\z\waldo_ai_tweaks\addons\infantry\functions\rebalanceRoles.sqf";};
             class RecoveryStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\recoveryStep.sqf";};
             class CortexDrillInterrupt {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexDrillInterrupt.sqf";};
@@ -193,6 +194,7 @@ class CfgFunctions {
             class CortexGroupTick {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexGroupTick.sqf";};
             class CortexKnowledge {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexKnowledge.sqf";};
             class CortexTacticalAssess {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalAssess.sqf";};
+            class CortexTacticalReposition {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexTacticalReposition.sqf";};
             class CortexLineOfFireClear {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexLineOfFireClear.sqf";};
             class CortexMorale {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMorale.sqf";};
             class CortexMedicalStep {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexMedicalStep.sqf";};
@@ -222,6 +224,7 @@ class CfgFunctions {
             class CortexVehicleUnloadPolicy {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleUnloadPolicy.sqf";};
             class CortexVehicleCrewRecover {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleCrewRecover.sqf";};
               class CortexVehicleJink {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleJink.sqf";};
+              class CortexVehicleReverseStep {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleReverseStep.sqf";};
               class CortexVehicleOrient {file = "\z\waldo_ai_tweaks\addons\vehicles\functions\cortexVehicleOrient.sqf";};
             class CortexInfantrySpeed {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexInfantrySpeed.sqf";};
             class CortexUnitRole {file = "\z\waldo_ai_tweaks\addons\infantry\functions\cortexUnitRole.sqf";};

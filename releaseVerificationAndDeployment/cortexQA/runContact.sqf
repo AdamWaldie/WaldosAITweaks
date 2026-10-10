@@ -12,6 +12,186 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf";
  */
 params ["_check","_phase","_wait"];
+// Bookkeeping diagnostic only: synthetic lease records exercise stale callback isolation.
+// This case does not validate danger detection, cover geometry or physical cover movement.
+private _generationProbeGroup=createGroup [east,true];
+_generationProbeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_generationProbeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_generationProbeGroup setVariable ["acex_headless_blacklist",true,true];
+private _generationProbe=_generationProbeGroup createUnit ["O_Soldier_F",[2800,1250,0],[],0,"NONE"];
+["Diagnostic: stale cover cleanup","Synthetic ownership records only. An old callback must not clear a newer lease, pending request, assessment or actor reservation. This does not prove physical cover behaviour.",getPosATL _generationProbe] call _phase;
+// The phase card yields eight seconds. Install and test short-lived records afterward,
+// atomically, so discovery/cleanup cannot become the event under test.
+isNil {
+private _probeSpot=[2805,1250,0];
+private _probeDeadline=time+10;
+private _probeLease=[_generationProbe,2,_probeDeadline,+_probeSpot];
+private _probePending=[_generationProbe,2,[2810,1250,0],time+4];
+private _probeMove=["DANGER_COVER",+_probeSpot,_probeDeadline];
+private _probeDecision=["COMMITTED",time,_generationProbe,2,+_probeSpot,"COVER"];
+_generationProbeGroup setVariable ["WAIT_Danger_Generation",2];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverLease",+_probeLease];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverPending",+_probePending];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverDecision",+_probeDecision];
+_generationProbe setVariable ["WAIT_Cortex_ActorMove",+_probeMove];
+[_generationProbeGroup,_generationProbe,[2810,1250,0],1,true] call WAIT_fnc_DangerCoverStep;
+["DANGER-cover-stale-generation-isolation",
+    (_generationProbeGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo _probeLease
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverPending",[]]) isEqualTo _probePending}
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverDecision",[]]) isEqualTo _probeDecision}
+        && {(_generationProbe getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _probeMove},
+    "Bookkeeping-only diagnostic; newer generation must remain exact"] call _check;
+[_generationProbeGroup,_generationProbe,[2810,1250,0],2,true] call WAIT_fnc_DangerCoverStep;
+["DANGER-cover-current-generation-marker-release",
+    (_generationProbeGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverPending",[]]) isEqualTo []}
+        && {(_generationProbe getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []},
+    "Bookkeeping-only diagnostic; matching generation must release its reservations"] call _check;
+};
+deleteVehicle _generationProbe;
+deleteGroup _generationProbeGroup;
+// A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
+// native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
+// engine-created projectile, then place that already-attributed shot above the fixture.
+// The smoke-contact case explicitly requests a hostile source after natural contact is proven. WAIT state
+// is never injected by the audit. The temporary firer remains alive through the fuse and is cleaned
+// after the engine has delivered the explosion.
+private _spawnRealGrenade={
+    // Functional reaction fixtures default to a hostile shot. Friendly hazard delivery
+    // remains an explicitly selected comparison, because native FSM intake differs.
+    params [["_position",[0,0,0],[[]]],["_sourceSide",west,[east]]];
+    private _sourceGroup=createGroup [_sourceSide,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    _sourceGroup setCombatMode "BLUE";
+    private _sourcePosition=+_position;
+    _sourcePosition set [2,0];
+    _sourcePosition=_sourcePosition getPos [80,0];
+    private _source=_sourceGroup createUnit [["O_Soldier_F","B_Soldier_F"] select (_sourceSide == west),_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source hideObjectGlobal true;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source addMagazine "HandGrenade";
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+    }];
+    _source forceWeaponFire ["HandGrenadeMuzzle","HandGrenadeMuzzle"];
+    private _deadline=diag_tickTime+2;
+    waitUntil {
+        sleep 0.05;
+        !isNull (_source getVariable ["WAIT_CortexQA_Projectile",objNull]) || {diag_tickTime >= _deadline}
+    };
+    private _grenade=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if (isNull _grenade) then {
+        diag_log "WAIT CORTEX QA FIXTURE ERROR: native grenade firing produced no projectile";
+    } else {
+        private _spawn=+_position;
+        _spawn set [2,(_spawn param [2,0]) + 2];
+        _grenade setPosATL _spawn;
+        _grenade setVelocity [0,0,-4];
+    };
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 12;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
+    _grenade
+};
+// Scripted damage and an unattributed createVehicle bullet do not reliably create native casualty
+// danger. Fire a real rifle round from an excluded same-side actor, capture its engine projectile,
+// then place the attributed shot on the casualty. This tests Arma's death/body danger causes rather
+// than calling WAIT or manufacturing its state.
+private _killWithRealProjectile={
+    params [["_actor",objNull,[objNull]]];
+    if (isNull _actor) exitWith {objNull};
+    private _sourceGroup=createGroup [east,true];
+    _sourceGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _sourceGroup setVariable ["acex_headless_blacklist",true,true];
+    _sourceGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+    // Only the excluded stimulus firer may discharge the captured round. Tested groups retain ROE.
+    _sourceGroup setCombatMode "RED";
+    private _sourcePosition=(getPosATL _actor) getPos [100,0];
+    private _source=_sourceGroup createUnit ["O_Soldier_F",_sourcePosition,[],0,"NONE"];
+    _source allowDamage false;
+    _source disableAI "MOVE";
+    _source disableAI "TARGET";
+    _source disableAI "AUTOTARGET";
+    _source setVariable ["acex_headless_blacklist",true,true];
+    _source setVariable ["WAIT_CortexQA_Projectile",objNull];
+    _source setVariable ["WAIT_CortexQA_RifleShots",0];
+    _source setVariable ["WAIT_CortexQA_ImpactActor",_actor];
+    _source addEventHandler ["FiredMan",{
+        params ["_unit","","","","","","_projectile"];
+        if (isNull _projectile) exitWith {};
+        private _target=_unit getVariable ["WAIT_CortexQA_ImpactActor",objNull];
+        if (isNull _target) exitWith {};
+        _unit setVariable ["WAIT_CortexQA_RifleShots",(_unit getVariable ["WAIT_CortexQA_RifleShots",0])+1];
+        _unit setVariable ["WAIT_CortexQA_Projectile",_projectile];
+        // Handle the actual engine projectile before a scheduled wait can outlive it.
+        private _impact=aimPos _target;
+        private _origin=_impact vectorAdd [-2,0,0];
+        _projectile setPosASL _origin;
+        // Match direction and velocity at the actor's engine aim point. Eye-height offsets can
+        // miss a prone actor; changing velocity alone leaves the shot's orientation inconsistent.
+        _projectile setVectorDir (vectorNormalized (_impact vectorDiff _origin));
+        _projectile setVelocity ((vectorNormalized (_impact vectorDiff _origin)) vectorMultiply 900);
+    }];
+    private _rifle=primaryWeapon _source;
+    _source selectWeapon _rifle;
+    _source setAmmo [_rifle,30];
+    // Selection is asynchronous on a newly spawned actor. A fixed quarter-second delay could
+    // capture an empty muzzle/mode and never fire, falsely failing every later casualty check.
+    private _readyDeadline=diag_tickTime+5;
+    waitUntil {
+        sleep 0.05;
+        private _readyState=weaponState _source;
+        (currentWeapon _source == _rifle && {(_readyState param [1,""]) != ""}
+            && {(_readyState param [2,""]) != ""} && {(_readyState param [4,0]) > 0})
+            || {diag_tickTime >= _readyDeadline}
+    };
+    private _weaponState=weaponState _source;
+    _source forceWeaponFire [_weaponState param [1,currentWeapon _source],_weaponState param [2,"Single"]];
+    private _deadline=diag_tickTime+5;
+    private _nextRetry=diag_tickTime+0.5;
+    private _attempts=1;
+    waitUntil {
+        sleep 0.02;
+        // A selected muzzle can precede the native firing animation's readiness. Retry only
+        // this excluded fixture, at most six real rounds, and stop on actual casualty death.
+        // A single torso hit can wound rather than kill; it is not a casualty stimulus.
+        if (alive _actor
+            && {_attempts < 6} && {diag_tickTime >= _nextRetry}) then {
+            private _retryState=weaponState _source;
+            _source forceWeaponFire [_retryState param [1,_rifle],_retryState param [2,"Single"]];
+            _attempts=_attempts+1;
+            _nextRetry=diag_tickTime+0.5;
+        };
+        !alive _actor || {diag_tickTime >= _deadline}
+    };
+    private _projectile=_source getVariable ["WAIT_CortexQA_Projectile",objNull];
+    if ((_source getVariable ["WAIT_CortexQA_RifleShots",0]) == 0) exitWith {
+        diag_log format ["WAIT CORTEX QA FIXTURE ERROR: native rifle firing produced no projectile; local=%1 simulation=%2 currentWeapon=%3 before=%4 after=%5 modes=%6 behaviour=%7 combatMode=%8 attempts=%9 canFire=%10 fireFeature=%11 animation=%12",
+            local _source,simulationEnabled _source,currentWeapon _source,_weaponState,weaponState _source,
+            getArray (configFile >> "CfgWeapons" >> _rifle >> "modes"),behaviour _source,combatMode _sourceGroup,_attempts,canFire _source,_source checkAIFeature "FIREWEAPON",animationState _source];
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+        objNull
+    };
+    [_source,_sourceGroup] spawn {
+        params ["_source","_sourceGroup"];
+        sleep 5;
+        deleteVehicle _source;
+        deleteGroup _sourceGroup;
+    };
+    _projectile
+};
 [createHashMapFromArray [
     ["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",true],["WAIT_AIPass_Regroup_Enable",false],
     ["WAIT_AIPass_Flank_Enable",false],["WAIT_AIPass_Advance_Enable",false],
@@ -19,6 +199,62 @@ params ["_check","_phase","_wait"];
     ["WAIT_AIPass_Reinforce_Enable",false],["WAIT_AIPass_ContactReports_Enable",false],
     ["WAIT_AIPass_Artillery_Enable",false],["WAIT_AIPass_CoordinatedAssault_Enable",false]
 ]] call WAIT_fnc_CortexTuning;
+
+// Physical release-direction regression: test the production helper, not a relocated projectile.
+// Rear-facing requests may cancel; any actual release must travel towards its requested position.
+{
+    private _stance=_x;
+    {
+        private _kind=_x;
+        {
+            private _rear=_x;
+            private _throwGroup=createGroup [east,true];
+            _throwGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+            _throwGroup setVariable ["acex_headless_blacklist",true,true];
+            _throwGroup setCombatMode "BLUE";
+            _throwGroup setVariable ["WAIT_AIPass_DisabledFeatures",["WAIT_AIPass_Danger_Enable"]];
+            private _throwActor=_throwGroup createUnit ["O_Soldier_F",[2860,1250,0],[],0,"NONE"];
+            private _destination=[2860,1275,0];
+            _throwActor setUnitPos _stance;
+            _throwActor setDir (if (_rear) then {180} else {0});
+            _throwActor addMagazine (if (_kind == "FRAG") then {"HandGrenade"} else {"SmokeShell"});
+            _throwActor setVariable ["WAIT_CortexQA_ThrowDestination",_destination];
+            private _throwEH=_throwActor addEventHandler ["FiredMan",{
+                params ["_actor","_weapon","_muzzle","_mode","_ammo","_magazine","_projectile"];
+                if (_weapon != "Throw") exitWith {};
+                private _origin=getPosATL _projectile;
+                [{
+                    params ["_actor","_projectile","_origin"];
+                    private _travel=(getPosATL _projectile) vectorDiff _origin;
+                    _travel set [2,0];
+                    private _target=(_actor getVariable ["WAIT_CortexQA_ThrowDestination",_origin]) vectorDiff _origin;
+                    _target set [2,0];
+                    private _alignment=(vectorNormalized _travel) vectorDotProduct (vectorNormalized _target);
+                    _actor setVariable ["WAIT_CortexQA_ThrowEvidence",[_alignment,_travel,_origin]];
+                    deleteVehicle _projectile;
+                },[_actor,_projectile,_origin],0.1] call CBA_fnc_waitAndExecute;
+            }];
+            private _label=format ["GRENADE-direction-%1-%2-%3",_kind,_stance,if (_rear) then {"rear"} else {"front"}];
+            [_label,"The real carried grenade must depart towards the requested position. Rear-facing actors may cancel safely; front-facing actors must physically throw. No projectile direction or velocity is changed.",getPosATL _throwActor] call _phase;
+            // New group discovery assigns its first owner epoch asynchronously. Prove setup
+            // before queuing a throw; a legitimate bootstrap must not be mistaken for a failure.
+            private _ownerReady=[{
+                local _throwGroup && {_throwGroup getVariable ["WAIT_AIPass_Managed",false]}
+                    && {(_throwGroup getVariable ["WAIT_AIPass_Epoch",0]) > 0}
+                    && {simulationEnabled _throwActor}
+            },12] call _wait;
+            [_label+"-owner-ready",_ownerReady,str [groupOwner _throwGroup,_throwGroup getVariable ["WAIT_AIPass_Epoch",0]]] call _check;
+            private _queued=_ownerReady && {[_throwActor,_destination,_kind] call WAIT_fnc_CortexThrowGrenade};
+            private _released=[{(_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]]) isNotEqualTo []},4] call _wait;
+            private _evidence=_throwActor getVariable ["WAIT_CortexQA_ThrowEvidence",[]];
+            [_label,_queued && {if (_released) then {(_evidence select 0) >= 0.866} else {_rear}},
+                str [_queued,_released,_evidence,_throwActor getVariable ["WAIT_Cortex_ThrowDecision",[]],getDir _throwActor,currentCommand _throwActor]] call _check;
+            _throwActor removeEventHandler ["FiredMan",_throwEH];
+            deleteVehicle _throwActor;
+            deleteGroup _throwGroup;
+        } forEach [false,true];
+    } forEach ["SMOKE","FRAG"];
+} forEach ["UP","DOWN"];
 
 // The configured engine FSM remains installed when its live CBA gate is off, so prove that the
 // disabled path is inert under a real engine-delivered explosion. Native animation may still react;
@@ -38,7 +274,7 @@ private _disabledReady=[{!(missionNamespace getVariable ["WAIT_AIPass_Danger_Ena
 private _disabledOrigin=getPosATL _disabledUnit;
 private _disabledTransitionsBefore=count (_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: disabled physical stimulus","A real grenade detonates beside this isolated soldier while Danger response is disabled. Native animation is allowed, but WAIT must not take stance, cover, response or CONTACT ownership.",_disabledOrigin] call _phase;
-private _disabledGrenade=createVehicle ["GrenadeHand",_disabledOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _disabledGrenade=[_disabledOrigin getPos [7,90]] call _spawnRealGrenade;
 sleep 4;
 private _disabledTransitions=(_disabledGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disabledTransitionsBefore];
 private _disabledInert=(_disabledUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
@@ -55,6 +291,50 @@ deleteGroup _disabledGroup;
 private _enabledReady=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
 ["DANGER-live-gate-reenabled",_enabledReady] call _check;
 
+// Native stimulus diagnostic: compare attribution without injecting danger, knowledge or actions.
+// A missing callback is fixture/engine evidence, not proof that a tactical response is broken.
+{
+    _x params ["_sourceSide","_label","_range"];
+    private _probeGroup=createGroup [east,true];
+    _probeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _probeGroup setVariable ["acex_headless_blacklist",true,true];
+    _probeGroup setCombatMode "BLUE";
+    private _probeActor=_probeGroup createUnit ["O_Soldier_F",[2820+(_forEachIndex*25),1350,0],[],0,"NONE"];
+    _probeActor allowDamage false;
+    _probeActor setVariable ["WAIT_CortexQA_BlastEvents",[]];
+    private _blastHandler=_probeActor addEventHandler ["Explosion",{
+        params ["_actor","_damage"];
+        private _events=_actor getVariable ["WAIT_CortexQA_BlastEvents",[]];
+        if (count _events < 4) then {_events pushBack [time,_damage,getPosATL _actor]};
+        _actor setVariable ["WAIT_CortexQA_BlastEvents",_events];
+    }];
+    _probeActor setVariable ["WAIT_CortexQA_Label","EXPLOSION ATTRIBUTION "+_label,true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[_probeActor],true];
+    ["Diagnostic: explosion attribution "+_label,"A real attributed grenade tests engine explosion delivery. This diagnostic does not validate cover, smoke or tactical completion.",getPosATL _probeActor] call _phase;
+    private _probeGrenade=[(getPosATL _probeActor) getPos [_range,90],_sourceSide] call _spawnRealGrenade;
+    private _probeProjectile=!isNull _probeGrenade;
+    private _probeEvidence=[];
+    private _probeExplosion=[{
+        private _response=_probeActor getVariable ["WAIT_Danger_EngineResponse",[]];
+        // The engine may deliver blast damage as HIT, which correctly outranks EXPLOSION.
+        if (count _response == 4 && {(_response select 1) in [2,4]}) then {
+            _probeEvidence=+_response;
+            true
+        } else {false}
+    },10] call _wait;
+    ["DANGER-STIMULUS-"+_label+"-actual-projectile",_probeProjectile,str [_sourceSide,_probeProjectile,_range]] call _check;
+    private _blastEvents=_probeActor getVariable ["WAIT_CortexQA_BlastEvents",[]];
+    ["DANGER-STIMULUS-"+_label+"-observer-blast-event",_probeProjectile && {_blastEvents isNotEqualTo []},
+        str [_blastEvents,isNull _probeGrenade,_sourceSide,_range]] call _check;
+    _probeActor removeEventHandler ["Explosion",_blastHandler];
+    ["DANGER-STIMULUS-"+_label+"-native-explosion-callback",_probeProjectile && {_probeExplosion},
+        str [_probeEvidence,_probeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
+            [_probeGroup] call WAIT_fnc_CortexKnowledge]] call _check;
+    deleteVehicle _probeGrenade;
+    deleteVehicle _probeActor;
+    deleteGroup _probeGroup;
+} forEach [[east,"FRIENDLY",7],[west,"HOSTILE",7],[east,"FRIENDLY_NEAR",2.5],[west,"HOSTILE_NEAR",2.5]];
+
 // A live CBA change must also retire a response which already owns a weak actor stance. This is
 // distinct from starting disabled: the engine FSM has physically reacted, so cleanup must prove
 // exact restoration rather than merely showing that no callback was accepted.
@@ -69,11 +349,19 @@ _liveDisableUnit setVariable ["acex_headless_blacklist",true,true];
 _liveDisableUnit setVariable ["WAIT_CortexQA_Label","DANGER LIVE DISABLE",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_liveDisableUnit],true];
 ["Danger FSM: live gate cleanup","A real explosion first creates a finite WAIT stance. Danger is then disabled while that lease is active; the soldier must return to AUTO immediately without waiting for natural expiry.",getPosATL _liveDisableUnit] call _phase;
-private _liveDisableGrenade=createVehicle ["GrenadeHand",(getPosATL _liveDisableUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+// Hostile attribution reliably exercises the native response boundary on this engine;
+// friendly-blast callback delivery is measured independently above and is not assumed here.
+private _liveDisableGrenade=[(getPosATL _liveDisableUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _liveDisableReacted=[{
     (_liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _liveDisableUnit in ["CROUCH","PRONE"]}
 },10] call _wait;
+["DANGER-live-disable-real-reflex",_liveDisableReacted,str [
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineEntry",[]],
+    _liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]],
+    stance _liveDisableUnit,
+    _liveDisableGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]
+]] call _check;
 [createHashMapFromArray [["WAIT_AIPass_Danger_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _liveDisableReleased=[{
     !(missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",true])
@@ -83,6 +371,7 @@ private _liveDisableReleased=[{
         && {(_liveDisableGroup getVariable ["WAIT_Danger_Response",[]]) isEqualTo []}
 },10] call _wait;
 ["DANGER-live-disable-exact-stance-release",_liveDisableReacted && {_liveDisableReleased},str [
+    ["reflexDelivered",_liveDisableReacted,"released",_liveDisableReleased],
     unitPos _liveDisableUnit,
     _liveDisableUnit getVariable ["WAIT_Danger_EngineStanceLease",[]],
     _liveDisableUnit getVariable ["WAIT_Danger_EngineResponse",[]],
@@ -95,9 +384,42 @@ deleteGroup _liveDisableGroup;
 private _liveDisableReenabled=[{missionNamespace getVariable ["WAIT_AIPass_Danger_Enable",false]},10] call _wait;
 ["DANGER-live-disable-reenabled",_liveDisableReenabled] call _check;
 
+// Stationary defenders retain posture response without acquiring movement permission.
+private _stationaryGroup=createGroup [east,true];
+_stationaryGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_stationaryGroup setVariable ["acex_headless_blacklist",true,true];
+private _stationaryActor=_stationaryGroup createUnit ["O_Soldier_F",[2840,1320,0],[],0,"NONE"];
+_stationaryActor allowDamage false;
+_stationaryActor setUnitPos "AUTO";
+_stationaryActor disableAI "MOVE";
+_stationaryActor disableAI "PATH";
+_stationaryActor setVariable ["WAIT_CortexQA_Label","STATIONARY DEFENDER",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_stationaryActor],true];
+["Danger FSM: stationary defender","MOVE and PATH remain disabled. An attributed native grenade must produce finite weak posture without travel or enabling movement. This is an instrumented reflex case, not combat effectiveness.",getPosATL _stationaryActor] call _phase;
+private _stationaryOrigin=getPosATL _stationaryActor;
+private _stationaryGrenade=[_stationaryOrigin vectorAdd [3,0,0]] call _spawnRealGrenade;
+private _stationaryStimulusCreated=!isNull _stationaryGrenade;
+private _stationaryResponse=[{
+    private _response=_stationaryActor getVariable ["WAIT_Danger_EngineResponse",[]];
+    count _response == 7 && {(_response select 0) in ["IMMEDIATE","HIDE"]}
+        && {stance _stationaryActor in ["CROUCH","PRONE"]}
+},12] call _wait;
+["DANGER-stationary-defender-physical-posture",_stationaryStimulusCreated && {_stationaryResponse},
+    str [_stationaryActor getVariable ["WAIT_Danger_EngineEntry",[]],stance _stationaryActor]] call _check;
+["DANGER-stationary-defender-movement-preserved",
+    !(_stationaryActor checkAIFeature "MOVE") && {!(_stationaryActor checkAIFeature "PATH")}
+        && {_stationaryActor distance2D _stationaryOrigin < 1},str (getPosATL _stationaryActor)] call _check;
+[_stationaryGroup,false,"AUDIT_STATIONARY_RELEASE"] call WAIT_fnc_CortexReleaseGroup;
+["DANGER-stationary-defender-cleanup-permissions",
+    !(_stationaryActor checkAIFeature "MOVE") && {!(_stationaryActor checkAIFeature "PATH")}
+        && {(_stationaryActor getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []}] call _check;
+deleteVehicle _stationaryGrenade;
+deleteVehicle _stationaryActor;
+deleteGroup _stationaryGroup;
+
 // BLUE is an explicit authored hold-fire instruction. With the live danger gate enabled, a real
 // explosion must still reach the engine FSM and may produce a finite actor stance, but it cannot
-// promote fire discipline or enter the group tactical state.
+// promote fire discipline or authorise a manoeuvre. Native awareness remains valid.
 private _disciplineGroup=createGroup [east,true];
 _disciplineGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _disciplineGroup setVariable ["acex_headless_blacklist",true,true];
@@ -106,18 +428,27 @@ private _disciplineUnit=_disciplineGroup createUnit ["O_Soldier_F",[2270,1350,0]
 _disciplineUnit allowDamage false;
 _disciplineUnit setVariable ["acex_headless_blacklist",true,true];
 _disciplineUnit setVariable ["WAIT_CortexQA_Label","AUTHORED HOLD FIRE",true];
+_disciplineUnit setVariable ["WAIT_CortexQA_HoldShots",0];
+private _disciplineFired=_disciplineUnit addEventHandler ["FiredMan",{
+    params ["_unit"];
+    _unit setVariable ["WAIT_CortexQA_HoldShots",(_unit getVariable ["WAIT_CortexQA_HoldShots",0])+1];
+}];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_disciplineUnit],true];
 private _disciplineStatsBefore=(_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _disciplineTransitionsBefore=count (_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
-["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE and never begin CONTACT.",getPosATL _disciplineUnit] call _phase;
-private _disciplineGrenade=createVehicle ["GrenadeHand",(getPosATL _disciplineUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+["Danger FSM: authored hold fire","A real grenade detonates beside an invulnerable soldier under an authored BLUE order. The local reflex may run, but WAIT must retain BLUE, fire no shot and create no manoeuvre operation. Native contact awareness is permitted.",getPosATL _disciplineUnit] call _phase;
+private _disciplineGrenade=[(getPosATL _disciplineUnit) getPos [7,90]] call _spawnRealGrenade;
 private _disciplineObserved=[{
     ((_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _disciplineStatsBefore
 },12] call _wait;
 sleep 4;
 private _disciplineTransitions=(_disciplineGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_disciplineTransitionsBefore];
 ["DANGER-authored-hold-fire-preserved",_disciplineObserved && {combatMode _disciplineGroup == "BLUE"}
-    && {_disciplineTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0},str [combatMode _disciplineGroup,_disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+    && {(_disciplineUnit getVariable ["WAIT_CortexQA_HoldShots",0]) == 0}
+    && {count (_disciplineGroup getVariable ["WAIT_Operation",createHashMap]) == 0},
+    str [combatMode _disciplineGroup,_disciplineUnit getVariable ["WAIT_CortexQA_HoldShots",0],
+        _disciplineTransitions,_disciplineGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+_disciplineUnit removeEventHandler ["FiredMan",_disciplineFired];
 deleteVehicle _disciplineGrenade;
 // Contact awareness is still useful under an explicit hold-fire order, but it must not silently
 // become permission for WAIT fire, reinforcement, artillery or manoeuvre. Enable those gates for
@@ -238,6 +569,7 @@ _casualtyGroup setCombatMode "BLUE";
 private _casualtySurvivor=_casualtyGroup createUnit ["O_Soldier_F",[2280,1350,0],[],0,"NONE"];
 private _casualtyActor=_casualtyGroup createUnit ["O_Soldier_F",[2283,1350,0],[],0,"NONE"];
 _casualtySurvivor allowDamage false;
+_casualtySurvivor setDir (_casualtySurvivor getDir _casualtyActor);
 {_x setVariable ["acex_headless_blacklist",true,true]} forEach [_casualtySurvivor,_casualtyActor];
 _casualtySurvivor setVariable ["WAIT_CortexQA_Label","CASUALTY ALERT SURVIVOR",true];
 _casualtyActor setVariable ["WAIT_CortexQA_Label","REAL SAME-GROUP CASUALTY",true];
@@ -245,7 +577,8 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_casualtySurvivor,_casualt
 private _casualtyHideBefore=((_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0];
 private _casualtyTransitionsBefore=count (_casualtyGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: casualty alert is not contact","One soldier is killed by real damage beside his squad-mate. The survivor may take a finite local hide posture, but WAIT must not invent an attacker, change group combat posture or enter CONTACT.",getPosATL _casualtyActor] call _phase;
-_casualtyActor setDamage 1;
+private _casualtyProjectile=[_casualtyActor] call _killWithRealProjectile;
+private _casualtyKilled=[{!alive _casualtyActor},5] call _wait;
 private _casualtyObserved=[{
     private _stats=_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     ((_stats getOrDefault ["modes",createHashMap]) getOrDefault ["HIDE",0]) > _casualtyHideBefore
@@ -257,7 +590,11 @@ private _casualtyNoContact=_casualtyTransitions findIf {(_x param [2,""]) == "CO
     && {(_casualtyGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
     && {combatMode _casualtyGroup == "BLUE"}
     && {(([_casualtyGroup] call WAIT_fnc_CortexKnowledge) select 0) isEqualTo []};
-["DANGER-casualty-alert-no-contact",_casualtyObserved && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
+["DANGER-casualty-real-damage-prerequisite",_casualtyKilled,str [alive _casualtyActor,damage _casualtyActor]] call _check;
+["DANGER-casualty-native-response-prerequisite",_casualtyKilled && {_casualtyObserved},
+    str (_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-casualty-alert-no-contact",_casualtyKilled && {_casualtyObserved} && {_casualtyNoContact},str [_casualtyGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_casualtyTransitions,combatMode _casualtyGroup]] call _check;
+deleteVehicle _casualtyProjectile;
 deleteVehicle _casualtyActor;
 deleteVehicle _casualtySurvivor;
 deleteGroup _casualtyGroup;
@@ -272,10 +609,10 @@ _bodyObserverGroup setCombatMode "BLUE";
 private _bodyObserver=_bodyObserverGroup createUnit ["O_Soldier_F",[2310,1350,0],[],0,"NONE"];
 _bodyObserver allowDamage false;
 _bodyObserver setVariable ["acex_headless_blacklist",true,true];
-private _bodyGroup=createGroup [west,true];
+private _bodyGroup=createGroup [east,true];
 _bodyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _bodyGroup setVariable ["acex_headless_blacklist",true,true];
-private _bodyActor=_bodyGroup createUnit ["B_Soldier_F",[2318,1350,0],[],0,"NONE"];
+private _bodyActor=_bodyGroup createUnit ["O_Soldier_F",[2318,1350,0],[],0,"NONE"];
 removeAllWeapons _bodyActor;
 _bodyActor disableAI "MOVE";
 _bodyActor setVariable ["acex_headless_blacklist",true,true];
@@ -286,7 +623,18 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_bodyObserver,_bodyActor],
 private _bodyTransitionsBefore=count (_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: other body is not squad casualty","A soldier faces a nearby actor from another group before that actor is killed by real damage. Native cause 6 must remain BODY_FOUND, never CASUALTY, and must not authorise CONTACT or movement.",getPosATL _bodyActor] call _phase;
 sleep 1;
-_bodyActor setDamage 1;
+private _bodyProjectile=[_bodyActor] call _killWithRealProjectile;
+private _bodyKilled=[{!alive _bodyActor},5] call _wait;
+// Facing assigned at spawn can be replaced by native formation orientation. Request ordinary
+// observation of the actual corpse position; no reveal, target knowledge or danger is injected.
+_bodyObserver doWatch (getPosATL _bodyActor);
+private _bodyView=[{
+    private _towards=(aimPos _bodyActor) vectorDiff (eyePos _bodyObserver);
+    (vectorNormalized _towards) vectorDotProduct (eyeDirection _bodyObserver) >= 0.707
+        && {lineIntersectsSurfaces [eyePos _bodyObserver,aimPos _bodyActor,_bodyObserver,_bodyActor,true,1,"VIEW","NONE"] isEqualTo []}
+},5] call _wait;
+["DANGER-other-body-view-prerequisite",_bodyKilled && {_bodyView},
+    str [getPosATL _bodyObserver,getPosATL _bodyActor,eyeDirection _bodyObserver,_bodyView]] call _check;
 private _bodyObserved=[{
     private _stats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     "BODY_FOUND" in (_stats getOrDefault ["lastCauses",[]])
@@ -295,13 +643,16 @@ sleep 2;
 private _bodyStats=_bodyObserverGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
 private _bodyLastCauses=_bodyStats getOrDefault ["lastCauses",[]];
 private _bodyTransitions=(_bodyObserverGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_bodyTransitionsBefore];
-private _bodySeparated=_bodyObserved
+private _bodySeparated=_bodyKilled && {_bodyObserved}
     && {!("CASUALTY" in _bodyLastCauses)}
     && {_bodyTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0}
     && {((_bodyObserverGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
     && {combatMode _bodyObserverGroup == "BLUE"};
+["DANGER-other-body-real-damage-prerequisite",_bodyKilled,str [alive _bodyActor,damage _bodyActor]] call _check;
+["DANGER-other-body-native-observation-prerequisite",_bodyKilled && {_bodyObserved},str _bodyStats] call _check;
 ["DANGER-other-body-distinct-alert",_bodySeparated,str [_bodyStats,_bodyTransitions,combatMode _bodyObserverGroup]] call _check;
 deleteVehicle _bodyActor;
+deleteVehicle _bodyProjectile;
 deleteVehicle _bodyObserver;
 deleteGroup _bodyGroup;
 deleteGroup _bodyObserverGroup;
@@ -323,7 +674,7 @@ private _releaseSubmissionsBefore=_releaseStatsBefore getOrDefault ["submissions
 private _releaseAcceptedBefore=_releaseStatsBefore getOrDefault ["acceptedRecords",0];
 private _releaseTransitionsBefore=count (_releaseGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
 ["Danger FSM: authored CARELESS release","A real grenade detonates near an invulnerable CARELESS soldier. WAIT may record the engine stimulus, but must discard it before group planning and preserve the authored state.",getPosATL _releaseUnit] call _phase;
-private _releaseGrenade=createVehicle ["GrenadeHand",(getPosATL _releaseUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _releaseGrenade=[(getPosATL _releaseUnit) getPos [7,90]] call _spawnRealGrenade;
 private _releaseObserved=[{
     ((_releaseGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _releaseSubmissionsBefore
 },12] call _wait;
@@ -336,6 +687,12 @@ private _releaseInert=(_releaseStatsAfter getOrDefault ["acceptedRecords",0]) ==
     && {(_releaseGroup getVariable ["WAIT_Danger_ReactionLease",[]]) isEqualTo []}
     && {behaviour _releaseUnit == "CARELESS"}
     && {_releaseTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0};
+["DANGER-release-mode-engine-stimulus",_releaseObserved,
+    str ["submissionsBefore",_releaseSubmissionsBefore,"statsAfter",_releaseStatsAfter,
+        "behaviour",behaviour _releaseUnit]] call _check;
+["DANGER-release-mode-preserved-state",_releaseInert,
+    str [_releaseStatsAfter,behaviour _releaseUnit,_releaseTransitions]] call _check;
+// Retain the combined acceptance: a silent engine cannot prove a successful exercised handover.
 ["DANGER-release-mode-no-tactical-handoff",_releaseObserved && {_releaseInert},str [_releaseStatsAfter,behaviour _releaseUnit,_releaseTransitions]] call _check;
 deleteVehicle _releaseGrenade;
 deleteVehicle _releaseUnit;
@@ -359,11 +716,16 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit],true];
 // into a physical test instead of treating an accepted danger record or generated destination as success.
 private _dangerCoverWall=createVehicle ["Land_CncWall4_F",[2296,1350,0],[],0,"CAN_COLLIDE"];
 _dangerCoverWall setDir 90;
+private _coverDiscoveryPoint=[2293,1350,0];
+private _coverWallDiscovered=_dangerCoverWall in nearestObjects [_coverDiscoveryPoint,["House","Wall","Strategic"],8,true];
+["DANGER-cover-wall-discovery",_coverWallDiscovered,str [typeOf _dangerCoverWall,
+    ["House","Wall","Strategic","Thing"] apply {_dangerCoverWall isKindOf _x},
+    getPosATL _dangerCoverWall,boundingBoxReal _dangerCoverWall]] call _check;
 private _reflexStart=getPosATL _reflexUnit;
 ["Danger FSM: targetless explosion","A real grenade will detonate beside the isolated invulnerable soldier. He must duck, move behind the solid wall, release WAIT's exact scripted-stance lease and return to AUTO and CALM without acquiring or searching for an enemy.",getPosATL _reflexUnit] call _phase;
 private _statsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
 private _coverMovesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
-private _grenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _grenade=[(getPosATL _reflexUnit) getPos [7,90],west] call _spawnRealGrenade;
 private _nativeStimulus=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _statsBefore
 },12] call _wait;
@@ -371,9 +733,12 @@ private _physicalReflex=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isNotEqualTo []
         && {stance _reflexUnit in ["CROUCH","PRONE"]}
 },8] call _wait;
+private _coverGoal=[];
 private _physicalCover=[{
+    private _lease=_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]];
+    if (count _lease >= 4 && {(_lease select 0) == _reflexUnit}) then {_coverGoal=+(_lease select 3)};
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0]) > _coverMovesBefore
-        && {_reflexUnit distance2D _reflexStart >= 2}
+        && {_reflexUnit distance2D _reflexStart >= 0.6}
 },16] call _wait;
 private _released=[{
     (_reflexUnit getVariable ["WAIT_Danger_EngineStanceLease",[]]) isEqualTo []
@@ -382,13 +747,73 @@ private _released=[{
 },12] call _wait;
 private _reflexKnowledge=([_reflexGroup] call WAIT_fnc_CortexKnowledge) select 0;
 private _reflexTransitions=_reflexGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]];
-["DANGER-native-targetless-explosion",_nativeStimulus,str (_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap])] call _check;
+["DANGER-native-targetless-explosion",_nativeStimulus,str [
+    _reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],
+    (units _reflexGroup) apply {[_x,_x getVariable ["WAIT_Danger_EngineEntry",[]],local _x,currentCommand _x,behaviour _x]}
+]] call _check;
 ["DANGER-physical-finite-reflex",_nativeStimulus && {_physicalReflex},str [unitPos _reflexUnit,stance _reflexUnit]] call _check;
-["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+["DANGER-idle-physical-cover",_nativeStimulus && {_physicalCover},str [getPosATL _reflexUnit,_reflexStart,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]],
+    _reflexGroup getVariable ["WAIT_Danger_CoverDecision",[]],_reflexGroup getVariable ["WAIT_Danger_CoverBlockedContext",[]]]] call _check;
 ["DANGER-exact-posture-and-calm-release",_nativeStimulus && {_released} && {_reflexKnowledge isEqualTo []}
     && {_reflexTransitions findIf {(_x param [2,""]) == "SECURITY" || {(_x param [2,""]) == "SEARCH"}} < 0},
-    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions]] call _check;
+    str [unitPos _reflexUnit,_reflexKnowledge,_reflexTransitions,_reflexUnit getVariable ["WAIT_Danger_EngineReleaseEvidence",[]]]] call _check;
+private _coverArrived=[{count _coverGoal == 3 && {_reflexUnit distance2D _coverGoal <= 2}},12] call _wait;
+["DANGER-cover-committed-destination-arrival",_nativeStimulus && {_physicalCover} && {_coverArrived},
+    str [_coverGoal,getPosATL _reflexUnit,_reflexGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+private _coverReplacement=(getPosATL _reflexUnit) getPos [25,0];
+_reflexUnit doMove _coverReplacement;
+private _coverReplacementArrived=[{_reflexUnit distance2D _coverReplacement <= 3},30] call _wait;
+["DANGER-cover-post-release-native-order",_nativeStimulus && {_coverArrived} && {_coverReplacementArrived},
+    str [_coverReplacement,getPosATL _reflexUnit,currentCommand _reflexUnit]] call _check;
 deleteVehicle _grenade;
+
+// Independent active handover: only production-selected cover can establish the prerequisite.
+private _coverInterruptGroup=createGroup [east,true];
+_coverInterruptGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_coverInterruptGroup setVariable ["acex_headless_blacklist",true,true];
+_coverInterruptGroup setCombatMode "BLUE";
+private _coverInterruptUnit=_coverInterruptGroup createUnit ["O_Soldier_F",[2300,1353,0],[],0,"NONE"];
+_coverInterruptUnit allowDamage false;
+_coverInterruptUnit setUnitPos "AUTO";
+_coverInterruptUnit setVariable ["acex_headless_blacklist",true,true];
+_coverInterruptUnit setVariable ["WAIT_CortexQA_Label","ACTIVE COVER HANDOVER",true];
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_coverInterruptUnit],true];
+["Danger cover: active native replacement","A real explosion must first create a production cover move. An ordinary replacement doMove must then retire that lease and reach its own destination without WAIT returning to the old cover route.",getPosATL _coverInterruptUnit] call _phase;
+// Do not expend a one-shot engine stimulus before WAIT has adopted this fresh group.
+private _coverInterruptReady=[{
+    local _coverInterruptGroup && {_coverInterruptGroup getVariable ["WAIT_AIPass_Managed",false]}
+        && {(_coverInterruptGroup getVariable ["WAIT_AIPass_Epoch",0]) > 0}
+        && {_coverInterruptUnit checkAIFeature "PATH"} && {_coverInterruptUnit checkAIFeature "MOVE"}
+},20] call _wait;
+["DANGER-cover-active-fixture-ready",_coverInterruptReady,
+    str [_coverInterruptGroup getVariable ["WAIT_AIPass_Managed",false],
+        _coverInterruptGroup getVariable ["WAIT_AIPass_Epoch",0],currentCommand _coverInterruptUnit]] call _check;
+private _coverInterruptGrenade=objNull;
+if (_coverInterruptReady) then {
+    _coverInterruptGrenade=[(getPosATL _coverInterruptUnit) getPos [7,90],west] call _spawnRealGrenade;
+};
+private _coverInterruptStarted=[{
+    private _lease=_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]];
+    count _lease >= 4 && {(_lease select 0) == _coverInterruptUnit} && {time < (_lease select 2)}
+},16] call _wait;
+["DANGER-cover-active-replacement-prerequisite",_coverInterruptReady && {_coverInterruptStarted},
+    str [_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverDecision",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverBlockedContext",[]],
+        _coverInterruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
+private _coverInterruptDestination=(getPosATL _coverInterruptUnit) getPos [25,0];
+_coverInterruptUnit doMove _coverInterruptDestination;
+private _coverInterruptReleased=[{
+    (_coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []
+        && {(_coverInterruptUnit getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+},5] call _wait;
+private _coverInterruptArrived=[{_coverInterruptUnit distance2D _coverInterruptDestination <= 3},30] call _wait;
+["DANGER-cover-active-replacement-physical",_coverInterruptStarted && {_coverInterruptReleased} && {_coverInterruptArrived},
+    str [_coverInterruptDestination,getPosATL _coverInterruptUnit,currentCommand _coverInterruptUnit,
+        _coverInterruptGroup getVariable ["WAIT_Danger_CoverLease",[]]]] call _check;
+deleteVehicle _coverInterruptGrenade;
+deleteVehicle _coverInterruptUnit;
+deleteGroup _coverInterruptGroup;
 
 // Prove a multi-member group preserves the native observer through the group-budgeted cover pass.
 // The leader is deliberately too far away and path-disabled to receive or steal the physical move;
@@ -425,8 +850,18 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[_observerLeader,_observerW
     _observerSupportThree,_observerSupportFour,_observerSupportFive],true];
 ["Danger FSM: observer cover and squad readiness","A real explosion occurs beside the separated wingman. The native danger record must retain him as its observer, the one bounded cover move must move that same soldier rather than the distant leader, and four ordinary riflemen must lower profile before the squad's loaded AT gunner.",getPosATL _observerWingman] call _phase;
 sleep 2;
+private _observerIdle=[{currentCommand _observerWingman == "" && {_observerWingman checkAIFeature "MOVE"}
+    && {_observerWingman checkAIFeature "PATH"}},25] call _wait;
+["DANGER-observer-idle-command-prerequisite",_observerIdle,
+    str [currentCommand _observerWingman,getPosATL _observerWingman,expectedDestination _observerWingman]] call _check;
+// Native formation may have moved the separated wingman during setup. Align the disposable
+// wall with his actual stimulus location; never freeze or reset the tested actor to fake readiness.
+_observerStart=getPosATL _observerWingman;
+_observerWall setPosATL (_observerStart getPos [4,270]);
+["DANGER-observer-cover-fixture-range",_observerWingman distance2D _observerWall <= 18,
+    str [getPosATL _observerWingman,getPosATL _observerWall,currentCommand _observerWingman]] call _check;
 private _observerCoverBefore=(_observerGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["coverMoves",0];
-private _observerGrenade=createVehicle ["GrenadeHand",(getPosATL _observerWingman) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _observerGrenade=[(getPosATL _observerWingman) getPos [7,90]] call _spawnRealGrenade;
 private _observerGroupHide=[{
     private _leases=_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]];
     private _leasedActors=_leases apply {_x param [0,objNull]};
@@ -451,7 +886,7 @@ private _observerCover=[{
 ["DANGER-finite-group-hide",_observerGroupHide,str [_observerGroup getVariable ["WAIT_Danger_GroupHideLeases",[]],
     [_observerSupportOne] call WAIT_fnc_CortexCapabilities,unitPos _observerSupportOne,
     unitPos _observerSupportTwo,unitPos _observerSupportThree,unitPos _observerSupportFour,unitPos _observerSupportFive]] call _check;
-["DANGER-exact-observer-physical-cover",_observerCover,str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
+["DANGER-exact-observer-physical-cover",_observerIdle && {_observerCover},str [_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]],_observerGroup getVariable ["WAIT_Danger_Action",[]],_observerGroup getVariable ["WAIT_Danger_CoverLease",[]],getPosATL _observerLeader,getPosATL _observerWingman]] call _check;
 private _observerGenerationClosed=[{
     (_observerGroup getVariable ["WAIT_Danger_FSM",[]]) isEqualTo []
         && {(_observerGroup getVariable ["WAIT_Danger_LastAssessment",[]]) isEqualTo []}
@@ -505,15 +940,42 @@ _smokeWaypoint setWaypointSpeed "FULL";
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_smokeUnit],true];
 ["Danger FSM: non-blocking smoke","The moving soldier has one carried smoke grenade. A real explosion must trigger one physical smoke throw while his ordinary waypoint remains authoritative; he must continue to the destination rather than waiting on the throw.",_smokeDestination] call _phase;
 private _smokeMoving=[{_smokeUnit distance2D _smokeStart >= 4},20] call _wait;
-private _smokeGrenade=createVehicle ["GrenadeHand",(getPosATL _smokeUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _smokeEnemyGroup=createGroup [west,true];
+_smokeEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_smokeEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_smokeEnemyGroup setVariable ["acex_headless_blacklist",true,true];
+private _smokeEnemy=_smokeEnemyGroup createUnit ["B_Soldier_F",(getPosATL _smokeUnit) getPos [55,45],[],0,"NONE"];
+_smokeEnemy allowDamage false;
+_smokeEnemy setUnitPos "UP";
+_smokeEnemy disableAI "PATH";
+_smokeEnemy disableAI "FIREWEAPON";
+private _smokeKnown=[{
+    private _knowledge=([_smokeGroup] call WAIT_fnc_CortexKnowledge) select 0;
+    private _state=_smokeGroup getVariable ["WAIT_AIPass_State",createHashMap];
+    _knowledge findIf {(_x select 0) == _smokeEnemy} >= 0
+        && {_state getOrDefault ["contactKnowledge",false]}
+        && {count (_state getOrDefault ["enemyPos",[]]) >= 2}
+},20] call _wait;
+["DANGER-smoke-native-contact-prerequisite",_smokeKnown,str (_smokeUnit targetKnowledge _smokeEnemy)] call _check;
+private _smokeGrenade=[(getPosATL _smokeUnit) getPos [7,0],west] call _spawnRealGrenade;
 private _smokeThrown=[{(_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0]) == 1},18] call _wait;
 private _smokeArrived=[{_smokeUnit distance2D _smokeDestination < 7},55] call _wait;
 private _smokeStats=_smokeGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
-["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeThrown}
-    && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats]] call _check;
+["DANGER-severe-response-real-smoke",_smokeMoving && {_smokeKnown} && {_smokeThrown}
+    && {(_smokeStats getOrDefault ["smokeResponses",0]) == 1},str [_smokeUnit getVariable ["WAIT_CortexQA_SmokeShots",0],_smokeStats,
+        _smokeKnown,_smokeUnit getVariable ["WAIT_Cortex_ThrowDecision",[]],
+        _smokeGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+        (_smokeGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["contactKnowledge",false]]] call _check;
+["DANGER-smoke-route-arrival",_smokeMoving && {_smokeArrived}
+    && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},
+    str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
 ["DANGER-smoke-does-not-block-route",_smokeMoving && {_smokeThrown} && {_smokeArrived}
     && {waypointPosition _smokeWaypoint distance2D _smokeDestination < 1},str [getPosATL _smokeUnit,_smokeDestination,currentCommand _smokeUnit]] call _check;
 deleteVehicle _smokeGrenade;
+// Retire the live contact stimulus after recording this case. Keeping an invulnerable
+// hostile here contaminates later contact-loss and static deployment acceptance.
+deleteVehicle _smokeEnemy;
+deleteGroup _smokeEnemyGroup;
 deleteVehicle _smokeUnit;
 deleteGroup _smokeGroup;
 
@@ -529,7 +991,7 @@ _reflexUnit setVariable ["WAIT_CortexQA_Target",_movementDestination,true];
 ["Danger FSM: movement continuity","The soldier now follows a committed WAIT route through another real explosion. The danger reflex may crouch, but it must not request prone, replace the route or stop physical progress.",_movementDestination] call _phase;
 private _movementStarted=[{_reflexUnit distance2D _movementStart >= 4},20] call _wait;
 private _movementStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _movementGrenade=createVehicle ["GrenadeHand",(getPosATL _reflexUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _movementGrenade=[(getPosATL _reflexUnit) getPos [7,90]] call _spawnRealGrenade;
 private _movementDanger=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _movementStatsBefore
 },12] call _wait;
@@ -544,7 +1006,10 @@ for "_sample" from 1 to 12 do {
 };
 private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] call _wait;
 ["DANGER-committed-mover-not-forced-prone",_movementStarted && {_movementDanger} && {!_requestedProne},str [_requestedProne,unitPos _reflexUnit,stance _reflexUnit]] call _check;
-["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+["DANGER-committed-route-physical-arrival",_movementStarted && {_routeGenerationIntact} && {_movementArrived},
+    str [_movementStarted,_routeGenerationIntact,_movementArrived,getPosATL _reflexUnit,_movementDestination]] call _check;
+["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},
+    str [_movementStarted,_movementDanger,_routeGenerationIntact,_movementArrived,getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
 deleteVehicle _movementGrenade;
 [_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
 
@@ -552,6 +1017,12 @@ deleteVehicle _movementGrenade;
 // short posture. No target, reveal, doFire or synthetic danger is injected: the opponents must
 // acquire and engage through the engine, and the finite recycle counter must advance while the
 // hostile remains alive and known.
+// Idle evasion and contact persistence are not a manoeuvre acceptance case. Preserve the
+// prior effective settings and prevent a competing WAIT route from invalidating the idle fixture.
+private _closeMovementKeys=["WAIT_AIPass_Advance_Enable","WAIT_AIPass_Flank_Enable",
+    "WAIT_AIPass_CoordinatedAssault_Enable","WAIT_AIPass_Reinforce_Enable"];
+private _closeMovementPrevious=createHashMapFromArray (_closeMovementKeys apply {[_x,missionNamespace getVariable [_x,true]]});
+[createHashMapFromArray (_closeMovementKeys apply {[_x,false]})] call WAIT_fnc_CortexTuning;
 private _closeGroup=createGroup [west,true];
 _closeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _closeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -564,11 +1035,14 @@ _closeTarget setVariable ["WAIT_CortexQA_Label","CLOSE HOSTILE CONTACT",true];
 _reflexUnit allowDamage false;
 _reflexUnit setDir (_reflexUnit getDir _closeTarget);
 _closeTarget setDir (_closeTarget getDir _reflexUnit);
+_reflexUnit setUnitPosWeak "DOWN";
+_reflexUnit setVariable ["WAIT_Danger_LastEvasion",nil];
 _reflexGroup setCombatMode "RED";
 private _closeShots=0;
 private _closeShotHandler=_reflexUnit addEventHandler ["FiredMan",{missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0])+1]}];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",0];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_reflexUnit,_closeTarget],true];
+private _closeBrainStepBefore=(_reflexGroup getVariable ["WAIT_GroupBrain",createHashMap]) getOrDefault ["lastStepAt",-1];
 private _recyclesBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["recycles",0];
 private _boundedRecycleEndsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["boundedRecycleEnds",0];
 ["Danger FSM: close hostile persistence","The two invulnerable opponents face each other at 25 metres. WAIT must retain the native contact across finite response cycles while native AI fires; no target or fire command is injected by the audit.",getPosATL _closeTarget] call _phase;
@@ -578,20 +1052,77 @@ private _closePersistent=[{
         && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
         && {_reflexUnit knowsAbout _closeTarget > 0}
 },25] call _wait;
+// Evasion acceptance requires a native hit/near-round response followed by real displacement.
+// The actor and opponent remain engine-controlled; no danger record or animation is injected.
+private _evasionNativeEvidence=[];
+private _evasionEligibility=[];
+private _evasionNative=[{
+    private _response=_reflexUnit getVariable ["WAIT_Danger_EngineResponse",[]];
+    if (count _response == 4 && {(_response select 0) == "IMMEDIATE"}
+        && {(_response select 1) in [2,9]}) then {
+        _evasionNativeEvidence=+_response;
+        _evasionEligibility=[stance _reflexUnit,speed _reflexUnit,currentCommand _reflexUnit,
+            currentWeapon _reflexUnit,primaryWeapon _reflexUnit,
+            _reflexUnit getVariable ["WAIT_Cortex_ActorMove",[]],
+            count (_reflexGroup getVariable ["WAIT_Operation",createHashMap])];
+        true
+    } else {false}
+},8] call _wait;
+private _evasionObserved=[{count (_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]) == 5},12] call _wait;
+private _evasionEvidence=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
+private _evasionMoved=false;
+if (_evasionObserved) then {
+    private _evasionStart=_evasionEvidence select 4;
+    _evasionMoved=[{_reflexUnit distance2D _evasionStart >= 0.4},4] call _wait;
+};
+["DANGER-evasion-native-stimulus-prerequisite",_evasionNative,str [_evasionNativeEvidence,_evasionEligibility]] call _check;
+["DANGER-evasion-physical-displacement",_evasionNative && {_evasionObserved} && {_evasionMoved},
+    str [_evasionEvidence,getPosATL _reflexUnit]] call _check;
+[createHashMapFromArray [["WAIT_AIPass_DangerEvasion_Enable",false]]] call WAIT_fnc_CortexTuning;
+private _disabledEvasion=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
+private _disabledRecordsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
+sleep 6;
+private _disabledNativeRecords=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
+["DANGER-evasion-disabled-native-stimulus",_disabledNativeRecords > _disabledRecordsBefore,
+    str [_disabledRecordsBefore,_disabledNativeRecords]] call _check;
+["DANGER-evasion-disabled-no-action",_disabledNativeRecords > _disabledRecordsBefore
+    && {(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]) isEqualTo _disabledEvasion},
+    str (_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]])] call _check;
+[createHashMapFromArray [["WAIT_AIPass_DangerEvasion_Enable",true]]] call WAIT_fnc_CortexTuning;
 _closeShots=missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0];
 ["DANGER-close-contact-physical-persistence",_closePersistent,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]]] call _check;
 private _finiteReflexHandoff=[{
     private _stats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+    private _endsByMode=_stats getOrDefault ["boundedRecycleEndsByMode",createHashMap];
+    private _cyclesByMode=_stats getOrDefault ["lastRecycleCyclesByMode",createHashMap];
     (_stats getOrDefault ["boundedRecycleEnds",0]) > _boundedRecycleEndsBefore
-        && {(_stats getOrDefault ["lastRecycleCycles",-1]) == 2}
+        && {(_endsByMode getOrDefault ["ENGAGE",0]) > 0}
+        && {(_cyclesByMode getOrDefault ["ENGAGE",-1]) == 2}
         && {_reflexUnit knowsAbout _closeTarget > 0}
         && {(missionNamespace getVariable ["WAIT_CortexQA_CloseDangerShots",0]) > 0}
 },12] call _wait;
 ["DANGER-close-contact-finite-reflex-handoff",_finiteReflexHandoff,str [_closeShots,_reflexUnit knowsAbout _closeTarget,_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_reflexGroup getVariable ["WAIT_Cortex_Phase",""]]] call _check;
+// An incoming-fire stream can preempt ENGAGE before its optional two follow-ups finish.
+// Keep that acceptance above intact, and independently measure the selected IMMEDIATE bridge.
+private _closeStats=_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+private _closeEnds=_closeStats getOrDefault ["boundedRecycleEndsByMode",createHashMap];
+private _closeCycles=_closeStats getOrDefault ["lastRecycleCyclesByMode",createHashMap];
+private _closeImmediate=(_closeEnds getOrDefault ["IMMEDIATE",0]) > 0
+    && {(_closeCycles getOrDefault ["IMMEDIATE",-1]) == 0};
+["DANGER-close-contact-immediate-no-synthetic-recycle",_closeImmediate
+    && {_closeShots > 0} && {_reflexUnit knowsAbout _closeTarget > 0},
+    str [_closeEnds,_closeCycles,_reflexUnit getVariable ["WAIT_Danger_EngineEntryCount",0]]] call _check;
+private _closeBrain=_reflexGroup getVariable ["WAIT_GroupBrain",createHashMap];
+["DANGER-close-contact-shared-brain-handoff",_closeImmediate
+    && {_reflexGroup getVariable ["WAIT_AIPass_Managed",false]}
+    && {(_closeBrain getOrDefault ["lastStepAt",-1]) > _closeBrainStepBefore},
+    str [_closeBrainStepBefore,_closeBrain]] call _check;
 _reflexUnit removeEventHandler ["FiredMan",_closeShotHandler];
 missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
 deleteGroup _closeGroup;
+_reflexUnit setUnitPosWeak "AUTO";
+[_closeMovementPrevious] call WAIT_fnc_CortexTuning;
 
 // A curator replacement order is the strongest live interruption edge. Trigger a real engine
 // response, prove it became active, then install and mark an ordinary replacement waypoint through
@@ -600,7 +1131,7 @@ _reflexGroup setCombatMode "YELLOW";
 _reflexGroup setBehaviourStrong "AWARE";
 private _zeusOrigin=getPosATL _reflexUnit;
 private _zeusStatsBefore=(_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _zeusGrenade=createVehicle ["GrenadeHand",_zeusOrigin getPos [7,90],[],0,"CAN_COLLIDE"];
+private _zeusGrenade=[_zeusOrigin getPos [7,90]] call _spawnRealGrenade;
 private _zeusDangerActive=[{
     ((_reflexGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _zeusStatsBefore
         && {(_reflexGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
@@ -643,7 +1174,7 @@ _lostLeader setVariable ["WAIT_CortexQA_Label","DANGER LEADER CASUALTY",true];
 _newLeader setVariable ["WAIT_CortexQA_Label","DANGER SURVIVING ANCHOR",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_lostLeader,_newLeader],true];
 private _leaderLossStatsBefore=(_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _leaderLossGrenade=createVehicle ["GrenadeHand",(getPosATL _lostLeader) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _leaderLossGrenade=[(getPosATL _lostLeader) getPos [7,90]] call _spawnRealGrenade;
 private _leaderDangerActive=[{
     ((_leaderLossGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _leaderLossStatsBefore
         && {(_leaderLossGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
@@ -683,7 +1214,7 @@ private _forcedUnit=_forcedGroup createUnit ["O_Soldier_F",[2360,1350,0],[],0,"N
 _forcedUnit allowDamage false;
 _forcedUnit setVariable ["acex_headless_blacklist",true,true];
 _forcedUnit setVariable ["WAIT_CortexQA_Label","FORCED BOARDING OWNER",true];
-private _forcedVehicle=createVehicle ["O_Truck_03_transport_F",[2390,1350,0],[],0,"NONE"];
+private _forcedVehicle=createVehicle ["O_Truck_03_transport_F",[2440,1350,0],[],0,"NONE"];
 _forcedVehicle allowDamage false;
 _forcedVehicle setDir 270;
 _forcedUnit assignAsCargo _forcedVehicle;
@@ -691,10 +1222,16 @@ _forcedUnit assignAsCargo _forcedVehicle;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_forcedUnit,_forcedVehicle],true];
 ["Danger FSM: native boarding ownership","The soldier has an ordinary engine GET IN task before a real grenade detonates. WAIT must observe FORCED, never publish infantry tactical authority, and allow physical boarding to finish.",getPosATL _forcedVehicle] call _phase;
 private _forcedReady=[{toUpperANSI (currentCommand _forcedUnit) == "GET IN"},10] call _wait;
+private _forcedWaypointCount=count waypoints _forcedGroup;
+private _forcedRoute=[_forcedGroup,(getPosATL _forcedUnit) getPos [40,180],3] call WAIT_fnc_CortexGroupMove;
+["DANGER-forced-order-group-route-rejected",_forcedReady && {_forcedRoute isEqualTo [grpNull,-1]}
+    && {count waypoints _forcedGroup == _forcedWaypointCount},
+    str [_forcedRoute,currentCommand _forcedUnit,_forcedWaypointCount,count waypoints _forcedGroup]] call _check;
+
 private _forcedModesBefore=((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["modes",createHashMap]) getOrDefault ["FORCED",0];
 private _forcedAcceptedBefore=(_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0];
 private _forcedTransitionCount=count (_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]);
-private _forcedGrenade=createVehicle ["GrenadeHand",(getPosATL _forcedUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _forcedGrenade=[(getPosATL _forcedUnit) getPos [7,90]] call _spawnRealGrenade;
 private _forcedNoHandoff=[{
     private _stats=_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
     private _modes=_stats getOrDefault ["modes",createHashMap];
@@ -703,11 +1240,25 @@ private _forcedNoHandoff=[{
         && {(_forcedGroup getVariable ["WAIT_Danger_Action",[]]) isEqualTo []}
         && {((_forcedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CALM"}
 },12] call _wait;
-private _forcedBoarded=[{vehicle _forcedUnit == _forcedVehicle},35] call _wait;
+private _forcedTaskPreserved=true;
+private _forcedBoarded=[{
+    if (toUpperANSI currentCommand _forcedUnit == "GET IN") then {
+        private _stats=_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap];
+        if ((_forcedGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []
+            || {(_stats getOrDefault ["acceptedRecords",0]) != _forcedAcceptedBefore}
+            || {((_forcedGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["phase","CALM"]) == "CONTACT"}) then {_forcedTaskPreserved=false};
+    };
+    vehicle _forcedUnit == _forcedVehicle
+},35] call _wait;
 private _forcedTransitions=(_forcedGroup getVariable ["WAIT_Cortex_PhaseTransitions",[]]) select [_forcedTransitionCount];
 private _forcedNeverContact=_forcedTransitions findIf {(_x param [2,""]) == "CONTACT"} < 0;
-["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedNeverContact}
-    && {((_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["acceptedRecords",0]) == _forcedAcceptedBefore},
+["DANGER-forced-order-native-command-prerequisite",_forcedReady,
+    str [currentCommand _forcedUnit,assignedVehicle _forcedUnit]] call _check;
+["DANGER-forced-order-danger-handover",_forcedReady && {_forcedNoHandoff} && {_forcedTaskPreserved},
+    str [_forcedReady,_forcedNoHandoff,_forcedTaskPreserved,_forcedTransitions]] call _check;
+["DANGER-forced-order-physical-boarding",_forcedReady && {_forcedBoarded},
+    str [vehicle _forcedUnit,_forcedVehicle,currentCommand _forcedUnit]] call _check;
+["DANGER-forced-order-no-tactical-handoff",_forcedReady && {_forcedNoHandoff} && {_forcedBoarded} && {_forcedTaskPreserved},
     str [currentCommand _forcedUnit,vehicle _forcedUnit,_forcedGroup getVariable ["WAIT_Danger_EngineStats",createHashMap],_forcedTransitions]] call _check;
 deleteVehicle _forcedGrenade;
 deleteVehicle _forcedUnit;
@@ -731,7 +1282,7 @@ _interruptVehicle setDir 270;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[_interruptUnit,_interruptVehicle],true];
 ["Danger FSM: live response interrupted by native order","A real grenade must first activate WAIT's finite response. A later ordinary GET IN task must then remove that response before the soldier physically boards, without WAIT reissuing movement.",getPosATL _interruptVehicle] call _phase;
 private _interruptSubmissionsBefore=(_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0];
-private _interruptGrenade=createVehicle ["GrenadeHand",(getPosATL _interruptUnit) getPos [7,90],[],0,"CAN_COLLIDE"];
+private _interruptGrenade=[(getPosATL _interruptUnit) getPos [7,90]] call _spawnRealGrenade;
 private _interruptDangerActive=[{
     ((_interruptGroup getVariable ["WAIT_Danger_EngineStats",createHashMap]) getOrDefault ["submissions",0]) > _interruptSubmissionsBefore
         && {(_interruptGroup getVariable ["WAIT_Danger_Response",[]]) isNotEqualTo []}
@@ -767,6 +1318,10 @@ private _opposition=createGroup [west,true];
     _x setCombatMode "BLUE";
 } forEach [_group,_opposition];
 _opposition setVariable ["WAIT_AIPass_Exclude",true,true];
+// This actor is the controlled sight-line stimulus, not a combat-effectiveness opponent.
+// Preserve native pathfinding while preventing autonomous contact reactions from diverting
+// the authored exposure/reocclusion route. The observers retain ordinary combat behaviour.
+_opposition setBehaviour "CARELESS";
 private _walls=[];
 for "_i" from -4 to 4 do {
     private _wall=createVehicle ["Land_CncWall4_F",[2000+_i*4,1450,0],[],0,"CAN_COLLIDE"];
@@ -899,11 +1454,21 @@ private _orderedSequence=(["SECURITY","SEARCH","REGROUP","CALM"] findIf {!(_x in
 ["TRANS-contact-postcontact-sequence",_contactBeforeRemoval && {_orderedSequence} && {_calm},str _sequence] call _check;
 private _phaseHistory=_group getVariable ["WAIT_Cortex_PhaseTransitions",[]];
 private _publishedPhases=_phaseHistory apply {_x param [2,""]};
-private _publishedOrder=("SECURITY" in _publishedPhases) && {"SEARCH" in _publishedPhases}
-    && {"REGROUP" in _publishedPhases} && {"CALM" in _publishedPhases}
-    && {(_publishedPhases find "SECURITY") < (_publishedPhases find "SEARCH")}
-    && {(_publishedPhases find "SEARCH") < (_publishedPhases find "REGROUP")}
-    && {(_publishedPhases find "REGROUP") < (_publishedPhases find "CALM")};
+// The ledger normally contains its initial CALM entry and may contain an interrupted first search.
+// Compare the first valid ordered subsequence instead of comparing every phase with the earliest
+// CALM in history, which incorrectly fails a complete SECURITY -> SEARCH -> REGROUP -> CALM cycle.
+private _findPublishedAfter={
+    params ["_phases","_wanted","_after"];
+    private _relative=(_phases select [_after+1]) find _wanted;
+    if (_relative < 0) exitWith {-1};
+    _after+1+_relative
+};
+private _publishedSecurity=_publishedPhases find "SECURITY";
+private _publishedSearch=[_publishedPhases,"SEARCH",_publishedSecurity] call _findPublishedAfter;
+private _publishedRegroup=[_publishedPhases,"REGROUP",_publishedSearch] call _findPublishedAfter;
+private _publishedCalm=[_publishedPhases,"CALM",_publishedRegroup] call _findPublishedAfter;
+private _publishedOrder=_publishedSecurity >= 0 && {_publishedSearch > _publishedSecurity}
+    && {_publishedRegroup > _publishedSearch} && {_publishedCalm > _publishedRegroup};
 private _latestPhase=_group getVariable ["WAIT_Cortex_PhaseTransition",[]];
 ["TRANS-published-phase-ledger",_calm && {_publishedOrder} && {count _phaseHistory <= 32}
     && {(_latestPhase param [2,""]) == "CALM"},str _phaseHistory] call _check;
@@ -935,6 +1500,11 @@ for "_sample" from 1 to 15 do {
     } forEach _units;
 };
 ["TRANS-no-old-search-order-resurrection",_heldDestination,format ["maximumDistance=%1",_largestReturnDistance]] call _check;
+// An undetected interruption opponent survives the failed transition window otherwise.
+// Its results are already recorded; do not let it become another contact for later static tests.
+deleteVehicle _interruptEnemy;
+_interruptEnemy=objNull;
+
 
 // An empty static weapon is an actor-level support opportunity inside the same contact brain. The
 // fixture first proves the disabled state, then enables the production gate and requires a real
@@ -975,10 +1545,19 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",_staticUnits+[_staticWeapon
 [createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",false]]] call WAIT_fnc_CortexTuning;
 ["Danger tactics: nearby static disabled","The squad must naturally contact the target but leave the nearby empty HMG unassigned while the feature is disabled.",getPosATL _staticWeapon] call _phase;
 private _staticContact=[{(([_staticGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _staticEnemy} >= 0},30] call _wait;
+private _staticReady=_staticContact && {[{
+    _staticGroup getVariable ["WAIT_AIPass_Managed",false]
+        && {(_staticGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
+},20] call _wait};
+["DANGER-static-support-fixture-ready",_staticReady,str [
+    _staticGroup getVariable ["WAIT_AIPass_Managed",false],
+    _staticGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _staticGroup getVariable ["WAIT_AIPass_State",createHashMap]
+]] call _check;
 sleep 6;
 private _staticDisabled=gunner _staticWeapon isEqualTo objNull
     && {(_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]) isEqualTo []};
-["DANGER-static-support-disabled",_staticContact && {_staticDisabled},str [gunner _staticWeapon,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+["DANGER-static-support-disabled",_staticReady && {_staticDisabled},str [gunner _staticWeapon,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
 [createHashMapFromArray [["WAIT_AIPass_StaticSupport_Enable",true]]] call WAIT_fnc_CortexTuning;
 // The disabled path does not consume the contact episode's single attempt. Opening the live gate
 // therefore exercises production selection during the same natural contact without assigning a
@@ -989,7 +1568,12 @@ private _staticFired=[{(_staticWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0
 private _staticSquadFired=[{
     _staticUnits findIf {_x != _staticGunner && {(_x getVariable ["WAIT_CortexQA_Shots",0]) > 0}} >= 0
 },30] call _wait;
-["DANGER-static-support-physical-seat",_staticOccupied,str [_staticGunner,assignedVehicle _staticGunner,_staticGroup getVariable ["WAIT_Danger_StaticSupport",[]]]] call _check;
+["DANGER-static-support-physical-seat",_staticOccupied,str [
+    _staticGunner,assignedVehicle _staticGunner,
+    _staticGroup getVariable ["WAIT_Danger_StaticSupport",[]],
+    _staticGroup getVariable ["WAIT_Danger_StaticAttempt",[]],
+    _staticUnits apply {currentCommand _x}
+]] call _check;
 ["DANGER-static-support-composable-fire",_staticOccupied && {_staticFired} && {_staticSquadFired},str [_staticWeapon getVariable ["WAIT_CortexQA_Shots",0],_staticUnits apply {_x getVariable ["WAIT_CortexQA_Shots",0]}]] call _check;
 deleteVehicle _staticEnemy;
 private _staticReleased=[{
@@ -1045,10 +1629,22 @@ _deployEnemy setVariable ["WAIT_CortexQA_Label","CARRIED SUPPORT TARGET",true];
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_deployUnits+[_deployEnemy],true];
 [createHashMapFromArray [
     ["WAIT_AIPass_StaticSupport_Enable",true],
-    ["WAIT_AIPass_StaticDeploy_Enable",true]
+    ["WAIT_AIPass_StaticDeploy_Enable",true],
+    ["WAIT_AIPass_PostContact_Enable",true],
+    ["WAIT_AIPass_PostContact_LostSeconds",3],
+    ["WAIT_AIPass_PostContact_SecuritySeconds",20]
 ]] call WAIT_fnc_CortexTuning;
 ["Danger tactics: carried static deployment","A real compatible weapon team faces a naturally detected enemy. The pair must physically assemble the weapon, the primary-bag carrier must board its gunner seat and the real emplacement must fire without holding the rest of the squad.",getPosATL _deployGunner] call _phase;
 private _deployContact=[{(([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) findIf {(_x select 0) == _deployEnemy} >= 0},35] call _wait;
+private _deployReady=_deployContact && {[{
+    _deployGroup getVariable ["WAIT_AIPass_Managed",false]
+        && {(_deployGroup getVariable ["WAIT_AIPass_PublicPhase",""]) == "CONTACT"}
+},20] call _wait};
+["DANGER-static-deploy-fixture-ready",_deployReady,str [
+    _deployGroup getVariable ["WAIT_AIPass_Managed",false],
+    _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _deployGroup getVariable ["WAIT_AIPass_State",createHashMap]
+]] call _check;
 private _deployActive=[{
     private _record=_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]];
     count _record >= 10
@@ -1068,7 +1664,9 @@ if (!isNull _deployedWeapon) then {
 };
 private _deployFired=[{!isNull _deployedWeapon && {(_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]) > 0}},35] call _wait;
 ["DANGER-static-deploy-config-prerequisite",_deployConfigValid,str [_deployExpected,_deployBases,backpack _deployAssistant]] call _check;
-["DANGER-static-deploy-physical-assembly",_deployContact && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner]] call _check;
+["DANGER-static-deploy-physical-assembly",_deployReady && {_deployActive},str [_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]],vehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployEnd",[]]]] call _check;
+private _deployBearing=if (isNull _deployedWeapon) then {180} else {abs (((_deployedWeapon getRelDir _deployEnemy)+180) mod 360-180)};
+["DANGER-static-deploy-facing-sector",_deployActive && {_deployBearing <= 15},str [_deployedWeapon,_deployBearing]] call _check;
 ["DANGER-static-deploy-real-fire",_deployActive && {_deployFired},str [_deployedWeapon,_deployedWeapon getVariable ["WAIT_CortexQA_Shots",0]]] call _check;
 deleteVehicle _deployEnemy;
 private _deployReleased=[{
@@ -1077,6 +1675,19 @@ private _deployReleased=[{
         && {vehicle _deployGunner == _deployGunner}
 },75] call _wait;
 ["DANGER-static-deploy-contact-release",_deployActive && {_deployReleased},str [vehicle _deployGunner,assignedVehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]]] call _check;
+diag_log format ["WAIT STATIC RETIRE TRACE: %1",_deployGroup getVariable ["WAIT_Danger_StaticDeployEnd",[]]];
+diag_log format ["WAIT STATIC PACK CONTACT TRACE: %1",[
+    _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _deployGroup getVariable ["WAIT_AIPass_State",createHashMap],
+    [_deployGroup] call WAIT_fnc_CortexKnowledge,
+    (([_deployGroup] call WAIT_fnc_CortexKnowledge) select 0) apply {
+        private _target=_x select 0;
+        [netId _target,typeOf _target,isPlayer _target,captive _target,getPosATL _target,_x select 1]
+    },
+    allPlayers apply {[netId _x,isPlayer _x,captive _x,getPosATL _x]},
+    _deployGroup getVariable ["WAIT_Operation",createHashMap],
+    (waypoints _deployGroup) apply {[_x,waypointType _x,waypointDescription _x]}]];
+
 private _deployPacked=_deployReleased && {isNull _deployedWeapon}
     && {backpack _deployGunner == "O_HMG_01_weapon_F"}
     && {backpack _deployAssistant == "O_HMG_01_support_F"};
@@ -1089,3 +1700,65 @@ sleep 8;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 {deleteVehicle _x} forEach (_units+[_enemy]+_walls);
 deleteGroup _group; deleteGroup _opposition;
+
+// Real FiredNear delivery remains observation-only while Zeus owns the waypoint chain.
+[createHashMapFromArray [["WAIT_AIPass_Hearing_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _hearingGroup=createGroup [east,true];
+_hearingGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_hearingGroup setCombatMode "BLUE";
+private _hearingActor=_hearingGroup createUnit ["O_Soldier_F",[2600,1700,0],[],0,"NONE"];
+_hearingActor allowDamage false;
+private _hearingOrigin=getPosATL _hearingActor;
+private _hearingDestination=[2600,1820,0];
+private _hearingWaypoint=_hearingGroup addWaypoint [_hearingDestination,0];
+_hearingWaypoint setWaypointType "MOVE";
+_hearingWaypoint setWaypointCombatMode "BLUE";
+_hearingWaypoint setWaypointBehaviour "AWARE";
+_hearingGroup setCurrentWaypoint _hearingWaypoint;
+[_hearingGroup,true,_hearingWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+[_hearingGroup] call WAIT_fnc_CortexHearingLocal;
+private _hearingEnemyGroup=createGroup [west,true];
+_hearingEnemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_hearingEnemyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+private _hearingEnemy=_hearingEnemyGroup createUnit ["B_Soldier_F",[2620,1700,0],[],0,"NONE"];
+_hearingEnemy allowDamage false;
+_hearingEnemy setVariable ["WAIT_CortexQA_HearingShots",0];
+_hearingEnemy addEventHandler ["FiredMan",{
+    params ["_actor"];
+    _actor setVariable ["WAIT_CortexQA_HearingShots",(_actor getVariable ["WAIT_CortexQA_HearingShots",0])+1];
+}];
+_hearingEnemy disableAI "MOVE";
+_hearingEnemy setDir 90;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[_hearingActor,_hearingEnemy],true];
+["Zeus waypoint: hearing assistance","Real nearby rifle fire must create only an uncertain SOUND report. The observer must continue toward the Zeus waypoint with BLUE fire discipline and no WAIT movement operation.",_hearingOrigin] call _phase;
+private _hearingWeapon=primaryWeapon _hearingEnemy;
+_hearingEnemy selectWeapon _hearingWeapon;
+sleep 0.5;
+private _hearingWeaponState=weaponState _hearingEnemy;
+_hearingEnemy forceWeaponFire [_hearingWeaponState param [1,_hearingWeapon],_hearingWeaponState param [2,"Single"]];
+private _heard=[{(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]) param [3,""] == "SOUND"},8] call _wait;
+["ZEUS-hearing-real-shot-prerequisite",(_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0]) > 0,str (weaponState _hearingEnemy)] call _check;
+private _hearingProgress=[{_hearingActor distance2D _hearingOrigin >= 20},35] call _wait;
+["ZEUS-hearing-real-sound-report",_heard,str (_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]])] call _check;
+["ZEUS-hearing-authored-movement",_hearingProgress && {combatMode _hearingGroup == "BLUE"}
+    && {count (_hearingGroup getVariable ["WAIT_Operation",createHashMap]) == 0},str [getPosATL _hearingActor,combatMode _hearingGroup,_hearingGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+// A direct edit supersedes the waypoint domain even inside the mark throttle interval. Keep the
+// existing report as evidence and require its timestamp not to change under another real shot.
+[_hearingGroup,true,_hearingWaypoint select 1] call WAIT_fnc_CortexZeusMark;
+[_hearingGroup] call WAIT_fnc_CortexZeusMark;
+private _directReport=+(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]);
+private _directShots=_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0];
+sleep 11;
+_hearingEnemy setPosATL ((getPosATL _hearingActor) getPos [20,90]);
+_hearingEnemy forceWeaponFire [_hearingWeaponState param [1,_hearingWeapon],_hearingWeaponState param [2,"Single"]];
+private _directShot=[{(_hearingEnemy getVariable ["WAIT_CortexQA_HearingShots",0]) > _directShots},3] call _wait;
+sleep 1;
+["ZEUS-hearing-direct-edit-yields",_directShot
+    && {(_hearingGroup getVariable ["WAIT_AIPass_ZeusControlKind",""]) == "DIRECT"}
+    && {(_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]) isEqualTo _directReport},
+    str [_directShot,_directReport,_hearingGroup getVariable ["WAIT_AIPass_AreaReport",[]]]] call _check;
+[_hearingGroup,true] call WAIT_fnc_CortexHearingLocal;
+{deleteVehicle _x} forEach [_hearingActor,_hearingEnemy];
+deleteGroup _hearingGroup;
+deleteGroup _hearingEnemyGroup;
+missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];

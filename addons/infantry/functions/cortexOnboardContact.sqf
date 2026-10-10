@@ -51,12 +51,22 @@ private _vehicles=[];
             private _owned=_state getOrDefault ["dismounted",[]];
             {
                 private _unit=_x;
-                if (_owned findIf {(_x select 0) == _unit} < 0) then {_owned pushBack [_unit,_vehicle]};
+                if (_owned findIf {(_x select 0) == _unit} < 0) then {
+                    _owned pushBack [_unit,_vehicle];
+                    _group setVariable ["WAIT_Cortex_DismountContinuation",[serverTime+60,
+                        _group getVariable ["WAIT_OperationGeneration",0],+_owned,
+                        [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
+                };
                 _state set ["dismounted",_owned];
                 _state set ["onboardContactUntil",serverTime+30];
-                [_unit] orderGetIn false;
-                unassignVehicle _unit;
-                doGetOut _unit;
+                // Preserve the engine's in-progress exit animation/order. A later interrupted
+                // command may be retried on the next eligible tick, but healthy exits are not reissued.
+                if (toUpperANSI (currentCommand _unit) != "GET OUT"
+                    && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
+                    [_unit] orderGetIn false;
+                    unassignVehicle _unit;
+                    doGetOut _unit;
+                };
             } forEach _cargo;
         };
     };

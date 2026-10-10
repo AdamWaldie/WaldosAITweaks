@@ -13,6 +13,8 @@
  * Review contract: Repeated release restores PATH only for soldiers marked as disabled by this garrison. Mission-maker PATH restrictions remain in place; public assignments are cleared for JIP.
  *
  * Restores only an unchanged Cortex duck stance; preserves later Zeus/script stance choices.
+ * Posture, watch, speed and formation restoration also require a combat-effective actor
+ * without actor-specific external ownership. Owned PATH-lock metadata is still retired.
  * Repeat/JIP: repeated release clears published assignments; new owners do not replay a released order.
  * Arguments:
  * 0: group <GROUP or OBJECT>
@@ -55,7 +57,8 @@ if (isNull _leader) then {_leader=leader _group};
         _unit setVariable ["WAIT_AIPass_DuckUntil", nil];
 
         if (_x getVariable ["WAIT_AIPass_GarrisonDisabledPath", false]) then {_x enableAI "PATH"};
-        if (alive _x && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"}) then {
+        if ([_x] call WAIT_fnc_CortexCombatEffective && {!isPlayer _x}
+            && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}) then {
             // A replacement owner receives untouched posture, watch and speed. Normal release
             // still restores WAIT's temporary hold exactly when its own lease remains intact.
             if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {

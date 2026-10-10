@@ -369,7 +369,10 @@
         "WAIT_AIPass_Danger_Enable",
         "WAIT_AIPass_DangerSmoke_Enable",
         "WAIT_AIPass_StaticSupport_Enable",
-        "WAIT_AIPass_StaticDeploy_Enable"
+        "WAIT_AIPass_StaticDeploy_Enable",
+        "WAIT_AIPass_DangerEvasion_Enable",
+        "WAIT_AIPass_DangerObservation_Enable",
+        "WAIT_AIPass_DangerConcealment_Enable"
       ],
       "status": "implemented_partial",
       "live_evidence": [],
@@ -634,7 +637,8 @@
         "addons/vehicles/functions/cortexVehicles.sqf",
         "addons/vehicles/functions/cortexVehicleCrewRecover.sqf",
         "addons/vehicles/functions/cortexVehicleJink.sqf",
-        "addons/vehicles/functions/cortexVehicleOrient.sqf"
+        "addons/vehicles/functions/cortexVehicleOrient.sqf",
+        "addons/vehicles/functions/cortexVehicleReverseStep.sqf"
       ]
     },
     {
@@ -680,6 +684,7 @@
       "setup": "Damage a mobile armed vehicle under contact, with and without smoke ammunition.",
       "expected": "Vehicle physically withdraws, uses only available smoke and restores controls; immobilized or deleted vehicles terminate safely.",
       "settings": [
+        "WAIT_AIPass_VehicleReverse_Enable",
         "WAIT_AIPass_VehicleWithdraw_Enable"
       ],
       "status": "implemented_partial",
@@ -1123,14 +1128,15 @@
         "runtime-20260927-193231: normal combat advance completed 33 checks with four findings and zero SQF errors. Actual covering fire and fire while moving passed. Contact deadline, frontage, clear-through and completion failed; ending GRENADE_UNRESOLVED with a separated leader. A saved explicit queued-throw cancellation transition is not yet live-verified. No acceptance claimed.",
         "Runtime 200043: focused ADVANCE-GRENADE completed 38 checks with zero findings and zero SQF errors, including actual grenade, physical clear-through by both elements and fire while moving. Single server-owner run; wider variants remain pending."
       ],
-      "automation": "runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. Changed assessment stage awaits exact-package live acceptance.",
+      "automation": "runCombat.sqf requires the production tactical assessment to select ADVANCE and publish STARTED before its existing authored-route, physical bound, covering-fire, proximity-stop, completion and interruption checks. runTacticalAssessment.sqf requires armour overmatch and exposed elevated contacts to make one physical screened REPOSITION while retaining native combat, and rejects a rifle rush or repeated fallback. A failed safe avenue hands off to the same finite reposition and reassessment path. Changed stages await exact-package live acceptance.",
       "executable_sources": [
         "runCombat.sqf"
       ],
       "production_sources": [
         "addons/infantry/functions/cortexAdvanceStart.sqf",
         "addons/infantry/functions/cortexTacticalStart.sqf",
-        "addons/infantry/functions/cortexTacticalAssess.sqf"
+        "addons/infantry/functions/cortexTacticalAssess.sqf",
+        "addons/infantry/functions/cortexTacticalReposition.sqf"
       ]
     },
     {
@@ -1364,7 +1370,8 @@
         "addons/core/functions/operationStart.sqf",
         "addons/core/functions/operationStep.sqf",
         "addons/core/functions/operationCancel.sqf",
-        "addons/core/functions/operationRelease.sqf"
+        "addons/core/functions/operationRelease.sqf",
+        "addons/core/functions/operationRestore.sqf"
       ]
     },
     {

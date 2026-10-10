@@ -27,6 +27,8 @@
  * he held when the order was applied only if the Cortex duck stance still remains.
  * Later stance changes are preserved. Handlers do nothing after release or Zeus takeover.
  * Locality and authority: call where the group is local.
+ * Each actor must remain combat-effective and free of player/specialist ownership before
+ * initial movement or an arrival PATH lock; captive and surrendered actors are never retasked.
  *
  * Review contract: Arrival jobs carry a local generation token, so replacing an order retires older work. PATH restoration is recorded publicly only when this pass disables it.
  *
@@ -89,7 +91,9 @@ private _buildingAnchor = {
 {
     private _unit = _x;
     private _assignment = _unit getVariable ["WAIT_AIPass_GarrisonPos", []];
-    if (alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"} && {_assignment isNotEqualTo []}) then {
+    if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {!isPlayer _unit}
+        && {!([_group,false,_unit] call WAIT_fnc_CortexExternalTakeover)}
+        && {_assignment isNotEqualTo []}) then {
         _unit setVariable ["WAIT_AIPass_GarrisonFailed",nil,true];
         if (isNil {_unit getVariable "WAIT_AIPass_GarrisonStance"}) then {_unit setVariable ["WAIT_AIPass_GarrisonStance", unitPos _unit, true]};
         if (isNil {_unit getVariable "WAIT_Cortex_GarrisonForcedSpeed"}) then {
@@ -100,8 +104,8 @@ private _buildingAnchor = {
             _unit setVariable ["WAIT_AIPass_GarrisonHandlers", true];
             private _duck = {
                 params ["_unit"];
-                if (!local _unit || {isPlayer _unit} || {lifeState _unit == "INCAPACITATED"} || {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
-                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)} || {[group _unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};
+                if (!local _unit || {isPlayer _unit} || {!([_unit] call WAIT_fnc_CortexCombatEffective)} || {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
+                    || {!([group _unit] call WAIT_fnc_CortexIsEligible)} || {[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover}) exitWith {};
                 if (time < (_unit getVariable ["WAIT_AIPass_DuckUntil", -1])) exitWith {};
                 private _until = time + 4 + random 4;
                 _unit setVariable ["WAIT_AIPass_DuckUntil", _until];
@@ -110,10 +114,10 @@ private _buildingAnchor = {
                 _unit setUnitPos _duckStance;
                 [{
                     params ["_unit", "_until"];
-                    if (alive _unit && {local _unit} && {!isPlayer _unit} && {lifeState _unit != "INCAPACITATED"} && {(_unit getVariable ["WAIT_AIPass_DuckUntil", -1]) == _until}
+                    if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {!isPlayer _unit} && {(_unit getVariable ["WAIT_AIPass_DuckUntil", -1]) == _until}
                         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isNotEqualTo []}
                         && {[group _unit] call WAIT_fnc_CortexIsEligible}
-                        && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
+                        && {!([group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover)}) then {
                         if (unitPos _unit == (_unit getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {
                             _unit setUnitPos (_unit getVariable ["WAIT_AIPass_GarrisonStance", "AUTO"]);
                         };
@@ -170,7 +174,9 @@ private _buildingAnchor = {
             && {_assignment isNotEqualTo []} && {time <= (_job get "deadline")}) then {
             _pending=_pending+1;
         };
-        if (alive _x && {local _x} && {!isPlayer _x} && {lifeState _x != "INCAPACITATED"} && {_assignment isNotEqualTo []} && {_x checkAIFeature "PATH"} && {!(_x getVariable ["WAIT_AIPass_GarrisonFailed",false])}) then {
+        if ([_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
+            && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}
+            && {_assignment isNotEqualTo []} && {_x checkAIFeature "PATH"} && {!(_x getVariable ["WAIT_AIPass_GarrisonFailed",false])}) then {
             private _openedDoor = if (call _mayIssueMovement) then {
                 [_x,_assignment param [2,objNull]] call WAIT_fnc_CortexBuildingDoor
             } else {false};

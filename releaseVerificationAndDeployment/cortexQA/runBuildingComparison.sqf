@@ -3,6 +3,8 @@
  * Compares physical building entry using independent engine commands across small and large,
  * single- and multi-storey house models, then exercises production garrison and clearance.
  * Locality/authority: scheduled dedicated-server audit; all actors are pinned to this owner.
+ * Clearance acceptance requires covered interior navigation positions; exposed positions remain
+ * separately recorded as exterior evidence, rather than being counted as uncleared rooms.
  * Repeat/JIP: disposable actors and houses are removed; observer state is public for joining clients.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; all required audit callbacks.
  * Return: Nothing. Current callers: cortexQA/runServer.sqf.
@@ -70,38 +72,95 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 // Keep all original comparisons above, including their failures.
 {
     _x params ["_size","_class"];
-    private _house=createVehicle [_class,[6250,5800,0],[],0,"NONE"];
+    private _site=[6550+_forEachIndex*200,5800,0];
+    private _house=createVehicle [_class,_site,[],0,"NONE"];
     _house enableSimulationGlobal true;
+    private _otherBuildings=(nearestObjects [_site,["House"],50,true])-[_house];
+    [format ["CLEAR-fresh-%1-site-isolated",_size],_otherBuildings isEqualTo [],str [_site,_otherBuildings]] call _check;
     private _group=createGroup [east,true];
     _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
     _group setVariable ["acex_headless_blacklist",true,true];
     private _members=[];
     for "_i" from 0 to (_size-1) do {
-        private _unit=_group createUnit ["O_Soldier_F",[6235+(_i mod 4)*4,5760-floor(_i/4)*4,0],[],0,"NONE"];
+        private _unit=_group createUnit ["O_Soldier_F",_site vectorAdd [-15+(_i mod 4)*4,-40-floor(_i/4)*4,0],[],0,"NONE"];
         _unit setVariable ["acex_headless_blacklist",true,true];
         _unit setVariable ["WAIT_CortexQA_Label",format ["FRESH CLEAR %1 / soldier %2",_size,_i+1],true];
         _members pushBack _unit;
     };
     missionNamespace setVariable ["WAIT_CortexQA_Actors",_members,true];
     [format ["Fresh clearance: %1 soldiers / %2",_size,_class],"This fresh group has never garrisoned. Watch clearing pairs physically enter and continue through their assigned sector. The 2/6/12-person cases use progressively larger building models. Markers are navigation positions, not proof that a hostile room is safe. No test-side teleport, door opening or forced completion is applied.",getPosATL _house] call _phase;
-    private _rooms=_house buildingPos -1;
+    private _allRooms=_house buildingPos -1;
+    private _rooms=_allRooms select {
+        private _origin=AGLToASL _x;
+        (lineIntersectsSurfaces [_origin vectorAdd [0,0,0.5],_origin vectorAdd [0,0,10],objNull,objNull,true,1]) isNotEqualTo []
+    };
+    // Preserve all-position evidence independently of the production operation's claimed visits.
+    private _exteriorRooms=_allRooms select {!(_x in _rooms)};
+    private _exteriorVisits=_exteriorRooms apply {false};
     private _visits=_rooms apply {false};
+    [format ["CLEAR-fresh-%1-interior-fixture",_size],_rooms isNotEqualTo [],
+        str [typeOf _house,count _rooms,count _exteriorRooms]] call _check;
     // Every committed soldier, including the leader, owns a production clearance lane.
     // Audit exactly that set rather than preserving the superseded exterior-leader assumption.
     private _clearingMembers=+_members;
     private _memberVisits=_clearingMembers apply {[]};
+    private _originalAttack=attackEnabled leader _group;
     private _accepted=[_group,_house] call WAIT_fnc_CortexClearBuilding;
     [format ["CLEAR-fresh-%1-accepted",_size],_accepted] call _check;
-    [{
+    [format ["CLEAR-fresh-%1-owned-attack-delegation",_size],_accepted && {!attackEnabled leader _group},
+        str [_originalAttack,attackEnabled leader _group]] call _check;
+    private _entryEpoch=_group getVariable ["WAIT_AIPass_Epoch",0];
+    private _entryGeneration=(_group getVariable ["WAIT_Operation",createHashMap]) getOrDefault ["generation",-1];
+    private _entryOwnerStable=true;
+    [format ["CLEAR-fresh-%1-owner-established",_size],_accepted && {_entryEpoch > 0}
+        && {_group getVariable ["WAIT_AIPass_Adopted",false]} && {_entryGeneration >= 0},
+        str [_entryEpoch,_entryGeneration]] call _check;
+    private _settled=[{
+        private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+        if ((_group getVariable ["WAIT_AIPass_Epoch",0]) != _entryEpoch
+            || {count _currentOperation > 0 && {(_currentOperation getOrDefault ["generation",-1]) != _entryGeneration}}) then {
+            _entryOwnerStable=false;
+        };
         {private _room=_x; private _roomIndex=_forEachIndex; if (_clearingMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _room) <= 1.5}} >= 0) then {_visits set [_roomIndex,true]}} forEach _rooms;
         {
             private _worker=_x;
             private _seen=_memberVisits select _forEachIndex;
             {if (alive _worker && {(getPosASL _worker) vectorDistance (AGLToASL _x) <= 1.5}) then {_seen pushBackUnique _forEachIndex}} forEach _rooms;
         } forEach _clearingMembers;
+        {
+            private _position=_x;
+            if (_clearingMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _position) <= 1.5}} >= 0) then {
+                _exteriorVisits set [_forEachIndex,true];
+            };
+        } forEach _exteriorRooms;
         missionNamespace setVariable ["WAIT_CortexQA_Rooms",[_rooms,_visits],true];
         ((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) in ["COMPLETE","INCOMPLETE"]
     },245] call _wait;
+    // Preserve the physical sampling budget. Allow only finite controller settlement afterward:
+    // a queued owner-local finish may follow the audit deadline by one scheduler interval.
+    // This does not count extra visits or force cleanup, and a missing terminal result still fails.
+    if (!_settled) then {
+        _settled=[{
+            ((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) in ["COMPLETE","INCOMPLETE"]
+        },15] call _wait;
+    };
+    [format ["CLEAR-fresh-%1-terminal-settlement",_size],_settled,
+        str (_group getVariable ["WAIT_Cortex_ClearResult",[]])] call _check;
+    [format ["CLEAR-fresh-%1-owner-continuity",_size],_accepted && {_entryOwnerStable},
+        str [_entryEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],
+            _entryGeneration,_group getVariable ["WAIT_OperationResult",[]]]] call _check;
+    diag_log format ["WAIT CLEAR EXTERIOR EVIDENCE: %1 %2",_size,[_exteriorRooms,_exteriorVisits]];
+    private _localResult=(_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""];
+    private _sharedResult=_group getVariable ["WAIT_OperationResult",[]];
+    private _expectedReason=["CLEAR_INCOMPLETE","CLEAR_COMPLETE"] select (_localResult == "COMPLETE");
+    [format ["CLEAR-fresh-%1-shared-outcome-agrees",_size],
+        _localResult in ["COMPLETE","INCOMPLETE"] && {count _sharedResult == 5}
+            && {(_sharedResult select 0) == "CLEAR"} && {(_sharedResult select 1) == _localResult}
+            && {(_sharedResult select 2) == _entryGeneration} && {(_sharedResult select 4) == _expectedReason},
+        str [_localResult,_sharedResult]] call _check;
+    [format ["CLEAR-fresh-%1-attack-delegation-restored",_size],
+        _localResult in ["COMPLETE","INCOMPLETE"] && {attackEnabled leader _group == _originalAttack},
+        str [_localResult,_originalAttack,attackEnabled leader _group]] call _check;
     private _physical=_rooms isNotEqualTo [] && {_visits findIf {!_x} < 0};
     [format ["CLEAR-fresh-%1-physical-room-visits",_size],_physical,format ["visits=%1 units=%2",_visits,_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x]}]] call _check;
     [format ["CLEAR-fresh-%1-result-agrees",_size],_physical && {((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) == "COMPLETE"}] call _check;
@@ -111,7 +170,7 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     };
     // Exercise natural completion/failure cleanup before invoking any explicit release.
     // A fresh ordinary waypoint must take control even when some rooms were unreachable.
-    private _destination=[6325,5770,0];
+    private _destination=_site vectorAdd [75,-30,0];
     private _beforeMove=_members apply {getPosATL _x};
     private _waypoint=_group addWaypoint [_destination,0];
     _waypoint setWaypointType "MOVE";
@@ -135,39 +194,61 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 } forEach [[2,"Land_i_House_Small_01_V1_F"],[6,"Land_i_House_Big_01_V1_F"],[12,"Land_i_House_Big_02_V1_F"]];
 
 // A casualty inside the clearing element must not strand the shared room queue. Use ten soldiers
-// so the production eight-worker cap leaves a genuine squad reserve available as a replacement.
-private _casualtyHouse=createVehicle ["Land_i_House_Big_01_V1_F",[6250,5800,0],[],0,"NONE"];
+// so the production room-limited entry element leaves genuine reserves available as replacements.
+private _casualtySite=[7150,5800,0];
+private _casualtyHouse=createVehicle ["Land_i_House_Big_01_V1_F",_casualtySite,[],0,"NONE"];
 _casualtyHouse enableSimulationGlobal true;
 private _casualtyGroup=createGroup [east,true];
 _casualtyGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _casualtyGroup setVariable ["acex_headless_blacklist",true,true];
 private _casualtyMembers=[];
 for "_i" from 0 to 9 do {
-    private _unit=_casualtyGroup createUnit ["O_Soldier_F",[6230+(_i mod 5)*4,5760-floor(_i/5)*4,0],[],0,"NONE"];
+    private _unit=_casualtyGroup createUnit ["O_Soldier_F",_casualtySite vectorAdd [-20+(_i mod 5)*4,-40-floor(_i/5)*4,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["CQB CASUALTY / soldier %1",_i+1],true];
     _casualtyMembers pushBack _unit;
 };
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_casualtyMembers,true];
-["CQB casualty reinforcement","The ten-person squad starts with eight independent clearing workers and two reserves. One clearing soldier becomes a real casualty. A surviving reserve must join the clear and physically move toward the building; the remaining room queue must stay active.",getPosATL _casualtyHouse] call _phase;
+["CQB casualty reinforcement","The ten-person squad starts with a room-limited clearing element and remaining reserves. One clearing soldier becomes a real casualty. A surviving reserve must join the clear and physically move toward the building; the remaining room queue must stay active.",getPosATL _casualtyHouse] call _phase;
 private _casualtyAccepted=[_casualtyGroup,_casualtyHouse] call WAIT_fnc_CortexClearBuilding;
 ["CLEAR-casualty-order-accepted",_casualtyAccepted] call _check;
 private _jobStarted=[{_casualtyGroup getVariable ["WAIT_AIPass_ClearBuilding",false]},15] call _wait;
 ["CLEAR-casualty-job-started",_jobStarted] call _check;
-private _casualty=_casualtyMembers select 1;
-private _reserve=_casualtyMembers select 9;
-private _reserveStart=getPosATL _reserve;
+private _initialOperation=_casualtyGroup getVariable ["WAIT_Operation",createHashMap];
+private _initialParticipants=+(_initialOperation getOrDefault ["participants",[]]);
+private _casualty=_initialParticipants param [0,objNull];
+private _reservePool=_casualtyMembers select {!(_x in _initialParticipants)};
+private _reserveStarts=_reservePool apply {getPosATL _x};
+private _reserve=objNull;
+private _reserveStart=[];
+["CLEAR-casualty-entry-and-reserve-fixture",!isNull _casualty && {_reservePool isNotEqualTo []},
+    str [_initialParticipants,_reservePool]] call _check;
 private _evidenceBefore=count (_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]]);
 _casualty setDamage 1;
 private _reinforced=[{
     private _evidence=_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]];
-    count _evidence > _evidenceBefore
-        && {_evidence findIf {(_x param [1,""]) == netId _casualty && {(_x param [2,""]) == netId _reserve}} >= 0}
+    private _replacementIndex=_evidence findIf {(_x param [1,""]) == netId _casualty};
+    if (count _evidence > _evidenceBefore && {_replacementIndex >= 0}) then {
+        private _replacementId=(_evidence select _replacementIndex) param [2,""];
+        private _poolIndex=_reservePool findIf {netId _x == _replacementId};
+        if (_poolIndex >= 0) then {
+            _reserve=_reservePool select _poolIndex;
+            _reserveStart=_reserveStarts select _poolIndex;
+        };
+    };
+    !isNull _reserve
 },30] call _wait;
 ["CLEAR-casualty-reserve-assigned",_reinforced,str (_casualtyGroup getVariable ["WAIT_Cortex_ClearReinforcements",[]])] call _check;
+private _reserveOperation=_casualtyGroup getVariable ["WAIT_Operation",createHashMap];
+["CLEAR-casualty-shared-progress-roster",_reinforced
+    && {_reserve in (_reserveOperation getOrDefault ["participants",[]])}
+    && {!(_casualty in (_reserveOperation getOrDefault ["participants",[]]))}
+    && {(_reserveOperation getOrDefault ["participantProgress",[]]) findIf {(_x select 0) == _reserve} >= 0},
+    str [_reserveOperation getOrDefault ["participants",[]],_reserveOperation getOrDefault ["participantProgress",[]]]] call _check;
 private _replacementMoved=[{
-    alive _reserve
-        && {_reserve distance2D _reserveStart >= 8
+    !isNull _reserve && {alive _reserve}
+        && {(_reserve distance2D _reserveStart >= 8
+                && {_reserve distance2D _casualtyHouse <= (_reserveStart distance2D _casualtyHouse)-5})
             || {(_casualtyHouse buildingPos -1) findIf {(getPosASL _reserve) vectorDistance (AGLToASL _x) <= 1.5} >= 0}}
 },60] call _wait;
 ["CLEAR-casualty-reserve-physical-movement",_replacementMoved,format ["start=%1 actual=%2 command=%3 expected=%4",_reserveStart,getPosATL _reserve,currentCommand _reserve,expectedDestination _reserve]] call _check;
@@ -181,14 +262,15 @@ deleteGroup _casualtyGroup;
 deleteVehicle _casualtyHouse;
 
 // Exercise door handling through the real clearance job, never by calling its helper directly.
-private _doorHouse=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
+private _doorSite=[7350,5800,0];
+private _doorHouse=createVehicle ["Land_i_House_Small_01_V1_F",_doorSite,[],0,"NONE"];
 _doorHouse enableSimulationGlobal true;
 private _doorGroup=createGroup [east,true];
 _doorGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _doorGroup setVariable ["acex_headless_blacklist",true,true];
 private _doorMembers=[];
 for "_i" from 0 to 1 do {
-    private _unit=_doorGroup createUnit ["O_Soldier_F",[6250+_i*3,5770,0],[],0,"NONE"];
+    private _unit=_doorGroup createUnit ["O_Soldier_F",_doorSite vectorAdd [_i*3,-30,0],[],0,"NONE"];
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["DOOR ORDER %1",_i+1],true];
     _doorMembers pushBack _unit;
@@ -232,9 +314,28 @@ deleteVehicle _doorHouse;
 // no reveal, direct clear call, target assignment or movement command is injected after spawning.
 // The production contact brain must first acquire the hostile through the engine, identify that the
 // fresh contact is physically inside the house, and hand the same squad to the building operation.
-private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",[6250,5800,0],[],0,"NONE"];
+private _contactSite=[7550,5800,0];
+private _contactHouse=createVehicle ["Land_i_House_Small_01_V1_F",_contactSite,[],0,"NONE"];
 _contactHouse enableSimulationGlobal true;
 private _contactRooms=_contactHouse buildingPos -1;
+// Find an exterior approach with a genuine view through an opening before creating actors.
+// A hidden room plus an arbitrary rear approach tests absent detection, not contact-to-clear.
+private _contactRoom=[];
+private _contactApproach=[];
+{
+    private _room=_x;
+    for "_bearing" from 0 to 337.5 step 22.5 do {
+        private _approach=_contactSite getPos [38,_bearing];
+        private _from=AGLToASL (_approach vectorAdd [0,0,1.5]);
+        private _to=AGLToASL (_room vectorAdd [0,0,1.5]);
+        if ((lineIntersectsSurfaces [_from,_to,objNull,objNull,true,1,"VIEW","NONE"]) isEqualTo []) exitWith {
+            _contactRoom=+_room; _contactApproach=+_approach;
+        };
+    };
+    if (_contactRoom isNotEqualTo []) exitWith {};
+} forEach (_contactRooms select [0,16]);
+private _contactGeometryReady=_contactRoom isNotEqualTo [];
+if (!_contactGeometryReady) then {_contactRoom=_contactRooms param [0,getPosATL _contactHouse]; _contactApproach=_contactSite vectorAdd [-12,-38,0]};
 private _contactGroup=createGroup [east,true];
 private _contactOpposition=createGroup [west,true];
 {
@@ -244,14 +345,15 @@ private _contactOpposition=createGroup [west,true];
 _contactOpposition setVariable ["WAIT_AIPass_Exclude",true,true];
 private _contactMembers=[];
 for "_i" from 0 to 5 do {
-    private _unit=_contactGroup createUnit ["O_Soldier_F",[6238+(_i mod 3)*3,5762-floor(_i/3)*3,0],[],0,"NONE"];
+    private _rowOrigin=_contactApproach getPos [floor (_i/3)*3,(_contactApproach getDir _contactHouse)+180];
+    private _unit=_contactGroup createUnit ["O_Soldier_F",_rowOrigin getPos [(_i mod 3)*3,(_contactApproach getDir _contactHouse)+90],[],0,"NONE"];
     _unit allowDamage false;
     _unit setDir (_unit getDir _contactHouse);
     _unit setVariable ["acex_headless_blacklist",true,true];
     _unit setVariable ["WAIT_CortexQA_Label",format ["NATURAL CQB %1",_i+1],true];
     _contactMembers pushBack _unit;
 };
-private _contactEnemy=_contactOpposition createUnit ["B_Soldier_F",_contactRooms param [0,getPosATL _contactHouse],[],0,"NONE"];
+private _contactEnemy=_contactOpposition createUnit ["B_Soldier_F",_contactRoom,[],0,"NONE"];
 _contactEnemy allowDamage false;
 _contactEnemy setDir (_contactEnemy getDir leader _contactGroup);
 _contactEnemy setVariable ["acex_headless_blacklist",true,true];
@@ -260,6 +362,11 @@ _contactGroup setCombatMode "RED";
 _contactOpposition setCombatMode "RED";
 missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Enable",true,true];
 missionNamespace setVariable ["WAIT_AIPass_BuildingCombat_Range",100,true];
+[createHashMapFromArray [["WAIT_AIPass_Contact_Enable",true]]] call WAIT_fnc_CortexTuning;
+private _contactSightline=_contactGeometryReady && {_contactMembers findIf {
+    (lineIntersectsSurfaces [eyePos _x,eyePos _contactEnemy,_x,_contactEnemy,true,1,"VIEW","NONE"]) isEqualTo []
+} >= 0};
+["BUILD-CONTACT-visible-fixture",_contactSightline,str [_contactRoom,_contactApproach,_contactGeometryReady]] call _check;
 missionNamespace setVariable ["WAIT_CortexQA_Actors",_contactMembers+[_contactEnemy],true];
 ["Natural building contact","The six-person squad faces a live hostile physically inside the house. Native knowledge must form first; WAIT should then transition directly from contact into its single building-clear operation and physically enter. The audit injects no reveal, clear order or route.",getPosATL _contactHouse] call _phase;
 private _nativeContact=[{(units _contactGroup) findIf {_x knowsAbout _contactEnemy >= 1} >= 0},30] call _wait;

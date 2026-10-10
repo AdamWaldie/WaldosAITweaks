@@ -21,6 +21,8 @@
  * local units.
  *
  * Repeat/JIP: current feature gates and eligibility are rechecked; owner jobs are retired on migration.
+ * At most 16 nearby actors are considered. Recovery matches exact expiry, operation generation and
+ * owner epoch; stale callbacks cannot clear a newer evasion or issue follow over native/specialist tasks.
  * Arguments:
  * 0: job <HASHMAP> - contains "projectile", or internal "regroup" actor records
  *
@@ -38,20 +40,34 @@ params [["_job", createHashMap, [createHashMap]]];
 private _regroup = _job getOrDefault ["regroup", []];
 if (_regroup isNotEqualTo []) exitWith {
     {
-        _x params ["_unit","_group","_spot","_hold"];
+        _x params ["_unit","_group","_spot","_hold",
+            ["_expires",-1,[0]],["_generation",-1,[0]],["_epoch",-1,[0]]];
         private _actorMove = _unit getVariable ["WAIT_Cortex_ActorMove",[]];
         private _ownsEvasion = count _actorMove == 3 && {(_actorMove select 0) == "GRENADE_EVASION"}
-            && {(_actorMove select 1) distance2D _spot <= 1};
-        if (_ownsEvasion && {local _unit} && {group _unit == _group} && {vehicle _unit == _unit}
-            && {[_unit] call WAIT_fnc_CortexCombatEffective}
-            && {_unit checkAIFeature "PATH"}
-            && {[_group] call WAIT_fnc_CortexIsEligible}
-            && {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isEqualTo _hold}
-            && {((expectedDestination _unit) select 0) distance2D _spot <= 1}) then {
-            private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
-            if (!(_unit in (_drill getOrDefault ["units",[]])) && {alive leader _group}) then {
-                _unit doFollow (leader _group);
+            && {(_actorMove select 1) distance2D _spot <= 1}
+            && {_expires >= 0} && {(_actorMove select 2) == _expires};
+        if (_ownsEvasion && {local _unit}) then {
+            private _stillOurs=local _group && {group _unit == _group} && {vehicle _unit == _unit}
+                && {!isPlayer _unit} && {isNull remoteControlled _unit}
+                && {(_group getVariable ["WAIT_OperationGeneration",0]) == _generation}
+                && {(_group getVariable ["WAIT_AIPass_Epoch",0]) == _epoch}
+                && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+                && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
+                && {currentCommand _unit in ["","MOVE"]}
+                && {[_unit] call WAIT_fnc_CortexCombatEffective}
+                && {_unit checkAIFeature "MOVE"} && {_unit checkAIFeature "PATH"}
+                && {[_group] call WAIT_fnc_CortexIsEligible}
+                && {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isEqualTo _hold}
+                && {((expectedDestination _unit) select 0) distance2D _spot <= 1};
+            if (_stillOurs) then {
+                private _drill = (_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap];
+                if (!(_unit in (_drill getOrDefault ["units",[]])) && {alive leader _group}) then {
+                    _unit doFollow (leader _group);
+                };
             };
+            // The six-second marker is WAIT bookkeeping, not engine ownership. Clear it even when
+            // native AI or Zeus changed the destination; only the exact-destination branch above
+            // may issue a follow command over the expiring evasion.
             _unit setVariable ["WAIT_Cortex_ActorMove",nil];
         };
     } forEach _regroup;
@@ -78,7 +94,12 @@ private _regroupActors = [];
     private _drillUnits = (_state getOrDefault ["drill", createHashMap]) getOrDefault ["units", []];
     private _supportHeld = _state getOrDefault ["supportHeld",[]];
     private _actorMove = _unit getVariable ["WAIT_Cortex_ActorMove",[]];
-    if (local _unit && {!isPlayer _unit} && {[_unit] call WAIT_fnc_CortexCombatEffective} && {vehicle _unit == _unit}
+    if (local _unit && {!isPlayer _unit} && {isNull remoteControlled _unit}
+        && {[_unit] call WAIT_fnc_CortexCombatEffective} && {vehicle _unit == _unit}
+        && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+        && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {currentCommand _unit in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}
+        && {_unit checkAIFeature "MOVE"}
         && {_unit checkAIFeature "PATH" || {_unit in _supportHeld}}
         && {!(_unit in _drillUnits)} && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
         && {_checkedResults select _groupIndex} && {!([_group] call WAIT_fnc_CortexExternalTakeover)}) then {
@@ -92,12 +113,14 @@ private _regroupActors = [];
                 _state set ["supportHeld",_supportHeld-[_unit]];
             };
             _unit doMove _spot;
-            _unit setVariable ["WAIT_Cortex_ActorMove",["GRENADE_EVASION",+_spot,time+6]];
+            private _expires=time+6;
+            _unit setVariable ["WAIT_Cortex_ActorMove",["GRENADE_EVASION",+_spot,_expires]];
             _reacted = _reacted + 1;
-            _regroupActors pushBack [_unit,_group,+_spot,+(_group getVariable ["WAIT_AIPass_ZeusHold",[]])];
+            _regroupActors pushBack [_unit,_group,+_spot,+(_group getVariable ["WAIT_AIPass_ZeusHold",[]]),
+                _expires,_group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0]];
         };
     };
-} forEach (_grenade nearEntities ["CAManBase", 12]);
+} forEach ((_grenade nearEntities ["CAManBase", 12]) select [0,16]);
 if (_reacted > 0) then {
     missionNamespace setVariable ["WAIT_AIPass_GrenadeReactions", (missionNamespace getVariable ["WAIT_AIPass_GrenadeReactions", 0]) + _reacted];
     [WAIT_fnc_CortexGrenadeCheck,createHashMapFromArray [["regroup",_regroupActors]],6] call WAIT_fnc_CortexQueueJob;

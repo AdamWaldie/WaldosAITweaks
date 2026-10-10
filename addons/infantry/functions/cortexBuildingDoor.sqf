@@ -4,14 +4,16 @@
  * Locality/authority: called only on the soldier owner; BIS door animation has global effect.
  * Repeat/JIP: two-second building cooldown bounds requests; engine door state persists for JIP.
  * Door model metadata is cached per building on each owner; locks are always read live.
+ * Only combat-effective ordinary actors may request an opening; capture and specialist ownership
+ * are rechecked independently of the group order.
  * Arguments: 0 unit <OBJECT>, default objNull; 1 building <OBJECT>, default objNull.
  * Return: BOOL, an opening request was issued (not proof of entry).
  * Current callers: CortexClearBuilding and CortexGarrisonApplyLocal owner jobs.
  * Example: [_soldier,_house] call WAIT_fnc_CortexBuildingDoor;
  */
 params [["_unit",objNull,[objNull]],["_building",objNull,[objNull]]];
-if (isNull _unit || {isNull _building} || {!local _unit} || {!alive _unit}
-    || {isPlayer _unit} || {lifeState _unit == "INCAPACITATED"}
+if (isNull _unit || {isNull _building} || {!local _unit} || {!([_unit] call WAIT_fnc_CortexCombatEffective)}
+    || {isPlayer _unit} || {[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover}
     || {vehicle _unit != _unit} || {!alive _building}
     || {!([group _unit] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
 if (serverTime < (_building getVariable ["WAIT_Cortex_DoorRequestUntil",-1])) exitWith {false};

@@ -147,6 +147,7 @@ if (count _operation == 0) exitWith {
     ["OPERATION_OWNER_LOST"] call _refuse
 };
 (_state get "drill") set ["operationGeneration",_operation get "generation"];
+(_state get "drill") set ["ownerEpoch",_operation get "ownerEpoch"];
 [_group,_state get "drill","START","ADVANCE_ACCEPTED"] call WAIT_fnc_CortexDrillSetStage;
 _group setVariable ["WAIT_Cortex_AdvanceRefusal",nil,true];
 // Direct fire-team bounds are a group movement owner even though they do not

@@ -14,6 +14,8 @@ private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {false};
 if (toUpperANSI _reason != "OWNERSHIP_LOST"
     && {(_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {false};
+[_group,_operation,_reason] call WAIT_fnc_OperationRestore;
+[_group,createHashMap,objNull,[],"RELEASE",_generation] call WAIT_fnc_CortexVehicleReverseStep;
 _operation set ["cancelReason",toUpperANSI _reason];
 _operation set ["phase","CANCELLED"];
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
@@ -31,8 +33,15 @@ _group setVariable ["WAIT_OperationResult",[_operation getOrDefault ["intent",""
 // Re-evaluate only the existing bounded context after clearing the old movement owner; the danger
 // layer itself rejects Zeus, player and specialist ownership and issues no destination or target.
 private _dangerResponse=_group getVariable ["WAIT_Danger_Response",[]];
-if (_operation getOrDefault ["dangerPosture",false] && {count _dangerResponse == 5} && {time < (_dangerResponse select 3)}) then {
-    private _dangerEvent=_dangerResponse select [0,4];
+if (_operation getOrDefault ["dangerPosture",false] && {count _dangerResponse == 5}
+    && {(_dangerResponse select 4) == (_group getVariable ["WAIT_Danger_Generation",-1])}
+    && {time < (_dangerResponse select 3)}) then {
+    private _dangerEvent=_group getVariable ["WAIT_Danger_ResponseEvent",[]];
+    if (!(count _dangerEvent in [4,5,6,7])
+        || {(_dangerEvent param [0,"",[""]]) != (_dangerResponse select 0)}
+        || {(_dangerEvent param [2,-1,[0]]) != (_dangerResponse select 2)}) then {
+        _dangerEvent=_dangerResponse select [0,4];
+    };
     private _dangerAction=[_group,_dangerEvent] call WAIT_fnc_DangerActionSelect;
     [_dangerActor,_dangerEvent select 0,_dangerEvent select 1,_dangerAction] call WAIT_fnc_DangerReact;
 };

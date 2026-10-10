@@ -86,9 +86,20 @@ if (_vehicleMove isNotEqualTo []) then {
                 && {private _relative=_orientVehicle getRelDir _targetPosition; _relative > 20 && {_relative < 340}}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
         } else {
-            _activeVehicleMove = ((waypoints _group) findIf {
+            private _reverse=_group getVariable ["WAIT_VehicleReverse",[]];
+            private _reverseVehicle=_reverse param [0,objNull,[objNull]];
+            private _reverseActive=_movementOwner == "VEHICLE_WITHDRAW"
+                && {count _reverse == 9}
+                && {(_reverse select 1) == (_state getOrDefault ["vehicleOperationGeneration",-1])}
+                && {(_reverse select 2) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+                && {time < (_reverse select 5)}
+                && {!isNull _reverseVehicle} && {local _reverseVehicle} && {alive _reverseVehicle}
+                && {(_reverseVehicle getVariable ["WAIT_VehicleReverseOwner",[]]) isEqualTo [_group,_reverse select 1]};
+            // A native reverse leg intentionally has no forward waypoint. Its matching finite
+            // record is movement evidence; GroupTick owns its progress and fallback checks.
+            _activeVehicleMove = _reverseActive || {((waypoints _group) findIf {
                 (_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}
-            } >= 0) && {time < (_vehicleMove select 1)};
+            } >= 0) && {time < (_vehicleMove select 1)}};
         };
         if (!_activeVehicleMove) then {
             private _finishedOwner=_vehicleMove param [0,""];
@@ -112,7 +123,13 @@ if (_vehicleMove isNotEqualTo []) then {
                             call WAIT_fnc_OperationRelease;
                     };
                 } else {
-                    [_group,_generation,"COMPLETE","VEHICLE_MOVE_FINISHED"] call WAIT_fnc_OperationRelease;
+                    private _intent=_group getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+                    private _position=_intent getOrDefault ["position",[]];
+                    private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+                    private _arrived=count _position >= 2 && {!isNull _anchor}
+                        && {vehicle _anchor distance2D _position <= (_intent getOrDefault ["radius",25])};
+                    [_group,_generation,["INCOMPLETE","COMPLETE"] select _arrived,
+                        ["VEHICLE_MOVE_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived] call WAIT_fnc_OperationRelease;
                 };
                 _state deleteAt "vehicleOperationGeneration";
             };
@@ -227,7 +244,9 @@ private _dismountAtThreat = {
         _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",[_group,groupOwner _group,serverTime+30],true];
         if (_commandsVehicle && {local _vehicle}) then {
             if ((_vehicle getVariable ["WAIT_Cortex_DismountForcedSpeed",[]]) isEqualTo []) then {
-                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0]];
+                _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",[_group getVariable ["WAIT_OperationGeneration",0],
+                    [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
+                _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",[getForcedSpeed _vehicle,0],true];
             };
             if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
         };
@@ -242,9 +261,12 @@ private _dismountAtThreat = {
             // Publish ownership before GetOut handlers can observe the command.
             if (_dismounted findIf {(_x select 0) == _unit} < 0) then {
                 _dismounted pushBack [_unit,_vehicle];
+                _group setVariable ["WAIT_Cortex_DismountContinuation",[serverTime+60,
+                    _group getVariable ["WAIT_OperationGeneration",0],+_dismounted,
+                    [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
             };
             _state set ["dismounted", _dismounted];
-            if ([] call _mayIssueVehicle) then {
+            if ([] call _mayIssueVehicle && {toUpperANSI (currentCommand _unit) != "GET OUT"}) then {
                 [_unit] orderGetIn false;
                 unassignVehicle _unit;
                 doGetOut _unit;
@@ -273,12 +295,54 @@ private _dismountAtThreat = {
                 private _role=_x select 1;
                 alive _unit && {group _unit == _passengerGroup}
                     && {_role == "cargo" || {_role == "turret" && {_x select 4}}}
-            } >= 0};
+            } >= 0 || {
+                private _continuation=_passengerGroup getVariable ["WAIT_Cortex_DismountContinuation",[]];
+                private _crewProof=_vehicle getVariable ["WAIT_Cortex_DismountStopOrder",[]];
+                count _continuation == 4 && {count _crewProof == 2}
+                    && {(_continuation select 0) isEqualType 0} && {(_continuation select 1) isEqualType 0}
+                    && {(_continuation select 2) isEqualType []} && {(_continuation select 3) isEqualType []}
+                    && {serverTime < (_continuation select 0)} && {(_continuation select 0) <= serverTime+60}
+                    && {(_continuation select 1) == (_passengerGroup getVariable ["WAIT_OperationGeneration",0])}
+                    && {(_continuation select 3) isEqualTo [currentWaypoint _passengerGroup,waypointPosition [_passengerGroup,currentWaypoint _passengerGroup]]}
+                    && {_crewProof isEqualTo [_group getVariable ["WAIT_OperationGeneration",0],
+                        [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]]}
+                    && {!_movementOwned} && {!([_passengerGroup] call WAIT_fnc_CortexExternalTakeover)}
+                    && {[_passengerGroup,"WAIT_AIPass_VehicleRemount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {((_continuation select 2) select [0,8]) findIf {
+                        if !(_x isEqualType [] && {count _x == 2}
+                            && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}) exitWith {false};
+                        _x params ["_unit","_originalVehicle"];
+                        alive _unit && {group _unit == _passengerGroup} && {_originalVehicle == _vehicle}
+                            && {isNull objectParent _unit} && {_unit distance2D _vehicle <= 100}
+                            && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}
+                    } >= 0}
+            } || {
+                private _boarding=_passengerGroup getVariable ["WAIT_Cortex_Remount",[]];
+                _boarding isEqualType [] && {count _boarding == 2}
+                    && {(_boarding select 0) isEqualType 0} && {(_boarding select 1) isEqualType []}
+                    && {serverTime < (_boarding select 0)} && {(_boarding select 0) <= serverTime+60}
+                    && {!_movementOwned} && {_enemies isEqualTo []}
+                    && {!([_passengerGroup] call WAIT_fnc_CortexExternalTakeover)}
+                    && {[_passengerGroup,"WAIT_AIPass_VehicleRemount_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
+                    && {((_boarding select 1) select [0,8]) findIf {
+                        if !(_x isEqualType [] && {count _x == 2}
+                            && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}) exitWith {false};
+                        _x params ["_unit","_originalVehicle"];
+                        !isNull _unit && {alive _unit} && {group _unit == _passengerGroup}
+                            && {_originalVehicle == _vehicle} && {isNull objectParent _unit}
+                            && {_unit distance2D _vehicle <= 100}
+                            && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}
+                    } >= 0}
+            }};
     };
+    // An external speed edit invalidates our exact zero-speed hold. Never reapply zero over it.
+    if (_saved isNotEqualTo [] && {abs ((getForcedSpeed _vehicle)-(_saved param [1,-2])) > 0.1}) then {_valid=false};
     if (_valid) then {
         if (_saved isEqualTo []) then {
             _saved=[getForcedSpeed _vehicle,0];
-            _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved];
+            _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",[_group getVariable ["WAIT_OperationGeneration",0],
+                [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]],true];
+            _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",_saved,true];
         };
         if ([] call _mayIssueVehicle) then {_vehicle forceSpeed 0};
     } else {
@@ -287,7 +351,8 @@ private _dismountAtThreat = {
             && {_ownedStop >= 0} && {abs ((getForcedSpeed _vehicle)-_ownedStop) <= 0.1}) then {
             _vehicle forceSpeed (_saved param [0,-1]);
         };
-        _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _vehicle setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
+        _vehicle setVariable ["WAIT_Cortex_DismountForcedSpeed",nil,true];
         if (_request isNotEqualTo []) then {_vehicle setVariable ["WAIT_Cortex_DismountStopRequest",nil,true]};
     };
 } forEach _vehicles;
@@ -493,10 +558,11 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         } >= 0
     };
     if (_commandsVehicle && {_vehicle isKindOf "LandVehicle"} && {[_group, "WAIT_AIPass_VehicleWithdraw_Enable", true] call WAIT_fnc_CortexFeatureEnabled} && {local _vehicle} && {alive _vehicle} && {canMove _vehicle} && {!(_vehicle in _withdrawn)} && {_distance < 800}
+        && {serverTime >= (_vehicle getVariable ["WAIT_Cortex_WithdrawRetryAt",0])}
         && {damage _vehicle >= 0.5 || {!canFire _vehicle && {call _hasRealWeapon}}}) then {
-        _withdrawn pushBack _vehicle;
-        _state set ["withdrawn", _withdrawn];
-        [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
+        // A rejected route is not a completed withdrawal. Reconsider sparsely after geometry
+        // or ownership changes; no every-tick replanning or repeated smoke request.
+        _vehicle setVariable ["WAIT_Cortex_WithdrawRetryAt",serverTime+8,true];
         if ((units _group) findIf {alive _x && {vehicle _x == _x}} < 0) then {
             private _threat=(_enemies select 0) select 0;
             private _away=[_vehicle,_enemyPos,_threat,300] call _selectVehicleEscape;
@@ -505,7 +571,11 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
                 if (count _operation == 0) then {
                     [_group,"VEHICLE_WITHDRAW",false] call WAIT_fnc_CortexOwnershipLease;
                 } else {
-                    [_group, _away, 40] call WAIT_fnc_CortexGroupMove;
+                    _withdrawn pushBackUnique _vehicle;
+                    _state set ["withdrawn",_withdrawn];
+                    [_vehicle] call WAIT_fnc_CortexFireCountermeasure;
+                    private _reverse=[_group,_state,_vehicle,_enemyPos,"START",_operation get "generation"] call WAIT_fnc_CortexVehicleReverseStep;
+                    if (_reverse != "REVERSE") then {[_group, _away, 40] call WAIT_fnc_CortexGroupMove};
                     _state set ["movementLease",["VEHICLE_WITHDRAW",time+120]];
                     _state set ["vehicleOperationGeneration",_operation get "generation"];
                     private _origin = getPosATL _vehicle;
@@ -528,7 +598,10 @@ private _withdrawn = _state getOrDefault ["withdrawn", []];
         {
             _x params ["_enemy", "_position", "_age"];
             private _distance = _vehicle distance2D _position;
-            if (_age <= 15 && {_distance <= 600} && {alive _enemy}) then {
+            if (_age <= 15 && {_distance <= 600} && {alive _enemy} && {!captive _enemy}
+                && {!(_enemy getVariable ["ace_captives_isSurrendering",false])}
+                && {!(_enemy getVariable ["ace_captives_isHandcuffed",false])}
+                && {(side _group) getFriend (side _enemy) < 0.6}) then {
                 private _priority = switch (true) do {
                     case (_enemy isKindOf "CAManBase" && {"AT" in ([_enemy] call WAIT_fnc_CortexCapabilities)}): {0};
                     case (_enemy isKindOf "Tank" || {_enemy isKindOf "Wheeled_APC_F"}): {1};

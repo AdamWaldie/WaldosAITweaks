@@ -150,4 +150,28 @@ or air combat. Those require the packaged, damage-enabled audit batches.
 
 <!-- WAIT-WIKI-NAV -->
 ---
-[Wiki home](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Home) · [Quickstart](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Quickstart-Guide) · [Feature index](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Feature-Tutorials)
+[Wiki home](https://github.com/AdamWaldie/WaldosAITweaks/wiki/Home) · [Installation and setup](../README.md) · [Capability registry](CAPABILITY-REGISTRY.md)
+
+### Passenger remount cooperation
+
+With `WAIT_AIPass_Vehicles_Enable` and `WAIT_AIPass_VehicleRemount_Enable` enabled,
+calm restoration retains an owned passenger boarding episode for up to 60 seconds.
+Only passengers dismounted by WAIT are eligible. A new assigned vehicle, Zeus control,
+contact or a conflicting operation retires or suspends the old intent rather than
+sending passengers back to their original transport.
+
+The passenger group owner requests a stop from the original vehicle owner while an
+eligible passenger remains within 100 metres. Each request lasts at most 30 seconds
+and never exceeds the boarding deadline. The vehicle owner checks the public boarding
+record, group ownership, side, original vehicle, live settings and current assignment.
+It considers at most eight passenger records. Crew contact or an active vehicle movement
+lease rejects a boarding stop. Actual boarding uses native assignment and get-in orders;
+no passenger is moved directly into a seat.
+
+A completed boarding, reassignment or expired request releases the stop. WAIT restores
+the prior forced speed only when the current forced speed still equals its own stop.
+This uses existing group scheduler callbacks and adds no persistent worker. The record
+is public for owner migration; a new owner validates live eligibility before commanding.
+Stationary separate-group boarding and replacement-vehicle boarding have physical audit
+evidence. Moving-vehicle boarding, interruption and migration of this handshake remain
+queued for physical acceptance.

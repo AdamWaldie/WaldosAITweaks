@@ -65,6 +65,7 @@ and [the standalone boundary](docs/EXTRACTION-BOUNDARY.md).
 
 See [modding and operations](docs/MODDING-AND-OPERATIONS.md) for packaged local audits,
 signed release promotion and the execution-method assessment.
+See [matched performance validation](docs/PERFORMANCE-VALIDATION.md) for native/WAIT patrol pairs and their acceptance limits.
 
 See [contribution and documentation requirements](CONTRIBUTING.md) and [all CBA settings](docs/SETTINGS-REFERENCE.md).
 
@@ -85,3 +86,5 @@ places enable switches before tuning. Existing saved option keys and defaults ar
 Vehicles covers general combat and passenger decisions. Convoys covers explicitly registered
 columns, their spacing, driving assistance and halt/unload rules. Convoy driving assistance does
 not enable a standalone general driving controller. See the [settings reference](docs/SETTINGS-REFERENCE.md).
+
+Current implementation, physical acceptance and progression blockers are recorded in [the completion status](docs/COMPLETION-STATUS.md).

@@ -91,6 +91,7 @@ if (isServer) then {
             _x forceSpeed (_savedStopSpeed param [0,-1]);
         };
         _x setVariable ["WAIT_Cortex_DismountForcedSpeed",nil];
+        _x setVariable ["WAIT_Cortex_DismountStopOrder",nil,true];
         _x setVariable ["WAIT_Cortex_DismountStopRequest",nil,true];
         _x setVariable ["WAIT_Cortex_OnboardDanger",nil,true];
         _x setVariable ["WAIT_Cortex_ArtilleryScootToken",nil,true];
@@ -188,7 +189,10 @@ if (!isNil "_civilianCreated") then {
     _x setVariable ["WAIT_BuildingBrain",nil];
     _x setVariable ["WAIT_BuildingBrain_FSM",nil];
     if (local _x) then {_x setVariable ["WAIT_AIPass_AreaReport",nil,true]};
-    if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}}) then {
+    if (local _x && {count (_x getVariable ["WAIT_AIPass_State", createHashMap]) > 0 || {_x getVariable ["WAIT_AIPass_Managed", false]} || {(_x getVariable ["WAIT_Cortex_Remount",[]]) isNotEqualTo []}
+        || {(_x getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []}
+        || {(_x getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []}
+        || {_x getVariable ["WAIT_AIPass_ClearBuilding",false]}}) then {
         [_x,true,"CORTEX_STOPPED"] call WAIT_fnc_CortexReleaseGroup;
     };
     if (local _x) then {
@@ -227,7 +231,8 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
         private _airHandler=_state getOrDefault ["firedHandler",-1];
         if (_airHandler >= 0 && {local _flareAircraft}) then {_flareAircraft removeEventHandler ["Fired",_airHandler]};
         if (local _flareAircraft) then {
-            _flareAircraft limitSpeed -1;
+            // Negative limits can command helicopter reverse; restore the native positive default.
+        _flareAircraft limitSpeed (2 * getNumber (configOf _flareAircraft >> "maxSpeed"));
             private _airGroup=group driver _flareAircraft;
             if (!isNull _airGroup) then {
                 private _ownedWaypointName=_state getOrDefault ["ownedWaypointName",""];
@@ -235,7 +240,15 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
                     _ownedWaypointName != "" && {waypointName _x == _ownedWaypointName}
                 };
                 if (_ownedWaypointIndex >= 0) then {
-                    deleteWaypoint ((waypoints _airGroup) select _ownedWaypointIndex);
+                    private _ownedWaypoint=(waypoints _airGroup) select _ownedWaypointIndex;
+                    private _snapshot=_airGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
+                    private _hold=_airGroup getVariable ["WAIT_AIPass_ZeusHold",[]];
+                    private _claimed=count _snapshot == 7 && {count _hold == 2}
+                        && {(_snapshot select 0) == (_hold select 0)}
+                        && {(_snapshot select 5) == (_ownedWaypoint select 1)};
+                    if (_claimed) then {
+                        _ownedWaypoint setWaypointName "";
+                    } else {deleteWaypoint _ownedWaypoint};
                 };
                 _airGroup enableAttack (_state getOrDefault ["previousAttackEnabled",true]);
             };

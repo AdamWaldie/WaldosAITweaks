@@ -16,7 +16,7 @@
  * Return Value:
  * BOOL - true when one replacement candidate was dispatched.
  *
- * Current callers: WAIT_fnc_CortexCombinedArmsLocal after a local NO_VIABLE_WEAPON result.
+ * Current callers: WAIT_fnc_CortexCombinedArmsLocal after local weapon or busy/start refusal.
  *
  * Example:
  * [_requester,_rejectedGroup,_token] remoteExecCall ["WAIT_fnc_CortexCombinedAirFallbackServer",2];
@@ -29,12 +29,29 @@ private _fallback=_requester getVariable ["WAIT_Cortex_CombinedAirFallback",[]];
 if (count _fallback != 6) exitWith {false};
 _fallback params ["_storedToken","_target","_position","_expiry","_candidates","_cursor"];
 if (_storedToken != _token || {serverTime >= _expiry} || {isNull _target} || {!alive _target}) exitWith {false};
+private _rejectedRole=_rejected getVariable ["WAIT_Cortex_CombinedRole",[]];
+if (count _rejectedRole != 7 || {(_rejectedRole select 0) != _token}
+    || {(_rejectedRole select 1) != _requester} || {(_rejectedRole select 4) != "AIR_ATTACK"}) exitWith {false};
+// Consume this exact refusal once. A duplicate notice has no matching role; a newer role
+// survives. Retiring the opportunity never cancels the aircraft's existing attack brain.
+_rejected setVariable ["WAIT_Cortex_CombinedRole",nil,true];
+_rejected setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
+if (!([_requester] call WAIT_fnc_CortexIsEligible)
+    || {isNull ([_requester] call WAIT_fnc_CortexGroupTransmitter)}
+    || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
+    || {(side _requester) getFriend (side _target) >= 0.6}) exitWith {
+    _requester setVariable ["WAIT_Cortex_CombinedAirFallback",nil,true];
+    false
+};
 private _replacement=grpNull;
 while {_cursor < count _candidates && {isNull _replacement}} do {
     private _candidate=_candidates select _cursor;
     _cursor=_cursor+1;
     if (!isNull _candidate && {_candidate != _rejected} && {!isNull ([_candidate] call WAIT_fnc_CortexGroupTransmitter)}
         && {[_candidate] call WAIT_fnc_CortexIsEligible}
+        && {private _role=_candidate getVariable ["WAIT_Cortex_CombinedRole",[]];
+            count _role != 7 || {serverTime >= (_role select 5)} || {(_role select 0) == _token}}
         && {((units _candidate) findIf {
             private _vehicle=vehicle _x;
             _vehicle != _x && {_vehicle isKindOf "Air"} && {!(_vehicle getVariable ["WAIT_Cortex_AirAttackJob",false])}

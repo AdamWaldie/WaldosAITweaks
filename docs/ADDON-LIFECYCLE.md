@@ -238,3 +238,232 @@ controller, feature disable, pause or locality handover cannot leave a stale COM
 Eligibility checks preserve external animation/combat ownership. The new owner starts from observations received locally. Queued acceptance
 covers priority/expiry, sustained fire, no knowledge leakage, disabled state, leader casualties, Zeus,
 external ownership, locality transfer, physical reaction and 50 mixed-group frame-time comparison.
+
+
+Squad low-profile posture inspects at most 64 members and applies at most four weak stance leases. Actor eligibility excludes declared external ownership, specialist identities and active melee control before acquisition; ordinary actors in the same group remain eligible. This boundary correction is statically validated and still requires specialist coexistence acceptance.
+
+Lifecycle anchoring accepts an eligible ordinary leader immediately, otherwise inspects at most twelve members. Player remote-control, declared ownership, specialist identity and active melee prevent anchor selection. Opportunistic danger smoke inspects at most 64 members and tries at most three ordinary carriers; grenade initiation independently rejects specialist identities. Mixed ordinary actors remain eligible. These corrections await physical coexistence and casualty acceptance.
+
+Grenade requests reject player and remote-controlled actors at initiation and again at asynchronous release. Taking control during the alignment window cancels the queued request. Physical control-transfer acceptance remains pending.
+
+Grenade evasion considers at most 16 nearby actors. Its delayed recovery matches the exact reservation expiry before clearing bookkeeping, and checks the captured operation generation and owner epoch before issuing follow. Player, specialist and native action owners block movement. Cover acquisition and recovery apply the same player/specialist boundary. Physical interruption and repeated-evasion acceptance remain queued.
+
+Squad posture restoration requires the complete six-field lease, matching operation generation and owner epoch. Incomplete records grant no restoration authority. Remote-controlled actors are excluded from acquisition, retention and restoration. Physical takeover and malformed-record acceptance remain pending.
+
+Danger posture renewal preserves its original behaviour and combat-mode baseline while the recorded generation, owner epoch, owner and applied values still match. Lease expiry permits cleanup, but an event arriving before that cleanup cannot adopt WAIT-applied COMBAT as the baseline. Renewal after expiry and eventual release still require physical acceptance.
+
+Danger renewals issue group behaviour and combat-mode commands only when the effective value differs from the selected response. Lease renewal remains unchanged; repeated observations do not resend identical posture commands. Physical command-churn and response acceptance remain pending.
+
+Danger renewal compares behaviour and combat-mode ownership independently. An external change to one value does not replace the original baseline of the other value while that value still matches WAIT's application. Generation, locality epoch and owner remain mandatory for both. Physical mixed-value renewal acceptance remains pending.
+
+A renewed suppression or hide observation preserves RED engagement only while the exact combat-mode lease is still owned. This avoids RED/YELLOW oscillation during the same finite response. Explicit BLUE/GREEN orders, external changes and release retain priority; this does not issue movement or firing commands. Physical sustained-contact acceptance remains pending.
+
+Disabling stance control clears its bookkeeping but resets posture only for an ordinary local actor without group takeover, player control, remote control or specialist ownership. Cleanup also requires the current posture to match WAIT's applied posture. Physical setting-change takeover acceptance remains pending.
+
+Vehicle-gunnery feature-disable and hold-fire cleanup clears WAIT's target metadata without issuing doTarget over group takeover, player control, remote control or specialist ownership. For an eligible ordinary actor, the assigned target must still match WAIT's recorded target before removal. Physical target handover acceptance remains pending.
+
+Normal CALM restoration preserves stance and targeting during explicit external handover, player/remote control and specialist ownership while clearing WAIT metadata. Cover-height stance acquisition excludes players, remote-controlled actors and specialist identities independently of an active external-control marker. Physical mixed-group acceptance remains pending.
+
+Cover-height stance checks inspect at most twelve members and cast at most six rays per group step. The existing rotating cursor advances for every inspected actor, including ineligible members, so large or specialist-heavy groups do not cause an unbounded eligibility scan or permanently starve later members. Frame-time acceptance remains pending.
+
+The cover-height stance entry point rejects null or non-local groups, current Zeus holds and declared group external control before geometry work or posture changes. Per-actor specialist checks remain separate so ordinary members of a mixed specialist group can participate. Direct-call and locality-handover physical acceptance remains pending.
+
+Danger-cover timeout is terminal for the current actor and danger generation. Exact-owned reservation cleanup and eligible failed-approach recovery still run, but the same observation cannot immediately search and recommit its failed destination. A new danger generation permits reassessment. Physical blocked-cover acceptance remains pending.
+
+Operation start releases its old on-foot danger-posture lease before publishing the new operation generation. A live danger response then acquires MAINTAIN under the new generation using the restored baseline. This prevents generation replacement from silently discarding restoration authority. Physical CONTACT-to-manoeuvre/CQB/withdrawal acceptance remains pending.
+
+Operation participant admission and progress use combat-effective local members of the owning group. Captive, surrendering, handcuffed, unconscious, player, remote-controlled and specialist/external-owned actors cannot count as ordinary manoeuvre progress or recovery candidates. Specialist activation excludes that actor on the next bounded step. Physical mixed-group and casualty acceptance remains pending.
+
+Isolated recovery uses actor-local specialist ownership at both command boundaries. A specialist squadmate does not prevent an ordinary participant's recovery; group Zeus/player/declared ownership remains authoritative, and the recovery actor's declared external control yields without consuming its retry. Physical mixed-group recovery acceptance remains pending.
+
+Role rebalancing filters specialist identities, remote-controlled actors and actor-specific external ownership before selecting reserves. Group takeover is checked again before publishing the roster using an ordinary candidate as specialist context; player, Zeus and declared group control remain group-wide. No ordinary candidate yields without recruiting a specialist. Physical casualty reinforcement acceptance remains pending.
+
+Tactical drill rebalancing excludes squad members outside its current live fire-team element. The operation roster therefore tracks actual drill participants rather than unrelated security/support movement. Existing casualty team assignment remains authoritative; physical stalled-bound and replacement acceptance remains pending.
+
+Danger posture respects a live tactical drill's exact groupCombatMode lease while an operation exists. Renewed engagement cannot replace its applied YELLOW discipline with RED and falsely end movement as ROE_CHANGED. Drill team rebuilding also excludes operation-quarantined unavailable actors. Physical sustained-contact and isolated-stall acceptance remains pending.
+
+Danger's tactical fire-mode exemption requires matching operation generation, current owner epoch, drill operation generation and an active START/MOVE/PAUSE/HOLD phase. A leftover mode lease cannot constrain danger after replacement or migration. Physical stale-record transition acceptance remains pending.
+
+Flank, advance and assault drills record the operation owner epoch at creation. Drill cleanup requires that epoch and its operation generation to match current group ownership before restoring AI features, modes or movement. A stale callback cannot gain restoration authority merely because the operation record was cleared. Physical migration/replacement cleanup acceptance remains pending.
+
+Operation replacement synchronously ends a matching outgoing drill before changing generation. Exact matching generation and owner epoch are required; REPLACED releases drill feature holds without formation return, and the incoming operation owns subsequent movement. New drill records lacking the outgoing generation are not consumed. Physical replacement-with-held-features acceptance remains pending.
+
+Zeus release ends a matching drill before incrementing the curator generation. ZEUS cleanup releases tracked feature holds while suppressing posture, mode and formation commands; then generation invalidation rejects old callbacks. Locality adoption retains its separate checkpoint restoration path. Physical Zeus-with-held-features acceptance remains pending.
+
+Locality checkpoint actor restoration requires a live local member without player, remote, specialist or declared actor ownership. This gate covers feature switches, unit modes, behaviour and formation return; formation return additionally yields to native service/action commands. Group ownership eligibility remains mandatory. Physical migration-to-specialist/service acceptance remains pending.
+
+Drill checkpoints record committed mover destinations. Locality formation return may replace a MOVE only when its destination matches that actor's recorded spot within one metre and the expected floor band. A different MOVE, or MOVE without destination proof, survives. Physical migration/new-order acceptance remains pending.
+
+Danger intake checks actor/cause cadence before group ownership scanning. Throttled duplicates return without that scan; rejected eligibility does not advance cadence, and accepted observations retain the existing quarter-second gate. Physical intake responsiveness and frame-time acceptance remain pending.
+
+Danger intake and selection require three numeric coordinates, not merely a three-element position array. Invalid coordinate types are rejected before event storage or geometry consumers. Existing event priority, witness identity and expiry rules remain unchanged. Physical intake acceptance remains pending.
+
+Danger duplicate matching validates record shape and reads cause/witness through typed fields before coalescing. A malformed stored record cannot be indexed as an event or replace a valid witness. The existing selector rejects malformed records and retains its bounded priority pass. Physical malformed-intake acceptance remains pending.
+
+Danger classification rechecks surrender and handcuff state when consuming a queued hostile identity. Intake, inherited-source retention and contact publication also reject handcuffed sources. Native knowledge of a detained or newly surrendering actor cannot alone authorise a fresh engagement. Physical surrender-during-queued-contact acceptance remains pending.
+
+Active flank, advance and assault drills end hostile intent when the retained target begins surrender or becomes handcuffed, alongside existing captive/side-change checks. Target death remains distinct so a valid clear-through can continue after a casualty. Physical surrender-during-manoeuvre acceptance remains pending.
+
+Shared tactical knowledge prunes surrendering and handcuffed actors from cached observations and hostile candidates alongside captive/side checks. Ending an active drill cannot immediately recreate hostile intent through the same detained target's native knowledge. Physical surrender-to-security acceptance remains pending.
+
+Observed-contact cache pruning validates numeric expiry before comparing time and inspects at most the eight newest records, matching the writer's eight-contact cap. Invalid expiry records do not reach recurring knowledge evaluation. Physical intake and performance acceptance remains pending.
+
+Vehicle target cleanup retires WAIT's recorded target when dead, captive, surrendering, detained or friendly. It clears the native assignment only when it still matches WAIT's target and no newer owner controls the actor. Gunnery ranking independently revalidates protection and hostility, including direct callers with stale candidate lists. Physical surrender/side-change vehicle acceptance remains pending.
+
+Aircraft planning rejects protected targets. Active attack updates revalidate living targets for captive, surrender, detention and side change, releasing WAIT attack control as TARGET_NO_LONGER_HOSTILE. A destroyed objective remains distinct and follows the existing physical-attack egress path. Physical protection-during-air-attack acceptance remains pending.
+
+Aircraft cleanup no longer restores enableAttack because the controller does not modify that setting. It preserves later policy changes. Owned-target cleanup additionally requires local ordinary crew without player, remote, specialist or declared actor control; newer target assignments remain untouched. Physical aircraft policy/target handover acceptance remains pending.
+
+Ordinary aircraft route resume selects the actual authored waypoint handle rather than treating a list offset as an engine waypoint ID. Deleted temporary waypoints may leave ID gaps; the selected handle must still match the recorded resume position. Physical resume-after-waypoint-deletion acceptance remains pending.
+
+Aircraft resume validates local group authority and the stored authored position before searching waypoints. An absent resume position yields no waypoint search or route replay; attack completion/cancellation still retires its finite lease. Physical no-authored-route acceptance remains pending.
+
+Aircraft attack cleanup resets speed and restores its pilot feature switches only while the original AIR_ATTACK flight lease remains valid. A newer landing, braking, evasion or attack owner keeps its controls. Pilot feature restoration also requires eligible local ordinary control. Physical flight-owner transition acceptance remains pending.
+
+Flight lease acquisition and validation both require a combat-effective current pilot, excluding unconscious, incapacitated, captive, surrendering or detained actors. The lease itself has no time-based expiry; finite controller deadlines govern release. Reacquisition retains identity rather than promising an expiry refresh. Physical pilot-incapacitation acceptance remains pending.
+
+Operation start, cancellation and release reuse danger posture only from an unexpired response matching the current danger generation. An older response cannot be renewed merely because its timestamp has not elapsed after reset or handover. Physical disable/reset and migration transition acceptance remains pending.
+
+The selected danger response retains one exact owner-local event, including hostile source and witness. Operation release/cancel reclassification uses it only when cause and observation time match the live generation-checked response. Targetless fallback remains targetless; it cannot fabricate a witness or enemy. Response cleanup removes the local event, adding no network payload. Physical contact-to-operation-to-contact acceptance remains pending.
+
+Operation start classifies the retained matching danger event after publication and applies posture through its original observer. Mounted and native forced-task witnesses remain VEHICLE/FORCED observation-only; valid ordinary foot contact becomes MAINTAIN through the shared classifier. Lost witnesses are not replaced with unrelated actors. Physical mixed-domain start acceptance remains pending.
+
+An unavailable explicit danger witness retires its finite response instead of transferring response identity to the group anchor. Exact-owned group posture is released using a viable actor; queued observations from other witnesses remain available. Native-task handover removes only the original witness's queued events. Physical witness-casualty and mixed-witness acceptance remains pending.
+
+Engine weak-stance renewal and release require complete six-field leases. Group-hide baseline transfer also requires its complete generation/epoch proof. Incomplete records are discarded without posture mutation or restoration; they cannot confer ownership through legacy short-record fallbacks. Physical malformed-lease and posture-transfer acceptance remains pending.
+
+On-foot operation start releases owned engine weak-stance leases for at most 64 members, then group-hide posture, before changing operation generation. Each release retains its exact-value and external-owner checks. This prevents temporary posture becoming the new operation's authored baseline. Physical danger-to-movement posture acceptance remains pending.
+
+Building entry selection and actor availability exclude remote-controlled actors and full specialist identities. Cancellation rechecks group takeover before any stance, speed, watch or formation restoration, including early disabled/deleted-building exits. Metadata cleanup remains finite. Physical mixed-group and early-cancellation acceptance remains pending.
+
+Building egress rechecks operation quarantine every step; losing an assigned actor keeps the egress result incomplete rather than routing that actor again. Room-visit credit requires a combat-effective local ordinary actor without player, remote or specialist ownership, in addition to the existing three-dimensional physical arrival check. Physical quarantine-during-egress and controlled-visitor acceptance remains pending.
+
+Building approach deadline renewal requires a new best three-dimensional distance to the committed target, accumulating at least one metre of improvement. Backtracking and repeated circles cannot repeatedly renew the budget. A changed entry/room target establishes its own baseline; physical room visits retain their existing renewal path. Physical doorway-circle acceptance remains pending.
+
+Building room retries reset their no-progress timestamp only for a new best approach distance, not arbitrary walking. Circling reaches existing finite retries, alternate-entry selection and isolated recovery while other pairs continue. Physical detour, stair and doorway cases must verify the retry timing remains appropriate; acceptance remains pending.
+
+Building reserve selection excludes operation-quarantined actors even when they are outside current pairs, plus remote-controlled actors and full specialist identities. Those actors cannot be inserted into a casualty vacancy before later availability checks reject them. Physical casualty/reserve mixed-group acceptance remains pending.
+
+CQB reserve replacement retires only the removed actor's active recovery observation in the matching CLEAR generation and owner epoch. Common operation quarantine also retires that actor's observation. Both retain the generation's retry budget and unavailable roster: rotating reserves cannot grant a failed actor unlimited retries. Other actors continue their existing routes. Physical casualty, blocked-entry and replacement cases remain pending while game audits are suspended.
+
+Danger-cover timeout cleanup treats a wrong-floor arrival as an unfinished approach, even when its horizontal distance is within two metres. Return-to-formation recovery requires the native expected destination to still match the owned spot horizontally and vertically; a newer destination on another floor is preserved. Existing player, Zeus, specialist and operation exclusions remain. Multi-floor timeout and newer-order cases require physical retesting.
+
+Engine danger classification, follow-up recycling, submission and EnemyDetected intake exclude handcuffed actors as well as captive and surrendering actors. This aligns immediate FSM eligibility with group threat selection without changing reactions to anonymous explosions or incoming hazards. Capture during an active response and later release require physical transition acceptance.
+
+Finite engine responses record operation generation, owner epoch and group identity. Their waiting gate drains an old response immediately after operation replacement, group reassignment or owner-epoch change, before recycling. Initial native intake remains available; the check reads only the affected actor and group and adds no squad scan or worker. Physical replacement and HC-transition acceptance remain pending.
+
+Engine queue selection and submission accept only two- or three-coordinate numeric positions before adding a floor coordinate or applying geometry. Malformed positions drain without creating danger intent. Existing expiry tolerance, priority and twelve-record callback limit remain unchanged; this adds at most three primitive type checks per accepted record. Physical delayed-contact acceptance remains pending.
+
+Squad low-profile acquisition includes stationary native ATTACK, FIRE and SUPPRESS actors, instead of requiring an empty command. A speed cap of 0.5 km/h excludes actors already moving; operation participants, actor reservations, native service tasks and specialist ownership remain excluded. Only weak stance changes, never targets, firing or movement. This repairs an intake mismatch for soldiers already engaging; physical fire continuity and cover readability remain unaccepted.
+
+Tactical reposition revalidates a retained target's hostility and protected state before committing movement. Missing contact geometry falls back only to the local representative's native believed position while knowledge exists; absent or malformed belief declines reposition rather than reading the target's exact live location. Existing close-armour withdrawal and screened lateral options remain. Physical occluded-contact and protection transitions are pending.
+
+Tactical reposition reports started only after group movement returns a valid waypoint handle. A rejected final movement boundary immediately releases the exact generation as INCOMPLETE/MOVEMENT_REJECTED, drops its ownership reservation and records a bounded retry cooldown. It does not install an active movement lease or claim physical progress. Native-task and Zeus refusal cases remain pending physical acceptance.
+
+Vehicle jink and artillery relocation require a valid returned group waypoint before publishing movement leases or active platform evidence. Rejection releases the exact new operation as INCOMPLETE/MOVEMENT_REJECTED and drops its matching feature reservation; artillery also clears its pending relocation request. Neither substitutes another route or overwrites the native task that refused movement. Physical refusal and subsequent ordinary-order acceptance remain pending.
+
+Infantry withdrawal validates local group eligibility, player/Zeus/external ownership, a combat-effective anchor and native service tasks before route selection or any support, PATH, attack or behaviour mutation. A refused boarding, treatment, assembly or supply task leaves its existing state intact instead of creating a partially applied withdrawal. Ordinary native combat remains eligible. Entry/refusal and resumed-locality cases require physical acceptance.
+
+Withdrawal replanning updates its target and moving state only after a valid group waypoint is returned. Missing routes and refused commands consume the existing bounded replan attempt and observation interval; they cannot claim travel or trigger fresh geometry on every callback. Physical distance remains measured independently. Blocked-route, native-task refusal and eventual INCOMPLETE outcomes remain pending in-game acceptance.
+
+Tactical reposition completion checks the matching operation's remaining capable participants, excluding quarantined and externally controlled actors. COMPLETE requires a nonempty element within the twelve-metre destination radius and 1.5-metre floor band; anchor-only arrival is insufficient. This is terminal evidence, not an assembly gate: normal expiry still releases the operation as INCOMPLETE when the element did not arrive. Physical split-element and floor-band cases remain pending.
+
+Tactical reposition issues the first committed avenue leg, then the shared group callback advances at most one leg after the anchor physically reaches its six-metre radius and floor band. Generation, owner epoch, deadline and a sixteen-leg bound gate progression. Final completion still uses the remaining element's arrival; no separate worker or repeated destination issuance is added. Actual covered-corridor travel and Zeus interruption require physical acceptance.
+
+All tactical reposition legs, including the final leg and one-leg routes, run common operation progress accounting through the existing callback. A stalled element may select one stationary, non-quarantined participant without an active recovery record for isolated recovery toward the current leg; common retry limits and actor ownership checks still apply. Other participants retain their route. This adds no worker and bounds selection to sixty-four declared participants. Physical obstruction and continuation acceptance remain pending.
+
+Reposition recovery selection excludes actors whose generation-owned retry budget is exhausted even after their active observation was retired. One already-used actor cannot repeatedly occupy the first selection slot and prevent another stuck participant from receiving its bounded attempt. Existing reservation and common command-boundary ownership checks remain. Multi-actor obstruction acceptance is pending.
+
+Actor danger stance renewal avoids reissuing an unchanged weak-stance engine command. Existing leases retain their original baseline and updated finite deadline; transferred squad-hide baselines remain intact. When the authored baseline already matches the desired stance, WAIT owns no restoration and stores no stance lease. Physical posture continuity and performance remain unaccepted.
+
+Combined ground-support admission requires a valid firing-area waypoint before publishing APPLIED, installing its movement lease or queuing its finite movement job. Refusal records MOVEMENT_REJECTED for the opportunity token, releases the exact new operation and feature reservation, and leaves native orders authoritative. This also closes the post-operation takeover refusal leak. Physical combined support and external takeover acceptance remain pending.
+
+Combined ground-support continuation rechecks the current operation owner epoch and handcuffed target state. Its single bounded route reacquisition verifies the returned waypoint; refusal ends the role as MOVEMENT_REJECTED rather than renewing an apparently active move. An unchanged owned destination remains committed through normal group-move coalescing. Physical obstruction, target protection and migration acceptance remain pending.
+
+Combined ground-support jobs capture their operation owner epoch at admission. A stale epoch returns without route cleanup, reservation mutation or terminal result publication. Matching cleanup additionally requires the exact operation generation, intent and epoch before clearing its waypoint. New-owner adoption must queue a fresh job through normal admission. Physical HC handover and late-callback acceptance remain pending.
+
+Shared ground waypoint adoption and cleanup compare height as well as horizontal position. A floor change greater than 1.5 metres invalidates WAIT ownership; cleanup preserves the edited waypoint instead of deleting it. Destination coalescing does not treat different floor bands as the same route. Two-coordinate requests receive an explicit zero height rather than a nil coordinate. Physical floor-edited Zeus orders and terrain waypoint normalization remain pending acceptance.
+
+Shared waypoint ownership stores the engine-returned position as its edit baseline, separately retaining requestedPosition. Radius-zero native placement can adjust the request and must not itself trigger a takeover. Explicit elevated ATL destinations use exact ASL placement with negative radius; ordinary ground requests retain safe native placement. See [addWaypoint engine semantics](https://community.bistudio.com/wiki/addWaypoint). Terrain, elevated-route and edited-waypoint physical acceptance remain pending.
+
+The queued tactical-assessment armour case retains its leader-travel result and adds an independent physical element-travel check: at least half of the six-person fixture must move fifteen metres from their own recorded origins within a bounded observation. This is partial movement evidence, not route completion or combat effectiveness. No reveal, teleport or solved-state injection is added. The case has not run while audits are suspended.
+
+Support admission emits one final refusal acknowledgement when operation creation fails, instead of an inner refusal followed by a stale success. It releases its matching SUPPORT reservation. Ordinary rally support also requires a valid waypoint before publishing movement/response state; refusal releases the exact operation as INCOMPLETE/MOVEMENT_REJECTED and acknowledges false. Coordinated attack admission still delegates detailed routes to its existing controller. Physical server acknowledgement and refusal cleanup acceptance remain pending.
+
+Withdrawal applies temporary autonomous-attack, combat-mode and behaviour changes only after its group waypoint is accepted. Refused movement releases the exact operation and INFANTRY_WITHDRAW reservation, reports MOVEMENT_REJECTED and returns false before setting the retreat phase, movement lease or screen effects. Earlier support/drill retirement remains intentional replacement cleanup. Physical native-task refusal, Zeus replacement and normal retreat acceptance remain pending.
+
+Shared group movement rejects destinations outside the two-/three-numeric-coordinate contract before adoption, route cleanup or engine commands. Invalid script input returns the normal refused waypoint handle and preserves the existing route. Omitted height remains zero; the documented operation-generation argument binds cleanup to the current operation. Physical script/refusal parity remains pending.
+
+Danger posture cleanup and common autonomous-attack restoration consume their matching leases without reissuing commands when prior and applied values are identical. Changed values still require exact current-value ownership before restoration. This removes redundant group commands; no measured frame-time improvement or physical acceptance is claimed.
+
+Danger posture duration selection uses fixed branches rather than allocating an eleven-entry map per response. Hit, explosion, suppression, casualty, observation and gunfire durations are unchanged, as are lease renewal and public restoration ownership. This is an allocation reduction only; frame-time budget acceptance still requires the matched physical benchmark.
+
+Reposition recovery selection skips disabled MOVE/PATH, mounted, player/remote-controlled, specialist, live actor-reservation and native-service-task actors before selecting its one candidate. An ineligible first participant cannot repeatedly consume the selection slot while another participant remains recoverable. The recovery helper still revalidates authority at command time. Physical mixed-eligibility and isolated obstruction cases remain pending.
+
+Common isolated recovery rejects malformed coordinates before recording an attempt and enforces operation quarantine at initial and final command boundaries. An unavailable participant returns EXHAUSTED without movement or retry-budget mutation, even when a caller retained an earlier roster snapshot. Physical late-quarantine and invalid-script-input acceptance remain pending.
+
+Frag safety excludes handcuffed actors inside the existing twelve-metre target safety radius at both admission and delayed release. This matches danger threat protection and handles a capture state changed during alignment without adding a new scan or pausing movement. Physical capture-during-throw and friendly-safety cases remain pending.
+
+## Engine FSM disabled-state boundary
+
+The danger addon replaces SoldierWB/SoldierEB/SoldierGB fsmDanger at config load. Runtime disablement makes the initial continuation gate end the WAIT response; it does not write another config path or launch an unverified stock FSM through execFSM. Disabled-state acceptance must prove restored native movement/fire and absence of WAIT commands, leases and queue churn. It must not claim native danger equivalence solely from an empty WAIT operation. The matched performance baseline remains addon-absent. See [Arma 3 AI config reference](https://community.bistudio.com/wiki/Arma_3%3A_AI_Config_Reference). This behavioural boundary remains physically unaccepted.
+
+Withdrawal speed uses an exact prior/applied lease. Calm cleanup restores it only while the group still has the applied FULL mode; a newer different mission speed is preserved. Checkpoints expose that lease through the existing exact group-speed restoration path for headless migration, and cleanup consumes the withdrawal metadata. Physical speed edits, stop/restart and HC resume remain pending.
+
+On-foot engine danger classification does not treat disabled MOVE as loss of all combat response. Stationary defenders may receive finite weak posture and native hostile awareness; cover moves and evasive actions retain their independent MOVE/PATH guards and never enable disabled movement. Native service tasks, explicit ownership and mounted domain precedence remain unchanged. Physical stationary-defender and authored-stance acceptance remain pending.
+
+Queued contact acceptance adds a stationary defender with MOVE/PATH disabled and an attributed native grenade stimulus. It checks physical crouch/prone during a finite engine response, no travel, unchanged disabled permissions and lease cleanup. No danger state or solved outcome is injected. This instrumented reflex case does not establish combat effectiveness and has not run while audits are suspended.
+
+Group danger RELEASE/RESTORE may retire a dead local observer's lease through a surviving combat-effective anchor. If none remains, cleanup discards metadata without issuing group commands. New danger acquisition still requires a live observer, and generation/epoch/external-owner checks continue to govern restoration. Physical observer casualty and group collapse acceptance remain pending.
+
+Incoming-missile jobs retain whether the warning supplied a concrete projectile. Deletion or death of that known projectile ends the matching finite defence response and flight lease, including before its first scheduled sample. A null reference after deletion cannot be mistaken for an originally unknown projectile. Warnings without a projectile retain the existing twelve-sample maximum. Physical destruction, interception and attack/landing handover acceptance remain pending.
+
+Missile countermeasure-only response does not acquire flight-correction ownership. Live break disable releases only its exact missile-defence lease while flare emission can continue; closing both gates retires the response. Attack and landing ownership are therefore not preempted merely to fire countermeasures. Physical live-gate and flight-controller handover acceptance remain pending.
+
+Aircraft discovery filters captive, surrendering and handcuffed objects before selecting assigned or native-known attack contacts. A protected first candidate cannot mask a later valid hostile merely because the planner subsequently rejects it. Native knowledge limits and bounded contact selection remain unchanged; the planner still revalidates at admission. Physical capture/retarget and air-to-air contact acceptance remain pending.
+
+Aircraft ATTACK validates the selected station's actual operator before weapon selection, target/watch assignment or release requests. Locality, combat effectiveness, player/remote control and actor-context group eligibility govern this boundary, including gunners belonging to a different group from the pilot. Refusal ends the run as WEAPON_OPERATOR_RELEASED. Physical gunner casualty, separate-group Zeus ownership and specialist activation acceptance remain pending.
+
+Aircraft target cleanup checks each crew member's own group takeover with actor-local specialist context, in addition to the pilot-group boundary. A separate-group gunner under a newer Zeus, player or explicit external order retains target/watch commands even when assignedTarget still equals WAIT's former hostile. Ordinary exact-owned targets can still retire. Physical separate-group interruption and cleanup acceptance remain pending.
+
+Combined air support acknowledges APPLIED only when attack startup succeeds or a live flight-lease-owning brain already addresses the same target/platform. A different existing target or refused flight lease reports AIR_BUSY_OR_REFUSED and requests the existing fallback path without replacing the aircraft's current intent. A busy marker alone is not acceptance. Physical competing-target, landing/evasion ownership and fallback acceptance remain pending.
+
+Combined air fallback requires the rejecting group's exact current opportunity token, requester and AIR_ATTACK role, then consumes that role before advancing the candidate cursor. Duplicate notices cannot dispatch extra aircraft; newer roles and the rejected aircraft's existing attack brain remain untouched. Physical duplicate delivery, stale-owner and busy-aircraft acceptance remain pending.
+
+Combined air fallback revalidates requester eligibility/communication and live target hostility/protection after consuming the exact refusal. Invalid opportunities retire their matching fallback record. Candidate selection preserves another unexpired opportunity rather than overwriting its role. Existing aircraft brains remain untouched. Physical changed-requester, capture and competing-role acceptance remain pending.
+
+The packaged audit launcher supports -WaitForCompletion with a bounded -BatchTimeoutSeconds observation window (default four hours). It records retained process handles, observed exit codes and separate completion markers in batch-status.json. Process exit and observation timeout remain incomplete results; the monitor never stops applications or restarts a batch. Completion markers do not override failed behaviour cases in the audit report.
+
+Building audit comparisons excluded from WAIT scheduling are not addon-absent native baselines: fsmDanger remains replaced by the loaded addon. The fixture records effective danger/formation FSM paths and labels this scope explicitly while retaining historical case IDs and failed outcomes. Native building-path parity requires a separate addon-absent candidate; exclusion alone cannot establish a game-engine limitation.
+
+Garrison initial application and scheduled arrival/recovery now require actor combat effectiveness and actor-context takeover clearance. Captive, surrendered, handcuffed or specialist-controlled soldiers cannot receive new movement or PATH locks from those paths. The existing temporarily incapacitated pending-route policy remains bounded by the order deadline. Physical activation/release acceptance remains pending.
+
+Garrison hit/suppression reactions, delayed duck restoration and release posture/watch/speed/formation commands now use combat-effective actor and actor-context ownership gates too. Capture or specialist activation between the event and delayed callback cannot reacquire that actor. Removal of WAIT-owned PATH-lock metadata remains separate from tactical restoration. Physical capture and specialist transitions remain unaccepted.
+
+Garrison and defence admission allocate positions and initial strength only from local combat-effective actors without player/specialist ownership. Captive or unconscious members no longer consume limited interior/line/reserve slots merely to be rejected during application. An empty capable set refuses the request before retiring the previous order. Physical mixed-eligibility allocation and casualty rebalancing remain pending.
+
+Defence reserve activation requires local group authority and combat-effective, unowned reserve actors. Line losses count incapacitated/captive actors as unavailable, allowing a reserve to fill their recorded slot without ordering those actors. Activation retains its finite one-commit policy and existing terrain checks. Physical casualty/capture reinforcement acceptance remains pending.
+
+Fresh CQB audit cases retain the 245-second physical sampling budget and add at most 15 seconds for a queued terminal result to settle before restoration/outcome assertions. A separate terminal-settlement check fails if no result arrives. The settlement interval adds no physical visits and calls no cleanup; failed entry and room visits remain failures.
+
+Building-operation termination captures WAIT_Cortex_ClearRouteEvidence once before cleanup: timestamp/reason, at most eight pair states and sixteen actor IDs, positions, commands, expected destinations and MOVE/PATH permissions. This complements visit evidence without recurring logging or geometry work. Physical route conclusions require an audit of the candidate containing this instrumentation.
+
+Defence continuation retires its scheduler job and published order when group eligibility is lost, replacing an indefinite delayed-job state. Initial application, arrival/recovery and release watch/formation commands also recheck combat-effective actor ownership. Metadata cleanup remains unconditional so old orders cannot reappear after handover. Physical Zeus/player/specialist transitions remain pending.
+
+The shared unlocked-door helper now requires combat-effective actor eligibility and actor-context ownership before opening a door. Group eligibility alone cannot authorize a captured or specialist-controlled actor's door interaction. Locks, distance and request cooldown remain unchanged; opening still does not establish physical entry.
+
+Natural building-contact QA now searches bounded room/approach combinations for a clear VIEW ray before spawning, verifies an actual actor-eye sightline and enables the required contact feature through the tuning API. Missing visibility fails a distinct fixture prerequisite; native knowledge remains necessary and no reveal or clearance order is injected. The earlier batch contact stage was manually assisted by the user and cannot establish unassisted acceptance.
+
+WAIT local notifications pass title and body as separate CBA line arrays. The previous body string occupied the first line's numeric size parameter and caused a real client Params type error during convoy warning delivery. Static validation does not establish live rendering; the next exact-candidate batch must verify the warning appears without the client error.
+
+Convoy IMMOBILE halts now retain their distinct operation phase through start, step and FSM routing, instead of being labelled OBSTRUCTION. They use the existing bounded halt cadence and shared scheduler, with unchanged stop/recovery decisions. This is diagnostic state fidelity, not proof of physical recovery.
+
+Convoy release clears a crew target command only for combat-effective actors without actor-context takeover whose assigned target still matches WAIT's recorded target. Protected actors retain their newer command while stale convoy target metadata is retired. Physical separate-crew-group and Zeus target handover remain pending.
+
+Convoy FSM spacing diagnostics reuse dimensions cached by the immediately preceding ConvoyTick and the same aligned forward-gap projection as driving. They no longer repeat bounding-box queries every callback or report a lateral offset as longitudinal spacing. No driving policy, cadence or new worker is introduced; measured performance acceptance remains pending.
+
+Convoy revision reacquisition retains predecessor trails/cursors but invalidates follower native/path command commitments once, because setup stops those followers. An unchanged endpoint can no longer suppress the first resumed movement command. Tracked 15 m resume failed in the active old candidate; this plausible contributor requires physical retest, especially for turn direction. Matrix resume assertions now include actual position/travel, speed, heading, command, destination and forced speed.
+
+Tracked convoy resume replaces WAIT's matching lead-vehicle current-position HALT command once with its existing MOVE waypoint destination. It requires the same group/owner halt marker and current driving authority, and retires that marker after issue. No waypoint replacement, fixed heading or recurring command is added. Tracked resume failures at 15/30 m remain unaccepted pending exact-candidate physical retest.
+
+Convoy HALT retains one-second shared-scheduler cadence while any live local registered vehicle moves at least 1 km/h, then drops to the existing thirty-second settled hold cadence. This avoids treating an accepted halt as a physical stop and permits bounded crew/braking retries during deceleration. No extra worker or global scan is added. Tracked 75 m halt failure remains open until physical retest.

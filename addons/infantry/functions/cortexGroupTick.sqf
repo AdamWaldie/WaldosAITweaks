@@ -1,6 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
  * Locality / Authority: Executes on the caller; world changes are limited to locally owned objects or groups, or to server-published state, as guarded below.
+ * Group-wide contact posture yields to native boarding, actions, treatment, rearming and joining.
  * Pending remounts yield to a replacement vehicle assignment; cleanup only cancels the original seat order.
  * Runs one Cortex step for one locally owned group: reads the situation, moves it along the
  * group state ladder and calls each enabled behaviour. A targetless hit, explosion or suppression
@@ -111,13 +112,23 @@ if (!_dangerYield) then {
 
 {
     if (local _x && {_x getVariable ["WAIT_AIPass_StanceSet",false]} && {!([_group,"WAIT_AIPass_Stance_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) then {
-        if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        if (!_dangerYield && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
+            if (toUpperANSI (unitPos _x) == (_x getVariable ["WAIT_Cortex_AppliedStance",""])) then {_x setUnitPos "AUTO"};
+        };
         _x setVariable ["WAIT_Cortex_AppliedStance",nil,true];
         _x setVariable ["WAIT_AIPass_StanceSet",nil,true];
     };
     private _target = _x getVariable ["WAIT_AIPass_VehicleTarget",objNull];
-    if (local _x && {!isNull _target} && {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled) || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!(combatMode _group in ["YELLOW","RED"] && {unitCombatMode _x in ["YELLOW","RED"]})}}) then {
-        if (assignedTarget _x == _target) then {_x doTarget objNull};
+    private _targetProtected=!isNull _target && {!alive _target || {captive _target}
+        || {_target getVariable ["ace_captives_isSurrendering",false]}
+        || {_target getVariable ["ace_captives_isHandcuffed",false]}
+        || {(side _group) getFriend (side _target) >= 0.6}};
+    if (local _x && {!isNull _target} && {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled) || {!([_group,"WAIT_AIPass_VehicleGunnery_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!(combatMode _group in ["YELLOW","RED"] && {unitCombatMode _x in ["YELLOW","RED"]})} || {_targetProtected}}) then {
+        if (!_dangerYield && {!isPlayer _x} && {isNull (remoteControlled _x)}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}) then {
+            if (assignedTarget _x == _target) then {_x doTarget objNull};
+        };
         _x setVariable ["WAIT_AIPass_VehicleTarget",nil,true];
         _x setVariable ["WAIT_AIPass_TargetHold",nil];
     };
@@ -214,6 +225,7 @@ if (count _dangerResponse == 5) then {
         _state deleteAt "dangerResponse";
         _state deleteAt "dangerVehicleProfile";
         _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
         _group setVariable ["WAIT_Danger_Action",nil,true];
         _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
     };
@@ -275,13 +287,16 @@ if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) the
     if (count _coverLease >= 2) then {
         [_group,_coverLease select 0,[],_coverLease select 1] call WAIT_fnc_DangerCoverStep;
     };
+    // A failed solid-cover assessment may outlive the brief native danger observation.
+    // Service its one bounded follow-up through this existing callback, never a separate worker.
+    private _coverPending=_group getVariable ["WAIT_Danger_CoverPending",[]];
+    if (count _coverPending == 4) then {
+        _group setVariable ["WAIT_Danger_CoverPending",nil];
+        if (time < (_coverPending select 3)) then {
+            [_group,_coverPending select 0,_coverPending select 2,_coverPending select 1] call WAIT_fnc_DangerCoverStep;
+        };
+    };
     [_group,-1,false,""] call WAIT_fnc_DangerGroupHideStep;
-};
-// Smoke is a supporting reflex, never another movement phase. One unreserved local actor may throw
-// while cover selection and the current operation continue; the helper's generation context cancels
-// the queued release if Zeus, a specialist owner or a newer danger response takes over next frame.
-if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
-    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
 };
 [_group,_state] call WAIT_fnc_CortexSupportMaintain;
 // The drill controller is a separate scheduled job. If it is lost or starved, leaving the
@@ -299,14 +314,100 @@ if (count _activeDrill > 0) then {
         _activeDrill=createHashMap;
     };
 };
+private _reverseRecord=_group getVariable ["WAIT_VehicleReverse",[]];
+if (count _reverseRecord == 9) then {
+    private _reverseResult=[_group,_state,_reverseRecord select 0,_reverseRecord select 4,"STEP",_reverseRecord select 1] call WAIT_fnc_CortexVehicleReverseStep;
+    if (_reverseResult in ["COMPLETE","FALLBACK"] && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+        && {(_state getOrDefault ["phase",""]) == "RETREAT"}
+        && {private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            (_current getOrDefault ["generation",-1]) == (_reverseRecord select 1)
+                && {(_current getOrDefault ["intent",""]) == "VEHICLE_WITHDRAW"}}) then {
+        private _escape=_state getOrDefault ["retreatTarget",[]];
+        if (count _escape >= 2) then {
+            private _fallback=[_group,_escape,40] call WAIT_fnc_CortexGroupMove;
+            _group setVariable ["WAIT_VehicleReverseFallback",[serverTime,_reverseResult,
+                _reverseRecord select 1,_state getOrDefault ["phase",""],+_escape,_fallback,
+                (units _group) apply {[netId _x,currentCommand _x]}],true];
+        };
+    } else {
+        if (_reverseResult in ["COMPLETE","FALLBACK"]) then {
+            private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            _group setVariable ["WAIT_VehicleReverseFallback",[serverTime,"HANDOVER_BLOCKED",
+                _reverseRecord select 1,_state getOrDefault ["phase",""],
+                _current getOrDefault ["intent",""],_current getOrDefault ["generation",-1],
+                [_group] call WAIT_fnc_CortexExternalTakeover],true];
+        };
+    };
+};
 private _movementLease = _state getOrDefault ["movementLease",[]];
 private _movementOwner = _movementLease param [0,""];
+// Follow the committed screened corridor rather than skipping to its final endpoint. This
+// callback advances at most one leg, only after physical arrival, without another worker.
+if (_movementOwner == "TACTICAL_REPOSITION" && {count _movementLease == 2} && {time < (_movementLease select 1)}) then {
+    private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+    private _generation=_state getOrDefault ["tacticalRepositionOperationGeneration",-1];
+    private _route=_operation getOrDefault ["route",[]];
+    private _leg=_state getOrDefault ["tacticalRepositionLeg",0];
+    if ((_operation getOrDefault ["generation",-2]) == _generation
+        && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+        && {count _route > 0} && {count _route <= 16} && {_leg >= 0} && {_leg < count _route}) then {
+        private _point=_route select _leg;
+        private _status=[_group,_generation,3,12,true] call WAIT_fnc_OperationStep;
+        if (_status == "STALLED") then {
+            private _current=_group getVariable ["WAIT_Operation",createHashMap];
+            private _members=_current getOrDefault ["participants",[]];
+            private _unavailable=_current getOrDefault ["unavailable",[]];
+            private _recovery=_current getOrDefault ["recovery",createHashMap];
+            private _attempts=_current getOrDefault ["recoveryAttempts",createHashMap];
+            if (count _members <= 64) then {
+                private _stuck=_members findIf {
+                    private _move=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+                    [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+                        && {!(_x in _unavailable)} && {abs speed _x <= 0.5}
+                        && {isNull objectParent _x} && {!isPlayer _x} && {isNull remoteControlled _x}
+                        && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
+                        && {currentCommand _x in ["","MOVE","ATTACK","FIRE","SUPPRESS","STOP"]}
+                        && {_move isEqualTo [] || {_move isEqualType [] && {count _move == 3}
+                            && {(_move param [2,1e12,[0]]) <= time}}}
+                        && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+                        && {_x distance2D _point > 6}
+                        && {(_recovery getOrDefault [netId _x,[]]) isEqualTo []}
+                        && {(_attempts getOrDefault [netId _x,0]) < 1}
+                };
+                if (_stuck >= 0) then {[_group,_generation,_members select _stuck,_point] call WAIT_fnc_RecoveryStep};
+            };
+        };
+        private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+        if (_leg < count _route-1 && {_status in ["ACTIVE","STALLED"]} && {!isNull _anchor} && {_anchor distance2D _point <= 6}
+            && {abs (((getPosATL _anchor) select 2)-(_point param [2,0])) <= 1.5}) then {
+            private _next=_leg+1;
+            private _waypoint=[_group,_route select _next,6,"MOVE",_generation] call WAIT_fnc_CortexGroupMove;
+            if (!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0}) then {
+                _state set ["tacticalRepositionLeg",_next];
+            };
+        };
+    };
+};
 private _groupMovementOwned = count _movementLease == 2 && {time < (_movementLease select 1)} && {
     switch (_movementOwner) do {
         case "TACTICAL_DRILL": {count (_state getOrDefault ["drill",createHashMap]) > 0};
         case "COORDINATED_ASSAULT": {
             _state getOrDefault ["assaulting",false]
                 && {(_state getOrDefault ["supportToken",""]) != ""}
+        };
+        case "VEHICLE_WITHDRAW": {
+            (_group getVariable ["WAIT_VehicleReverse",[]]) isNotEqualTo []
+                || {(waypoints _group) findIf {waypointDescription _x == "WAIT AI PASS" && {(_x select 1) >= currentWaypoint _group}} >= 0}
+        };
+        case "VEHICLE_ORIENT": {
+            private _vehicle=(_state getOrDefault ["vehicleDangerOrient",[]]) param [1,objNull,[objNull]];
+            private _marker=if (isNull _vehicle) then {[]} else {_vehicle getVariable ["WAIT_Danger_VehicleOrient",[]]};
+            private _target=_marker param [2,[],[[]]];
+            count _marker == 5 && {(_marker param [1,grpNull]) == _group}
+                && {serverTime < (_marker param [3,0])} && {count _target >= 2}
+                && {alive _vehicle} && {canMove _vehicle}
+                && {private _relative=_vehicle getRelDir _target; _relative > 20 && {_relative < 340}}
         };
         default {
             (waypoints _group) findIf {
@@ -323,11 +424,62 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         case "VEHICLE_ORIENT": {"vehicleOperationGeneration"};
         case "ARTILLERY_SCOOT": {"artilleryScootOperationGeneration"};
         case "SUPPORT_RALLY": {"supportOperationGeneration"};
+        case "TACTICAL_REPOSITION": {"tacticalRepositionOperationGeneration"};
         default {""};
     };
     if (_operationKey != "") then {
         private _generation=_state getOrDefault [_operationKey,-1];
-        if (_generation >= 0) then {[_group,_generation,"COMPLETE",_movementOwner+"_FINISHED"] call WAIT_fnc_OperationRelease};
+        private _movementResult="COMPLETE";
+        private _movementReason=_movementOwner+"_FINISHED";
+        if (_movementOwner == "VEHICLE_ORIENT") then {
+            private _vehicle=(_state getOrDefault ["vehicleDangerOrient",[]]) param [1,objNull,[objNull]];
+            private _marker=if (isNull _vehicle) then {[]} else {_vehicle getVariable ["WAIT_Danger_VehicleOrient",[]]};
+            private _target=_marker param [2,[],[[]]];
+            private _aligned=!isNull _vehicle && {alive _vehicle} && {count _target >= 2}
+                && {private _relative=_vehicle getRelDir _target; _relative <= 20 || {_relative >= 340}};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _aligned;
+            _movementReason=["VEHICLE_ORIENT_TIMEOUT","VEHICLE_ORIENT_ALIGNED"] select _aligned;
+        };
+        if (_movementOwner in ["VEHICLE_WITHDRAW","VEHICLE_STANDOFF","VEHICLE_JINK","ARTILLERY_SCOOT"]) then {
+            private _intent=_group getVariable ["WAIT_Cortex_GroupMoveIntent",createHashMap];
+            private _position=_intent getOrDefault ["position",[]];
+            private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+            private _arrived=count _position >= 2 && {!isNull _anchor}
+                && {vehicle _anchor distance2D _position <= (_intent getOrDefault ["radius",25])};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _arrived;
+            _movementReason=["MOVEMENT_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived;
+        };
+        if (_movementOwner == "TACTICAL_REPOSITION") then {
+            private _record=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
+            private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+            private _unavailable=_operation getOrDefault ["unavailable",[]];
+            private _declared=_operation getOrDefault ["participants",[]];
+            private _participants=(if (count _declared <= 64) then {_declared} else {[]}) select {
+                [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+                    && {!isPlayer _x} && {isNull remoteControlled _x} && {!(_x in _unavailable)}
+                    && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                    && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+            };
+            private _arrived=count _record >= 8 && {(_record select 7) == _generation}
+                && {(_operation getOrDefault ["generation",-1]) == _generation}
+                && {_participants isNotEqualTo []} && {count _participants <= 64}
+                && {_participants findIf {
+                    _x distance2D (_record select 5) > 12
+                        || {abs (((getPosATL _x) select 2)-((_record select 5) param [2,0])) > 1.5}
+                } < 0};
+            _movementResult=["INCOMPLETE","COMPLETE"] select _arrived;
+            _movementReason=["REPOSITION_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived;
+        };
+        if (_generation >= 0) then {[_group,_generation,_movementResult,_movementReason] call WAIT_fnc_OperationRelease};
+        if (_movementOwner == "TACTICAL_REPOSITION") then {
+            _state deleteAt "tacticalRepositionLeg";
+            private _reposition=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
+            if (count _reposition >= 8 && {(_reposition select 7) == _generation}) then {
+                _reposition set [0,_movementResult];
+                _reposition pushBack serverTime;
+                _group setVariable ["WAIT_Cortex_TacticalReposition",_reposition,true];
+            };
+        };
         _state deleteAt _operationKey;
     };
     if (_movementOwner == "VEHICLE_JINK") then {
@@ -392,7 +544,23 @@ private _delay = switch (true) do {
     case (_nearTier): {["WAIT_AIPass_TickMid", 8] call _get};
     default {["WAIT_AIPass_TickFar", 20] call _get};
 };
-if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {[_group,false] call WAIT_fnc_CortexReleaseGroup; _delay};
+if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {
+    // Explicit building orders have their own feature gate and generation-owned FSM.
+    // Disabling autonomous contact decisions must not cancel that separate movement owner.
+    private _explicitOperation=_group getVariable ["WAIT_Operation",createHashMap];
+    private _buildingOwned=(_explicitOperation getOrDefault ["intent",""]) == "CLEAR"
+        && {_group getVariable ["WAIT_AIPass_ClearBuilding",false]};
+    if (!_buildingOwned) then {[_group,false] call WAIT_fnc_CortexReleaseGroup};
+    _delay
+};
+
+// Native awareness may update while every actor boards, treats or performs an
+// equipment action. That knowledge is not authority for a competing group contact job.
+// Mixed groups retain autonomous decisions through their independently available members.
+private _autonomousActor=_alive findIf {
+    !(toUpperANSI currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])
+};
+if (_autonomousActor < 0) exitWith {_delay};
 
 ([_group] call WAIT_fnc_CortexKnowledge) params ["_enemies", "_seenCount"];
 // Native hostile knowledge is the durable continuation of a short engine danger callback. The
@@ -468,6 +636,31 @@ if (!_ordered && {_visible isEqualTo []}
 };
 // Retry calm boarding on the current owner only; a different assigned vehicle retires our intent. A missing seat or moving
 // vehicle is temporary, not grounds to forget the passenger after one attempt.
+// Bridge only WAIT-owned exits until calm boarding starts; native exits never create this proof.
+private _continuation=_group getVariable ["WAIT_Cortex_DismountContinuation",[]];
+if (count _continuation == 4 && {(_continuation select 0) isEqualType 0}
+    && {(_continuation select 1) isEqualType 0} && {(_continuation select 2) isEqualType []}
+    && {(_continuation select 3) isEqualType []}) then {
+    private _validContinuation=serverTime < (_continuation select 0)
+        && {(_continuation select 1) == (_group getVariable ["WAIT_OperationGeneration",0])}
+        && {(_continuation select 3) isEqualTo [currentWaypoint _group,waypointPosition [_group,currentWaypoint _group]]}
+        && {[] call _mayIssueMovement}
+        && {["WAIT_AIPass_Vehicles_Enable",true] call _get}
+        && {["WAIT_AIPass_VehicleRemount_Enable",true] call _get};
+    if (_validContinuation) then {
+        {
+            _x params ["_unit","_vehicle"];
+            if (alive _unit && {group _unit == _group} && {alive _vehicle}
+                && {isNull objectParent _unit} && {_unit distance2D _vehicle <= 100}
+                && {isNull assignedVehicle _unit || {assignedVehicle _unit == _vehicle}}) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",
+                    [_group,groupOwner _group,(serverTime+30) min (_continuation select 0)],true];
+            };
+        } forEach (((_continuation select 2) select [0,8]) select {
+            _x isEqualType [] && {count _x == 2} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType objNull}
+        });
+    } else {_group setVariable ["WAIT_Cortex_DismountContinuation",nil,true]};
+};
 private _remount = _group getVariable ["WAIT_Cortex_Remount",[]];
 if (_remount isNotEqualTo []) then {
     _remount params ["_deadline","_passengers"];
@@ -489,11 +682,41 @@ if (_remount isNotEqualTo []) then {
                 unassignVehicle _unit;
             };
         } forEach _pending;
-        if (!_cancel && {_pending isNotEqualTo []}) then {diag_log format ["[WAIT] Remount incomplete group=%1 passengers=%2",_group,_pending]};
+        private _reason = if (_visible isNotEqualTo [] || {_dangerActive}) then {"CONTACT"} else {
+            if (_ordered) then {"ORDERED"} else {
+                if (!([] call _mayIssueMovement)) then {"EXTERNAL_OWNER"} else {
+                    if (_cancel) then {"DISABLED"} else {
+                        if (_pending isEqualTo []) then {"RESOLVED_OR_REASSIGNED"} else {"DEADLINE"}
+                    }
+                }
+            }
+        };
+        // Record this finite transition, not a polling stream. Speed and assignment distinguish
+        // unavailable boarding geometry from contact, external orders and actual seat completion.
+        private _evidence = _pending apply {
+            _x params ["_unit","_vehicle"];
+            [netId _unit,netId _vehicle,abs speed _vehicle,_unit distance2D _vehicle,
+                netId assignedVehicle _unit,currentCommand _unit]
+        };
+        _state set ["lastRemountEnd",[serverTime,_reason,_evidence]];
+        if (_pending isNotEqualTo []) then {
+            diag_log format ["[WAIT] Remount ended group=%1 reason=%2 evidence=%3",_group,_reason,_evidence];
+        };
         _group setVariable ["WAIT_Cortex_Remount",nil,true];
     } else {
+        // Publish progress only when membership changes. Completed/reassigned passengers must
+        // not consume the vehicle owner's bounded boarding window ahead of remaining actors.
+        if (_pending isNotEqualTo _passengers) then {
+            _group setVariable ["WAIT_Cortex_Remount",[_deadline,+_pending],true];
+        };
         {
             _x params ["_unit","_vehicle"];
+            // Boarding needs the vehicle owner's cooperation too. Keep the request bounded
+            // by this remount episode; its owner verifies the public passenger record.
+            if ([] call _mayIssueMovement && {local _unit} && {_unit distance2D _vehicle <= 100}) then {
+                _vehicle setVariable ["WAIT_Cortex_DismountStopRequest",
+                    [_group,groupOwner _group,(serverTime+30) min _deadline],true];
+            };
             if ([] call _mayIssueMovement && {[_unit,_vehicle,true] call WAIT_fnc_CortexPassengerReady}) then {
                 // Preserve an in-progress boarding path; retry only a missing/interrupted order.
                 if (assignedVehicle _unit != _vehicle) then {_unit assignAsCargo _vehicle};
@@ -577,6 +800,10 @@ private _enterContact = {
     // deadline and arrival; otherwise responders abandon the rendezvous on sighting.
 };
 private _beginContact = {
+    // Changing group behaviour also changes actors whose native tasks WAIT does not own.
+    private _nativeTaskActive = (_alive findIf {
+        toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]
+    }) >= 0;
     if !("baseBehaviour" in _state) then {
         _state set ["baseBehaviour", behaviour _leader];
         _state set ["baseSpeed", speedMode _group];
@@ -586,7 +813,9 @@ private _beginContact = {
     if ([] call _mayIssueMovement) then {
         {
             private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-            if (alive _x && {local _x} && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
+            if (alive _x && {local _x}
+                && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+                && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
                 _x doFollow _leader
             };
         } forEach (_state getOrDefault ["searchTeam", []]);
@@ -597,7 +826,8 @@ private _beginContact = {
     // A coordinated responder already has a finite assault movement order. Do not
     // lock the entire approach into script-forced COMBAT bounding; native
     // AUTOCOMBAT remains enabled and can still react to threats normally.
-    if (!(_state getOrDefault ["assaulting", false]) && {behaviour _leader in ["SAFE", "AWARE"]}) then {
+    if (!_nativeTaskActive && {!(_state getOrDefault ["assaulting", false])}
+        && {behaviour _leader in ["SAFE", "AWARE"]}) then {
         _group setBehaviour "COMBAT";
         _state set ["behaviourChanged", true];
     };
@@ -625,6 +855,13 @@ private _beginContact = {
     _delay = _contactDelay;
 };
 
+// Continue an existing equipment handoff alongside post-contact movement. This never
+// starts a deployment outside SECURITY and reserves only its original participants.
+private _packingRecord=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
+if ((_state get "phase") in ["SEARCH","REGROUP"]
+    && {(_packingRecord param [1,""]) in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]}) then {
+    [_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
+};
 switch (_state get "phase") do {
     case "CALM": {
         if (_state getOrDefault ["responding", false]) then {
@@ -896,7 +1133,7 @@ switch (_state get "phase") do {
         // pause. Only its original pair is reserved; the rest of the squad keeps native security.
         // Authored movement cancels packing instead of being delayed or replaced.
         private _staticPack=[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
-        if (_staticPack in ["PACK_MOVING","PACKING","TAKING"]) exitWith {_delay=1};
+        // Equipment handling does not hold the whole group in SECURITY.
         // Responders may finish rallying just as smoke, terrain or a building hides the target.
         // Preserve the prepared action across CONTACT -> SECURITY, then resume the normal search
         // chain as soon as every matching responder has released its finite assault lease.
@@ -909,7 +1146,7 @@ switch (_state get "phase") do {
         private _searchPos = _state getOrDefault ["enemyPos", []];
         private _team = [];
         if (!_ordered && {count _searchPos >= 2}) then {
-            private _riflemen = _alive select {local _x && {_x != _leader} && {isNull objectParent _x} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
+            private _riflemen = _alive select {local _x && {_x != _leader} && {isNull objectParent _x} && {!(_x call _hasLiveActorMove)} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
             private _ranked = [];
             {_ranked pushBack [_x distance2D _searchPos, _forEachIndex]} forEach _riflemen;
             _ranked sort true;
@@ -1019,7 +1256,20 @@ switch (_state get "phase") do {
         private _furthest = 0;
         {_furthest = _furthest max (_x distance2D _leader)} forEach _members;
         private _closed = _reserved isEqualTo [] && {_gathered == count _members};
-        private _expired = _now - (_state get "phaseStart") > (["WAIT_AIPass_PostContact_RegroupSeconds", 30] call _get);
+        private _regroupBudget=["WAIT_AIPass_PostContact_RegroupSeconds",30] call _get;
+        private _elapsed=_now-(_state get "phaseStart");
+        // Slow native travel is not a stall. Give recent measured progress a bounded grace,
+        // preserving the committed destination and the original timeout for stopped actors.
+        private _progressing=_eligible findIf {
+            private _key=netId _x;
+            if (_key == "") then {_key=str _x};
+            private _record=_routes getOrDefault [_key,[]];
+            count _record == 4 && {_now-(_record select 2) <= 6}
+                && {abs (speed _x) > 0.5}
+                && {((expectedDestination _x) select 0) distance2D (_record select 0) <= 1}
+        } >= 0;
+        private _expired=_elapsed > _regroupBudget
+            && {!_progressing || {_elapsed > (_regroupBudget+(_regroupBudget min 30))}};
         private _status = if (_closed) then {"COHESIVE"} else {["CONSOLIDATING", "INCOMPLETE"] select _expired};
         private _snapshot = [_status, _gathered, count _members, round _furthest];
         if (_snapshot isNotEqualTo (_group getVariable ["WAIT_Cortex_Consolidation", []])) then {
@@ -1040,10 +1290,13 @@ switch (_state get "phase") do {
         // lagging survivor gets a single physical follow-up but never holds the surviving element
         // in place or causes a fresh group-wide route churn.
         private _operation=_group getVariable ["WAIT_Operation",createHashMap];
-        private _generation=_state getOrDefault ["withdrawOperationGeneration",-1];
-        private _operationState="ACTIVE";
-        if (count _operation > 0 && {(_operation getOrDefault ["intent",""]) == "WITHDRAW"}
-            && {(_operation getOrDefault ["generation",-2]) == _generation}) then {
+        private _withdrawKind=_operation getOrDefault ["intent",""];
+        private _generation=_state getOrDefault [
+            ["withdrawOperationGeneration","vehicleOperationGeneration"] select (_withdrawKind == "VEHICLE_WITHDRAW"),-1];
+        private _withdrawOwner=count _operation > 0 && {_withdrawKind in ["WITHDRAW","VEHICLE_WITHDRAW"]}
+            && {(_operation getOrDefault ["generation",-2]) == _generation};
+        private _operationState=if (count _operation > 0 && {!_withdrawOwner}) then {"REPLACED"} else {"ACTIVE"};
+        if (_withdrawOwner) then {
             _operationState=[_group,_generation,3,15] call WAIT_fnc_OperationStep;
             // OperationStep can quarantine a previous straggler. Re-read the record before choosing
             // another actor so one exhausted recovery cannot monopolise every withdrawal check.
@@ -1068,7 +1321,8 @@ switch (_state get "phase") do {
         if (_operationState in ["ZEUS","EXTERNAL","LOST_OWNER","REPLACED"]) exitWith {
             _delay=1;
         };
-        private _moving = (waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0;
+        private _reversing=(_group getVariable ["WAIT_VehicleReverse",[]]) isNotEqualTo [];
+        private _moving = _reversing || {(waypoints _group) findIf {(_x select 1) >= currentWaypoint _group && {waypointDescription _x == "WAIT AI PASS"}} >= 0};
         private _start = _state getOrDefault ["retreatStart",getPosATL _leader];
         private _travel = _leader distance2D _start;
         private _progress = _state getOrDefault ["retreatProgress",[_now,0,0]];
@@ -1081,7 +1335,9 @@ switch (_state get "phase") do {
         };
         private _shortWithdrawal = !_moving && {_travel < 30};
         private _stalled = _moving && {_now-_progressAt >= 15};
-        if ((_shortWithdrawal || {_stalled}) && {_replans < 4}) then {
+        // Physical completion may still be observed after release, but a retired operation may
+        // never manufacture a fresh unscoped route from its old RETREAT state.
+        if (_withdrawOwner && {(_shortWithdrawal || {_stalled})} && {_replans < 4}) then {
             private _enemyPos = _state getOrDefault ["enemyPos",[]];
             private _target = _state getOrDefault ["retreatTarget",getPosATL _leader];
             private _distance = ((_leader distance2D _target) max 80) min 250;
@@ -1098,14 +1354,18 @@ switch (_state get "phase") do {
             } else {
                 _candidateRoutes param [0,[]]
             };
+            // Count failed planning/command attempts as retries, never as physical movement.
+            // This keeps refusal from rerunning geometry on every brain callback.
+            _replans = _replans+1;
+            _progressAt = _now;
             if (_legs isNotEqualTo []) then {
                 private _candidate=+(_legs select ((count _legs)-1));
-                [_group,_candidate,30] call WAIT_fnc_CortexGroupMove;
-                _state set ["retreatTarget",_candidate];
-                _replans = _replans+1;
-                _progressAt = _now;
-                _bestTravel = _travel;
-                _moving = true;
+                private _waypoint=[_group,_candidate,30] call WAIT_fnc_CortexGroupMove;
+                if (!isNull (_waypoint param [0,grpNull,[grpNull]]) && {(_waypoint param [1,-1,[0]]) >= 0}) then {
+                    _state set ["retreatTarget",_candidate];
+                    _bestTravel = _travel;
+                    _moving = true;
+                };
             };
         };
         _state set ["retreatProgress",[_progressAt,_bestTravel,_replans]];
@@ -1131,6 +1391,12 @@ switch (_state get "phase") do {
             [_group,_state,"REGROUP",["WITHDRAWAL_COMPLETE","WITHDRAWAL_TIMEOUT"] select _timedOut,_now] call WAIT_fnc_CortexSetPhase;
         };
     };
+};
+// Process native contact first: a severe first-contact response must not read the
+// previous callback's false contactKnowledge flag. Smoke remains a finite supporting
+// opportunity and its helper rechecks expiry, reservations, bearing and external ownership.
+if (_dangerActive && {_dangerActionName == "HIDE"} && {_physicalCoverCause}) then {
+    [_group,_dangerResponse] call WAIT_fnc_DangerSmokeStep;
 };
 // Reaction speed (AI Tuning): above 1 squads re-assess more often, below 1 less often. A small,
 // zero-mean jitter keeps groups off the same scheduler frame and spreads both CPU work and fire orders.

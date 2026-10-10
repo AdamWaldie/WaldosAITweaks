@@ -185,6 +185,7 @@ if (count _operation == 0) exitWith {
     ["OPERATION_OWNER_LOST"] call _refuse
 };
 (_state get "drill") set ["operationGeneration",_operation get "generation"];
+(_state get "drill") set ["ownerEpoch",_operation get "ownerEpoch"];
 [_group,_state get "drill","START","FLANK_ACCEPTED"] call WAIT_fnc_CortexDrillSetStage;
 _group setVariable ["WAIT_Cortex_FlankRefusal",nil,true];
 // The drill moves selected actors directly rather than adding a group waypoint.

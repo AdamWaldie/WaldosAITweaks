@@ -70,6 +70,7 @@ if (!_enabled) exitWith {
     _group setVariable ["WAIT_Danger_SmokeLease",nil,true];
     _group setVariable ["WAIT_Danger_SmokeAfter",nil];
     _group setVariable ["WAIT_Danger_Response",nil,true];
+    _group setVariable ["WAIT_Danger_ResponseEvent",nil];
     _group setVariable ["WAIT_Danger_Action",nil,true];
     _group setVariable ["WAIT_Danger_Contact",nil,true];
     _group setVariable ["WAIT_Danger_VehicleContext",nil,true];
@@ -79,18 +80,20 @@ if (!_enabled) exitWith {
     // the interrupted engine FSM no longer had enough published state to restore it reliably.
     // On Zeus/specialist takeover DangerEngineRelease clears proof without writing the stance.
     {
-        if (local _x) then {[_x] call WAIT_fnc_DangerEngineRelease};
+        if (local _x) then {[_x] call WAIT_fnc_DangerEngineRelease; _x setVariable ["WAIT_Danger_EventCadence",nil]};
     } forEach units _group;
 };
 if (_groupHandlers isNotEqualTo []) exitWith {};
 
 private _handler=_group addEventHandler ["EnemyDetected",{
     params ["_observingGroup","_target"];
-    if (isNull _observingGroup || {!local _observingGroup} || {isNull _target} || {!alive _target}) exitWith {};
+    if (isNull _observingGroup || {!local _observingGroup} || {isNull _target} || {!alive _target}
+        || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
+        || {_target getVariable ["ace_captives_isHandcuffed",false]}) exitWith {};
     // EnemyDetected can report a man or a vehicle. A vehicle object has no useful direct `group`,
     // so compare the target object's actual side or armoured/air contacts lose their identity here.
     private _friendly=(side _observingGroup) getFriend (side _target) >= 0.6;
-    private _spotters=(units _observingGroup) select {alive _x && {local _x} && {!isPlayer _x}};
+    private _spotters=(units _observingGroup) select {[_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}};
     _spotters resize ((count _spotters) min 12);
     private _knowerIndex=_spotters findIf {_x knowsAbout _target >= 1};
     if (_friendly || {_knowerIndex < 0}) exitWith {};
@@ -101,8 +104,8 @@ private _handler=_group addEventHandler ["EnemyDetected",{
     private _observer=if (!isNull _leader && {alive _leader} && {local _leader}
         && {_leader knowsAbout _target >= 1}) then {_leader} else {_spotters select _knowerIndex};
     private _contacts=_observingGroup getVariable ["WAIT_Danger_ObservedContacts",[]];
-    _contacts=_contacts select {
-        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull}
+    _contacts=(_contacts select [((count _contacts)-8) max 0,8]) select {
+        _x isEqualType [] && {count _x in [2,3]} && {(_x select 0) isEqualType objNull} && {(_x select 1) isEqualType 0}
             && {alive (_x select 0)} && {(_x select 1) > time}
     };
     private _contactIndex=_contacts findIf {(_x select 0) == _target};

@@ -3,6 +3,7 @@
  * Gives capable dismounts one short move clear of vehicles, using cover during contact, then returns them to ordinary AI.
  * Locality/authority: orders execute only on each passenger owner, using the server's frozen halt report.
  * Repeat/JIP: public per-unit deadlines and destinations survive HC migration; release/resume clears this order.
+ * New native tasks and live actor reservations retire only convoy bookkeeping; no follow command overrides them.
  * Arguments: 0: convoy group <GROUP>; 1: ordered configuration <ARRAY>; 2: cleanup only <BOOL>, false.
  * Return Value: Nothing. At most two new cover searches per convoy/owner/five-second crew step.
  * Current callers: ConvoyCrewLocal and ConvoySync cleanup.
@@ -26,7 +27,14 @@ private _reserved = [];
         // Passenger cover is a temporary convoy-owned order. The common handover helper protects a
         // Zeus/player/specialist order on any member of this passenger group from a later convoy
         // release or remount cleanup, while this local flag still honours an explicit WAIT disable.
-        private _operator = [group _unit] call WAIT_fnc_CortexExternalTakeover
+        private _command=toUpperANSI currentCommand _unit;
+        private _ownedExit=_ours && {_command == "GET OUT"} && {vehicle _unit == _vehicle}
+            && {(_job select 3) isEqualTo []};
+        private _nativeTask=!_ownedExit && {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]};
+        private _actorMove=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _reservedMove=count _actorMove == 3 && {(_actorMove param [2,-1,[0]]) > time};
+        private _operator = _nativeTask || {_reservedMove}
+            || {[group _unit,false,_unit] call WAIT_fnc_CortexExternalTakeover}
             || {"ALL" in ((group _unit) getVariable ["WAIT_AIPass_DisabledFeatures",[]])};
         private _end = _cleanup || {!([group _unit,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {!([_group,"WAIT_Convoy_Cover_Enable",true] call WAIT_fnc_CortexFeatureEnabled)} || {_phase != "HALT"} || {serverTime >= _deadline}
             || {_operator} || {!_capable} || {vehicle _unit != _unit && {vehicle _unit != _vehicle || {_ours && {(_job select 3) isNotEqualTo []}}}};

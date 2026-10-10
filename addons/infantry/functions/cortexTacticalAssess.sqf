@@ -25,8 +25,31 @@ if (isNull _group || {!local _group} || {_enemies isEqualTo []}) exitWith {_resu
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (isNull _leader || {!alive _leader}) exitWith {_result};
-if ((_state getOrDefault ["moraleState","STEADY"]) != "STEADY") exitWith {
+// Group manoeuvres issue group destinations. A fully mounted group or operating crew mixed with
+// foot soldiers must retain the vehicle domain; zero infantry rifles is not lost vehicle firepower.
+private _members=units _group;
+private _hasFoot=_members findIf {alive _x && {isNull objectParent _x}} >= 0;
+private _hasCrew=_members findIf {
+    private _platform=objectParent _x;
+    alive _x && {!isNull _platform}
+        && {_x in [driver _platform,gunner _platform,commander _platform]}
+} >= 0;
+if (!_hasFoot || {_hasCrew}) exitWith {
+    _result set ["reason","VEHICLE_DOMAIN"];
+    _result set ["evidence",[_hasFoot,_hasCrew]];
+    _result
+};
+private _moraleState=_state getOrDefault ["moraleState","STEADY"];
+if (_moraleState == "BROKEN") exitWith {
     _result set ["reason","MORALE_NOT_STEADY"];
+    _result
+};
+if (_moraleState == "SHAKEN") exitWith {
+    _result set ["intent","REPOSITION"];
+    _result set ["reason","MORALE_SHAKEN"];
+    _result set ["targetIndex",0];
+    _result set ["candidates",["REPOSITION"]];
+    _result set ["evidence",[_moraleState,_state getOrDefault ["morale",1]]];
     _result
 };
 
@@ -40,11 +63,15 @@ private _foot=(units _group) select {
 };
 private _armedFoot=_foot select {primaryWeapon _x != ""};
 if (count _armedFoot < 2) exitWith {
+    _result set ["intent","REPOSITION"];
     _result set ["reason","INSUFFICIENT_FIREPOWER"];
+    _result set ["targetIndex",0];
+    _result set ["candidates",["REPOSITION"]];
     _result set ["evidence",[count _foot,count _armedFoot]];
     _result
 };
 private _capableAT=_foot findIf {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
+private _capableAA=_foot findIf {"AA" in ([_x] call WAIT_fnc_CortexCapabilities)} >= 0;
 private _houses=(getPosATL _leader) getEnvSoundController "houses";
 private _trees=(getPosATL _leader) getEnvSoundController "trees";
 private _forest=(getPosATL _leader) getEnvSoundController "forest";
@@ -52,6 +79,7 @@ private _concealment=(_houses+_trees+(_forest*0.5)) min 1;
 private _closeRange=(missionNamespace getVariable ["WAIT_AIPass_Assault_Range",80]) min 60;
 private _manoeuvre=[];
 private _armourIndex=-1;
+private _airIndex=-1;
 private _elevatedIndex=-1;
 private _fortifiedIndex=-1;
 {
@@ -63,6 +91,8 @@ private _fortifiedIndex=-1;
         private _platform=vehicle _target;
         if (_armourIndex < 0 && {_distance <= 450}
             && {_platform isKindOf "Tank" || {_platform isKindOf "Wheeled_APC_F"}}) then {_armourIndex=_forEachIndex};
+        if (_airIndex < 0 && {_distance <= 1200} && {_platform isKindOf "Air"}
+            && {isEngineOn _platform || {speed _platform > 5}}) then {_airIndex=_forEachIndex};
         if (_target isKindOf "CAManBase" && {isNull objectParent _target}
             || {_platform isKindOf "StaticWeapon"}) then {
             _manoeuvre pushBack _forEachIndex;
@@ -87,6 +117,10 @@ private _closePosition=_manoeuvre findIf {
         && {(_record param [3,1e9,[0]]) >= 12}
         && {(_record param [3,1e9,[0]]) <= _closeRange}
 };
+private _freshPosition=_manoeuvre findIf {
+    private _record=_enemies select _x;
+    (_record param [3,0,[0]]) >= 60 && {(_record param [2,1e9,[0]]) <= 10}
+};
 if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
     _selected=_manoeuvre select _closePosition;
     _intent="ASSAULT";
@@ -109,12 +143,16 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
     } else {
         if (_armourIndex >= 0 && {!_capableAT}) then {
             _selected=_armourIndex;
+            _intent="REPOSITION";
             _reason="ARMOUR_OVERMATCH";
+            _candidates=["REPOSITION"];
         } else {
-            private _freshPosition=_manoeuvre findIf {
-                private _record=_enemies select _x;
-                (_record param [3,0,[0]]) >= 60 && {(_record param [2,1e9,[0]]) <= 10}
-            };
+            if (_airIndex >= 0 && {!_capableAA} && {_freshPosition < 0}) then {
+                _selected=_airIndex;
+                _intent="REPOSITION";
+                _reason="AIR_OVERMATCH";
+                _candidates=["REPOSITION"];
+            } else {
             if (_freshPosition >= 0) then {_selected=_manoeuvre select _freshPosition};
             if (_elevatedIndex >= 0) then {
                 _selected=_elevatedIndex;
@@ -124,9 +162,11 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
                     _candidates=["FLANK"];
                     if (_advanceEnabled) then {_candidates pushBack "ADVANCE"};
                 } else {
-                    // An exposed uphill rush is worse than retaining cover and native suppression.
-                    // Fire control and support discovery continue because HOLD takes no ownership.
+                    // An exposed uphill rush is worse than improving the firing position first.
+                    // The finite reposition retains native suppression and support discovery.
+                    _intent="REPOSITION";
                     _reason="ELEVATED_FIRE_POSITION";
+                    _candidates=["REPOSITION"];
                 };
             } else {
                 if (_fortifiedIndex >= 0 && {_flankEnabled}) then {
@@ -159,6 +199,7 @@ if (_assaultEnabled && {_closePosition >= 0} && {count _armedFoot >= 4}) then {
                     };
                 };
             };
+            };
         };
     };
 };
@@ -166,5 +207,5 @@ _result set ["intent",_intent];
 _result set ["reason",_reason];
 _result set ["targetIndex",_selected];
 _result set ["candidates",_candidates];
-_result set ["evidence",[count _foot,count _armedFoot,_capableAT,_concealment,_armourIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
+_result set ["evidence",[count _foot,count _armedFoot,_capableAT,_capableAA,_concealment,_armourIndex,_airIndex,_fortifiedIndex,_elevatedIndex,_forwardOrder]];
 _result

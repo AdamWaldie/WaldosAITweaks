@@ -126,6 +126,7 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_AIPass_AntiArmour_Enable` | `true` | BOOL: best AT gunner engages known armour, clear of backblast. |
 | `WAIT_AIPass_VehicleDismount_Enable` | `true` | Unloads capable passengers only when safely stopped on dry ground. |
 | `WAIT_AIPass_VehicleRemount_Enable` | `true` | Allows safe conscious passengers to reboard after Smart AI contact. Convoy resume stays explicit. |
+| `WAIT_AIPass_VehicleReverse_Enable` | `true` | Tracked armour attempts one bounded threat-facing reverse leg; wheeled escape remains forward. |
 | `WAIT_AIPass_VehicleWithdraw_Enable` | `true` | Allows damaged vehicles to withdraw and use existing smoke. |
 | `WAIT_AIPass_VehicleJink_Enable` | `true` | Allows one short terrain-checked escape by an eligible intact fighting vehicle under close or severe danger. |
 | `WAIT_AIPass_DrivingAssist_Enable` | `true` | Applies a sparse terrain-grade speed cap to ordinary AI ground vehicles while preserving their native waypoint and route. Convoys use separate driving controls. |
@@ -138,6 +139,9 @@ CounterBattery_Mode is a legacy compatibility value; automatic acquisition does 
 | `WAIT_Convoy_ContactHalt_Enable` | `true` | Automatic ambush halt using push-through and pinned rules. Route arrival and explicit stop remain available. |
 | `WAIT_Convoy_Unload_Enable` | `true` | Allows WAIT passenger unloading on halt. Operating crews remain aboard. |
 | `WAIT_AIPass_Danger_Enable` | `true` | Leader danger observations wake the existing squad decision job through one finite FSM; no target reveal or competing movement owner. Native danger remains active. |
+| `WAIT_AIPass_DangerEvasion_Enable` | `true` | Idle prone riflemen may use finite native evasion; committed movement and specialist/native tasks yield. Physical acceptance pending. |
+| `WAIT_AIPass_DangerObservation_Enable` | `true` | Eligible idle actors glance toward body/scream positions without target revelation or movement authority. Requires danger response. |
+| `WAIT_AIPass_DangerConcealment_Enable` | `true` | Separately budgeted visual screening fallback after solid cover fails; does not imply ballistic protection. |
 | `WAIT_AIPass_DangerSmoke_Enable` | `true` | One available soldier may throw carried smoke during severe finite danger. The current operation continues without waiting for it. |
 | `WAIT_AIPass_StaticSupport_Enable` | `true` | During confirmed contact, one uncommitted nonleader may physically occupy a nearby empty friendly static weapon. The squad does not wait for the mount. |
 | `WAIT_AIPass_StaticDeploy_Enable` | `true` | When no suitable emplacement exists, a compatible two-person bag team may physically assemble its carried weapon and occupy the real gunner seat without holding squad movement. |

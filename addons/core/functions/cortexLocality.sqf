@@ -22,6 +22,7 @@
  */
 params [["_group", grpNull, [grpNull]], ["_gained", false, [true]]];
 if (isNull _group) exitWith {};
+private _firstAdoption=_gained && {local _group} && {(_group getVariable ["WAIT_AIPass_Epoch",0]) == 0};
 private _withdrawalIntent = _group getVariable ["WAIT_Cortex_WithdrawalIntent",[]];
 private _transitionIntent = _group getVariable ["WAIT_Cortex_TransitionIntent",[]];
 private _remountIntent = _group getVariable ["WAIT_Cortex_Remount",[]];
@@ -64,6 +65,10 @@ _group setVariable ["WAIT_BuildingBrain_FSM",nil];
         private _fragHandler = _unit getVariable ["WAIT_Cortex_FragHandler",-1];
         if (_fragHandler >= 0) then {_unit removeEventHandler ["FiredMan",_fragHandler]};
         _unit setVariable ["WAIT_Cortex_FragHandler",-1];
+        private _throwTraceHandler=_unit getVariable ["WAIT_Cortex_ThrowTraceHandler",-1];
+        if (_throwTraceHandler >= 0) then {_unit removeEventHandler ["FiredMan",_throwTraceHandler]};
+        _unit setVariable ["WAIT_Cortex_ThrowTraceHandler",-1];
+        _unit setVariable ["WAIT_Cortex_ThrowTracePending",nil];
         {_unit removeEventHandler _x} forEach (_unit getVariable ["WAIT_AIPass_GarrisonHandlerIds", []]);
         _unit setVariable ["WAIT_AIPass_GarrisonHandlerIds", nil];
         _unit setVariable ["WAIT_AIPass_GarrisonHandlers", nil];
@@ -71,11 +76,22 @@ _group setVariable ["WAIT_BuildingBrain_FSM",nil];
         _unit setVariable ["WAIT_Cortex_ActorMove",nil];
 } forEach units _group;
 _group setVariable ["WAIT_AIPass_Epoch", (_group getVariable ["WAIT_AIPass_Epoch", 0]) + 1];
-_group setVariable ["WAIT_AIPass_State", nil];
+// First adoption establishes this machine's epoch; it is not a transfer from another
+// owner. Keep the existing map object so an initiating feature's local reference remains
+// authoritative. Real owner changes rebuild state from the published checkpoint.
+if (!_firstAdoption) then {_group setVariable ["WAIT_AIPass_State", nil];};
 _group setVariable ["WAIT_AIPass_Managed", nil];
 {_group setVariable [_x, nil]} forEach ["WAIT_AIPass_GarrisonApplied", "WAIT_AIPass_DefendApplied", "WAIT_AIPass_ClearApplied"];
 _group setVariable ["WAIT_AIPass_Adopted", _gained];
 if (!_gained || {!local _group}) exitWith {};
+// Retire inherited simple driving before the new owner resumes the durable escape route.
+private _reverseCleanup=_group getVariable ["WAIT_VehicleReverse",[]];
+if (count _reverseCleanup == 9) then {
+    [_group,createHashMap,objNull,[],"RELEASE",_reverseCleanup select 1] call WAIT_fnc_CortexVehicleReverseStep;
+};
+// Observation-only hearing has its own eligibility boundary and may coexist with a curator
+// waypoint. Reinstall it on the new owner now instead of losing sound events until discovery.
+[_group] call WAIT_fnc_CortexHearingLocal;
 // Recovery is cancelled by adoption, not silently resumed from stale diagnostics.
 if ((_group getVariable ["WAIT_Cortex_DrillRecovery",[]]) isNotEqualTo []) then {
     _group setVariable ["WAIT_Cortex_DrillRecovery",["MIGRATED",[],-1],true];
@@ -86,6 +102,13 @@ private _restore = createHashMapFromArray (_group getVariable ["WAIT_AIPass_Chec
 // into the new owner's task.  Eligible WAIT groups still recover only the values WAIT recorded.
 private _restoreEligible=[_group,false,false,true] call WAIT_fnc_CortexIsEligible;
 if (_restoreEligible) then {
+    private _restoreActorEligible={
+        params ["_unit"];
+        !isNull _unit && {alive _unit} && {local _unit} && {group _unit == _group}
+            && {!isPlayer _unit} && {isNull (remoteControlled _unit)}
+            && {([_unit] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+    };
     // Locality can change before the engine elects a replacement leader. Restore only WAIT-owned
     // followers toward a combat-effective local anchor, never an incapacitated former leader.
     private _restoreAnchor=[_group] call WAIT_fnc_CortexGroupAnchor;
@@ -100,18 +123,29 @@ if (_restoreEligible) then {
     };
     {
         _x params ["_unit", "_feature"];
-        if (local _unit) then {_unit enableAI _feature};
+        if ([_unit] call _restoreActorEligible) then {_unit enableAI _feature};
     } forEach (_restore getOrDefault ["restoreDisabled", []]);
     {
-        if (alive _x && {local _x} && {group _x == _group} && {!isNull _restoreAnchor}) then {_x doFollow _restoreAnchor};
+        private _unit=_x;
+        private _moveProof=_restore getOrDefault ["restoreMoveDestinations",[]];
+        private _proofIndex=_moveProof findIf {(_x select 0) == _unit};
+        private _ownedMove=currentCommand _unit != "MOVE";
+        if (!_ownedMove && {_proofIndex >= 0}) then {
+            private _spot=(_moveProof select _proofIndex) select 1;
+            private _destination=(expectedDestination _unit) select 0;
+            _ownedMove=_destination distance2D _spot <= 1
+                && {abs ((_destination param [2,0])-(_spot param [2,0])) <= 1.5};
+        };
+        if ([_x] call _restoreActorEligible && {_ownedMove} && {!isNull _restoreAnchor}
+            && {currentCommand _x in ["","MOVE","STOP","ATTACK","FIRE","SUPPRESS"]}) then {_x doFollow _restoreAnchor};
     } forEach (_restore getOrDefault ["restoreMovers", []]);
     {
         _x params ["_unit","_mode",["_ownedMode","BLUE"]];
-        if (local _unit && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
+        if ([_unit] call _restoreActorEligible && {unitCombatMode _unit == _ownedMode}) then {_unit setUnitCombatMode _mode};
     } forEach (_restore getOrDefault ["restoreCombatModes",[]]);
     {
         _x params ["_unit","_previous","_owned"];
-        if (local _unit && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
+        if ([_unit] call _restoreActorEligible && {behaviour _unit == _owned}) then {_unit setCombatBehaviour _previous};
     } forEach (_restore getOrDefault ["restoreCombatBehaviours",[]]);
 };
 // Keep restoration intent, not engine commands, across HC ownership changes.

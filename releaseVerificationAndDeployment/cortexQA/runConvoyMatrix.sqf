@@ -263,8 +263,12 @@ if (_trackedOnly) then {_types=_types select {(_x select 0) == "TRACKED"}};
                 } forEach _vehicles;
                 _moving
             },60] call _wait;
-            [_id+"-resume-forward-progress",_resumed] call _check;
-            [_id+"-resume-no-turnaround",!_turned] call _check;
+            private _resumeEvidence=_vehicles apply {
+                [getPosATL _x,_x distance2D (_restartOrigins select _forEachIndex),speed _x,getDir _x,
+                    currentCommand driver _x,expectedDestination driver _x,getForcedSpeed _x]
+            };
+            [_id+"-resume-forward-progress",_resumed,str _resumeEvidence] call _check;
+            [_id+"-resume-no-turnaround",!_turned,str [_terrainHeading,_resumeEvidence]] call _check;
         };
         [_id+"-operating-crew-retained",_fixtureCrew findIf {!alive (_x select 0) || {vehicle (_x select 0) != (_x select 1)}} < 0 && {_vehicles findIf {(_x getVariable ["WAIT_CortexQA_Exits",[]]) isNotEqualTo []} < 0},str (_vehicles apply {_x getVariable ["WAIT_CortexQA_Exits",[]]})] call _check;
         if (!_baseline) then {[_group,0,_spacing,true,true] call WAIT_fnc_SimpleAiConvoy};
