@@ -12,6 +12,40 @@
  * Example: [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf";
  */
 params ["_check","_phase","_wait"];
+// Bookkeeping diagnostic only: synthetic lease records exercise stale callback isolation.
+// This case does not validate danger detection, cover geometry or physical cover movement.
+private _generationProbeGroup=createGroup [east,true];
+_generationProbeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
+_generationProbeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+_generationProbeGroup setVariable ["acex_headless_blacklist",true,true];
+private _generationProbe=_generationProbeGroup createUnit ["O_Soldier_F",[2800,1250,0],[],0,"NONE"];
+private _probeSpot=[2805,1250,0];
+private _probeDeadline=time+10;
+private _probeLease=[_generationProbe,2,_probeDeadline,+_probeSpot];
+private _probePending=[_generationProbe,2,[2810,1250,0],time+4];
+private _probeMove=["DANGER_COVER",+_probeSpot,_probeDeadline];
+private _probeDecision=["COMMITTED",time,_generationProbe,2,+_probeSpot,"COVER"];
+_generationProbeGroup setVariable ["WAIT_Danger_Generation",2];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverLease",+_probeLease];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverPending",+_probePending];
+_generationProbeGroup setVariable ["WAIT_Danger_CoverDecision",+_probeDecision];
+_generationProbe setVariable ["WAIT_Cortex_ActorMove",+_probeMove];
+["Diagnostic: stale cover cleanup","Synthetic ownership records only. An old callback must not clear a newer lease, pending request, assessment or actor reservation. This does not prove physical cover behaviour.",getPosATL _generationProbe] call _phase;
+[_generationProbeGroup,_generationProbe,[2810,1250,0],1,true] call WAIT_fnc_DangerCoverStep;
+["DANGER-cover-stale-generation-isolation",
+    (_generationProbeGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo _probeLease
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverPending",[]]) isEqualTo _probePending}
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverDecision",[]]) isEqualTo _probeDecision}
+        && {(_generationProbe getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _probeMove},
+    "Bookkeeping-only diagnostic; newer generation must remain exact"] call _check;
+[_generationProbeGroup,_generationProbe,[2810,1250,0],2,true] call WAIT_fnc_DangerCoverStep;
+["DANGER-cover-current-generation-marker-release",
+    (_generationProbeGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo []
+        && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverPending",[]]) isEqualTo []}
+        && {(_generationProbe getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []},
+    "Bookkeeping-only diagnostic; matching generation must release its reservations"] call _check;
+deleteVehicle _generationProbe;
+deleteGroup _generationProbeGroup;
 // A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
 // native danger queue. Fire a real hand grenade from an excluded same-side actor, capture the
 // engine-created projectile, then place that already-attributed shot above the fixture.
