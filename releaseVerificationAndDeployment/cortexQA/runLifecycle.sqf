@@ -99,7 +99,23 @@ _arrived=[{_units findIf {!alive _x || {_x distance2D _newPosition > 10}} < 0},9
 ["LIFE-restarted-new-physical-order",_accepted && {_arrived},str (_units apply {getPosATL _x})] call _check;
 // Exercise the production takeover marker without a waypoint flag. This tests
 // the owner cleanup path; actual curator event delivery remains a separate UI case.
+private _curatorGenerationBefore=_group getVariable ["WAIT_OperationGeneration",0];
 [_group,false] call WAIT_fnc_CortexZeusMark;
+private _curatorGenerationAdvanced=[{
+    (_group getVariable ["WAIT_OperationGeneration",0]) == _curatorGenerationBefore+1
+},10] call _wait;
+["LIFE-zeus-idle-generation-invalidated",_curatorGenerationAdvanced,
+    str [_curatorGenerationBefore,_group getVariable ["WAIT_OperationGeneration",0]]] call _check;
+private _curatorGenerationAfter=_group getVariable ["WAIT_OperationGeneration",0];
+if (local _group) then {
+    [_group,false,"ZEUS_TAKEOVER"] call WAIT_fnc_CortexReleaseGroup;
+} else {
+    [_group,false,"ZEUS_TAKEOVER"] remoteExecCall ["WAIT_fnc_CortexReleaseGroup",groupOwner _group];
+};
+sleep 2;
+["LIFE-zeus-repeat-cleanup-generation-stable",_curatorGenerationAdvanced
+    && {(_group getVariable ["WAIT_OperationGeneration",0]) == _curatorGenerationAfter},
+    "Bookkeeping diagnostic; physical replacement arrival is tested separately below"] call _check;
 ["Lifecycle: Zeus interrupts defence","Zeus takeover now interrupts the held defence without a waypoint-change flag. The owner must release the holding order. After return to server, both soldiers must physically obey a replacement waypoint.",_newPosition] call _phase;
 private _zeusReleased=[{
     (_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []
