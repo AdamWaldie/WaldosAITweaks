@@ -65,6 +65,7 @@ and [the standalone boundary](docs/EXTRACTION-BOUNDARY.md).
 
 See [modding and operations](docs/MODDING-AND-OPERATIONS.md) for packaged local audits,
 signed release promotion and the execution-method assessment.
+See [matched performance validation](docs/PERFORMANCE-VALIDATION.md) for native/WAIT patrol pairs and their acceptance limits.
 
 See [contribution and documentation requirements](CONTRIBUTING.md) and [all CBA settings](docs/SETTINGS-REFERENCE.md).
 
