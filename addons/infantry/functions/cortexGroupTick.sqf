@@ -477,7 +477,15 @@ private _delay = switch (true) do {
     case (_nearTier): {["WAIT_AIPass_TickMid", 8] call _get};
     default {["WAIT_AIPass_TickFar", 20] call _get};
 };
-if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {[_group,false] call WAIT_fnc_CortexReleaseGroup; _delay};
+if !(["WAIT_AIPass_Contact_Enable", true] call _get) exitWith {
+    // Explicit building orders have their own feature gate and generation-owned FSM.
+    // Disabling autonomous contact decisions must not cancel that separate movement owner.
+    private _explicitOperation=_group getVariable ["WAIT_Operation",createHashMap];
+    private _buildingOwned=(_explicitOperation getOrDefault ["intent",""]) == "CLEAR"
+        && {_group getVariable ["WAIT_AIPass_ClearBuilding",false]};
+    if (!_buildingOwned) then {[_group,false] call WAIT_fnc_CortexReleaseGroup};
+    _delay
+};
 
 ([_group] call WAIT_fnc_CortexKnowledge) params ["_enemies", "_seenCount"];
 // Native hostile knowledge is the durable continuation of a short engine danger callback. The
