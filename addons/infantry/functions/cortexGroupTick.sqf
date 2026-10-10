@@ -403,9 +403,22 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
         };
         if (_movementOwner == "TACTICAL_REPOSITION") then {
             private _record=_group getVariable ["WAIT_Cortex_TacticalReposition",[]];
-            private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
+            private _operation=_group getVariable ["WAIT_Operation",createHashMap];
+            private _unavailable=_operation getOrDefault ["unavailable",[]];
+            private _declared=_operation getOrDefault ["participants",[]];
+            private _participants=(if (count _declared <= 64) then {_declared} else {[]}) select {
+                [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {group _x == _group}
+                    && {!isPlayer _x} && {isNull remoteControlled _x} && {!(_x in _unavailable)}
+                    && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+                    && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+            };
             private _arrived=count _record >= 8 && {(_record select 7) == _generation}
-                && {!isNull _anchor} && {_anchor distance2D (_record select 5) <= 12};
+                && {(_operation getOrDefault ["generation",-1]) == _generation}
+                && {_participants isNotEqualTo []} && {count _participants <= 64}
+                && {_participants findIf {
+                    _x distance2D (_record select 5) > 12
+                        || {abs (((getPosATL _x) select 2)-((_record select 5) param [2,0])) > 1.5}
+                } < 0};
             _movementResult=["INCOMPLETE","COMPLETE"] select _arrived;
             _movementReason=["REPOSITION_NO_ARRIVAL","OBJECTIVE_REACHED"] select _arrived;
         };
