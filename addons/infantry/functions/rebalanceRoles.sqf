@@ -18,11 +18,14 @@ if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AI
 private _blocked=(_operation getOrDefault ["unavailable",[]])+_excluded;
 private _existing=_operation getOrDefault ["participants",[]];
 private _capable=(units _group) select {
+    private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _reservationFree=_reservation isEqualTo []
+        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
     local _x && {!isPlayer _x} && {[_x] call WAIT_fnc_CortexCombatEffective}
         && {isNull objectParent _x} && {!(_x in _blocked)}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
-        && {_x in _existing || {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}}
+        && {_x in _existing || {_reservationFree}}
 };
 private _current=(_operation getOrDefault ["participants",[]]) select {_x in _capable};
 {if (count _current < _desired && {!(_x in _current)}) then {_current pushBack _x}} forEach _capable;

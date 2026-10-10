@@ -197,7 +197,10 @@ private _rankCandidates={
     // Reserve selection must honour finite actor tasks before the drill mutates its own roster;
     // the later shared operation roster check cannot undo a carrier already added to a fire team.
     _candidates=_candidates select {
-        (_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []
+        private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+        private _reservationFree=_reservation isEqualTo []
+            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        _reservationFree
             && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
             && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
     };
