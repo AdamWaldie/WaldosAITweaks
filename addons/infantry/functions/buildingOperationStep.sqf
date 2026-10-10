@@ -284,8 +284,10 @@ private _delay=call {
                         _lastTarget=-1;
                         _retries=0;
                         _triedEntries=[];
-                        _entryIndex=-1;
-                        if ((_job get "entries") isNotEqualTo []) then {
+                        // Keep this lane's chosen entrance between room claims. Re-select only
+                        // when it has no valid entry; an entered lane must not rally outside again.
+                        if ((_entryIndex < 0 || {_entryIndex >= count (_job get "entries")})
+                            && {(_job get "entries") isNotEqualTo []}) then {
                             private _entryRanks=(_job get "entries") apply {[_point distance2D _x,_forEachIndex]};
                             _entryRanks sort true;
                             _entryIndex=(_entryRanks select 0) select 1;
@@ -295,7 +297,7 @@ private _delay=call {
                         // near the building keep the faster direct route.
                         private _entryTarget=if (_entryIndex >= 0) then {(_job get "entries") select _entryIndex} else {[]};
                         private _entryProbe=_pair select (_moverIndex mod count _pair);
-                        _approachingEntry=_entryTarget isNotEqualTo [] && {_entryProbe distance2D _entryTarget > 8};
+                        _approachingEntry=!_entered && {_entryTarget isNotEqualTo []} && {_entryProbe distance2D _entryTarget > 8};
                     };
                 };
                 if (_cursor < count _route) then {
