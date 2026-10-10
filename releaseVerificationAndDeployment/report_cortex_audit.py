@@ -7,7 +7,7 @@ import re
 CASE = re.compile(r"WAIT CORTEX QA\|([^|]+)\|(PASS|FAIL)\|([^\r\n]*)")
 DONE = re.compile(r"WAIT CORTEX QA (SERVER|CLIENT) COMPLETE: (\d+) finding")
 SOURCE = re.compile(r"WAIT CORTEX QA SOURCE\|fingerprint=([0-9a-f]{64})", re.I)
-ERROR = re.compile(r"Error in expression|Error position:|Error Undefined variable|Error Missing", re.I)
+ERROR = re.compile(r"Error in expression|Error position:|Error Undefined variable|Error Missing|Error Params:|Error Type |Error Generic error|Error Zero divisor", re.I)
 FATAL_RUNTIME_ERROR = re.compile(
     r"DX11 - device removed - reason:|ErrorMessage:\s*DX11|Exception code:\s*[0-9A-F]+",
     re.I,
