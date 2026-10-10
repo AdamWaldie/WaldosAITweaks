@@ -550,8 +550,8 @@ if (_focus in ["all","features","lighting"]) then {[_check,_phase,_wait] call co
 if (_focus in ["all","features","scheduler"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAScheduler.sqf"};
 if (_focus in ["all","features","artillerysmoke"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAArtillerySmoke.sqf"};
 if (_focus in ["all","features","crossing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACrossing.sqf"};
-if (_focus in ["all","features","contact","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
-if (_focus == "buildings") then {
+if (_focus in ["all","features","contact","dangerparity","dangerbuildings"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAContact.sqf"};
+if (_focus in ["buildings","dangerbuildings"]) then {
     [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
     [{missionNamespace getVariable ["WAIT_AIPass_Active",false]},20] call _wait;
     [_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQABuildings.sqf";
@@ -560,7 +560,7 @@ if (_focus in ["all","features","cover"]) then {[_check,_phase,_wait] call compi
 if (_focus in ["all","features","landing"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQALanding.sqf"};
 if (_focus in ["all","features","gates","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGates.sqf"};
 if (_focus in ["all","features","gunnery","extensions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGunnery.sqf"};
-if (_focus in ["all","features","combat","tacticalassessment","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATacticalAssessment.sqf"};
+if (_focus in ["all","features","combat","tacticalassessment","dangerparity","dangerbuildings"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQATacticalAssessment.sqf"};
 if (_focus in ["all","features","combat"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQACombat.sqf"};
 if (_focus in ["all","features","mechanics","airskills"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAMechanics.sqf"};
 if (_focus in ["all","features","mechanics","reactions"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAReactions.sqf"};
@@ -579,7 +579,7 @@ if (_focus in ["all","features","mechanics","airborne"]) then {
     private _fallbackPhase={params ["_title","_instructions","_position"]; ["Invalid chute fallback: "+_title,"Configured B_Parachute is a backpack. Cortex must select a real parachute vehicle. "+_instructions,_position] call _airborneBasePhase};
     [_fallbackCheck,_fallbackPhase,_wait,"B_Parachute"] call compile preprocessFileLineNumbers "cortexQAAirborne.sqf";
 };
-if (_focus in ["all","features","mechanics","vehicles","stateflows","dangerparity"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf"};
+if (_focus in ["all","features","mechanics","vehicles","stateflows","dangerparity","dangerbuildings"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf"};
 if (_focus in ["all","features","mechanics","vehicles","naval"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQANaval.sqf"};
 if (_focus in ["all","features","mechanics","fire"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAFire.sqf"};
 // Long multi-squad comparisons run last so they cannot delay unrelated feature coverage.
