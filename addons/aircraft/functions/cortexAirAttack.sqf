@@ -634,6 +634,16 @@ if (_stageDistance <= _stageBest-40) then {
 private _routeStalled=serverTime >= (_job getOrDefault ["stageProgressAt",serverTime])+([35,24] select !_isPlane);
 if (_stage == "ATTACK" && {!([] call _mayControlAircraft)}) exitWith {["CONTROL_RELEASED"] call _finish};
 if (_stage == "ATTACK") then {
+    private _station=_job getOrDefault ["selectedTurret",[]];
+    private _weaponOperator=if (_station isEqualTo [-1]) then {_pilot} else {_aircraft turretUnit _station};
+    _job set ["weaponOperatorEligible",[_weaponOperator] call WAIT_fnc_CortexCombatEffective
+        && {local _weaponOperator} && {!isPlayer _weaponOperator} && {isNull remoteControlled _weaponOperator}
+        && {[group _weaponOperator,false,false,true,_weaponOperator] call WAIT_fnc_CortexIsEligible}];
+};
+if (_stage == "ATTACK" && {!(_job getOrDefault ["weaponOperatorEligible",false])}) exitWith {
+    ["WEAPON_OPERATOR_RELEASED"] call _finish
+};
+if (_stage == "ATTACK") then {
     // This flag is live for one scheduler pass only. It selects a faster cadence while a fixed
     // weapon is inside its terminal basket without turning every aircraft job into a high-rate
     // controller.
