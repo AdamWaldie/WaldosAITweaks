@@ -29,6 +29,8 @@ private _delay=call {
         [_actor] call WAIT_fnc_CortexCombatEffective && {local _actor} && {!isPlayer _actor}
             && {group _actor == _group} && {isNull objectParent _actor} && {_free}
             && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
+            && {isNull (remoteControlled _actor)}
+            && {([_actor] call WAIT_fnc_CortexExternalOwner) == ""}
             && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
             && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
     };
@@ -43,6 +45,7 @@ private _delay=call {
             _job set ["finishReason","OWNERSHIP_LOST"];
             -1
         };
+        _restore=_restore && {!([_group] call WAIT_fnc_CortexExternalTakeover)};
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
         if (!isNull _group) then {
             private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;

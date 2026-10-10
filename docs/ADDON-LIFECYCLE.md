@@ -333,3 +333,5 @@ An unavailable explicit danger witness retires its finite response instead of tr
 Engine weak-stance renewal and release require complete six-field leases. Group-hide baseline transfer also requires its complete generation/epoch proof. Incomplete records are discarded without posture mutation or restoration; they cannot confer ownership through legacy short-record fallbacks. Physical malformed-lease and posture-transfer acceptance remains pending.
 
 On-foot operation start releases owned engine weak-stance leases for at most 64 members, then group-hide posture, before changing operation generation. Each release retains its exact-value and external-owner checks. This prevents temporary posture becoming the new operation's authored baseline. Physical danger-to-movement posture acceptance remains pending.
+
+Building entry selection and actor availability exclude remote-controlled actors and full specialist identities. Cancellation rechecks group takeover before any stance, speed, watch or formation restoration, including early disabled/deleted-building exits. Metadata cleanup remains finite. Physical mixed-group and early-cancellation acceptance remains pending.
