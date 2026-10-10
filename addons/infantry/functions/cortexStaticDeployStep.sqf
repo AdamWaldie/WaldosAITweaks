@@ -112,7 +112,7 @@ if (count _record >= 10) exitWith {
     private _handler=_record param [10,-1,[0]];
     // Permission is live throughout packing, not only when ACTIVE first requests an exit.
     // A newer held/feature order must not wait for disassembly or bag collection to finish.
-    if (_phase == "SECURITY" && {!_allowPack}
+    if (!_allowPack
         && {_status in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]}) exitWith {
         [true] call _retire;
         _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"YIELDED",serverTime],true];
@@ -205,7 +205,9 @@ if (count _record >= 10) exitWith {
         _status="PACK_EXITING";
         _deadline=time+10;
     };
-    if (_phase != "CONTACT" && {!(_phase == "SECURITY" && {_allowPack})}) exitWith {
+    private _continuingPack=_allowPack && {_phase in ["SEARCH","REGROUP"]}
+        && {_status in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]};
+    if (_phase != "CONTACT" && {!(_phase == "SECURITY" && {_allowPack})} && {!_continuingPack}) exitWith {
         [false] call _retire;
         "IDLE"
     };

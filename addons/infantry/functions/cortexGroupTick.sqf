@@ -782,6 +782,13 @@ private _beginContact = {
     _delay = _contactDelay;
 };
 
+// Continue an existing equipment handoff alongside post-contact movement. This never
+// starts a deployment outside SECURITY and reserves only its original participants.
+private _packingRecord=_group getVariable ["WAIT_Danger_StaticDeployment",[]];
+if ((_state get "phase") in ["SEARCH","REGROUP"]
+    && {(_packingRecord param [1,""]) in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]}) then {
+    [_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
+};
 switch (_state get "phase") do {
     case "CALM": {
         if (_state getOrDefault ["responding", false]) then {
@@ -1053,7 +1060,7 @@ switch (_state get "phase") do {
         // pause. Only its original pair is reserved; the rest of the squad keeps native security.
         // Authored movement cancels packing instead of being delayed or replaced.
         private _staticPack=[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep;
-        if (_staticPack in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]) exitWith {_delay=1};
+        // Equipment handling does not hold the whole group in SECURITY.
         // Responders may finish rallying just as smoke, terrain or a building hides the target.
         // Preserve the prepared action across CONTACT -> SECURITY, then resume the normal search
         // chain as soon as every matching responder has released its finite assault lease.
@@ -1066,7 +1073,7 @@ switch (_state get "phase") do {
         private _searchPos = _state getOrDefault ["enemyPos", []];
         private _team = [];
         if (!_ordered && {count _searchPos >= 2}) then {
-            private _riflemen = _alive select {local _x && {_x != _leader} && {isNull objectParent _x} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
+            private _riflemen = _alive select {local _x && {_x != _leader} && {isNull objectParent _x} && {!(_x call _hasLiveActorMove)} && {([_x] call WAIT_fnc_CortexUnitRole) == "RIFLE"}};
             private _ranked = [];
             {_ranked pushBack [_x distance2D _searchPos, _forEachIndex]} forEach _riflemen;
             _ranked sort true;

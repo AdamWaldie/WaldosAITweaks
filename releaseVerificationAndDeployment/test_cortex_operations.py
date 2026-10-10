@@ -902,7 +902,9 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,restore)
         group_tick=source('cortexGroupTick')
         self.assertIn('[_group,_state,[],!_ordered] call WAIT_fnc_CortexStaticDeployStep',group_tick)
-        self.assertIn('_staticPack in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]',group_tick)
+        self.assertIn('(_packingRecord param [1,""]) in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]',group_tick)
+        self.assertIn('(_state get "phase") in ["SEARCH","REGROUP"]',group_tick)
+        self.assertNotIn('if (_staticPack in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]) exitWith',group_tick)
         audit=(Path(__file__).parent/'cortexQA/runContact.sqf').read_text(encoding='utf-8')
         for marker in [
             'DANGER-static-deploy-config-prerequisite',
