@@ -11,7 +11,7 @@
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
  *
- * Repeat/JIP: next-frame execution rechecks ownership, medical/captivity status, Zeus takeover, drill replacement/cancellation, ammunition and frag safety;
+ * Repeat/JIP: a maximum 1.5-second aiming window with 0.25-second retries rechecks ownership, medical/captivity status, Zeus takeover, drill replacement/cancellation, ammunition and frag safety;
  * A cancelled queued fragmentation throw records its drill token so assault may continue without it.
  * pending throws are not replayed to joining clients. Fragmentation throws track the actual projectile locally for assault sequencing; the temporary FiredMan handler removes itself or expires after ten seconds.
  * Arguments:
@@ -66,8 +66,12 @@ private _thrown = false;
             // release has revalidated WAIT, Zeus, specialist, generation and ammunition ownership.
             if (_kind == "FRAG") then {_unit setVariable ["WAIT_Cortex_FragCancelled",nil]};
             private _drillToken=(((group _unit) getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""];
-            [{
-                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context"];
+            private _throwGeneration=(_unit getVariable ["WAIT_Cortex_ThrowGeneration",0])+1;
+            _unit setVariable ["WAIT_Cortex_ThrowGeneration",_throwGeneration];
+            private _release = {
+                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context", "_expires", "_retry", "_throwGeneration"];
+                // A newer request supersedes this queued attempt without cancelling its frag token.
+                if ((_unit getVariable ["WAIT_Cortex_ThrowGeneration",-1]) != _throwGeneration) exitWith {};
                 private _cancel = {
                     if (_kind == "FRAG" && {_drillToken != ""}) then {
                         _unit setVariable ["WAIT_Cortex_FragCancelled",_drillToken];
@@ -93,14 +97,18 @@ private _thrown = false;
                     && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _cancel};
                 _unit doWatch _towards;
                 // setDir changes the object transform without proving the prone throwing animation
-                // has turned. Never force release into the actor's previous facing. A later tactical
-                // opportunity may retry; this cancellation cannot hold the manoeuvre element.
+                // has turned. Never force release into the actor's previous facing. A bounded
+                // asynchronous aiming window leaves the manoeuvre element free to continue.
                 private _bearing = _unit getDir _towards;
                 private _bodyError = abs (((getDir _unit - _bearing + 540) % 360) - 180);
                 private _aim = _unit weaponDirection (currentWeapon _unit);
                 private _aimBearing = (_aim select 0) atan2 (_aim select 1);
                 private _aimError = abs (((_aimBearing - _bearing + 540) % 360) - 180);
-                if (_bodyError > 30 || {_aimError > 30}) exitWith {call _cancel};
+                if (_bodyError > 30 || {_aimError > 30}) exitWith {
+                    if (time >= _expires) then {call _cancel} else {
+                        [_retry,+_this,0.25] call CBA_fnc_waitAndExecute;
+                    };
+                };
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
@@ -133,7 +141,8 @@ private _thrown = false;
                     },[_unit,_handler],10] call CBA_fnc_waitAndExecute;
                     _unit forceWeaponFire [_muzzle,_muzzle];
                 } else {_unit forceWeaponFire [_muzzle,_muzzle]};
-            }, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context]] call CBA_fnc_execNextFrame;
+            };
+            [_release, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context,time+1.5,_release,_throwGeneration]] call CBA_fnc_execNextFrame;
             _thrown = true;
         };
     };
