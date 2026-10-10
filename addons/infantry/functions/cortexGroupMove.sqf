@@ -107,14 +107,20 @@ if (_sameRequest) exitWith {
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
 [_group] call WAIT_fnc_CortexGroupMoveClear;
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {[grpNull, -1]};
-private _waypoint = _group addWaypoint [_position, 0, currentWaypoint _group];
+// Radius-zero placement may be adjusted by the engine. Explicit elevated destinations need
+// exact ASL placement; ordinary ground routes retain native safe placement.
+private _elevated=abs (_desired select 2) > 1.5;
+private _placement=[_desired,ATLToASL _desired] select _elevated;
+private _placementRadius=[0,-1] select _elevated;
+private _waypoint = _group addWaypoint [_placement, _placementRadius, currentWaypoint _group];
 _waypoint setWaypointType _type;
 _waypoint setWaypointCompletionRadius _radius;
 _waypoint setWaypointDescription "WAIT AI PASS";
 _group setCurrentWaypoint _waypoint;
 _group setVariable ["WAIT_Cortex_GroupMoveIntent", createHashMapFromArray [
     ["waypoint", _waypoint],
-    ["position", _desired],
+    ["position", waypointPosition _waypoint],
+    ["requestedPosition", _desired],
     ["radius", _radius],
     ["type", _type],
     ["issuedAt", serverTime],
