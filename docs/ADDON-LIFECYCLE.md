@@ -459,3 +459,5 @@ WAIT local notifications pass title and body as separate CBA line arrays. The pr
 Convoy IMMOBILE halts now retain their distinct operation phase through start, step and FSM routing, instead of being labelled OBSTRUCTION. They use the existing bounded halt cadence and shared scheduler, with unchanged stop/recovery decisions. This is diagnostic state fidelity, not proof of physical recovery.
 
 Convoy release clears a crew target command only for combat-effective actors without actor-context takeover whose assigned target still matches WAIT's recorded target. Protected actors retain their newer command while stale convoy target metadata is retired. Physical separate-crew-group and Zeus target handover remain pending.
+
+Convoy FSM spacing diagnostics reuse dimensions cached by the immediately preceding ConvoyTick and the same aligned forward-gap projection as driving. They no longer repeat bounding-box queries every callback or report a lateral offset as longitudinal spacing. No driving policy, cadence or new worker is introduced; measured performance acceptance remains pending.
