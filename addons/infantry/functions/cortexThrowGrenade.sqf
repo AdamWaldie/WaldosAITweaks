@@ -32,7 +32,8 @@
 
 params [["_unit", objNull, [objNull]], ["_towards", [], [[]]], ["_kind", "SMOKE", [""]], ["_context",[],[[]]]];
 if (isNull _unit || {!alive _unit} || {!local _unit} || {vehicle _unit != _unit} || {count _towards < 2}) exitWith {false};
-if !([_unit] call WAIT_fnc_CortexCombatEffective) exitWith {false};
+if (!([_unit] call WAIT_fnc_CortexCombatEffective)
+    || {[_unit] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 _kind=toUpperANSI _kind;
 if (!(_kind in ["SMOKE","FRAG"]) || {!([group _unit] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
 private _simulations = if (_kind == "FRAG") then {["shotGrenade"]} else {["shotSmoke", "shotSmokeX"]};
@@ -73,6 +74,7 @@ private _thrown = false;
                     };
                 };
                 if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {vehicle _unit != _unit} || {group _unit != _group}
+                    || {[_unit] call WAIT_fnc_CompatibilityExternalControl}
                     || {!([_group] call WAIT_fnc_CortexIsEligible)}
                     || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo _hold}
                     || {!(_magazine in magazines _unit)}

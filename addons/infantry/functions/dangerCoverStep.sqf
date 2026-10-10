@@ -49,6 +49,7 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {((_group getVariable ["WAIT_Danger_CoverDecision",[]]) param [5,"COVER"]) != "CONCEALMENT"
         || {[_group,"WAIT_AIPass_DangerConcealment_Enable",true] call WAIT_fnc_CortexFeatureEnabled}}
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
+    && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
     && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
     && {isNull objectParent _actor}
     && {_actor checkAIFeature "MOVE"} && {_actor checkAIFeature "PATH"}
@@ -83,6 +84,7 @@ if (count _lease >= 4) then {
                 && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}
                 && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
                 && {!([_group] call WAIT_fnc_CortexZeusHeld)}
+                && {!([_leasedActor] call WAIT_fnc_CompatibilityExternalControl)}
                 && {currentCommand _leasedActor in ["","MOVE"]}) then {
                 _leasedActor doFollow (leader _group);
             };
@@ -95,6 +97,7 @@ if (_releaseOnly) exitWith {["RELEASED"] call _clearLease};
 if (_generation != (_group getVariable ["WAIT_Danger_Generation",0])
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {[_group] call WAIT_fnc_CortexExternalTakeover}
     || {[_group] call WAIT_fnc_CortexZeusHeld}) exitWith {[] call _clearLease};
 // Recheck at the final command boundary. A danger observation recorded before a new order or operation
@@ -146,6 +149,7 @@ if (!_found || {count _spot < 2}
     false
 };
 if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
+    || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {currentCommand _actor != ""}) exitWith {[] call _clearLease};
 _group setVariable ["WAIT_Danger_CoverPending",nil];
