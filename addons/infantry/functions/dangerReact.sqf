@@ -82,7 +82,7 @@ private _appliedCombat=if (_leaseIntact) then {_lease select 3} else {_priorComb
 // CARELESS is an explicit mission-maker instruction. A danger observation alone must not
 // silently turn it into a WAIT combat task.
 if (_priorBehaviour in ["SAFE","AWARE"]) then {
-    _group setBehaviour "COMBAT";
+    if (behaviour _postureActor != "COMBAT") then {_group setBehaviour "COMBAT"};
     _appliedBehaviour="COMBAT";
 };
 // MAINTAIN means keep the committed route, not ignore the threat. A manoeuvring element may adopt
@@ -92,7 +92,7 @@ if (_priorBehaviour in ["SAFE","AWARE"]) then {
 private _engaging=_action == "ENGAGE" || {_action == "MAINTAIN" && {_cause in ["DETECTED","PROXIMITY","CANFIRE","GUNFIRE"]}};
 private _desiredCombat=if (_engaging) then {"RED"} else {"YELLOW"};
 if (_priorCombat == "WHITE" || {_engaging && {_priorCombat == "YELLOW"}}) then {
-    _group setCombatMode _desiredCombat;
+    if (combatMode _group != _desiredCombat) then {_group setCombatMode _desiredCombat};
     _appliedCombat=_desiredCombat;
 };
 private _responseDurations=createHashMapFromArray [["HIT",3],["EXPLOSION",2.5],["SUPPRESSED",2],["CASUALTY",2],["BODY_FOUND",1.5],["SCREAM",1.5],["PROXIMITY",1.5],["CANFIRE",1.5],["DETECTED",1.5],["GUNFIRE",1]];

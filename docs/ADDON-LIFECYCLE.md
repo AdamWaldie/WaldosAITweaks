@@ -251,3 +251,5 @@ Grenade evasion considers at most 16 nearby actors. Its delayed recovery matches
 Squad posture restoration requires the complete six-field lease, matching operation generation and owner epoch. Incomplete records grant no restoration authority. Remote-controlled actors are excluded from acquisition, retention and restoration. Physical takeover and malformed-record acceptance remain pending.
 
 Danger posture renewal preserves its original behaviour and combat-mode baseline while the recorded generation, owner epoch, owner and applied values still match. Lease expiry permits cleanup, but an event arriving before that cleanup cannot adopt WAIT-applied COMBAT as the baseline. Renewal after expiry and eventual release still require physical acceptance.
+
+Danger renewals issue group behaviour and combat-mode commands only when the effective value differs from the selected response. Lease renewal remains unchanged; repeated observations do not resend identical posture commands. Physical command-churn and response acceptance remain pending.
