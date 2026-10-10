@@ -50,7 +50,7 @@ private _committedMover=count _operation > 0
     && {_actor in _participants}
     && {!(_actor in _unavailable)}
     && {(_operation getOrDefault ["route",[]]) isNotEqualTo []}
-    && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","MANOEUVRE","ASSAULT","MOVING","TRAVEL","WITHDRAW"]};
+    && {toUpperANSI (_operation getOrDefault ["phase",""]) in ["APPROACH","ENTRY","SWEEP","REPLAN","EGRESS","MANOEUVRE","ASSAULT","MOVING","TRAVEL","WITHDRAW"]};
 
 // Some finite actor-level opportunities compose beside the group operation. Static deployment,
 // packing, cover, grenade evasion and launcher relocation already own an exact destination and deadline; an immediate

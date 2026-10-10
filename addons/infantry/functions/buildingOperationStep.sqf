@@ -511,6 +511,12 @@ private _delay=call {
 };
 if (isNil "_delay" || {!(_delay isEqualType 0)}) then {_delay=-1};
 private _phase=toUpperANSI (_job getOrDefault ["phase","ENTRY"]);
+private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if (count _currentOperation > 0
+    && {(_currentOperation getOrDefault ["generation",-1]) == (_job getOrDefault ["operationGeneration",-2])}
+    && {(_currentOperation getOrDefault ["intent",""]) == "CLEAR"}) then {
+    _currentOperation set ["phase",_phase];
+};
 _brain set ["phase",_phase];
 _brain set ["lastStepAt",time];
 _brain set ["lastDelay",_delay];
