@@ -541,6 +541,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_act)
         self.assertIn('_actor setVariable ["WAIT_Danger_EngineResponse",nil]',engine_release)
         self.assertIn('WAIT_Danger_EngineStanceLease',engine_release)
+        self.assertIn('"NEW_OPERATION_OR_OWNER"',engine_release)
+        self.assertIn('"NATIVE_TASK_OR_MEDICAL"',engine_release)
+        for proof in ['WAIT_OperationGeneration','WAIT_AIPass_Epoch','(_lease select 5) != _group']:
+            self.assertIn(proof,engine_release)
+            self.assertIn(proof,engine_act)
+        self.assertLess(engine_release.index('"NEW_OPERATION_OR_OWNER"'),engine_release.index('setUnitPosWeak _prior'))
         self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',setup)
         self.assertIn('[_x] call WAIT_fnc_DangerEngineRelease',source('cortexReleaseGroup'))
         self.assertIn('DANGER-live-disable-exact-stance-release',contact_fixture)

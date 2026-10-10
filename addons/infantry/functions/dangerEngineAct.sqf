@@ -147,7 +147,10 @@ if (_desiredStance != "") then {
         _priorStance=_lease param [0,_currentStance,[""]];
         private _previousApplied=_lease param [1,"",[""]];
         // A different owner changed the stance during our response. Drop WAIT's lease and leave it alone.
-        if (_currentStance != _previousApplied) then {
+        if (_currentStance != _previousApplied
+            || {count _lease >= 6 && {(_lease select 3) != (_group getVariable ["WAIT_OperationGeneration",0])
+                || {(_lease select 4) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
+                || {(_lease select 5) != _group}}}) then {
             _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
             _mayApply=false;
         };
@@ -156,7 +159,8 @@ if (_desiredStance != "") then {
         // Weak stance is deliberate: native combat AI and the active movement owner can override it
         // immediately. WAIT records the exact applied value only so cleanup remains generation-safe.
         _actor setUnitPosWeak _desiredStance;
-        _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay]];
+        _actor setVariable ["WAIT_Danger_EngineStanceLease",[_priorStance,_desiredStance,time+_delay,
+            _group getVariable ["WAIT_OperationGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0],_group]];
     };
 };
 
