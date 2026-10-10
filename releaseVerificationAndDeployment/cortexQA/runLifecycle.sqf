@@ -135,11 +135,11 @@ if (_targetOwner == 2) then {
     },30] call _wait;
     private _beforeArrival=_units findIf {_x distance2D [2130,1920,0] < 30} < 0;
     ["LIFE-zeus-midmove-stimulus",_started && {_beforeArrival}] call _check;
-    [_group,true] call WAIT_fnc_CortexZeusMark;
     private _replacement=[2030,1850,0];
     private _replacementWP=_group addWaypoint [_replacement,0];
     _replacementWP setWaypointType "MOVE"; _replacementWP setWaypointCompletionRadius 3;
     _group setCurrentWaypoint _replacementWP;
+    [_group,true,_replacementWP select 1] call WAIT_fnc_CortexZeusMark;
     {_x setVariable ["WAIT_CortexQA_Target",_replacement,true]} forEach _units;
     private _replacementReached=[{_units findIf {!alive _x || {_x distance2D _replacement > 12}} < 0},90] call _wait;
     ["LIFE-zeus-midmove-replacement-arrival",_started && {_beforeArrival} && {_replacementReached},str (_units apply {getPosATL _x})] call _check;
@@ -147,6 +147,34 @@ if (_targetOwner == 2) then {
     for "_sample" from 1 to 15 do {sleep 1; {_maxDrift=_maxDrift max (_x distance2D _replacement)} forEach _units};
     ["LIFE-zeus-midmove-no-resurrection",_replacementReached && {_maxDrift <= 15}
         && {(_group getVariable ["WAIT_AIPass_Defend",[]]) isEqualTo []},str _maxDrift] call _check;
+    // Independent live route: edit the actual WAIT waypoint rather than adding another one.
+    private _editGroup=createGroup [east,true];
+    _editGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
+    _editGroup setVariable ["acex_headless_blacklist",true,true];
+    _editGroup setCombatMode "BLUE";
+    private _editActor=_editGroup createUnit ["O_Soldier_F",[1990,1930,0],[],0,"NONE"];
+    _editActor setVariable ["acex_headless_blacklist",true,true];
+    _editActor setVariable ["WAIT_CortexQA_Label","EDITED WAIT ROUTE",true];
+    missionNamespace setVariable ["WAIT_CortexQA_Actors",[_editActor],true];
+    private _editOrigin=getPosATL _editActor;
+    private _editWP=[_editGroup,[2100,1930,0],3,"MOVE"] call WAIT_fnc_CortexGroupMove;
+    private _editStarted=[{_editActor distance2D _editOrigin >= 10},30] call _wait;
+    private _editDestination=[1990,2030,0];
+    private _editValid=count _editWP == 2 && {(_editWP select 0) == _editGroup};
+    ["LIFE-edited-route-physical-prerequisite",_editValid && {_editStarted},str [_editWP,getPosATL _editActor]] call _check;
+    if (_editValid) then {
+        _editWP setWaypointPosition [_editDestination,0];
+        [_editGroup,true,_editWP select 1] call WAIT_fnc_CortexZeusMark;
+        ["LIFE-edited-route-order-preserved",(_editWP select 1) < count waypoints _editGroup
+            && {waypointPosition _editWP distance2D _editDestination < 1}
+            && {waypointType _editWP == "MOVE"}
+            && {waypointDescription _editWP != "WAIT AI PASS"},str (waypoints _editGroup)] call _check;
+        _editActor setVariable ["WAIT_CortexQA_Target",_editDestination,true];
+        private _editArrived=[{_editActor distance2D _editDestination <= 12},90] call _wait;
+        ["LIFE-edited-route-physical-arrival",_editStarted && {_editArrived},str (getPosATL _editActor)] call _check;
+    };
+    deleteVehicle _editActor;
+    deleteGroup _editGroup;
 };
 [_group] call WAIT_fnc_CortexDefendRelease;
 {deleteVehicle _x} forEach _units; deleteGroup _group;
