@@ -21,8 +21,15 @@ params [
 private _clearLease={
     params [["_reason","RELEASED",[""]]];
     if (!isNull _group) then {
-        _group setVariable ["WAIT_Danger_CoverPending",nil];
-        _group setVariable ["WAIT_Danger_CoverDecision",[_reason,time,_actor,_generation]];
+        private _pending=_group getVariable ["WAIT_Danger_CoverPending",[]];
+        if (count _pending >= 2 && {(_pending select 0) isEqualTo _actor}
+            && {_generation < 0 || {(_pending select 1) == _generation}}) then {
+            _group setVariable ["WAIT_Danger_CoverPending",nil];
+        };
+        // A stale callback may retire its own lease but cannot overwrite a newer assessment.
+        if (_generation < 0 || {_generation == (_group getVariable ["WAIT_Danger_Generation",0])}) then {
+            _group setVariable ["WAIT_Danger_CoverDecision",[_reason,time,_actor,_generation]];
+        };
         private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
         if (count _lease >= 2 && {(_lease select 0) isEqualTo _actor}
             && {(_generation < 0) || {(_lease select 1) == _generation}}) then {
