@@ -253,3 +253,5 @@ Squad posture restoration requires the complete six-field lease, matching operat
 Danger posture renewal preserves its original behaviour and combat-mode baseline while the recorded generation, owner epoch, owner and applied values still match. Lease expiry permits cleanup, but an event arriving before that cleanup cannot adopt WAIT-applied COMBAT as the baseline. Renewal after expiry and eventual release still require physical acceptance.
 
 Danger renewals issue group behaviour and combat-mode commands only when the effective value differs from the selected response. Lease renewal remains unchanged; repeated observations do not resend identical posture commands. Physical command-churn and response acceptance remain pending.
+
+Danger renewal compares behaviour and combat-mode ownership independently. An external change to one value does not replace the original baseline of the other value while that value still matches WAIT's application. Generation, locality epoch and owner remain mandatory for both. Physical mixed-value renewal acceptance remains pending.

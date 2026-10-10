@@ -73,12 +73,13 @@ if (_action == "MAINTAIN" && {count _operation == 0}) then {
 };
 // Expiry permits cleanup; it does not prove cleanup has run. A late renewing event must
 // preserve the original baseline while the exact owned values still remain applied.
-private _leaseIntact=_leaseOwned
-    && {behaviour _postureActor == (_lease select 1)} && {combatMode _group == (_lease select 3)};
-private _priorBehaviour=if (_leaseIntact) then {_lease select 0} else {behaviour _postureActor};
-private _priorCombat=if (_leaseIntact) then {_lease select 2} else {combatMode _group};
-private _appliedBehaviour=if (_leaseIntact) then {_lease select 1} else {_priorBehaviour};
-private _appliedCombat=if (_leaseIntact) then {_lease select 3} else {_priorCombat};
+private _behaviourIntact=_leaseOwned && {behaviour _postureActor == (_lease select 1)};
+private _combatIntact=_leaseOwned && {combatMode _group == (_lease select 3)};
+private _leaseIntact=_leaseOwned && {_behaviourIntact} && {_combatIntact};
+private _priorBehaviour=if (_behaviourIntact) then {_lease select 0} else {behaviour _postureActor};
+private _priorCombat=if (_combatIntact) then {_lease select 2} else {combatMode _group};
+private _appliedBehaviour=if (_behaviourIntact) then {_lease select 1} else {_priorBehaviour};
+private _appliedCombat=if (_combatIntact) then {_lease select 3} else {_priorCombat};
 // CARELESS is an explicit mission-maker instruction. A danger observation alone must not
 // silently turn it into a WAIT combat task.
 if (_priorBehaviour in ["SAFE","AWARE"]) then {
