@@ -437,10 +437,15 @@ if (count _record >= 10) exitWith {
     if (_status == "PACK_EXITING") exitWith {
         if (isNull _weapon || {!alive _weapon}) exitWith {[false] call _retire; "FAILED"};
         if (vehicle _gunner == _gunner && {currentCommand _gunner != "GET OUT"}) then {
+            private _packBearing=_weapon getDir _gunner;
             {
-                _x doMove (getPosATL _weapon);
-                _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",getPosATL _weapon,time+15]];
+                // The live emplacement occupies its centre. Separate approach points remain
+                // inside the existing action radius without routing both actors into its collision.
+                private _approach=_weapon getPos [2,_packBearing+(_forEachIndex*90)];
+                _x doMove _approach;
+                _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_PACK",_approach,time+15]];
             } forEach [_gunner,_assistant];
+            _record set [21,time+5];
             _record set [1,"PACK_MOVING"];
             _record set [6,time+15];
             _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
@@ -450,6 +455,20 @@ if (count _record >= 10) exitWith {
         }
     };
     if (_status == "PACK_MOVING") exitWith {
+        // Retry only an ended native order, at most twice inside the original finite lease.
+        // Keep its committed approach and never extend the packing deadline.
+        if (!isNull _weapon && {alive _weapon} && {time < _deadline}
+            && {time >= (_record param [21,1e12,[0]])}) then {
+            {
+                private _move=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+                if (count _move == 3 && {(_move select 0) == "STATIC_PACK"}
+                    && {currentCommand _x in ["","STOP"]} && {_x distance2D _weapon > 4}) then {
+                    _x doMove (_move select 1);
+                };
+            } forEach [_gunner,_assistant];
+            _record set [21,time+5];
+            _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
+        };
         if (isNull _weapon || {!alive _weapon}) then {
             [false] call _retire;
             "FAILED"
