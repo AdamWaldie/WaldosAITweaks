@@ -60,7 +60,24 @@ for "_offset" from 0 to (_count-1) do {
         _unit setVariable ["WAIT_AIPass_StanceSet",nil,true];
         _unit setVariable ["WAIT_Cortex_AppliedStance",nil,true];
     };
-    if (alive _unit && {local _unit} && {isNull objectParent _unit} && {abs speed _unit < 1} && {!(_unit in _drillUnits)}
+    private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _reservationFree=_reservation isEqualTo []
+        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= _now}};
+    if (!_reservationFree && {count _reservation == 3}
+        && {(_reservation select 0) in ["STATIC_DEPLOY","STATIC_PACK","STATIC_SUPPORT","DANGER_COVER"]}
+        && {local _unit} && {_unit getVariable ["WAIT_AIPass_StanceSet",false]}
+        && {_currentStance == (_unit getVariable ["WAIT_Cortex_AppliedStance",""])}
+        && {!([_group,false,_unit] call WAIT_fnc_CortexExternalTakeover)}) then {
+        _unit setUnitPos "AUTO";
+        _unit setVariable ["WAIT_AIPass_StanceSet",nil,true];
+        _unit setVariable ["WAIT_Cortex_AppliedStance",nil,true];
+        _changed=_changed+1;
+    };
+    if ([_unit] call WAIT_fnc_CortexCombatEffective && {local _unit} && {isNull objectParent _unit}
+        && {_reservationFree}
+        && {!(toUpperANSI currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+        && {!([_unit] call WAIT_fnc_CompatibilityExternalControl)}
+        && {abs speed _unit < 1} && {!(_unit in _drillUnits)}
         && {(_unit getVariable ["WAIT_AIPass_GarrisonPos", []]) isEqualTo []}
         && {_now >= (_unit getVariable ["WAIT_AIPass_StanceAt", -1])}
         && {_currentStance == "AUTO" || {_unit getVariable ["WAIT_AIPass_StanceSet", false]}}) then {
