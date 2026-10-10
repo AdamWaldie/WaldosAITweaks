@@ -356,7 +356,8 @@ private _origin=getPosATL _gunner;
 private _bearing=_origin getDir _targetPos;
 private _candidateA=_origin getPos [6,_bearing-90];
 private _candidateB=_origin getPos [6,_bearing+90];
-private _candidates=[_candidateA,_candidateB] select {
+// Use the current firing position first: a static team need not relocate on open safe terrain.
+private _candidates=[_origin,_candidateA,_candidateB] select {
     !surfaceIsWater _x && {(surfaceNormal _x) select 2 >= 0.92}
         && {lineIntersectsSurfaces [AGLToASL (_x vectorAdd [0,0,1.2]),AGLToASL (_targetPos vectorAdd [0,0,1.2]),objNull,objNull,true,1,"GEOM","NONE"] isEqualTo []}
 };
@@ -370,6 +371,9 @@ private _deadline=time+18;
     _x doMove _deployPos;
     _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_deployPos,_deadline]];
 } forEach [_gunner,_assistant];
+// Hold only the primary carrier at an already valid sector. This is the finite deployment
+// task, not a group stop; native targets/fire remain available and failure cleanup resumes follow.
+if (_gunner distance2D _deployPos <= 0.5) then {doStop _gunner};
 _record=[_episode,"MOVING",_gunner,_assistant,_expectedClass,+_deployPos,_deadline,objNull,_gunnerBag,_assistantBag,-1,+_targetPos,-1];
 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
 _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"MOVING",serverTime],true];

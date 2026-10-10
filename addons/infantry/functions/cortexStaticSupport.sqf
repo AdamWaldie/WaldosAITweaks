@@ -24,7 +24,9 @@ private _clearActorMove={
     params ["_actor"];
     if (!isNull _actor && {local _actor}) then {
         private _actorMove=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
-        if ((_actorMove param [0,""]) == "STATIC_SUPPORT") then {
+        if (count _lease >= 7 && {(_lease select 1) == _actor}
+            && {count _actorMove == 3} && {(_actorMove select 0) == "STATIC_SUPPORT"}
+            && {(_actorMove select 2) == (_lease select 4)}) then {
             _actor setVariable ["WAIT_Cortex_ActorMove",nil];
         };
     };
