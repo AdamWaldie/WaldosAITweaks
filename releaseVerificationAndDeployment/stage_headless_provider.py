@@ -28,14 +28,14 @@ def stage_provider(repository, mission):
         shutil.copyfile(path, destination/path.name)
         hashes[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
         function = 'Waldo_fnc_'+path.stem[0].upper()+path.stem[1:]
-        bindings.append(f'{function}=compile preprocessFileLineNumbers "compatibilityHeadlessProvider/{path.name}";')
-    header = """/*
+        bindings.append(f'{function}=compile preprocessFileLineNumbers "compatibilityHeadlessProvider{chr(92)}{path.name}";')
+    header = r"""/*
  * Author: WaldoTheWarfighter
  * Purpose: Load the actual companion transfer and adoption provider for a disposable integration audit.
  * Locality/authority: Every audit machine installs functions; only the provider server owns transfers.
  * Repeat/JIP: Local installation sentinel; native bounded registration handles headless joins.
  * Arguments: None. Return: Nothing. Callers: integration mission initialization.
- * Example: call compile preprocessFileLineNumbers "compatibilityHeadlessProvider/init.sqf";
+ * Example: call compile preprocessFileLineNumbers "compatibilityHeadlessProvider\init.sqf";
  */
 if (missionNamespace getVariable ["WAIT_QA_NativeHeadlessInstalled",false]) exitWith {};
 missionNamespace setVariable ["WAIT_QA_NativeHeadlessInstalled",true];

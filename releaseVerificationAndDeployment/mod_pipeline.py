@@ -107,7 +107,7 @@ def stage(package, destination, focus, root=ROOT, native_baseline=False, perform
     if headless_provider:
         from stage_headless_provider import stage_provider
         provider_evidence = stage_provider(headless_provider, mission)
-        prefix = """/*
+        prefix = r"""/*
  * Author: WaldoTheWarfighter
  * Purpose: Install the real companion HC provider before this audit machine starts its fixtures.
  * Locality/authority: Every machine installs functions; native server transfer authority is retained.
@@ -115,7 +115,7 @@ def stage(package, destination, focus, root=ROOT, native_baseline=False, perform
  * Arguments: None. Return: Nothing. Callers: engine audit initialization.
  * Example: Join the generated native headless integration audit.
  */
-call compile preprocessFileLineNumbers "compatibilityHeadlessProvider/init.sqf";
+call compile preprocessFileLineNumbers "compatibilityHeadlessProvider\init.sqf";
 """
         for name in ('initServer.sqf', 'initPlayerLocal.sqf', 'init.sqf'):
             target = mission/name

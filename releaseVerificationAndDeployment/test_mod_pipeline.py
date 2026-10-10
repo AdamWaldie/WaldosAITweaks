@@ -140,7 +140,7 @@ class PackagePipelineTests(unittest.TestCase):
         manifest=json.loads((mission.parent/'audit-manifest.json').read_text())
         self.assertEqual(manifest['headless_provider']['scope'],'EXPLICIT_NATIVE_TRANSFERS_ONLY')
         for name in ('initServer.sqf','initPlayerLocal.sqf','init.sqf'):
-            self.assertIn('compatibilityHeadlessProvider/init.sqf',(mission/name).read_text())
+            self.assertIn(r'compatibilityHeadlessProvider\init.sqf',(mission/name).read_text())
         for name in REQUIRED:
             self.assertIn('compatibilityHeadlessProvider/'+name,manifest['mission_files'])
         from mod_pipeline import mission_hashes
