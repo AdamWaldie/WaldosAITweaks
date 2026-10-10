@@ -442,6 +442,10 @@ private _currentRoute=(waypoints _group select {waypointName _x != _ownedWaypoin
 };
 if (_currentRoute isNotEqualTo (_job getOrDefault ["routeSignature",_currentRoute])) exitWith {["AUTHORED_ROUTE_CHANGED"] call _finish};
 private _target=_job getOrDefault ["target",objNull];
+if (!isNull _target && {alive _target} && {captive _target
+    || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}
+    || {(side _group) getFriend side _target >= 0.6}}) exitWith {["TARGET_NO_LONGER_HOSTILE",true] call _finish};
 if (!isNull _target) then {_job set ["lastTargetPosition",getPosATL _target]};
 // Destroying the target must not strand the aircraft at the firing point. Complete the full
 // INGRESS -> ATTACK -> EGRESS contract, using the wreck's stable position for departure geometry.

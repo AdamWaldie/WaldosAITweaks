@@ -309,3 +309,5 @@ Shared tactical knowledge prunes surrendering and handcuffed actors from cached 
 Observed-contact cache pruning validates numeric expiry before comparing time and inspects at most the eight newest records, matching the writer's eight-contact cap. Invalid expiry records do not reach recurring knowledge evaluation. Physical intake and performance acceptance remains pending.
 
 Vehicle target cleanup retires WAIT's recorded target when dead, captive, surrendering, detained or friendly. It clears the native assignment only when it still matches WAIT's target and no newer owner controls the actor. Gunnery ranking independently revalidates protection and hostility, including direct callers with stale candidate lists. Physical surrender/side-change vehicle acceptance remains pending.
+
+Aircraft planning rejects protected targets. Active attack updates revalidate living targets for captive, surrender, detention and side change, releasing WAIT attack control as TARGET_NO_LONGER_HOSTILE. A destroyed objective remains distinct and follows the existing physical-attack egress path. Physical protection-during-air-attack acceptance remains pending.

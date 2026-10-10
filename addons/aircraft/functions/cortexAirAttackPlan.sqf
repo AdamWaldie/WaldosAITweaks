@@ -39,7 +39,9 @@ if (isNull _aircraft || {isNull _target} || {!alive _aircraft} || {!alive _targe
 private _pilot=driver _aircraft;
 if (isNull _pilot || {!alive _pilot} || {!local _aircraft}) exitWith {createHashMap};
 private _side=side group _pilot;
-if (_side getFriend side _target >= 0.6) exitWith {createHashMap};
+if (_side getFriend side _target >= 0.6 || {captive _target}
+    || {_target getVariable ["ace_captives_isSurrendering",false]}
+    || {_target getVariable ["ace_captives_isHandcuffed",false]}) exitWith {createHashMap};
 private _airToAir=_target isKindOf "Air" && {!isTouchingGround _target};
 
 private _ammoCache=missionNamespace getVariable ["WAIT_Cortex_AirAmmoFacts",createHashMap];
