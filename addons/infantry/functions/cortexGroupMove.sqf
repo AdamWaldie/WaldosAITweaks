@@ -57,6 +57,7 @@ if (_operationGeneration < 0) then {
 };
 
 private _desired = +_position;
+if (count _desired == 2) then {_desired pushBack 0};
 _desired resize 3;
 _radius = _radius max 1;
 _type = toUpper _type;
@@ -76,6 +77,7 @@ private _hasOwnedWaypoint = count _previousWaypoint == 2
 // before adopting this route or inserting another waypoint ahead of it.
 if (_hasOwnedWaypoint && {count _previousPosition < 2
     || {waypointPosition _previousWaypoint distance2D _previousPosition > 1}
+    || {abs (((waypointPosition _previousWaypoint) param [2,0])-(_previousPosition param [2,0])) > 1.5}
     || {waypointType _previousWaypoint != _previousType}
     || {abs (waypointCompletionRadius _previousWaypoint-_previousRadius) > 0.1}}) exitWith {
     [_group,true,_previousWaypoint select 1] call WAIT_fnc_CortexZeusMark;
@@ -85,7 +87,8 @@ if (_hasOwnedWaypoint && {count _previousPosition < 2
 // Keep an established engine route until a meaningful tactical change. Position drift inside the
 // current completion radius and a small retask tolerance cannot justify a new waypoint.
 private _sameDestination = count _previousPosition >= 2
-    && {_desired distance2D _previousPosition <= ((_radius max _previousRadius) min 15)};
+    && {_desired distance2D _previousPosition <= ((_radius max _previousRadius) min 15)}
+    && {abs ((_desired param [2,0])-(_previousPosition param [2,0])) <= 1.5};
 private _sameRequest = _hasOwnedWaypoint
     && {_sameDestination}
     && {abs (_radius - _previousRadius) <= 2}

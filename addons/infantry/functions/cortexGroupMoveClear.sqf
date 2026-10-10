@@ -45,6 +45,7 @@ if (count _ownedWaypoint == 2 && {(_ownedWaypoint select 0) isEqualTo _group}) t
         private _position=_intent getOrDefault ["position",[]];
         private _edited=count _position < 2
             || {waypointPosition _ownedWaypoint distance2D _position > 1}
+            || {abs (((waypointPosition _ownedWaypoint) param [2,0])-(_position param [2,0])) > 1.5}
             || {waypointType _ownedWaypoint != (_intent getOrDefault ["type",""])}
             || {abs (waypointCompletionRadius _ownedWaypoint-(_intent getOrDefault ["radius",-1])) > 0.1};
         if (_curatorClaim || {_edited}) then {
