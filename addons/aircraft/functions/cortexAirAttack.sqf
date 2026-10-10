@@ -84,7 +84,8 @@ private _finish={
     private _guidanceTarget=_job getOrDefault ["guidanceTarget",objNull];
     if (!isNull _guidanceTarget) then {deleteVehicle _guidanceTarget};
     if (local _aircraft) then {
-        _aircraft limitSpeed -1;
+        // Negative limits can command helicopter reverse; restore the native positive default.
+        _aircraft limitSpeed (2 * getNumber (configOf _aircraft >> "maxSpeed"));
         // Remove exactly the lease-owned waypoint before selecting any authored route. Searching
         // by name remains correct when Zeus added or removed other waypoints and shifted indices.
         private _ownedWaypointName=_job getOrDefault ["ownedWaypointName",""];

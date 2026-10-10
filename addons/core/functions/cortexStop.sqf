@@ -231,7 +231,8 @@ private _jobs = (missionNamespace getVariable ["WAIT_AIPass_Jobs", []]) + (missi
         private _airHandler=_state getOrDefault ["firedHandler",-1];
         if (_airHandler >= 0 && {local _flareAircraft}) then {_flareAircraft removeEventHandler ["Fired",_airHandler]};
         if (local _flareAircraft) then {
-            _flareAircraft limitSpeed -1;
+            // Negative limits can command helicopter reverse; restore the native positive default.
+        _flareAircraft limitSpeed (2 * getNumber (configOf _flareAircraft >> "maxSpeed"));
             private _airGroup=group driver _flareAircraft;
             if (!isNull _airGroup) then {
                 private _ownedWaypointName=_state getOrDefault ["ownedWaypointName",""];

@@ -5906,7 +5906,7 @@ class CortexOperations(unittest.TestCase):
         stop=source('cortexStop')
         for requirement in ['WAIT_Cortex_AirAttackPlan','WAIT_Cortex_AirAttackJob','WAIT_Cortex_AirFireSolution',
                             'WAIT_Cortex_AirAttackTarget','WAIT_Cortex_AirAttackGuidedWeapon',
-                            'removeEventHandler ["Fired"','limitSpeed -1','previousAttackEnabled']:
+                            'removeEventHandler ["Fired"','limitSpeed (2 * getNumber (configOf _flareAircraft >> "maxSpeed"))','previousAttackEnabled']:
             self.assertIn(requirement,stop)
         spec=source('cortexTuningSpec')
         settings=source('aiConfig')
