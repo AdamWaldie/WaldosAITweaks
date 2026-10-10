@@ -863,6 +863,12 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,deploy)
         self.assertIn('call WAIT_fnc_CortexStaticDeployStep',support)
         self.assertIn('_current set [7,_assembled]',deploy)
+        pack_permission=deploy.split('// Permission is live throughout packing',1)[1].split('private _reservedActors=',1)[0]
+        self.assertIn('!_allowPack',pack_permission)
+        self.assertIn('"PACK_EXITING","PACK_MOVING","PACKING","TAKING"',pack_permission)
+        self.assertIn('[true] call _retire',pack_permission)
+        self.assertNotIn('doMove',pack_permission)
+        self.assertNotIn('doFollow',pack_permission)
         self.assertIn('private _observations=_enemies select [0,8]',deploy)
         self.assertIn('_record set [18,(_enemies select 0) param [0,objNull,[objNull]]]',deploy)
         sector=deploy.split('// Initial recognition can carry',1)[1].split('if (_phase == "CONTACT" && {_status == "PACK_MOVING"}',1)[0]

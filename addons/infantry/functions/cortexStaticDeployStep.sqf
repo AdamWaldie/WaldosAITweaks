@@ -97,6 +97,14 @@ if (!_enabled || {combatMode _group in ["BLUE","GREEN"]}) exitWith {
 if (count _record >= 10) exitWith {
     _record params ["_recordEpisode","_status","_gunner","_assistant","_expectedClass","_deployPos","_deadline","_weapon","_gunnerBag","_assistantBag"];
     private _handler=_record param [10,-1,[0]];
+    // Permission is live throughout packing, not only when ACTIVE first requests an exit.
+    // A newer held/feature order must not wait for disassembly or bag collection to finish.
+    if (_phase == "SECURITY" && {!_allowPack}
+        && {_status in ["PACK_EXITING","PACK_MOVING","PACKING","TAKING"]}) exitWith {
+        [true] call _retire;
+        _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"YIELDED",serverTime],true];
+        "YIELDED"
+    };
     private _reservedActors=if (_status in ["ASSEMBLING","MOUNTING","ACTIVE"]) then {[_gunner]} else {[_gunner,_assistant]};
     private _operationConflict=count _operation > 0 && {
         (_operation getOrDefault ["intent",""]) in ["WITHDRAW","VEHICLE_WITHDRAW"]
