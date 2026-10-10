@@ -334,7 +334,8 @@ private _delay=call {
                     } else {[]};
                     if (_approachingEntry && {_entryTarget isNotEqualTo []} && {_pair findIf {_x distance2D _entryTarget <= 3} >= 0}) then {
                         _approachingEntry=false;
-                        _entered=true;
+                        // Reaching the entrance only completes approach staging. Interior entry
+                        // is established by a physically visited room below, never doorway proximity.
                         _triedEntries pushBackUnique _entryIndex;
                         _lastTarget=-1;
                         _retries=0;
@@ -395,6 +396,7 @@ private _delay=call {
                         _job set ["lastProgressAt",serverTime];
                     };
                     if (_positionIndex in _cleared) then {
+                        _entered=true;
                         _previousPositionIndex=_positionIndex;
                         _cursor=_cursor+1;
                         _roomsCleared=_roomsCleared+1;
