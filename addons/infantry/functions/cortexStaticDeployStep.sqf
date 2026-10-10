@@ -190,6 +190,9 @@ if (count _record >= 10) exitWith {
                 _record set [13,unitBackpack _assistant];
                 _record set [1,"DROPPING"];
                 _record set [6,time+8];
+                {
+                    _x setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_deployPos,_record select 6]];
+                } forEach [_gunner,_assistant];
                 _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
                 _gunner action ["PutBag",_assistant];
                 "DROPPING"
@@ -207,6 +210,7 @@ if (count _record >= 10) exitWith {
             && {backpack _gunner == _gunnerBag}) then {
             _record set [1,"ASSEMBLING"];
             _record set [6,time+12];
+            _gunner setVariable ["WAIT_Cortex_ActorMove",["STATIC_DEPLOY",+_deployPos,_record select 6]];
             _group setVariable ["WAIT_Danger_StaticDeployment",_record,true];
             _gunner action ["Assemble",_supportBag];
             "ASSEMBLING"

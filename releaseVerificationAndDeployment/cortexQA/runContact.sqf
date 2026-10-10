@@ -866,6 +866,12 @@ deleteVehicle _movementGrenade;
 // short posture. No target, reveal, doFire or synthetic danger is injected: the opponents must
 // acquire and engage through the engine, and the finite recycle counter must advance while the
 // hostile remains alive and known.
+// Idle evasion and contact persistence are not a manoeuvre acceptance case. Preserve the
+// prior effective settings and prevent a competing WAIT route from invalidating the idle fixture.
+private _closeMovementKeys=["WAIT_AIPass_Advance_Enable","WAIT_AIPass_Flank_Enable",
+    "WAIT_AIPass_CoordinatedAssault_Enable","WAIT_AIPass_Reinforce_Enable"];
+private _closeMovementPrevious=createHashMapFromArray (_closeMovementKeys apply {[_x,missionNamespace getVariable [_x,true]]});
+[createHashMapFromArray (_closeMovementKeys apply {[_x,false]})] call WAIT_fnc_CortexTuning;
 private _closeGroup=createGroup [west,true];
 _closeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _closeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
@@ -949,6 +955,7 @@ missionNamespace setVariable ["WAIT_CortexQA_CloseDangerShots",nil];
 deleteVehicle _closeTarget;
 deleteGroup _closeGroup;
 _reflexUnit setUnitPosWeak "AUTO";
+[_closeMovementPrevious] call WAIT_fnc_CortexTuning;
 
 // A curator replacement order is the strongest live interruption edge. Trigger a real engine
 // response, prove it became active, then install and mark an ordinary replacement waypoint through
