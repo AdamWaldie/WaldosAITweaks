@@ -7,6 +7,19 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = ROOT / 'addons/main/functions/Cortex'
 def source(name): return next((ROOT/'addons').rglob(name+'.sqf')).read_text(encoding='utf-8')
 class CortexOperations(unittest.TestCase):
+    def test_support_refusal_cannot_fall_through_as_success(self):
+        apply=source('cortexSupportApply')
+        failed_operation=apply.split('if (count _operation == 0) exitWith {',1)[1].split('private _generation=',1)[0]
+        self.assertIn('_okay=false',failed_operation)
+        self.assertIn('["SUPPORT",false]',failed_operation.replace('_group,',''))
+        self.assertNotIn('CortexSupportAck',failed_operation)
+        failed_move=apply.split('if (!_movementReady) exitWith {',1)[1].split('_state set ["supportOperationGeneration"',1)[0]
+        self.assertIn('_okay=false',failed_move)
+        self.assertIn('MOVEMENT_REJECTED',failed_move)
+        self.assertNotIn('_state set',failed_move)
+        self.assertIn('[_group,_token,_okay,_lease,clientOwner] remoteExecCall',apply)
+        self.assertLess(apply.index('if (!_movementReady) exitWith'),apply.index('_state set ["responding",true]'))
+
     def test_group_tactics_fsm_owns_the_persistent_ground_brain(self):
         discover=source('cortexDiscover')
         start=source('groupBrainStart')
