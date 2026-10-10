@@ -14,7 +14,11 @@
  * Repeat/JIP: a maximum 1.5-second aiming window with 0.25-second retries rechecks ownership, medical/captivity status, Zeus takeover, drill replacement/cancellation, ammunition and frag safety;
  * Replacement operation generations, owner epochs and native protected tasks cancel queued throws.
  * A cancelled queued fragmentation throw records its drill token so assault may continue without it.
- * pending throws are not replayed to joining clients. Fragmentation throws track the actual projectile locally for assault sequencing; the temporary FiredMan handler removes itself or expires after ten seconds.
+ * Pending throws are not replayed to joining clients. Fragmentation throws track the actual projectile
+ * locally for assault sequencing; that FiredMan handler removes itself or expires after ten seconds.
+ * One additional three-second listener records native launch velocity for smoke and fragmentation;
+ * zero horizontal velocity is marked unavailable, not interpreted as an observed bearing. Locality
+ * changes retire the listener. Neither listener changes the projectile or creates recurring work.
  * Arguments:
  * 0: unit <OBJECT>
  * 1: towards <ARRAY> - ATL position
@@ -152,9 +156,11 @@ private _thrown = false;
                     if (_weapon == "Throw" && {count _pending == 4} && {_magazine == (_pending select 0)}) then {
                         private _velocity=velocity _projectile;
                         private _bearing=_actor getDir (_pending select 1);
-                        private _launchBearing=(_velocity select 0) atan2 (_velocity select 1);
-                        private _error=abs (((_launchBearing-_bearing+540) % 360)-180);
-                        private _trace=[time,_pending select 2,_pending select 3,+(_pending select 1),_bearing,_launchBearing,_error,_velocity];
+                        private _directionAvailable=!isNull _projectile
+                            && {((_velocity select 0)^2+(_velocity select 1)^2) > 0.01};
+                        private _launchBearing=if (_directionAvailable) then {(_velocity select 0) atan2 (_velocity select 1)} else {-1};
+                        private _error=if (_directionAvailable) then {abs (((_launchBearing-_bearing+540) % 360)-180)} else {-1};
+                        private _trace=[time,_pending select 2,_pending select 3,+(_pending select 1),_bearing,_launchBearing,_error,_velocity,_directionAvailable];
                         _actor setVariable ["WAIT_Cortex_ThrowReleaseTrace",_trace];
                         diag_log format ["WAIT GRENADE RELEASE TRACE: %1 %2",netId _actor,_trace];
                         _actor removeEventHandler ["FiredMan",_thisEventHandler];
