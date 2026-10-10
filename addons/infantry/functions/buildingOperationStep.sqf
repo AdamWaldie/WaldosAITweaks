@@ -34,6 +34,15 @@ private _delay=call {
     };
     private _finish = {
         params [["_restore",true,[true]],["_reason","CANCELLED",[""]]];
+        // Old-owner callbacks may finish their local FSM, but never retire a successor's
+        // durable order, results, assignments or restoration evidence.
+        if (isNull _group || {!local _group}
+            || {(_brain getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
+            || {(_job getOrDefault ["generation",-1]) != (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}) exitWith {
+            _job set ["finished",true];
+            _job set ["finishReason","OWNERSHIP_LOST"];
+            -1
+        };
         _group setVariable ["WAIT_Cortex_ClearEvidence",[+(_job get "cleared"),+(_job get "unreachable"),+(_job get "retryCounts"),+(_job get "failedBy"),_job get "deadline",_job get "lastProgressAt"],true];
         if (!isNull _group) then {
             private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
@@ -559,7 +568,8 @@ private _delay=call {
 if (isNil "_delay" || {!(_delay isEqualType 0)}) then {_delay=-1};
 private _phase=toUpperANSI (_job getOrDefault ["phase","ENTRY"]);
 private _currentOperation=_group getVariable ["WAIT_Operation",createHashMap];
-if (count _currentOperation > 0
+if (count _currentOperation > 0 && {local _group}
+    && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
     && {(_currentOperation getOrDefault ["generation",-1]) == (_job getOrDefault ["operationGeneration",-2])}
     && {(_currentOperation getOrDefault ["intent",""]) == "CLEAR"}
     && {(_currentOperation getOrDefault ["phase",""]) != _phase}) then {
@@ -577,7 +587,9 @@ if (_delay < 0) then {
 } else {
     _brain set ["nextAt",time+_delay];
 };
-if (!isNull _group) then {
+if (!isNull _group && {local _group}
+    && {(_brain getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_job getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}) then {
     _group setVariable ["WAIT_BuildingBrain_State",[
         _phase,
         _brain getOrDefault ["generation",-1],
