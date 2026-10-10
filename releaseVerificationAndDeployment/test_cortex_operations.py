@@ -966,6 +966,12 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        end=source('cortexFlankEnd')
+        movement=end.split('_members=_members select',1)[1].split('private _stragglers',1)[0]
+        self.assertIn('WAIT_Cortex_ActorMove',movement)
+        self.assertIn('WAIT_fnc_CortexCombatEffective',movement)
+        self.assertIn('"HEAL SOLDIER"',movement)
+        self.assertLess(end.index('_members=_members select'),end.index('doStop _x'))
         ending=source('cortexFlankEnd')
         self.assertIn('private _mayRestore=_sameOperation',ending)
         self.assertIn('if (_mayRestore && {count _groupModeLease == 2}',ending)

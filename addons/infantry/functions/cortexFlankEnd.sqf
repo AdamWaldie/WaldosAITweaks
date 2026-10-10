@@ -78,6 +78,16 @@ private _members = (_drill getOrDefault ["units", []]) select {alive _x && {loca
         _x setVariable ["WAIT_Cortex_FragHandler",-1];
     };
 } forEach _members;
+// Listener cleanup above still covers the old roster. Movement cleanup below may affect
+// only capable foot actors whose current task has not acquired a newer independent owner.
+_members=_members select {
+    private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
+    private _free=_reservation isEqualTo [] || {_reservation isEqualType [] && {count _reservation == 3}
+        && {(_reservation param [2,1e12,[0]]) <= time}};
+    _free && {[_x] call WAIT_fnc_CortexCombatEffective} && {!isPlayer _x} && {isNull objectParent _x}
+        && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+        && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+};
 private _stragglers = ((_drill getOrDefault ["recovery",[]]) apply {_x select 0}) select {_x in _members};
 private _supportToken=_drill getOrDefault ["supportToken",""];
 private _lease=_group getVariable ["WAIT_AIPass_SupportLease",[]];
