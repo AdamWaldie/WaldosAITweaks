@@ -3,6 +3,8 @@
  * Compares physical building entry using independent engine commands across small and large,
  * single- and multi-storey house models, then exercises production garrison and clearance.
  * Locality/authority: scheduled dedicated-server audit; all actors are pinned to this owner.
+ * Clearance acceptance requires covered interior navigation positions; exposed positions remain
+ * separately recorded as exterior evidence, rather than being counted as uncleared rooms.
  * Repeat/JIP: disposable actors and houses are removed; observer state is public for joining clients.
  * Arguments: check <CODE>, phase <CODE>, wait <CODE>; all required audit callbacks.
  * Return: Nothing. Current callers: cortexQA/runServer.sqf.
@@ -84,8 +86,17 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
     };
     missionNamespace setVariable ["WAIT_CortexQA_Actors",_members,true];
     [format ["Fresh clearance: %1 soldiers / %2",_size,_class],"This fresh group has never garrisoned. Watch clearing pairs physically enter and continue through their assigned sector. The 2/6/12-person cases use progressively larger building models. Markers are navigation positions, not proof that a hostile room is safe. No test-side teleport, door opening or forced completion is applied.",getPosATL _house] call _phase;
-    private _rooms=_house buildingPos -1;
+    private _allRooms=_house buildingPos -1;
+    private _rooms=_allRooms select {
+        private _origin=AGLToASL _x;
+        (lineIntersectsSurfaces [_origin vectorAdd [0,0,0.5],_origin vectorAdd [0,0,10],objNull,objNull,true,1]) isNotEqualTo []
+    };
+    // Preserve all-position evidence independently of the production operation's claimed visits.
+    private _exteriorRooms=_allRooms select {!(_x in _rooms)};
+    private _exteriorVisits=_exteriorRooms apply {false};
     private _visits=_rooms apply {false};
+    [format ["CLEAR-fresh-%1-interior-fixture",_size],_rooms isNotEqualTo [],
+        str [typeOf _house,count _rooms,count _exteriorRooms]] call _check;
     // Every committed soldier, including the leader, owns a production clearance lane.
     // Audit exactly that set rather than preserving the superseded exterior-leader assumption.
     private _clearingMembers=+_members;
@@ -110,12 +121,19 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
             private _seen=_memberVisits select _forEachIndex;
             {if (alive _worker && {(getPosASL _worker) vectorDistance (AGLToASL _x) <= 1.5}) then {_seen pushBackUnique _forEachIndex}} forEach _rooms;
         } forEach _clearingMembers;
+        {
+            private _position=_x;
+            if (_clearingMembers findIf {alive _x && {(getPosASL _x) vectorDistance (AGLToASL _position) <= 1.5}} >= 0) then {
+                _exteriorVisits set [_forEachIndex,true];
+            };
+        } forEach _exteriorRooms;
         missionNamespace setVariable ["WAIT_CortexQA_Rooms",[_rooms,_visits],true];
         ((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) in ["COMPLETE","INCOMPLETE"]
     },245] call _wait;
     [format ["CLEAR-fresh-%1-owner-continuity",_size],_accepted && {_entryOwnerStable},
         str [_entryEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],
             _entryGeneration,_group getVariable ["WAIT_OperationResult",[]]]] call _check;
+    diag_log format ["WAIT CLEAR EXTERIOR EVIDENCE: %1 %2",_size,[_exteriorRooms,_exteriorVisits]];
     private _physical=_rooms isNotEqualTo [] && {_visits findIf {!_x} < 0};
     [format ["CLEAR-fresh-%1-physical-room-visits",_size],_physical,format ["visits=%1 units=%2",_visits,_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x]}]] call _check;
     [format ["CLEAR-fresh-%1-result-agrees",_size],_physical && {((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) == "COMPLETE"}] call _check;
