@@ -965,6 +965,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        recovery=source('recoveryStep')
+        self.assertEqual(recovery.count('if (call _reserved) exitWith {"YIELDED"}'),2)
+        self.assertIn('WAIT_Cortex_ActorMove',recovery)
+        self.assertLess(recovery.index('if (call _reserved)'),recovery.index('if (_attempts >= 1)'))
+        self.assertLess(recovery.rindex('if (call _reserved)'),recovery.index('_used set [_key,_attempts+1]'))
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',cancel)
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',release)
         for completion in [cancel,release]:
