@@ -966,6 +966,11 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_operationAnchor,"RELEASE"] call WAIT_fnc_DangerReact',start)
         self.assertLess(start.index('_group setVariable ["WAIT_Operation",_operation,true]'),start.index('"MAINTAIN"] call WAIT_fnc_DangerReact'))
         self.assertIn('WAIT_fnc_CortexGroupMoveClear',cancel)
+        contact=(ROOT/'releaseVerificationAndDeployment'/'cortexQA'/'runContact.sqf').read_text(encoding='utf-8')
+        probe=contact.split('private _generationProbe=',1)[1].split('deleteVehicle _generationProbe',1)[0]
+        self.assertLess(probe.index('call _phase'),probe.index('private _probeDeadline'))
+        self.assertIn('isNil {',probe)
+        self.assertLess(probe.index('isNil {'),probe.index('setVariable ["WAIT_Danger_CoverPending"'))
         bounds=source('cortexFlankStep')
         self.assertIn('&& {[_x] call _actorTaskFree}',bounds)
         self.assertIn('[_actor] call _mayIssueMovement',bounds)

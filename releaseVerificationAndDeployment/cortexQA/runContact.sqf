@@ -19,6 +19,10 @@ _generationProbeGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 _generationProbeGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true];
 _generationProbeGroup setVariable ["acex_headless_blacklist",true,true];
 private _generationProbe=_generationProbeGroup createUnit ["O_Soldier_F",[2800,1250,0],[],0,"NONE"];
+["Diagnostic: stale cover cleanup","Synthetic ownership records only. An old callback must not clear a newer lease, pending request, assessment or actor reservation. This does not prove physical cover behaviour.",getPosATL _generationProbe] call _phase;
+// The phase card yields eight seconds. Install and test short-lived records afterward,
+// atomically, so discovery/cleanup cannot become the event under test.
+isNil {
 private _probeSpot=[2805,1250,0];
 private _probeDeadline=time+10;
 private _probeLease=[_generationProbe,2,_probeDeadline,+_probeSpot];
@@ -30,7 +34,6 @@ _generationProbeGroup setVariable ["WAIT_Danger_CoverLease",+_probeLease];
 _generationProbeGroup setVariable ["WAIT_Danger_CoverPending",+_probePending];
 _generationProbeGroup setVariable ["WAIT_Danger_CoverDecision",+_probeDecision];
 _generationProbe setVariable ["WAIT_Cortex_ActorMove",+_probeMove];
-["Diagnostic: stale cover cleanup","Synthetic ownership records only. An old callback must not clear a newer lease, pending request, assessment or actor reservation. This does not prove physical cover behaviour.",getPosATL _generationProbe] call _phase;
 [_generationProbeGroup,_generationProbe,[2810,1250,0],1,true] call WAIT_fnc_DangerCoverStep;
 ["DANGER-cover-stale-generation-isolation",
     (_generationProbeGroup getVariable ["WAIT_Danger_CoverLease",[]]) isEqualTo _probeLease
@@ -44,6 +47,7 @@ _generationProbe setVariable ["WAIT_Cortex_ActorMove",+_probeMove];
         && {(_generationProbeGroup getVariable ["WAIT_Danger_CoverPending",[]]) isEqualTo []}
         && {(_generationProbe getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []},
     "Bookkeeping-only diagnostic; matching generation must release its reservations"] call _check;
+};
 deleteVehicle _generationProbe;
 deleteGroup _generationProbeGroup;
 // A projectile created with createVehicle has no firing actor and does not reliably enter Arma's
