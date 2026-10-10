@@ -538,6 +538,8 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('setUnitPos ',forced_block)
         self.assertIn('_records select [0,12]',engine_select)
         self.assertIn('private _priorities=[2,1,9,4,3,6,3,5,8,7,0]',engine_select)
+        self.assertIn('_rank >= 0 && {count _position >= 2}',engine_select)
+        self.assertIn('_queue=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]+(_queue select [0,11])',engine_fsm)
         self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
         self.assertIn('currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]',engine_mode)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
@@ -603,7 +605,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CortexZeusHeld',source('cortexExternalTakeover'))
         for forbidden in [' doMove ', ' commandMove ', ' doTarget ', ' doFire ', ' forceWeaponFire ', ' reveal ']:
             self.assertNotIn(forbidden,engine_act)
-        self.assertIn('_queue pushBack [_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]',engine_fsm)
+        self.assertIn('_queue=[[_dangerCause,_dangerPos,_dangerUntil,_dangerCausedBy]]',engine_fsm)
         self.assertIn('_records=+(_queue select [0,12])',engine_fsm)
         self.assertIn('_queue=[]',engine_fsm)
         self.assertIn('WAIT_fnc_DangerEngineSubmit',engine_fsm)
