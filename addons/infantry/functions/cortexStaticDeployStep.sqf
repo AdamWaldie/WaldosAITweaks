@@ -325,6 +325,12 @@ private _gunnerIndex=_ready findIf {
         && {getText (configFile >> "CfgVehicles" >> _bag >> "assembleInfo" >> "assembleTo") != ""}
 };
 if (_gunnerIndex < 0) exitWith {
+    // A real primary carrier may be temporarily covering, boarding or acting. Do not
+    // turn that transient reservation into NO_PRIMARY_BAG for the entire engagement.
+    private _carrierPresent=(units _group) findIf {
+        alive _x && {local _x} && {getNumber (configFile >> "CfgVehicles" >> backpack _x >> "assembleInfo" >> "primary") == 1}
+    } >= 0;
+    if (_carrierPresent) exitWith {"IDLE"};
     _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"NO_PRIMARY_BAG",serverTime],true];
     "IDLE"
 };
@@ -337,6 +343,7 @@ private _compatibleBases=if (isText _baseConfig) then {[getText _baseConfig]} el
 _compatibleBases=_compatibleBases - [""];
 private _assistantIndex=_ready findIf {(backpack _x) in _compatibleBases};
 if (_assistantIndex < 0) exitWith {
+    if ((units _group) findIf {alive _x && {local _x} && {(backpack _x) in _compatibleBases}} >= 0) exitWith {"IDLE"};
     _group setVariable ["WAIT_Danger_StaticDeployAttempt",[_episode,"NO_BASE_BAG",serverTime],true];
     "IDLE"
 };

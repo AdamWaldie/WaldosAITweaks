@@ -89,7 +89,7 @@ if ((_attempt param [0,-1,[0]]) == _episode) exitWith {_attempt param [1,"IDLE",
 // An existing group operation already owns its participant set. Static support is selected before a
 // new manoeuvre starts and then composes beside it; it never removes an actor from a live operation.
 if (count (_group getVariable ["WAIT_Operation",createHashMap]) > 0) exitWith {
-    _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,"BUSY",serverTime],true];
+    // Temporary operation ownership is not a failed contact-episode attempt.
     "IDLE"
 };
 private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
@@ -105,7 +105,9 @@ private _weapons=(nearestObjects [_anchor,["StaticWeapon"],75,true]) select {
 };
 if (_weapons isEqualTo []) exitWith {
     private _deploy=[_group,_state,_enemies] call WAIT_fnc_CortexStaticDeployStep;
-    _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,_deploy,serverTime],true];
+    if (_deploy != "IDLE") then {
+        _group setVariable ["WAIT_Danger_StaticAttempt",[_episode,_deploy,serverTime],true];
+    };
     _deploy
 };
 private _rankedWeapons=_weapons apply {[_anchor distance2D _x,_x]};
