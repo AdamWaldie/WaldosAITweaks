@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from report_standalone_performance import read_run, compare
+from unittest.mock import patch
+from report_standalone_performance import read_run, compare, main
 
 class StandalonePerformanceReportTests(unittest.TestCase):
     def fixture(self,folder,loaded):
@@ -62,3 +63,18 @@ class StandalonePerformanceReportTests(unittest.TestCase):
             with self.assertRaises(ValueError): read_run(folder)
             log.write_text(text.replace('50, 300, 50, 1, true','50, 300, 50, 1, false'))
             with self.assertRaises(ValueError): read_run(folder)
+
+    def test_cli_writes_invalid_evidence_and_fails_for_missing_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            self.fixture(root/'native',False)
+            self.fixture(root/'wait',True)
+            log=root/'native/server/run.rpt'
+            log.write_text(log.read_text()+'Warning Message: dependent on downloadable content\n')
+            output=root/'result.json'
+            with patch('sys.argv',['report',str(root/'native'),str(root/'wait'),'--output',str(output)]), patch('builtins.print'):
+                self.assertEqual(main(),1)
+            report=json.loads(output.read_text())
+            self.assertEqual(report['status'],'INVALID')
+            self.assertIn('invalidate',report['reason'])
+            self.assertNotIn('median_overhead_percent',report)

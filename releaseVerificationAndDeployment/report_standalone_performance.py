@@ -72,7 +72,10 @@ def main():
     parser.add_argument('wait',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
-    report=compare(read_run(args.native),read_run(args.wait))
+    try:
+        report=compare(read_run(args.native),read_run(args.wait))
+    except (ValueError, OSError) as error:
+        report=dict(status="INVALID",reason=str(error),native_runtime=str(args.native),wait_runtime=str(args.wait))
     args.output.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))
     return 0 if report['status'] == 'PASS' else 1
