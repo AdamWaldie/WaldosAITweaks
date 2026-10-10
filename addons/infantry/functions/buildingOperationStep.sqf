@@ -300,6 +300,11 @@ private _delay=call {
                     private _pairId=format ["PAIR_%1",_pairIndex];
                     private _candidates=_pending select {!(_pairId in (_failedBy select _x))};
                     if (_candidates isNotEqualTo []) then {
+                        // The shared queue's floor ordering must survive each actor's nearest-room
+                        // ranking. Otherwise a close upstairs window can win before ground entry.
+                        private _lowestFloor=1e12;
+                        {_lowestFloor=_lowestFloor min ((_positions select _x) select 2)} forEach _candidates;
+                        _candidates=_candidates select {abs (((_positions select _x) select 2)-_lowestFloor) < 1.8};
                         private _point=_pair select (_moverIndex mod count _pair);
                         private _ranked=_candidates apply {
                             private _candidate=_positions select _x;
