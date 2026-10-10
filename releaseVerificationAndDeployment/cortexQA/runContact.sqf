@@ -862,6 +862,20 @@ private _closePersistent=[{
 },25] call _wait;
 // Evasion acceptance requires a native hit/near-round response followed by real displacement.
 // The actor and opponent remain engine-controlled; no danger record or animation is injected.
+private _evasionNativeEvidence=[];
+private _evasionEligibility=[];
+private _evasionNative=[{
+    private _response=_reflexUnit getVariable ["WAIT_Danger_EngineResponse",[]];
+    if (count _response == 4 && {(_response select 0) == "IMMEDIATE"}
+        && {(_response select 1) in [2,9]}) then {
+        _evasionNativeEvidence=+_response;
+        _evasionEligibility=[stance _reflexUnit,speed _reflexUnit,currentCommand _reflexUnit,
+            currentWeapon _reflexUnit,primaryWeapon _reflexUnit,
+            _reflexUnit getVariable ["WAIT_Cortex_ActorMove",[]],
+            count (_reflexGroup getVariable ["WAIT_Operation",createHashMap])];
+        true
+    } else {false}
+},8] call _wait;
 private _evasionObserved=[{count (_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]) == 5},12] call _wait;
 private _evasionEvidence=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
 private _evasionMoved=false;
@@ -869,8 +883,8 @@ if (_evasionObserved) then {
     private _evasionStart=_evasionEvidence select 4;
     _evasionMoved=[{_reflexUnit distance2D _evasionStart >= 0.4},4] call _wait;
 };
-["DANGER-evasion-native-stimulus-prerequisite",_evasionObserved,str _evasionEvidence] call _check;
-["DANGER-evasion-physical-displacement",_evasionObserved && {_evasionMoved},
+["DANGER-evasion-native-stimulus-prerequisite",_evasionNative,str [_evasionNativeEvidence,_evasionEligibility]] call _check;
+["DANGER-evasion-physical-displacement",_evasionNative && {_evasionObserved} && {_evasionMoved},
     str [_evasionEvidence,getPosATL _reflexUnit]] call _check;
 [createHashMapFromArray [["WAIT_AIPass_DangerEvasion_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _disabledEvasion=+(_reflexUnit getVariable ["WAIT_Danger_LastEvasion",[]]);
