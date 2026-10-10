@@ -2,7 +2,7 @@
  * Author: WaldoTheWarfighter
  * Purpose: Completes a matching WAIT operation after its physical outcome is known.
  * Locality/authority: Current group owner only.
- * Repeat/JIP: A replaced or previous-owner operation is not restored or reported as complete. The completion record is public.
+ * Repeat/JIP: A replaced, previous-owner or externally claimed operation is not reported as complete. The completion record is public.
  * Arguments: 0 group <GROUP>; 1 generation <NUMBER>; 2 result <STRING, COMPLETE>; 3 reason <STRING, COMPLETE>.
  * Return Value: BOOL - true when the matching operation was released.
  * Current callers: OperationStep and finite feature completion paths.
@@ -13,6 +13,13 @@ if (isNull _group || {!local _group}) exitWith {false};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _generation}) exitWith {false};
 if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])) exitWith {false};
+// Completion queued before a takeover is no longer an owned physical outcome. Retire only the
+// matching generation as cancelled; never publish COMPLETE over a curator/specialist handover.
+if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {
+    private _handoverReason=["EXTERNAL","ZEUS"] select ([_group] call WAIT_fnc_CortexZeusHeld);
+    [_group,_generation,_handoverReason] call WAIT_fnc_OperationCancel;
+    false
+};
 [_group,createHashMap,objNull,[],"RELEASE",_generation] call WAIT_fnc_CortexVehicleReverseStep;
 [_group,_generation] call WAIT_fnc_CortexGroupMoveClear;
 // Only an on-foot operation can have acquired a danger posture lease. Air, vehicle and naval
