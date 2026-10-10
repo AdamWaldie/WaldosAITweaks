@@ -12,6 +12,7 @@
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
  *
  * Repeat/JIP: a maximum 1.5-second aiming window with 0.25-second retries rechecks ownership, medical/captivity status, Zeus takeover, drill replacement/cancellation, ammunition and frag safety;
+ * Replacement operation generations, owner epochs and native protected tasks cancel queued throws.
  * A cancelled queued fragmentation throw records its drill token so assault may continue without it.
  * pending throws are not replayed to joining clients. Fragmentation throws track the actual projectile locally for assault sequencing; the temporary FiredMan handler removes itself or expires after ten seconds.
  * Arguments:
@@ -69,8 +70,10 @@ private _thrown = false;
             private _throwGeneration=(_unit getVariable ["WAIT_Cortex_ThrowGeneration",0])+1;
             _unit setVariable ["WAIT_Cortex_ThrowGeneration",_throwGeneration];
             _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"QUEUED",_kind,_throwGeneration]];
+            private _operationGeneration=(group _unit) getVariable ["WAIT_OperationGeneration",0];
+            private _ownerEpoch=(group _unit) getVariable ["WAIT_AIPass_Epoch",0];
             private _release = {
-                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context", "_expires", "_retry", "_throwGeneration"];
+                params ["_unit", "_muzzle", "_magazine", "_group", "_hold", "_kind", "_towards", "_drillToken", "_context", "_expires", "_retry", "_throwGeneration", "_operationGeneration", "_ownerEpoch"];
                 // A newer request supersedes this queued attempt without cancelling its frag token.
                 if ((_unit getVariable ["WAIT_Cortex_ThrowGeneration",-1]) != _throwGeneration) exitWith {};
                 private _cancel = {
@@ -79,6 +82,12 @@ private _thrown = false;
                     if (_kind == "FRAG" && {_drillToken != ""}) then {
                         _unit setVariable ["WAIT_Cortex_FragCancelled",_drillToken];
                     };
+                };
+                if ((_group getVariable ["WAIT_OperationGeneration",0]) != _operationGeneration
+                    || {(_group getVariable ["WAIT_AIPass_Epoch",0]) != _ownerEpoch}
+                    || {!local _group}
+                    || {currentCommand _unit in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]}) exitWith {
+                    ["NEW_TASK"] call _cancel;
                 };
                 if (!([_unit] call WAIT_fnc_CortexCombatEffective) || {!local _unit} || {vehicle _unit != _unit} || {group _unit != _group}
                     || {[_unit] call WAIT_fnc_CompatibilityExternalControl}
@@ -152,7 +161,7 @@ private _thrown = false;
                     _unit forceWeaponFire [_muzzle,_muzzle];
                 };
             };
-            [_release, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context,time+1.5,_release,_throwGeneration]] call CBA_fnc_execNextFrame;
+            [_release, [_unit,_muzzle,_magazine,group _unit,+(group _unit getVariable ["WAIT_AIPass_ZeusHold",[]]),_kind,+_towards,_drillToken,+_context,time+1.5,_release,_throwGeneration,_operationGeneration,_ownerEpoch]] call CBA_fnc_execNextFrame;
             _thrown = true;
         };
     };

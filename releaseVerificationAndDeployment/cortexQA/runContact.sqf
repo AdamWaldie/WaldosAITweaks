@@ -910,7 +910,10 @@ for "_sample" from 1 to 12 do {
 };
 private _movementArrived=[{_reflexUnit distance2D _movementDestination < 6},45] call _wait;
 ["DANGER-committed-mover-not-forced-prone",_movementStarted && {_movementDanger} && {!_requestedProne},str [_requestedProne,unitPos _reflexUnit,stance _reflexUnit]] call _check;
-["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},str [getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
+["DANGER-committed-route-physical-arrival",_movementStarted && {_routeGenerationIntact} && {_movementArrived},
+    str [_movementStarted,_routeGenerationIntact,_movementArrived,getPosATL _reflexUnit,_movementDestination]] call _check;
+["DANGER-committed-route-physical-continuity",_movementStarted && {_movementDanger} && {_routeGenerationIntact} && {_movementArrived},
+    str [_movementStarted,_movementDanger,_routeGenerationIntact,_movementArrived,getPosATL _reflexUnit,_movementDestination,_movementGeneration,_reflexGroup getVariable ["WAIT_Operation",createHashMap]]] call _check;
 deleteVehicle _movementGrenade;
 [_reflexGroup,_movementGeneration,"AUDIT_COMPLETE"] call WAIT_fnc_OperationCancel;
 
