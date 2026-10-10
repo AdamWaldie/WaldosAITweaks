@@ -620,3 +620,5 @@ The enabled vehicle-orientation audit now explicitly records natural target know
 Mixed-observer audit now samples exact commander/VEHICLE/ARMOURED/vehicle identity during its existing observation window. It no longer requires the latest group event to remain mounted after a legitimate foot-leader detection. All original mounted identity criteria are preserved; physical retest remains pending.
 
 Crew recovery now retains one owner-local refusal observation with stage reason, danger cause/generation, vehicle speed, commander native command and native knowledge. No eligibility/ownership rule or seat-change behaviour is relaxed. This is diagnostic evidence, not recovery acceptance.
+
+The live 4531829 batch passes stationary shared/separate physical remount but fails moving separate-group remount. The next audit emits the existing remount retirement reason plus vehicle speed/forced-speed/position/owner/stop request and passenger distance. This adds evidence without altering boarding or masking its failure.

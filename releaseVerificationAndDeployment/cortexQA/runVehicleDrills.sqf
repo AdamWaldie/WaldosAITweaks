@@ -658,7 +658,11 @@ if (_replacementOrder) then {
 ["Vehicle calm remount: "+_layout,"The enemy is removed. Once contact expires, both recorded passengers must physically board the same truck again. The test never moves them into seats.",[1900,1100,0]] call _phase;
 private _remounted=[{_passengers findIf {!alive _x || {vehicle _x != _truck}} < 0},100] call _wait;
 ["REMOUNT-physical-seat-occupancy",_enabledStartedMounted && {_dismounted} && {_remounted},
-    str ["previouslyDismounted",_dismounted,_passengerGroup getVariable ["WAIT_Cortex_Remount",[]],_passengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x]}]] call _check;
+    str ["previouslyDismounted",_dismounted,_passengerGroup getVariable ["WAIT_Cortex_Remount",[]],
+        (_passengerGroup getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["lastRemountEnd",[]],
+        [speed _truck,getForcedSpeed _truck,getPosATL _truck,owner _truck,groupOwner _passengerGroup,
+            _truck getVariable ["WAIT_Cortex_DismountStopRequest",[]]],
+        _passengers apply {[vehicle _x,assignedVehicle _x,currentCommand _x,_x distance2D _truck]}]] call _check;
 ["REMOUNT-group-membership-independent",_passengers findIf {group _x != _passengerGroup} < 0
     && {group (_crew select 0) == _group} && {(_passengerGroup != _group) isEqualTo _separate},
     "Membership is measured independently of seat occupancy; the original combined check follows"] call _check;
