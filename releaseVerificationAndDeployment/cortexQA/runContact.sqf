@@ -1427,6 +1427,11 @@ for "_sample" from 1 to 15 do {
     } forEach _units;
 };
 ["TRANS-no-old-search-order-resurrection",_heldDestination,format ["maximumDistance=%1",_largestReturnDistance]] call _check;
+// An undetected interruption opponent survives the failed transition window otherwise.
+// Its results are already recorded; do not let it become another contact for later static tests.
+deleteVehicle _interruptEnemy;
+_interruptEnemy=objNull;
+
 
 // An empty static weapon is an actor-level support opportunity inside the same contact brain. The
 // fixture first proves the disabled state, then enables the production gate and requires a real
@@ -1597,6 +1602,13 @@ private _deployReleased=[{
         && {vehicle _deployGunner == _deployGunner}
 },75] call _wait;
 ["DANGER-static-deploy-contact-release",_deployActive && {_deployReleased},str [vehicle _deployGunner,assignedVehicle _deployGunner,_deployGroup getVariable ["WAIT_Danger_StaticDeployment",[]]]] call _check;
+diag_log format ["WAIT STATIC PACK CONTACT TRACE: %1",[
+    _deployGroup getVariable ["WAIT_AIPass_PublicPhase",""],
+    _deployGroup getVariable ["WAIT_AIPass_State",createHashMap],
+    [_deployGroup] call WAIT_fnc_CortexKnowledge,
+    _deployGroup getVariable ["WAIT_Operation",createHashMap],
+    (waypoints _deployGroup) apply {[_x,waypointType _x,waypointDescription _x]}]];
+
 private _deployPacked=_deployReleased && {isNull _deployedWeapon}
     && {backpack _deployGunner == "O_HMG_01_weapon_F"}
     && {backpack _deployAssistant == "O_HMG_01_support_F"};
