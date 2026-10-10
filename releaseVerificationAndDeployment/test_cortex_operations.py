@@ -504,6 +504,9 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(engine_select.index('private _priorities='),engine_select.index('forEach (_records select [0,12])'))
         self.assertIn('currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN"]',engine_mode)
         self.assertNotIn('currentCommand _actor in ["ATTACK"',engine_mode)
+        self.assertIn('(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]',engine_mode)
+        self.assertIn('time < (_carrierTask select 2)',engine_mode)
+        self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('private _carrierTask'))
         self.assertLess(engine_mode.index('if (!isNull objectParent _actor)'),engine_mode.index('checkAIFeature "MOVE"'))
         self.assertIn('(side _group) getFriend (side _source) < 0.6',engine_mode)
         for danger_source in [engine_mode,engine,request,source('dangerStep'),source('dangerEngineRecycle'),setup,

@@ -29,6 +29,12 @@ if (fleeing _actor || {currentCommand _actor in ["GET IN","GET OUT","ACTION","HE
 // on-foot MOVE gate so an intentionally immobile static gunner, artillery crew or stopped vehicle
 // commander still publishes danger to the correct dedicated owner. No movement is issued here.
 if (!isNull objectParent _actor) exitWith {"VEHICLE"};
+// Only a live carrier reservation yields immediate danger actions. Ordinary ATTACK and squad
+// manoeuvre remain combat-enabled; a stale reservation cannot suppress the danger response.
+private _carrierTask = _actor getVariable ["WAIT_Cortex_ActorMove",[]];
+if (count _carrierTask == 3
+    && {(_carrierTask select 0) in ["STATIC_DEPLOY","STATIC_PACK"]}
+    && {time < (_carrierTask select 2)}) exitWith {"FORCED"};
 if !(_actor checkAIFeature "MOVE") exitWith {"RELEASE"};
 private _cause=_record select 0;
 if (_cause in [1,2,4,9]) exitWith {"IMMEDIATE"};

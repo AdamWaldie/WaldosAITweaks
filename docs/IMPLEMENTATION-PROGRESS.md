@@ -646,3 +646,7 @@ Immediate danger eligibility has an explicit actor-local context for ordinary me
 
 
 Candidate `66127ab`, batch `runtime-20261010-030436-104`, passed physical native boarding and rejection of an attempted WAIT group route during GET IN at 03:14:59. The combined danger-handover assertions still lack the expected friendly-source response and are not promoted. Evasion received native SUPPRESSED input, but its fixture actor was crouching, moving at 10.55 km/h and owned by a manoeuvre operation; idle evasion therefore remains unexercised. Subsequent fixture isolation and phase-reservation corrections await retest.
+
+Finite carried-weapon reservations now classify as forced tasks in the engine danger FSM while on foot and before their exact deadline. Ordinary autonomous ATTACK remains combat-enabled; mounted actors retain vehicle response classification. This is implemented and statically checked, but physical deployment acceptance remains open.
+
+The 2026-10-10 03:04 packaged danger batch completed with 40 server findings and zero client findings. Its six matched SQF error lines came from an invalid speed getter in the withdrawal diagnostic; that getter is corrected for the next batch. The existing content-load warning and physical failures remain unresolved.
