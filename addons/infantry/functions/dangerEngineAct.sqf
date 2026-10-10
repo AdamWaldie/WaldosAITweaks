@@ -137,15 +137,19 @@ if (_desiredStance != "") then {
     if (_groupLeaseIndex >= 0) then {
         private _groupLease=_groupLeases select _groupLeaseIndex;
         if (_currentStance == (_groupLease param [2,"",[""]])
-            && {count _groupLease < 6 || {(_groupLease select 4) == (_group getVariable ["WAIT_OperationGeneration",0])
-                && {(_groupLease select 5) == (_group getVariable ["WAIT_AIPass_Epoch",0])}}}) then {
+            && {count _groupLease == 6} && {(_groupLease select 4) == (_group getVariable ["WAIT_OperationGeneration",0])
+                && {(_groupLease select 5) == (_group getVariable ["WAIT_AIPass_Epoch",0])}}) then {
             _priorStance=_groupLease param [1,_currentStance,[""]];
         };
         _groupLeases deleteAt _groupLeaseIndex;
         _group setVariable ["WAIT_Danger_GroupHideLeases",_groupLeases];
     };
     private _mayApply=true;
-    if (count _lease >= 3) then {
+    if (count _lease > 0 && {count _lease != 6}) then {
+        _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
+        _mayApply=false;
+    };
+    if (count _lease == 6) then {
         _priorStance=_lease param [0,_currentStance,[""]];
         private _previousApplied=_lease param [1,"",[""]];
         // A different owner changed the stance during our response. Drop WAIT's lease and leave it alone.

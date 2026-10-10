@@ -18,8 +18,8 @@ if (isNull _actor) exitWith {false};
 // Clear it even when there was no stance to restore or locality changed during the response.
 _actor setVariable ["WAIT_Danger_EngineResponse",nil];
 private _lease=_actor getVariable ["WAIT_Danger_EngineStanceLease",[]];
-if (count _lease < 3) exitWith {false};
 _actor setVariable ["WAIT_Danger_EngineStanceLease",nil];
+if (count _lease != 6) exitWith {false};
 private _evidence={
     params ["_reason"];
     _actor setVariable ["WAIT_Danger_EngineReleaseEvidence",[serverTime,_reason,+_lease,unitPos _actor]];
