@@ -313,3 +313,5 @@ Vehicle target cleanup retires WAIT's recorded target when dead, captive, surren
 Aircraft planning rejects protected targets. Active attack updates revalidate living targets for captive, surrender, detention and side change, releasing WAIT attack control as TARGET_NO_LONGER_HOSTILE. A destroyed objective remains distinct and follows the existing physical-attack egress path. Physical protection-during-air-attack acceptance remains pending.
 
 Aircraft cleanup no longer restores enableAttack because the controller does not modify that setting. It preserves later policy changes. Owned-target cleanup additionally requires local ordinary crew without player, remote, specialist or declared actor control; newer target assignments remain untouched. Physical aircraft policy/target handover acceptance remains pending.
+
+Ordinary aircraft route resume selects the actual authored waypoint handle rather than treating a list offset as an engine waypoint ID. Deleted temporary waypoints may leave ID gaps; the selected handle must still match the recorded resume position. Physical resume-after-waypoint-deletion acceptance remains pending.

@@ -199,9 +199,11 @@ private _finish={
                 || {(crew _aircraft) findIf {[group _x] call WAIT_fnc_CortexExternalTakeover} >= 0};
             if (count _resumePosition >= 2 && {!_resumeExternal}) then {
                 {if (alive _x && {!isPlayer _x}) then {_x doFollow leader _resumeGroup}} forEach crew _aircraft;
-                if (_resumeWaypointIndex >= 0 && {_resumeWaypointIndex < count waypoints _resumeGroup}
-                    && {waypointPosition [_resumeGroup,_resumeWaypointIndex] distance2D _resumePosition <= 2}) then {
-                    _resumeGroup setCurrentWaypoint [_resumeGroup,_resumeWaypointIndex];
+                if (_resumeWaypointIndex >= 0 && {_resumeWaypointIndex < count waypoints _resumeGroup}) then {
+                    private _resumeWaypoint=(waypoints _resumeGroup) select _resumeWaypointIndex;
+                    if (waypointPosition _resumeWaypoint distance2D _resumePosition <= 2) then {
+                        _resumeGroup setCurrentWaypoint _resumeWaypoint;
+                    };
                 };
             };
         };
