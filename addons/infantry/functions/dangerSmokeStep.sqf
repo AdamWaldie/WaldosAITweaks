@@ -31,7 +31,8 @@ private _reserved=if (count _operation > 0) then {+(_operation getOrDefault ["pa
 private _actorAvailable={
     params ["_actor"];
     private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
-    !(count _reservation == 3 && {(_reservation param [2,-1,[0]]) > time})
+    _reservation isEqualTo []
+        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}}
 };
 private _candidates=(units _group) select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}

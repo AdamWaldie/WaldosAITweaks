@@ -115,7 +115,9 @@ private _thrown = false;
                 if (_dangerInvalid) exitWith {[] call _cancel};
                 if (count _context == 3 && {(_context select 0) == "DANGER"}) then {
                     private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
-                    if (count _reservation == 3 && {(_reservation param [2,-1,[0]]) > time}) then {
+                    private _reservationFree=_reservation isEqualTo []
+                        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+                    if (!_reservationFree) then {
                         _dangerInvalid=true;
                     };
                 };
