@@ -134,6 +134,14 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
         str [_entryEpoch,_group getVariable ["WAIT_AIPass_Epoch",0],
             _entryGeneration,_group getVariable ["WAIT_OperationResult",[]]]] call _check;
     diag_log format ["WAIT CLEAR EXTERIOR EVIDENCE: %1 %2",_size,[_exteriorRooms,_exteriorVisits]];
+    private _localResult=(_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""];
+    private _sharedResult=_group getVariable ["WAIT_OperationResult",[]];
+    private _expectedReason=["CLEAR_INCOMPLETE","CLEAR_COMPLETE"] select (_localResult == "COMPLETE");
+    [format ["CLEAR-fresh-%1-shared-outcome-agrees",_size],
+        _localResult in ["COMPLETE","INCOMPLETE"] && {count _sharedResult == 5}
+            && {(_sharedResult select 0) == "CLEAR"} && {(_sharedResult select 1) == _localResult}
+            && {(_sharedResult select 2) == _entryGeneration} && {(_sharedResult select 4) == _expectedReason},
+        str [_localResult,_sharedResult]] call _check;
     private _physical=_rooms isNotEqualTo [] && {_visits findIf {!_x} < 0};
     [format ["CLEAR-fresh-%1-physical-room-visits",_size],_physical,format ["visits=%1 units=%2",_visits,_members apply {[getPosATL _x,currentCommand _x,expectedDestination _x,_x checkAIFeature "PATH",_x checkAIFeature "MOVE",behaviour _x]}]] call _check;
     [format ["CLEAR-fresh-%1-result-agrees",_size],_physical && {((_group getVariable ["WAIT_Cortex_ClearResult",[]]) param [0,""]) == "COMPLETE"}] call _check;
