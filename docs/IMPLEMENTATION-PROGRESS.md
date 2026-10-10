@@ -632,3 +632,5 @@ The new audit still consumed rifle ammunition without retaining a projectile. Th
 Targetless contact-suite grenades now come from an excluded same-side actor. The earlier hidden hostile firer could still produce legitimate native enemy attribution, contradicting no-contact acceptance. Real projectile/explosion delivery remains required; enemy-acquisition cases retain their separate hostile fixtures. Physical retest remains pending.
 
 The observer-cover fixture now waits for a native idle command and reports MOVE/PATH readiness before the stimulus, without stopping/resetting the actor. Combined physical cover acceptance requires that prerequisite; native formation movement must not be misclassified as a WAIT cover failure. Retest remains pending.
+
+Queued danger-grenade cancellation now exits the callback scope. The previous nested exitWith left only the context block, allowing stale/expired danger work to reach weapon release. This is an ownership fix, not proof of successful smoke firing. Physical supersession/expiry/disabled/Zeus checks remain pending.

@@ -77,13 +77,16 @@ private _thrown = false;
                     || {(_group getVariable ["WAIT_AIPass_ZeusHold",[]]) isNotEqualTo _hold}
                     || {!(_magazine in magazines _unit)}
                     || {(((_group getVariable ["WAIT_AIPass_State",createHashMap]) getOrDefault ["drill",createHashMap]) getOrDefault ["token",""]) != _drillToken}) exitWith {call _cancel};
-                if (count _context == 3 && {(_context select 0) == "DANGER"}) then {
-                    if (!([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
+                // Reject at the callback scope: exitWith inside the context block only left
+                // that block and allowed stale danger work to reach weapon release below.
+                private _dangerInvalid=count _context == 3 && {(_context select 0) == "DANGER"} && {
+                    !([_group,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
                         || {!([_group,"WAIT_AIPass_DangerSmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
                         || {(_context select 1) != (_group getVariable ["WAIT_Danger_Generation",-1])}
                         || {time >= (_context select 2)}
-                        || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {call _cancel};
+                        || {[_group] call WAIT_fnc_CortexExternalTakeover}
                 };
+                if (_dangerInvalid) exitWith {call _cancel};
                 if (_kind == "FRAG" && {_drillToken != ""}
                     && {!([_group,"WAIT_AIPass_Assault_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}) exitWith {call _cancel};
                 _unit setDir (_unit getDir _towards);
