@@ -2,8 +2,13 @@
  * Author: WaldoTheWarfighter
  * Keeps travelling occupants assigned to their actual seats, directs mounted fire and unloads only snapshotted passengers on halt.
  * Locality/authority: each server/HC acts only on its own vehicles and units from the server registry.
+ * Explicit mounted fire requests require an available operating crew member and the shared
+ * full-corridor position veto. A blocked lane retires only a still-matching convoy target.
+ * This five-second upkeep is not continuous fire/blast safety or proof a burst has stopped.
  * Hostile Hit events count as contact even when armour absorbs the damage. Local handler ownership
  * records its convoy group/machine so obsolete cleanup cannot remove an adopted handler.
+ * Unload policy uses an exact public lease; an external value change blocks reacquisition until release.
+ * New individual MOVE handover blocks same-revision crew writes through a public yield receipt.
  * Repeat/JIP: five-second owner checks repair occupied seat assignments and replay a durable halt
  * after transfer. Boarding orders are cancelled before unloading; driver and operating turret roles are excluded.
  * Arguments: 0: group <GROUP>; 1: configuration <ARRAY> [revision, speed, gap, push, vehicles, phase, cargo, restore, halt reason, believed threat ATL, expiry].
@@ -15,6 +20,7 @@
 params ["_group", "_configuration",["_reservationCargo",[],[[]]]];
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {};
 _configuration params ["_revision", "", "", "", "_vehicles", "_phase", "_cargo", "_restore", ["_reason", "MANUAL"], ["_threat", []], ["_deadline", 0]];
+if (((_group getVariable ["WAIT_Convoy_CommandYield",[]]) param [0,-1]) == _revision) exitWith {};
 if (time < (_group getVariable ["WAIT_Convoy_CrewDue", -1])) exitWith {};
 _group setVariable ["WAIT_Convoy_CrewDue", time + 5];
 private _externalCrew = _vehicles findIf {(crew _x) findIf {[_x] call WAIT_fnc_CortexExternalOwner != ""} >= 0} >= 0;
@@ -44,7 +50,7 @@ private _seats = createHashMap;
                 _vehicle setVariable ["WAIT_Convoy_HitEHOwner",_hitOwner];
             };
             // Explicit cargo orders decide unloading; operating turrets never receive a dismount order.
-            if (getUnloadInCombat _vehicle isNotEqualTo [false, false]) then {_vehicle setUnloadInCombat [false, false]};
+            [_vehicle,_group,"ACQUIRE",_revision] call WAIT_fnc_ConvoyUnloadPolicy;
 
         };
         {
@@ -83,18 +89,22 @@ private _seats = createHashMap;
                 };
             };
             private _fireEnabled = [_group,"WAIT_Convoy_MountedFire_Enable",true] call WAIT_fnc_CortexFeatureEnabled && {[group _unit,"WAIT_Convoy_MountedFire_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
-            if (local _unit && {!isPlayer _unit} && {!_fireEnabled || {!(combatMode group _unit in ["YELLOW", "RED"] && {unitCombatMode _unit in ["YELLOW", "RED"]})}}) then {
+            private _fireReady=_fireEnabled && {local _unit} && {!isPlayer _unit}
+                && {!_passenger} && {_role in ["gunner","commander","turret"]}
+                && {[_unit] call WAIT_fnc_CortexCombatEffective}
+                && {simulationEnabled _unit} && {!isObjectHidden _unit}
+                && {simulationEnabled _vehicle} && {!isObjectHidden _vehicle}
+                && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)};
+            if (local _unit && {!isPlayer _unit} && {!_fireReady || {!(combatMode group _unit in ["YELLOW", "RED"] && {unitCombatMode _unit in ["YELLOW", "RED"]})}}) then {
                 private _previous = _unit getVariable ["WAIT_Convoy_Target", objNull];
                 if (!isNull _previous && {assignedTarget _unit == _previous}) then {_unit doTarget objNull};
                 if (!isNil {_unit getVariable "WAIT_Convoy_Target"}) then {_unit setVariable ["WAIT_Convoy_Target", nil, true]};
             };
-            if (_fireEnabled && {local _unit} && {alive _unit} && {!isPlayer _unit} && {!_passenger} && {_role in ["gunner", "commander", "turret"]}
-                && {!(_unit getVariable ["ACE_isUnconscious", false])} && {lifeState _unit != "INCAPACITATED"}
-                && {combatMode group _unit in ["YELLOW", "RED"]} && {unitCombatMode _unit in ["YELLOW", "RED"]}
-                && {!([group _unit] call WAIT_fnc_CortexExternalTakeover)}) then {
+            if (_fireReady && {combatMode group _unit in ["YELLOW","RED"]}
+                && {unitCombatMode _unit in ["YELLOW","RED"]}) then {
                 private _report = [_unit] call WAIT_fnc_ConvoyThreat;
-                if (_report isNotEqualTo []) then {
-                    private _enemy = _report select 0;
+                private _enemy=_report param [0,objNull,[objNull]];
+                if (!isNull _enemy && {[_unit,aimPos _enemy] call WAIT_fnc_CortexLineOfFireClear}) then {
                     // Target/fire never orders pursuit or changes ROE.
                     if (assignedTarget _unit != _enemy) then {
                         _unit doTarget _enemy;
@@ -125,11 +135,38 @@ private _seats = createHashMap;
             };
             _vehicle forceSpeed 0;
             _vehicle setVariable ["WAIT_Convoy_OwnedSpeed",[_group,_revision,0]];
-            if (local driver _vehicle && {!isNull driver _vehicle}) then {doStop driver _vehicle};
+            if (local driver _vehicle && {!isNull driver _vehicle}) then {
+                doStop driver _vehicle;
+                private _corridor=_vehicle getVariable ["WAIT_DrivingCorridor_Work",createHashMap];
+                if (((_corridor getOrDefault ["controller",[]]) param [0,""]) == "CONVOY") then {
+                    [_vehicle,_group,"CONVOY_HALT",false] call WAIT_fnc_DrivingCorridorRelease;
+                };
+                private _bypass=_vehicle getVariable ["WAIT_DrivingBypass_Work",createHashMap];
+                private _bypassController=_bypass getOrDefault ["controller",[]];
+                if ((_bypassController param [0,""]) == "CONVOY" && {_revision >= (_bypassController param [1,1e9])}) then {
+                    [_vehicle,_group,"CONVOY_HALT",false,false,_bypassController select 1] call WAIT_fnc_DrivingBypassRelease;
+                };
+                private _pathLease=_vehicle getVariable ["WAIT_Convoy_PathLease",[]];
+                if (count _pathLease == 7 && {(_pathLease select 0) == _group}
+                    && {(_pathLease select 1) == _revision}) then {_vehicle setVariable ["WAIT_Convoy_PathLease",nil,true]};
+            };
         };
     };
 } forEach _vehicles;
 if (_phase != "HALT") exitWith {};
+if (local _group) then {
+    private _bypassPassage=_group getVariable ["WAIT_Convoy_BypassPassage",createHashMap];
+    if (count _bypassPassage > 0 && {_revision >= (_bypassPassage get "revision")}
+        && {(missionNamespace getVariable ["WAIT_Convoy_LocalRegistry",[]]) findIf {
+            (_x select 0) isEqualTo _group && {(_x select 1) isEqualTo _configuration}
+        } >= 0}) then {[_group,[_bypassPassage get "revision"],"CONVOY_HALT"] call WAIT_fnc_ConvoyBypassStep};
+    private _passage=_group getVariable ["WAIT_Convoy_CorridorPassage",createHashMap];
+    // HALT is a new explicit revision; retire the original passage only after the existing stops.
+    if (count _passage > 0 && {_revision >= (_passage get "revision")}
+        && {(missionNamespace getVariable ["WAIT_Convoy_LocalRegistry",[]]) findIf {
+            (_x select 0) isEqualTo _group && {(_x select 1) isEqualTo _configuration}
+        } >= 0}) then {[_group,[_passage get "revision"],"CONVOY_HALT"] call WAIT_fnc_ConvoyCorridorStep};
+};
 {
     _x params ["_unit", "_vehicle"];
     if (local _unit && {vehicle _unit == _unit} && {(_unit getVariable ["WAIT_Convoy_Unloaded", []]) isNotEqualTo [_group, _revision]}) then {_unit setVariable ["WAIT_Convoy_Unloaded", [_group, _revision], true]};

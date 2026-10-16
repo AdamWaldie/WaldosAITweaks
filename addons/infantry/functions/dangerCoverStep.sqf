@@ -6,6 +6,8 @@
  * to player, Zeus, specialist, native-command and WAIT-operation ownership before selecting or issuing movement.
  * Repeat/JIP: One group lease coalesces a danger burst. Each call either retains, releases or creates
  * one finite move. Physical arrival releases the movement reservation immediately; the deadline is a failure bound.
+ * The lease also binds owner epoch, operation generation and full authored waypoint receipt.
+ * Changed orders and legacy leases retire metadata without return-to-formation commands.
  * A locality or generation change retires it without restoring over newer work. Failed approach cleanup
  * checks both horizontal distance and floor band, and follows only while the expected destination still matches.
  * Arguments: 0 group <GROUP>; 1 actor <OBJECT>; 2 threat position <ARRAY>; 3 danger generation <NUMBER>;
@@ -52,12 +54,18 @@ if (isNull _group || {isNull _actor} || {!local _group} || {!local _actor}
     || {([_actor] call WAIT_fnc_CortexExternalOwner) != ""} || {group _actor != _group}) exitWith {[] call _clearLease};
 // A delayed old observation cannot retire the lease belonging to the current danger generation.
 if (_generation >= 0 && {_generation != (_group getVariable ["WAIT_Danger_Generation",0])}) exitWith {[] call _clearLease};
+private _readOrderContext={
+    [_group getVariable ["WAIT_AIPass_Epoch",0],_group getVariable ["WAIT_OperationGeneration",0],
+        [_group] call WAIT_fnc_NativeOrderReceipt]
+};
+private _entryContext=call _readOrderContext;
 private _lease=_group getVariable ["WAIT_Danger_CoverLease",[]];
+private _leaseContextCurrent=count _lease == 6 && {(_lease select 5) isEqualTo _entryContext};
 private _moveProof=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
 // A fresh observation is not automatically a new movement intent. Adopt a still-live solid-cover
 // route only when the nearby new hazard is screened at that exact destination. Never extend its
 // deadline, repeat doMove or let a stale callback adopt a newer generation.
-if (!_releaseOnly && {count _lease >= 5} && {(_lease select 0) == _actor} && {(_lease select 1) < _generation}
+if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 5} && {(_lease select 0) == _actor} && {(_lease select 1) < _generation}
     && {time < (_lease select 2)} && {count _threat == 3}
     && {_threat distance2D (_lease select 4) <= 3}
     && {count _moveProof == 3 && {(_moveProof select 0) == "DANGER_COVER"}
@@ -77,7 +85,7 @@ if (!_releaseOnly && {count _lease >= 5} && {(_lease select 0) == _actor} && {(_
     };
 };
 
-if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
+if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {(_lease select 1) == _generation} && {time < (_lease select 2)}
     && {_actor distance2D (_lease select 3) > 2
         || {abs (((getPosATL _actor) select 2)-((_lease select 3) param [2,0])) > 1.5}}
@@ -98,15 +106,16 @@ if (!_releaseOnly && {count _lease >= 4} && {(_lease select 0) isEqualTo _actor}
     && {currentCommand _actor in ["","MOVE","ATTACK","FIRE","SUPPRESS"]}) exitWith {true};
 private _arrived=false;
 private _timedOut=false;
+private _orderChanged=count _lease >= 4 && {!_leaseContextCurrent};
 if (count _lease >= 4) then {
     _lease params ["_leasedActor","_leasedGeneration","_expires","_leasedSpot"];
     private _distance=if (isNull _leasedActor) then {-1} else {_leasedActor distance2D _leasedSpot};
     private _height=if (isNull _leasedActor) then {-1} else {abs (((getPosATL _leasedActor) select 2)-(_leasedSpot param [2,0]))};
-    private _endReason=if (_releaseOnly) then {"RELEASED"} else {
+    private _endReason=if (_orderChanged) then {"ORDER_CHANGED"} else {if (_releaseOnly) then {"RELEASED"} else {
         if (!isNull _leasedActor && {alive _leasedActor} && {_distance <= 2} && {_height <= 1.5}) then {"AT_DESTINATION"} else {
             ["INTERRUPTED","TIMEOUT"] select (time >= _expires)
         }
-    };
+    }};
     _arrived=_endReason == "AT_DESTINATION";
     _timedOut=_endReason == "TIMEOUT" && {_leasedActor == _actor} && {_leasedGeneration == _generation};
     // One owner-local observation, not an accumulating history or proof of effective screening.
@@ -118,7 +127,7 @@ if (count _lease >= 4) then {
             && {(_actorMove select 1) distance2D _leasedSpot <= 1}
             && {(_actorMove select 2) == _expires}) then {
             _leasedActor setVariable ["WAIT_Cortex_ActorMove",nil];
-            if (!_releaseOnly && {alive _leasedActor} && {!isPlayer _leasedActor} && {isNull remoteControlled _leasedActor}
+            if (!_releaseOnly && {_leaseContextCurrent} && {_entryContext isEqualTo (call _readOrderContext)} && {alive _leasedActor} && {!isPlayer _leasedActor} && {isNull remoteControlled _leasedActor}
                 && {([_leasedActor] call WAIT_fnc_CortexExternalOwner) == ""} && {group _leasedActor == _group}
                 && {isNull objectParent _leasedActor} && {_leasedActor != leader _group}
                 // Successful arrival is useful cover, not a reason to run back across exposure.
@@ -138,6 +147,7 @@ if (count _lease >= 4) then {
     };
     _group setVariable ["WAIT_Danger_CoverLease",nil];
 };
+if (_orderChanged) exitWith {["ORDER_CHANGED"] call _clearLease};
 if (_arrived) exitWith {["AT_DESTINATION"] call _clearLease};
 // A deadline is terminal for this observation, not permission to recommit the same failed route.
 if (_timedOut) exitWith {["TIMEOUT"] call _clearLease};
@@ -218,7 +228,8 @@ if (!_found || {count _spot < 2}
     };
     false
 };
-if ([_group] call WAIT_fnc_CortexExternalTakeover || {[_group] call WAIT_fnc_CortexZeusHeld}
+if (_entryContext isNotEqualTo (call _readOrderContext)
+    || {[_group] call WAIT_fnc_CortexExternalTakeover} || {[_group] call WAIT_fnc_CortexZeusHeld}
     || {[_actor] call WAIT_fnc_CompatibilityExternalControl}
     || {count (_group getVariable ["WAIT_Operation",createHashMap]) > 0}
     || {!(currentCommand _actor in ["","ATTACK","FIRE","SUPPRESS"]) || {abs speed _actor > 0.5}}) exitWith {[] call _clearLease};
@@ -229,7 +240,7 @@ _group setVariable ["WAIT_Danger_CoverDecision",["COMMITTED",time,_actor,_genera
 private _deadline=time+((2+(_origin distance2D _spot)/2) max 4 min 12);
 _actor doMove _spot;
 _actor setVariable ["WAIT_Cortex_ActorMove",["DANGER_COVER",+_spot,_deadline]];
-_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,_deadline,+_spot,+_threat]];
+_group setVariable ["WAIT_Danger_CoverLease",[_actor,_generation,_deadline,+_spot,+_threat,+_entryContext]];
 private _stats=_group getVariable ["WAIT_Danger_EngineStats",createHashMap];
 _stats set ["coverMoves",((_stats getOrDefault ["coverMoves",0])+1) min 100000];
 _stats set ["lastCoverActor",_actor];

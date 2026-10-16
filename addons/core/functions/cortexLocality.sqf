@@ -12,6 +12,8 @@
  * Combat-mode restoration checks the applied value before restoring, preserving newer ROE changes.
  * Aircraft occupants are restored from any earlier ground lease but are not adopted into ground
  * transitions; their dedicated flight controllers remain the sole movement owner.
+ * Ordinary driving brains retire before the owner epoch changes; successor queued work starts
+ * against the new epoch and does not inherit an exhausted old-owner receipt.
  * Arguments: 0: group <GROUP>, default grpNull; 1: gained locality <BOOL>, default false.
  * Return Value: Nothing unless a value is explicitly returned below.
  * Current callers: group Local handler and discovery.
@@ -57,6 +59,11 @@ if (local _group) then {
 };
 [_group,true] call WAIT_fnc_CortexHearingLocal;
 [_group,true] call WAIT_fnc_DangerSetup;
+// Retire the exact previous driving receipt before changing its owner epoch.
+private _drivingBrain=_group getVariable ["WAIT_Driving_Brain",createHashMap];
+if (count _drivingBrain > 0) then {[_drivingBrain,"LOCALITY_CHANGE"] call WAIT_fnc_DrivingOperationFinish};
+_group setVariable ["WAIT_Driving_Brain",nil];
+_group setVariable ["WAIT_Driving_FSM",nil];
 private _oldBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
 if (count _oldBrain > 0) then {
     _oldBrain set ["cancelled",true];

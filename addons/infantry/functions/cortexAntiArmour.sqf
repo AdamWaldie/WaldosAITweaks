@@ -9,7 +9,10 @@
  * nearby under one ten-second actor reservation. A replacement destination cancels that relocation;
  * it is never reissued every tick. An engagement order is held for 15 s. A squad with no anti-tank capability facing armour is handled by
  * morale (WAIT_fnc_CortexMorale), which can make it withdraw.
- * Locality and authority: call where the group is local.
+ * Locality and authority: call where the group is local. Actor-local player/remote/external
+ * ownership and native service actions refuse selection and are rechecked before writes.
+ * Native FOLLOW/WAIT/STOP or non-route tasks also refuse opportunistic relocation. A MOVE
+ * must address the current plain authored waypoint; individual destination replacements refuse.
  *
  * Review contract: A blocked backblast causes only a relocation request. A later group step must recheck clearance before ordering the shot.
  * Active actor reservations and every member of a tactical drill are not relocated. Explicit
@@ -38,6 +41,18 @@ params [["_group", grpNull, [grpNull]], ["_state", createHashMap, [createHashMap
 if (isNull _group || {!local _group} || {!([_group] call WAIT_fnc_CortexIsEligible)}
     || {!([_group,"WAIT_AIPass_AntiArmour_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}
     || {!(combatMode _group in ["YELLOW","RED"])}) exitWith {false};
+private _actorAvailable={
+    params ["_actor"];
+    !isNull _actor && {local _actor} && {group _actor == _group}
+        && {[_actor] call WAIT_fnc_CortexCombatEffective}
+        && {!isPlayer _actor} && {isNull remoteControlled _actor}
+        && {isNull (_actor getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        && {simulationEnabled _actor} && {!isObjectHidden _actor}
+        && {([_actor] call WAIT_fnc_CortexExternalOwner) == ""}
+        && {!([_actor] call WAIT_fnc_CompatibilityExternalControl)}
+        && {!(currentCommand _actor in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED",
+            "HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
+};
 private _now = time;
 private _relocation = _state getOrDefault ["antiArmourRelocation",[]];
 private _relocationBlocks = false;
@@ -80,7 +95,7 @@ if (_armourIndex < 0) exitWith {false};
 private _armour = vehicle _enemyUnit;
 private _gunners = (units _group) select {
     private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
-    ([_x] call WAIT_fnc_CortexCombatEffective) && {local _x} && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {isNull objectParent _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
+    ([_x] call _actorAvailable) && {!(_x in _moving)} && {!(_x in _recovering)} && {unitCombatMode _x in ["YELLOW","RED"]} && {isNull objectParent _x} && {"AT" in ([_x] call WAIT_fnc_CortexCapabilities)}
         && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}
 };
 if (_gunners findIf {assignedTarget _x == _armour && {(_x getVariable ["WAIT_AIPass_TargetHold", -1]) > _now}} >= 0) exitWith {false};
@@ -98,20 +113,45 @@ private _blocked = (lineIntersectsSurfaces [_eye, _behind, _gunner, objNull, tru
         (_offset vectorDotProduct ((ATLToASL _enemyPos) vectorDiff (getPosASL _gunner))) < 0
     } >= 0};
 // Holding/clearing owns the destination even when the gunner may fire from it.
+private _mayRelocate={
+    if (!([_gunner] call _actorAvailable)) exitWith {false};
+    private _command=currentCommand _gunner;
+    if !(_command in ["","MOVE"]) exitWith {false};
+    private _index=currentWaypoint _group;
+    private _authored=_index > 0 && {_index < count waypoints _group};
+    if (!_authored) exitWith {_command == ""};
+    private _waypoint=[_group,_index];
+    // Intentional conditions/scripts/attachments belong to the mission, not this task.
+    if (waypointType _waypoint != "MOVE" || {waypointScript _waypoint != ""}
+        || {(waypointStatements _waypoint) isNotEqualTo ["true",""]}
+        || {(waypointTimeout _waypoint) findIf {_x != 0} >= 0}
+        || {synchronizedWaypoints _waypoint isNotEqualTo []}
+        || {synchronizedTriggers _waypoint isNotEqualTo []}
+        || {!isNull waypointAttachedObject _waypoint}
+        || {!isNull waypointAttachedVehicle _waypoint}) exitWith {false};
+    private _destination=(expectedDestination _gunner) param [0,[]];
+    _command == "" || {count _destination == 3
+        && {_destination vectorDistance waypointPosition _waypoint <= 3}}
+};
+if (_blocked && {!call _mayRelocate}) exitWith {false};
 if (_blocked && {!(_gunner checkAIFeature "PATH") || {!(_gunner checkAIFeature "MOVE")}
     || {_gunner in (_drill getOrDefault ["units",[]])}
     || {(_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []}
     || {(_group getVariable ["WAIT_AIPass_Defend",[]]) isNotEqualTo []}
     || {_group getVariable ["WAIT_AIPass_ClearBuilding",false]}}) exitWith {false};
 if (_blocked) exitWith {
+    private _relocationRoute=[_group] call WAIT_fnc_NativeOrderReceipt;
     if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
+    if !([_gunner] call _actorAvailable) exitWith {false};
     private _spot = ([(getPosATL _gunner) getPos [6, (_enemyPos getDir _gunner) + selectRandom [-70, 70]], _enemyPos, 8, [], _group] call WAIT_fnc_CortexFindCover) select 0;
+    if (!call _mayRelocate || {([_group] call WAIT_fnc_NativeOrderReceipt) isNotEqualTo _relocationRoute}) exitWith {false};
     _gunner doMove _spot;
     _gunner setVariable ["WAIT_Cortex_ActorMove",["ANTI_ARMOUR",+_spot,_now+10]];
     _state set ["antiArmourRelocation",[_gunner,+_spot,_now+10]];
     false
 };
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
+if !([_gunner] call _actorAvailable) exitWith {false};
 _gunner doTarget _armour;
 _gunner doFire _armour;
 _gunner setVariable ["WAIT_AIPass_TargetHold", _now + 15];

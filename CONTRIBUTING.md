@@ -34,3 +34,11 @@ HEMTT provides compiler and lint diagnostics for current Arma commands. Fix comp
 Game acceptance uses fresh packaged content through `launch_mod_audit.ps1`, dedicated server/client, `-noBattlEye`, 3840x2160 and the required CBA dependency (optional ZEN with `-WithZen`). Batch related cases. Verify actual mission entry and fresh RPT evidence. Test real physical behaviour, live fire, casualty flow, Zeus replacement, cleanup, JIP and locality changes; an accepted flag or waypoint cannot pass a behaviour case. Rendering changes also need direct capture review across supported aspect ratios.
 
 Release promotion requires the exact tested signed package and matching evidence. Incomplete acceptance remains visible in the coverage manifest. No source rebuild may replace the candidate after its audit.
+
+## Behaviour module review gate
+
+CBA owns addon settings, enablement and tuning. Native Zeus and optional ZEN modules issue scoped behaviour tasks; destination, radius, task speed and other parameters belong to that task rather than global configuration. A new module must declare its explicit target, real executor, authority, termination and guide in `releaseVerificationAndDeployment/behaviour_module_contracts.json`. The build tests reject unreviewed native module classes or ZEN labels and direct settings APIs in the declared handlers. This gate requires human/agent semantic review too: it cannot prove a handler or an indirect helper implements the claimed intent. Trace the request through server validation, current-owner execution, acknowledgement, interruption and cleanup before exposing the control. Record physical acceptance separately; a contract entry is not completion credit.
+
+## CI usage and review checkpoints
+
+Validate locally while a PR is draft, and batch related commits into coherent push checkpoints. Automatic full validation runs on main pushes and on opened/updated/reopened ready PRs, including the ready-for-review transition. An explicit manual validation run remains available for draft branches. Superseded validation runs for the same PR/ref are cancelled; validation jobs have a 30-minute bound and ordinary build artifacts expire after seven days. Signed candidates and published-release promotion retain their existing explicit triggers and full gates. No test or acceptance criterion is removed by this scheduling policy.

@@ -5,6 +5,8 @@
  * Individual player, remote-control and external-owner actors never receive restoration commands.
  * A live MOVE is recalled only when its destination matches this clearance job receipt;
  * newer individual movement survives release even when the caller requests formation restoration.
+ * FOLLOW, ATTACK, WAIT and other native tasks do not grant recall authority; only idle/STOP
+ * or a MOVE to the recorded clearance destination can resume formation.
  * Exact exterior observation leases are retired; watching is cleared only for free native actors
  * under unchanged WAIT authority, never a player, external takeover or replacement task.
  * Locality/authority: server authenticates dispatch; the current owner executes group commands.
@@ -48,6 +50,7 @@ _group setVariable ["WAIT_AIPass_ClearOrder", nil, true];
 _group setVariable ["WAIT_Cortex_ClearFollowBudget",nil,true];
 _group setVariable ["WAIT_AIPass_ClearBuilding", nil, true];
 _group setVariable ["WAIT_Cortex_ClearEgress",nil,true];
+_group setVariable ["WAIT_Cortex_ClearEarlyExits",nil,true];
 _group setVariable ["WAIT_AIPass_ClearApplied", nil];
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
@@ -87,9 +90,9 @@ if (isNull _leader) then {_leader=leader _group};
             };
             private _issued=_movementTargets getOrDefault [netId _x,[]];
             private _destination=(expectedDestination _x) param [0,[]];
-            private _movementOwned=currentCommand _x != "MOVE"
-                || {count _issued == 3 && {count _destination == 3}
-                    && {_destination vectorDistance _issued <= 0.25}};
+            private _movementOwned=currentCommand _x in ["","STOP"]
+                || {currentCommand _x == "MOVE" && {count _issued == 3 && {count _destination == 3}
+                    && {_destination vectorDistance _issued <= 0.25}}};
             if (_restore && {_taskFree} && {_movementOwned}) then {
                 _x setVariable ["WAIT_Cortex_ClearRecall",[_group getVariable ["WAIT_AIPass_ClearGeneration",0],_group getVariable ["WAIT_AIPass_Epoch",0],_leader,time+5]];
                 _x doFollow _leader;

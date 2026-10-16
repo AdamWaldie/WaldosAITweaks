@@ -194,6 +194,7 @@ if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {
             && {_nativeTask || {_command == "FOLLOW"} || {_command == "MOVE" && {!_matching}}}
     };
     if (_diverted isNotEqualTo []) then {[_group,false,_diverted] call WAIT_fnc_CortexGarrisonRelease};
+    [_group] call WAIT_fnc_CortexGarrisonRefill;
 };
 // A group tick can complete bounded assessment and planning after a curator or specialist
 // controller has claimed the group. Check immediately before actor-level commands so old
@@ -559,7 +560,7 @@ private _get = {
 // Combined-arms roles are public finite intent. Reapply once when a group moves to a new owner;
 // the token prevents an obsolete owner or an older opportunity from reviving work.
 private _combinedRole=_group getVariable ["WAIT_Cortex_CombinedRole",[]];
-if (count _combinedRole == 7 && {serverTime < (_combinedRole select 5)}) then {
+if ((count _combinedRole) in [7,8] && {serverTime < (_combinedRole select 5)}) then {
     private _combinedApplied=_group getVariable ["WAIT_Cortex_CombinedApplied",[]];
     if ((_combinedApplied param [0,""]) != (_combinedRole select 0)
         || {(_combinedApplied param [1,-1]) != clientOwner}) then {
@@ -801,7 +802,26 @@ if (_phaseGateClosed) then {
 // Soldiers holding ground from a finished drill rejoin once the leader has caught up with them.
 // A previous completed bound must not issue doFollow over a replacement drill.
 // Transfer these actors out of old holding ownership before considering reunion.
-private _ownedMovers = _activeDrill getOrDefault ["units",[]];
+private _ownedMovers = +(_activeDrill getOrDefault ["units",[]]);
+// CLEAR/garrison/defence and an authored stationary order supersede the old drill's
+// reunion ownership even when they use no active drill record. Transfer metadata only.
+if (_ordered) then {_ownedMovers append (_state getOrDefault ["holders",[]])};
+private _holderOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if (count _holderOperation > 0
+    && {(_holderOperation getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_OperationGeneration",0])}
+    && {(_holderOperation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_holderOperation getOrDefault ["cancelReason",""]) == ""}) then {
+    _ownedMovers append (_holderOperation getOrDefault ["participants",[]]);
+};
+// Terminal clearance deliberately holds actual posts until a new authored order.
+// An old completed bound must not recall these actors around the indoor leader.
+private _holderClearHold=_group getVariable ["WAIT_Cortex_ClearHold",[]];
+if (count _holderClearHold == 4
+    && {(_holderClearHold select 0) == (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}
+    && {(_holderClearHold select 1) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {([_group] call WAIT_fnc_NativeOrderReceipt) isEqualTo (_holderClearHold select 2)}) then {
+    _ownedMovers append (_holderClearHold select 3);
+};
 private _holders = (_state getOrDefault ["holders", []]) select {alive _x && {local _x} && {group _x == _group} && {!(_x in _ownedMovers)}};
 _state set ["holders",_holders];
 // A completed coordinated bound still belongs to the squad-level MOVE/COVER cycle.

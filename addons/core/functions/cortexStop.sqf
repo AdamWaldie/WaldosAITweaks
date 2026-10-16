@@ -22,6 +22,7 @@
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
  * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
  * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
+ * Ordinary driving FSM identities and terminal retry receipts are synchronously retired.
  * Ordinary unload-in-combat leases likewise restore only their exact unchanged applied value.
  * Targetless onboard danger reports are also retracted before the scheduler is discarded.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
@@ -173,6 +174,10 @@ if (!isNil "_civilianCreated") then {
 {
     [_x,true] call WAIT_fnc_CortexHearingLocal;
     [_x,true] call WAIT_fnc_DangerSetup;
+    private _drivingBrain=_x getVariable ["WAIT_Driving_Brain",createHashMap];
+    if (count _drivingBrain > 0) then {[_drivingBrain,"CORTEX_STOPPED"] call WAIT_fnc_DrivingOperationFinish};
+    _x setVariable ["WAIT_Driving_Brain",nil];
+    _x setVariable ["WAIT_Driving_FSM",nil];
     private _brain=_x getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {
         _brain set ["cancelled",true];

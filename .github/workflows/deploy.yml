@@ -13,6 +13,8 @@ jobs:
         with:
           python-version: '3.12'
       - uses: arma-actions/hemtt@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           version: v1.22.0
       # Promote the exact candidate tested locally. Rebuilding changes signed PBO identity.

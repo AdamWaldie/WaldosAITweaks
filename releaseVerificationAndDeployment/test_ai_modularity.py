@@ -153,7 +153,7 @@ class AIModularityContracts(unittest.TestCase):
             self.assertIn(value,cover)
         drive = src('cortexInfantrySpeed')
         self.assertIn('count _people > 32',drive)
-        self.assertIn('min 30',drive)
+        self.assertIn('min 250',drive)
         self.assertNotIn('doMove',drive)
         self.assertNotIn('forceSpeed',drive)
     def test_convoy_checks_each_crew_and_passenger_group(self):

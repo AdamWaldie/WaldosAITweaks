@@ -7,7 +7,8 @@
  * flashbangs are skipped. The throw muzzle is the "Throw" weapon muzzle that accepts that magazine.
  * The queued throw revalidates ownership and requests target observation. Release requires actual
  * body and viewing alignment; an unaligned actor cancels rather than throwing behind contact. A fragmentation grenade is never thrown when a
- * friendly, civilian, captive, surrendering or handcuffed soldier is within 12 m of the target, or when the target is under 8 m or over
+ * friendly, civilian, captive, surrendering or handcuffed soldier is within max(12 m, four times the selected ammo indirectHitRange) of the target. The thrower
+ * must also remain outside that radius; invalid ammo radii are refused. The target cannot be under 8 m or over
  * 40 m away. Engine AI already treat smoke particles as blocking sight.
  * Locality and authority: call where the unit is local (forceWeaponFire is local-argument).
  *
@@ -49,14 +50,8 @@ if (!(_kind in ["SMOKE","FRAG"]) || {!([group _unit] call WAIT_fnc_CortexIsEligi
 private _simulations = if (_kind == "FRAG") then {["shotGrenade"]} else {["shotSmoke", "shotSmokeX"]};
 if (toUpperANSI _kind == "FRAG") then {
     private _distance = _unit distance2D _towards;
-    private _side = side group _unit;
     if (_distance < 8 || {_distance > 40}) exitWith {_simulations = []};
-    if ((_towards nearEntities ["CAManBase", 12]) findIf {
-        private _otherSide = side group _x;
-        alive _x && {captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}
-                                || {_x getVariable ["ace_captives_isHandcuffed",false]}
-            || {_otherSide == civilian} || {_side getFriend _otherSide >= 0.6}}
-    } >= 0) then {_simulations = []};
+
 };
 if (_simulations isEqualTo []) exitWith {false};
 private _throwConfig = configFile >> "CfgWeapons" >> "Throw";
@@ -72,6 +67,20 @@ private _thrown = false;
         && {!(_ammo isKindOf ["Chemlight_base", configFile >> "CfgAmmo"])}
         && {getNumber (_ammoConfig >> "ace_grenades_flashbang") != 1}) then {
         private _muzzleIndex = _muzzles findIf {_magazine in getArray (_throwConfig >> _x >> "magazines")};
+        if (_kind == "FRAG" && {_muzzleIndex >= 0}) then {
+            private _blastRange=getNumber (_ammoConfig >> "indirectHitRange");
+            private _safetyRadius=12 max (4*_blastRange);
+            // Engine indirect damage can extend to four times its configured base radius.
+            // Reject malformed data and unsafe ammo before turning or queuing this actor.
+            if (!finite _blastRange || {_blastRange < 0} || {!finite _safetyRadius}
+                || {_unit distance2D _towards <= _safetyRadius}
+                || {(_towards nearEntities ["CAManBase",_safetyRadius]) findIf {
+                    private _otherSide=side group _x;
+                    alive _x && {captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}
+                        || {_x getVariable ["ace_captives_isHandcuffed",false]}
+                        || {_otherSide == civilian} || {(side group _unit) getFriend _otherSide >= 0.6}}
+                } >= 0}) then {_muzzleIndex=-1};
+        };
         if (_muzzleIndex >= 0) then {
             private _muzzle = _muzzles select _muzzleIndex;
             // A throw leaves along the unit's current facing. Do not alter facing until the queued
@@ -161,17 +170,23 @@ private _thrown = false;
                     };
                 };
                 private _unsafeRelease=false;
+                private _safetyRadius=12;
                 if (_kind == "FRAG") then {
                     private _distance=_unit distance2D _towards;
                     private _side=side _group;
-                    _unsafeRelease=_distance < 8 || {_distance > 40}
-                        || {(_towards nearEntities ["CAManBase",12]) findIf {
+                    private _releaseAmmo=getText (configFile >> "CfgMagazines" >> _magazine >> "ammo");
+                    private _releaseConfig=configFile >> "CfgAmmo" >> _releaseAmmo;
+                    private _blastRange=getNumber (_releaseConfig >> "indirectHitRange");
+                    _safetyRadius=12 max (4*_blastRange);
+                    _unsafeRelease=!isClass _releaseConfig || {!finite _blastRange} || {_blastRange < 0}
+                        || {!finite _safetyRadius} || {_distance <= _safetyRadius} || {_distance < 8} || {_distance > 40}
+                        || {(_towards nearEntities ["CAManBase",_safetyRadius]) findIf {
                             alive _x && {captive _x || {_x getVariable ["ace_captives_isSurrendering",false]}
                                 || {_x getVariable ["ace_captives_isHandcuffed",false]}
                                 || {side group _x == civilian} || {_side getFriend (side group _x) >= 0.6}}
                         } >= 0};
                 };
-                if (_unsafeRelease) exitWith {["UNSAFE_RELEASE",[_unit distance2D _towards]] call _cancel};
+                if (_unsafeRelease) exitWith {["UNSAFE_RELEASE",[_unit distance2D _towards,_safetyRadius]] call _cancel};
                 _unit setVariable ["WAIT_Cortex_ThrowDecision",[time,"ALIGNED",_kind,_throwGeneration,[_bodyError,_aimError,_muzzle]]];
                 // Observe the native release once; never steer or replace the projectile.
                 private _oldTrace=_unit getVariable ["WAIT_Cortex_ThrowTraceHandler",-1];

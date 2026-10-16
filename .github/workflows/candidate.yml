@@ -12,6 +12,8 @@ jobs:
         with:
           python-version: '3.12'
       - uses: arma-actions/hemtt@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           version: v1.22.0
       - run: python -m unittest discover -s releaseVerificationAndDeployment -p 'test_*.py'

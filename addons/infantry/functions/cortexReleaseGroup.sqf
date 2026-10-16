@@ -179,6 +179,9 @@ if (local _group && {!_keepBrain}) then {
 // local set as well as currently occupied vehicles.
 if (local _group) then {
     if (!_keepBrain) then {
+        private _drivingBrain=_group getVariable ["WAIT_Driving_Brain",createHashMap];
+        if (count _drivingBrain > 0) then {[_drivingBrain,_reason] call WAIT_fnc_DrivingOperationFinish};
+        _group setVariable ["WAIT_Driving_Brain",nil];
         {[_x,_group] call WAIT_fnc_DrivingAssistRelease} forEach (_group getVariable ["WAIT_DrivingAssist_Vehicles",[]]);
         _group setVariable ["WAIT_DrivingAssist_Vehicles",nil];
     };

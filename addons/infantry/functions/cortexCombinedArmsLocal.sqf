@@ -3,7 +3,7 @@
  * Applies one expiring combined-arms contact role on the selected asset owner.
  * Direct fire requires a combat-effective local gunner and target-suitable loaded station ammo;
  * incapacitated operators or incompatible target classes reject the exact reservation.
- * A direct-fire ground vehicle receives target knowledge and one gunner fire request without losing
+ * A direct-fire ground vehicle receives fresh receipt-bounded knowledge and one gunner fire request without losing
  * its authored route. Manoeuvring vehicles and aircraft receive knowledge only: their finite
  * operation owns later target and weapon commands after movement/release geometry is valid. A second
  * ground vehicle receives a finite safe-side manoeuvre destination selected once from a bounded set
@@ -14,15 +14,19 @@
  * Locality/authority: current group owner only; server-issued public token must still match. Asset
  * aircraft discovery requires the pilot's group; ground discovery accepts the commander's or driver's group.
  * Repeat/JIP: duplicate roles are harmless; expiry, Zeus takeover, feature closure and token replacement reject stale calls.
+ * Contact positions require exactly three finite numeric ATL components, each within +/-1e6m.
+ * Invalid payloads reject before local cooldown or server reservation; no live-target fallback is used.
  * Arguments: 0: asset group <GROUP>; 1: opportunity <ARRAY>
- * [token,requester,target,position,role,expiry,ground-fire anchor].
+ * [token,requester,target,position,role,expiry,ground-fire anchor,contact receipt].
+ * Receipt [1,original observedAt,confidence] may reveal only within10s and at sender-bounded confidence.
+ * Legacy seven-field roles grant no new knowledge. Owner replay never renews the receipt.
  * Return Value: Boolean, true when the role was applied.
  * Current callers: WAIT_fnc_CortexCombinedArmsServer through remote execution.
  * Example: [_vehicleGroup,_opportunity] remoteExecCall ["WAIT_fnc_CortexCombinedArmsLocal",groupOwner _vehicleGroup];
  */
 params [["_group",grpNull,[grpNull]],["_opportunity",[],[[]]]];
 if (!local _group || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
-    || {[] call WAIT_fnc_CortexIsPaused} || {count _opportunity != 7} || {!([_group] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
+    || {[] call WAIT_fnc_CortexIsPaused} || {!((count _opportunity) in [7,8])} || {!([_group] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
 _opportunity params ["_token","_requester","_target","_position","_role","_expiry","_context"];
 if ((_group getVariable ["WAIT_Cortex_CombinedRole",[]]) isNotEqualTo _opportunity
     || {serverTime >= _expiry} || {isNull _requester} || {isNull _target} || {!alive _target}
@@ -30,7 +34,7 @@ if ((_group getVariable ["WAIT_Cortex_CombinedRole",[]]) isNotEqualTo _opportuni
     || {captive _target} || {_target getVariable ["ace_captives_isSurrendering",false]}
     || {_target getVariable ["ace_captives_isHandcuffed",false]}
     || {!(_position isEqualType [])} || {count _position != 3}
-    || {_position findIf {!(_x isEqualType 0)} >= 0}
+    || {_position findIf {!(_x isEqualType 0) || {!finite _x} || {abs _x > 1e6}} >= 0}
     || {!(_role in ["GROUND_FIRE","GROUND_MANOEUVRE","AIR_ATTACK"])}) exitWith {false};
 private _asset=objNull;
 {
@@ -68,14 +72,23 @@ if (_role == "GROUND_MANOEUVRE" && {count _existingOperation > 0}
 // Role discovery and weapon preflight may take longer than an external order transition.
 // Recheck before assigning targets or starting a finite manoeuvre.
 if ([_group] call WAIT_fnc_CortexExternalTakeover) exitWith {false};
-_group reveal [_target,2.5];
+// A role receipt is not a new sighting. Legacy roles can use independent native
+// knowledge, but never manufacture confidence or a fresh observation on replay.
+private _contactReceipt=_opportunity param [7,[],[[]]];
+private _freshReport=count _contactReceipt == 3 && {(_contactReceipt select 0) isEqualTo 1}
+    && {(_contactReceipt select 1) isEqualType 0} && {finite (_contactReceipt select 1)}
+    && {(_contactReceipt select 1) >= 0} && {(_contactReceipt select 1) <= serverTime+1}
+    && {serverTime-(_contactReceipt select 1) <= 10}
+    && {(_contactReceipt select 2) isEqualType 0} && {finite (_contactReceipt select 2)}
+    && {(_contactReceipt select 2) > 0} && {(_contactReceipt select 2) <= 2.5};
+if (_freshReport) then {_group reveal [_target,_contactReceipt select 2]};
 if (_role == "GROUND_FIRE") exitWith {
     private _gunner=gunner _asset;
     // Knowledge is shared with the whole crew, but only the weapon operator receives an explicit
     // target. Ordering the driver/commander to attack can replace the vehicle's current route with
     // native pursuit. GROUND_MANOEUVRE and AIR_ATTACK deliberately skip this block because their
     // operation controllers own the later target/release boundary.
-    private _fireRefusal="";
+    private _fireRefusal=if (_group knowsAbout _target > 0) then {""} else {"NO_KNOWN_CONTACT"};
     if (isNull _gunner || {!([_gunner] call WAIT_fnc_CortexCombatEffective)} || {!local _gunner}
         || {!simulationEnabled _asset} || {isObjectHidden _asset}
         || {!simulationEnabled _gunner} || {isObjectHidden _gunner}

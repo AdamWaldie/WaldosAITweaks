@@ -173,7 +173,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
-| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles only: applies sparse terrain-grade safety and one bounded native-route recovery while following an existing waypoint. It never creates routes, bypasses obstacles or changes collision. Convoy driving is configured separately. |
+| `WAIT_AIPass_DrivingAssist_Enable` | General driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Ordinary AI ground vehicles following an existing waypoint: bounded traffic, terrain and obstacle safety, finite static-obstacle bypass, navigation-area passage and native-route recovery. Newer orders and external controllers take priority. It does not create authored waypoints, move vehicles through physics or change collision. Moving-vehicle overtaking and cooperative jam clearance are not implemented. Convoy driving is configured separately. |
 | `WAIT_AIPass_DrivingAssist_Recovery_Enable` | Physical route recovery | CHECKBOX | true | [] | LIVE | Allows finite native-route refresh and checked rear recovery for ordinary driving. Disabling prevents new attempts without cancelling an already issued native movement leg. No teleportation or collision changes. |
 | `WAIT_AIPass_DrivingAssist_MaxSpeed` | Maximum safety speed | SLIDER | 70 | [15, 120, 0] | LIVE | Ordinary driving safety cap in km/h. Terrain may reduce it further; a lower authored forced-speed cap is preserved. Convoys use their own speed setting. |
 
@@ -212,7 +212,7 @@ Vehicle combat and passengers use the Vehicles page. Registered convoy travel, d
 | Variable | Label | Type | Default | Range / choices | Activation | Purpose |
 | --- | --- | --- | --- | --- | --- | --- |
 | `WAIT_Convoy_AvoidInfantry_Enable` | Convoy infantry avoidance | CHECKBOX | false | [] | NEXT_OPERATION | Registered convoys only: short-range friendly-infantry corridor checks before driving. Does not enable general vehicle driving assistance. |
-| `WAIT_Convoy_DrivingAssist_Enable` | Convoy driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Registered convoys only: uses low-frequency road look-ahead and damped speed changes for smoother curves, junctions and grades. It does not bypass obstacles or replace authored routes. |
+| `WAIT_Convoy_DrivingAssist_Enable` | Convoy driving assist | CHECKBOX | true | [] | NEXT_OPERATION | Registered convoys only: road look-ahead, damped speed changes and bounded forward-lane vehicle observations. Unrelated traffic can constrain every convoy vehicle without replacing predecessor spacing, bypassing obstacles or authored routes. |
 | `WAIT_Convoy_RouteRecovery_Enable` | Convoy route recovery | CHECKBOX | true | [] | NEXT_OPERATION | Re-selects the same unchanged final MOVE waypoint when the engine completes it more than 75 m early. It never creates a route, teleports, repairs or defeats an obstruction. |
 
 ### 03 Contact and passengers

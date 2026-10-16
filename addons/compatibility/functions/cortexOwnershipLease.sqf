@@ -4,6 +4,8 @@
  * Locality / Authority: Call only where the group is local. The public lease follows group locality so a server or headless-client owner can renew or release it.
  * Repeat/JIP: Reacquiring the same owner renews its deadline without replacing the captured baseline.
  * A competing unexpired WAIT owner is refused; external ownership is handled before acquisition. Repeated release is safe.
+ * Acquiring finite movement synchronously retires the ordinary driving FSM and its unchanged
+ * speed leases before the new tactical owner is published; later ordinary samples are refused.
  * Arguments: 0 group <GROUP>; 1 owner <STRING>; 2 acquire <BOOL>, true; 3 expiry <NUMBER>, serverTime + 30.
  * Return Value: Boolean - true when acquired/released, false for invalid locality or competing work.
  * Current callers: Finite WAIT group movement start/end, discovery expiry and group release.
@@ -29,6 +31,10 @@ if (_acquire) exitWith {
         ];
         false
     };
+    // Release the ordinary cap while it is still the current owner, before publishing the
+    // successor tactical lease or allowing its caller to issue movement/speed commands.
+    private _drivingBrain=_group getVariable ["WAIT_Driving_Brain",createHashMap];
+    if (count _drivingBrain > 0) then {[_drivingBrain,"TACTICAL_HANDOVER"] call WAIT_fnc_DrivingOperationFinish};
     _group setVariable ["WAIT_Cortex_MovementLease",[_owner,_expires max (serverTime + 1)],true];
     true
 };

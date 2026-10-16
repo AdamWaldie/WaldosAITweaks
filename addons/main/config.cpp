@@ -6,7 +6,7 @@ class CfgPatches {
         author = "WaldoTheWarfighter";
         requiredVersion = 2.18;
         requiredAddons[] = {"cba_main", "cba_xeh", "A3_Modules_F", "WAIT_core", "WAIT_danger", "WAIT_infantry", "WAIT_vehicles", "WAIT_aircraft", "WAIT_support", "WAIT_compatibility"};
-        units[] = {"WAIT_ModuleConvoyStart", "WAIT_ModuleConvoyHold", "WAIT_ModuleConvoyRelease"};
+        units[] = {"WAIT_ModuleConvoyStart", "WAIT_ModuleConvoyHold", "WAIT_ModuleConvoyRelease", "WAIT_ModuleGarrison", "WAIT_ModuleDefend", "WAIT_ModuleDrivingCorridor", "WAIT_DrivingCorridorArea"};
         weapons[] = {};
         version = "0.1.0";
         versionStr = "0.1.0";
@@ -37,7 +37,41 @@ class CfgFactionClasses {
     };
 };
 class CfgVehicles {
+    class Logic;
+    class WAIT_DrivingCorridorArea: Logic {
+        scope = 1;
+        scopeCurator = 0;
+        displayName = "Navigation corridor area";
+        category = "WAIT_CuratorOrders";
+    };
     class Module_F;
+    class WAIT_ModuleDrivingCorridor: Module_F {
+        scope = 1;
+        scopeCurator = 2;
+        displayName = "Navigation corridor";
+        category = "WAIT_CuratorOrders";
+        function = "WAIT_fnc_ModuleDrivingCorridor";
+        isGlobal = 1;
+        isTriggerActivated = 0;
+        isDisposable = 1;
+        curatorCanAttach = 1;
+    };
+    class WAIT_ModuleGarrison: Module_F {
+        scope = 1;
+        scopeCurator = 2;
+        displayName = "Garrison area";
+        category = "WAIT_CuratorOrders";
+        function = "WAIT_fnc_ModuleGarrison";
+        WAIT_operation = "GARRISON";
+        isGlobal = 1;
+        isTriggerActivated = 0;
+        isDisposable = 1;
+        curatorCanAttach = 1;
+    };
+    class WAIT_ModuleDefend: WAIT_ModuleGarrison {
+        displayName = "Defend area";
+        WAIT_operation = "DEFEND";
+    };
     class WAIT_ModuleConvoyStart: Module_F {
         scope = 1;
         scopeCurator = 2;

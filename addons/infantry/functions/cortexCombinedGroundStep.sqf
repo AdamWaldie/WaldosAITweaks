@@ -58,7 +58,7 @@ private _finish={
 if (isNull _group || {isNull _asset} || {!alive _asset}) exitWith {["ASSET_LOST"] call _finish};
 if (!local _group || {_ownerEpoch != (_group getVariable ["WAIT_AIPass_Epoch",0])}) exitWith {-1};
 private _role=_group getVariable ["WAIT_Cortex_CombinedRole",[]];
-if (count _role != 7 || {(_role select 0) != _token} || {(_role select 4) != "GROUND_MANOEUVRE"}) exitWith {["ROLE_RELEASED"] call _finish};
+if (!((count _role) in [7,8]) || {(_role select 0) != _token} || {(_role select 4) != "GROUND_MANOEUVRE"}) exitWith {["ROLE_RELEASED"] call _finish};
 if ([_group] call WAIT_fnc_CortexZeusHeld) exitWith {["ZEUS_HANDOVER"] call _finish};
 if (!([_group] call WAIT_fnc_CortexIsEligible)
     || {!([_group,"WAIT_AIPass_Vehicles_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}

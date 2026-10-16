@@ -5,6 +5,8 @@
  * calm remount and damaged-armour withdrawal using live vehicles, including an active withdrawal
  * migrating from the server to a real headless owner before Zeus replacement.
  * Standalone driving also measures native travel, a condition-gated wait, resume and disabled cleanup.
+ * A normal-only excluded native reverse-turn diagnostic observes real heading/travel and shared
+ * sensor work; it does not validate production stopping, collision avoidance or HC migration.
  * Locality/authority: scheduled server creates disposable fixtures; production Cortex code commands
  * each current owner, and the migration case deliberately transfers its crew group and vehicle.
  * Repeat/JIP: fresh fixtures and public observer state; caller restores tuning, actors are deleted.
@@ -1213,3 +1215,62 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 deleteVehicle _driveVehicle;
 deleteGroup _driveGroup;
 [_drivePreviousSettings] call WAIT_fnc_CortexTuning;
+
+
+// Sensor diagnostic only: native inputs are fixture stimuli, never a WAIT result/brain injection.
+// Keep this distinct from production withdrawal and the intentionally straight convoy case.
+if !(missionNamespace getVariable ["WAIT_CortexQA_HeadlessBatch",false]) then {
+    {
+        private _turn=_x;
+        private _case="REAR-TURN-"+_turn;
+        private _vehicle=createVehicle ["O_APC_Tracked_02_cannon_F",[4300+150*_forEachIndex,3000,0],[],0,"NONE"];
+        _vehicle setDir 0;
+        createVehicleCrew _vehicle;
+        private _group=group driver _vehicle;
+        [_group] call _pin;
+        _group setVariable ["WAIT_AIPass_Exclude",true,true];
+        _group setBehaviour "SAFE";_group setCombatMode "BLUE";
+        (driver _vehicle) setVariable ["WAIT_CortexQA_Label",_case+" NATIVE SENSOR DIAGNOSTIC",true];
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",[_vehicle]+crew _vehicle,true];
+        [_case,"Diagnostic only: actual native backward travel and heading change must occur. Shared rear observation must execute turning rays. This does not pass production braking or collision avoidance.",getPosATL _vehicle] call _phase;
+        private _origin=getPosASL _vehicle;
+        private _heading=getDir _vehicle;
+        private _samples=0;private _turnSamples=0;private _maxHeading=0;private _maxRays=0;
+        private _previousHeading=_heading;private _yawChecks=0;private _yawConsistent=true;
+        private _deadline=time+12;
+        _vehicle engineOn true;
+        _vehicle sendSimpleCommand "BACK";
+        _vehicle sendSimpleCommand _turn;
+        while {time < _deadline && {alive _vehicle} && {local _vehicle}} do {
+            private _delta=(((getDir _vehicle)-_heading+540) mod 360)-180;
+            _maxHeading=_maxHeading max abs _delta;
+            private _backward=(velocityModelSpace _vehicle select 1) < -0.25;
+            if (_backward) then {_samples=_samples+1};
+            private _headingStep=(((getDir _vehicle)-_previousHeading+540) mod 360)-180;
+            private _yaw=(angularVelocityModelSpace _vehicle) param [2,0];
+            if (_backward && {abs _headingStep >= 0.5} && {abs _yaw >= 0.02}) then {
+                _yawChecks=_yawChecks+1;
+                _yawConsistent=_yawConsistent && {_headingStep*_yaw > 0};
+            };
+            _previousHeading=getDir _vehicle;
+            private _observation=[_vehicle,8] call WAIT_fnc_DrivingRearClear;
+            _maxRays=_maxRays max (_observation select 3);
+            if (_backward && {abs _delta >= 3} && {(_observation select 3) > 12}) then {
+                _turnSamples=_turnSamples+1;
+            };
+            if (_maxHeading >= 35) exitWith {};
+            sleep 0.2;
+        };
+        _vehicle sendSimpleCommand "STOPTURNING";
+        _vehicle sendSimpleCommand "STOP";
+        private _travel=(getPosASL _vehicle) vectorDistance _origin;
+        private _physical=_samples >= 3 && {_travel >= 1} && {_maxHeading >= 3};
+        [_case+"-native-physical-prerequisite",_physical,str [_samples,_travel,_maxHeading]] call _check;
+        [_case+"-measured-yaw-sign",_physical && {_yawChecks >= 2} && {_yawConsistent},str [_yawChecks,_yawConsistent]] call _check;
+        [_case+"-turning-observer-executed",_physical && {_turnSamples >= 2}
+            && {_maxRays > 12} && {_maxRays <= 60},str [_turnSamples,_maxRays]] call _check;
+        missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
+        {deleteVehicle _x} forEach crew _vehicle;
+        deleteVehicle _vehicle;deleteGroup _group;
+    } forEach ["LEFT","RIGHT"];
+};

@@ -6,6 +6,7 @@
  * survivor-regroup counters, per-feature gates/tuning, coordinated support outcomes,
  * active drill heartbeats, durable transition/remount/support/combined-arms ownership, pending artillery
  * relocation, bounded action/order snapshots, detected external providers and queue health
+ * plus on-demand percentiles and slowest identities from the last 256 executed local callbacks
  * for the server (headless-client private counters stay on those machines). This is independent of which scheduler moved
  * the groups: ACE Headless may be active while WAIT's optional HC distributor is disabled.
  *
@@ -495,6 +496,28 @@ private _queueHint=if (_cacheConsistent) then {
 _checks pushBack ["ai","cortex-queue-health",_queueState,format ["serverJobs=%1 keyedJobs=%2 dueNow=%3 oldestDueSeconds=%4 staleOwnerJobs=%5 cachedNextDueSeconds=%6 earliestQueuedDueSeconds=%7 deadlineCacheConsistent=%8 fps=%9 budgetMs=%10 paused=%11 maxCallbackMs=%12 maxRecordedQueueLatencySeconds=%13 skippedJobs=%14 skipReasons=%15. %16",count _queue,_keyedJobs,_overdue,_oldest,_staleOwners,if (_cachedNextDue < 0) then {-1} else {_cachedNextDue-time},if (_earliestQueued < 0) then {-1} else {_earliestQueued-time},_cacheConsistent,diag_fps,missionNamespace getVariable ["WAIT_AIPass_TickBudgetMs",1],[] call WAIT_fnc_CortexIsPaused,_maxCallbackMs,_maxRecordedLatency,_skippedJobs,_skipReasons,_queueHint]];
 private _aircraftQueueState=if (_aircraftOverdue > 0 && {_aircraftOldest > 5}) then {"ERROR"} else {if (_aircraftJobs > 0) then {"ACTIVE"} else {"LOADED"}};
 _checks pushBack ["ai","aircraft-scheduler-health",_aircraftQueueState,format ["serverLocalJobs=%1 landingObservers=%2 decelerationObservers=%3 dueNow=%4 oldestDueSeconds=%5 maxCallbackMs=%6 maxRecordedQueueLatencySeconds=%7 schedulerActive=%8 landingSchedulerActive=%9 decelerationSchedulerActive=%10. This owner-local snapshot excludes aircraft currently owned by clients or headless clients; repeat it on the affected owner before diagnosing a missing observer.",_aircraftJobs,_landingObserverJobs,_decelerationObserverJobs,_aircraftOverdue,_aircraftOldest,_aircraftMaxCallbackMs,_aircraftMaxLatency,missionNamespace getVariable ["WAIT_Aircraft_SchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_LandingSchedulerActive",false],missionNamespace getVariable ["WAIT_Aircraft_DecelerationSchedulerActive",false]]];
+// The queue only retains a job's latest timing; finite jobs disappear when they finish.
+// Summarize the fixed owner-local ring on demand, never sort inside the frame callback.
+private _callbackSamples=+(missionNamespace getVariable ["WAIT_AIPass_CallbackSamples",[]]);
+private _sampleCount=count _callbackSamples;
+private _sampleDurations=_callbackSamples apply {_x select 2};
+private _sampleLatencies=_callbackSamples apply {_x select 3};
+_sampleDurations sort true;_sampleLatencies sort true;
+private _sampleP50=-1;private _sampleP95=-1;private _latencyP95=-1;
+private _sampleOldest=diag_tickTime;private _sampleNewest=-1;
+private _slowestSamples=[];
+if (_sampleCount > 0) then {
+    _sampleP50=_sampleDurations select ((ceil (_sampleCount*0.5)-1) max 0);
+    _sampleP95=_sampleDurations select ((ceil (_sampleCount*0.95)-1) max 0);
+    _latencyP95=_sampleLatencies select ((ceil (_sampleCount*0.95)-1) max 0);
+    {_sampleOldest=_sampleOldest min (_x select 4);_sampleNewest=_sampleNewest max (_x select 4)} forEach _callbackSamples;
+    private _ranked=_callbackSamples apply {[_x select 2,_x select 0,_x select 1,_x select 3,_x select 4]};
+    _ranked sort false;_slowestSamples=_ranked select [0,8];
+};
+_checks pushBack ["ai","cortex-callback-samples",["NOT_SAMPLED","MEASURED"] select (_sampleCount > 0),
+    format ["owner=%1 samples=%2 capacity=256 oldestAgeSeconds=%3 newestAgeSeconds=%4 callbackP50Ms=%5 callbackP95Ms=%6 queueLatencyP95Seconds=%7 slowest[ms,subsystem,key,latencySeconds,localTick]=%8. Executed callbacks only, including retired jobs; nearest-rank percentiles of a rolling mixed-workload sample. Server-local only; HC/client rings stay on their owner. This is not matched frame-time overhead or tactical acceptance.",
+        clientOwner,_sampleCount,if (_sampleCount > 0) then {diag_tickTime-_sampleOldest} else {-1},
+        if (_sampleCount > 0) then {diag_tickTime-_sampleNewest} else {-1},_sampleP50,_sampleP95,_latencyP95,_slowestSamples]];
 // Coordinated work is server-owned, so expose the lease/turn state which an HC-only
 // group snapshot cannot explain. This is calculated only for an on-demand report.
 private _supportRequests=missionNamespace getVariable ["WAIT_AIPass_SupportRequests",createHashMap];
@@ -647,7 +670,7 @@ _checks pushBack ["ai","cortex-snapshot-scope","LOADED",format ["Snapshot server
         private _combinedTarget=_combinedRole param [2,objNull];
         private _combinedName=_combinedRole param [4,""];
         private _combinedExpiry=_combinedRole param [5,0];
-        private _combinedHealthy=count _combinedRole == 7 && {serverTime < _combinedExpiry}
+        private _combinedHealthy=(count _combinedRole) in [7,8] && {serverTime < _combinedExpiry}
             && {!isNull _combinedRequester} && {!isNull _combinedTarget} && {alive _combinedTarget}
             && {side _combinedRequester == side _group} && {_combinedName in ["GROUND_FIRE","GROUND_MANOEUVRE","AIR_ATTACK"]};
         _checks pushBack ["ai",format ["cortex-combined-role-%1",netId _group],["ERROR","LOADED"] select _combinedHealthy,format ["group=%1 token=%2 role=%3 requester=%4 target=%5 secondsRemaining=%6 applied=%7 result=%8. Combined roles share an opportunity only; they contain no assembly readiness or infantry movement gate.",groupId _group,_combinedRole param [0,""],_combinedName,groupId _combinedRequester,_combinedTarget,(_combinedExpiry-serverTime) max 0,_group getVariable ["WAIT_Cortex_CombinedApplied",[]],_group getVariable ["WAIT_Cortex_CombinedResult",[]]]];

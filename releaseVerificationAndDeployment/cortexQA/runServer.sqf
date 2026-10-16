@@ -4,6 +4,10 @@
  * Locality/authority: dedicated server only; only staged by the audit launcher's explicit CortexAudit switch.
  * Repeat/JIP: one run per machine; fresh fixtures are cleaned up, no production JIP replay.
  * Phase changes place only the protected human observer near the fixture on its owner; AI is never relocated.
+ * The normal convoy corner additionally samples actual predecessor hulls, first closing/turning
+ * encounter and speed reduction within eight seconds, then onward travel. Missing encounters fail
+ * their prerequisite; sampled hull separation/damage cannot establish continuous collision freedom.
+ * This observer adds two eight-corner projections at 5 Hz during at most 150 s; not a performance arm.
  * Arguments: None. WAIT_CortexQA_Focus selects the staged batch; airskills runs aircraft and
  * AI-profile/vehicle-crew mechanics together, while supportflows runs coordinated manoeuvre plus
  * combined-arms composition in one process without unrelated feature suites. dangerload is the short
@@ -259,7 +263,85 @@ private _averages = _travel apply {_x/_elapsed*3.6};
 ["CNV-02e-steady-speed",_averages findIf {_x < 7.5} < 0,format ["actual average km/h=%1 requested=25 duration=%2",_averages,_elapsed]] call _check;
 
 ["Convoy corner","Each vehicle should trace its predecessor around the right-angle corner, remaining in single file. Passengers stay aboard.",[6200,6400,0]] call _phase;
-["CNV-02d-corner",[{_vehicles findIf {((getPosATL _x) select 0) < 6240 || {abs (((getPosATL _x) select 1)-6400) > 15}} < 0},150] call _wait] call _check;
+// Normal-only physical observation: no added movement, speed or controller callback.
+// HC ownership acceptance remains in its separate batch, without server-local cap inference.
+if !(missionNamespace getVariable ["WAIT_CortexQA_HeadlessBatch",false]) then {
+    private _cornerUntil=diag_tickTime+150;
+    private _cornerDamage=_vehicles apply {damage _x};
+    private _cornerEvents=[[],[]];
+    private _cornerBraked=[false,false];
+    private _cornerSamples=[0,0];
+    private _cornerClear=true;
+    private _cornerDamageClear=true;
+    private _cornerReached=false;
+    private _cornerNextLog=diag_tickTime;
+    while {!_cornerReached && {diag_tickTime < _cornerUntil}} do {
+        private _rows=[];
+        for "_pair" from 1 to (count _vehicles-1) do {
+            private _frontVehicle=_vehicles select (_pair-1);
+            private _followingVehicle=_vehicles select _pair;
+            private _ownBox=boundingBoxReal _followingVehicle;
+            private _frontBox=boundingBoxReal _frontVehicle;
+            private _minX=1e9;private _maxX=-1e9;private _minY=1e9;private _maxY=-1e9;
+            private _minZ=1e9;private _maxZ=-1e9;
+            {
+                private _z=_x;
+                {
+                    private _width=_x;
+                    {
+                        private _point=_followingVehicle worldToModel (_frontVehicle modelToWorld [_width,_x,_z]);
+                        _minX=_minX min (_point select 0);_maxX=_maxX max (_point select 0);
+                        _minY=_minY min (_point select 1);_maxY=_maxY max (_point select 1);
+                        _minZ=_minZ min (_point select 2);_maxZ=_maxZ max (_point select 2);
+                    } forEach [(_frontBox select 0) select 1,(_frontBox select 1) select 1];
+                } forEach [(_frontBox select 0) select 0,(_frontBox select 1) select 0];
+            } forEach [(_frontBox select 0) select 2,(_frontBox select 1) select 2];
+            private _inLane=_maxY > ((_ownBox select 1) select 1)
+                && {_maxX >= ((_ownBox select 0) select 0)} && {_minX <= ((_ownBox select 1) select 0)}
+                && {_maxZ >= ((_ownBox select 0) select 2)} && {_minZ <= ((_ownBox select 1) select 2)};
+            private _room=_minY-((_ownBox select 1) select 1);
+            private _angle=abs (((getDir _frontVehicle-getDir _followingVehicle+540) mod 360)-180);
+            private _actualSpeed=vectorMagnitude velocity _followingVehicle;
+            private _closing=((velocity _followingVehicle) vectorDiff (velocity _frontVehicle)) vectorDotProduct vectorDir _followingVehicle;
+            private _event=_cornerEvents select (_pair-1);
+            // Demand an actual closing/turning encounter, not just an assigned traffic cap.
+            if (_inLane && {_angle > 25} && {_room >= 0} && {_room <= 35}
+                && {_closing > 0.5} && {_actualSpeed > 1.5}) then {
+                _cornerSamples set [_pair-1,(_cornerSamples select (_pair-1))+1];
+                if (_event isEqualTo []) then {
+                    _event=[_actualSpeed,diag_tickTime,getPosATL _followingVehicle];
+                    _cornerEvents set [_pair-1,_event];
+                };
+            };
+            // Retain the first event's clock/speed. No retry can manufacture a fresh window.
+            if (_event isNotEqualTo [] && {diag_tickTime-(_event select 1) <= 8}
+                && {_actualSpeed <= (_event select 0)-1}) then {_cornerBraked set [_pair-1,true]};
+            if (_inLane && {_room < 0}) then {_cornerClear=false};
+            _rows pushBack [_pair,_angle,_room,_inLane,_closing,_actualSpeed,_event,_cornerBraked select (_pair-1),getPosATL _followingVehicle];
+        };
+        {
+            if (!alive _x || {!simulationEnabled _x} || {damage _x > (_cornerDamage select _forEachIndex)+0.01}) then {_cornerDamageClear=false};
+        } forEach _vehicles;
+        if (diag_tickTime >= _cornerNextLog) then {
+            diag_log format ["WAIT CONVOY CORNER PHYSICAL: t=%1 rows=%2 sampledClear=%3 damageClear=%4",time,_rows,_cornerClear,_cornerDamageClear];
+            _cornerNextLog=diag_tickTime+1;
+        };
+        _cornerReached=_vehicles findIf {((getPosATL _x) select 0) < 6240 || {abs (((getPosATL _x) select 1)-6400) > 15}} < 0;
+        if (!_cornerReached) then {sleep 0.2};
+    };
+    ["CNV-02d-corner",_cornerReached] call _check;
+    private _cornerExercised=_cornerEvents findIf {_x isNotEqualTo []} >= 0;
+    ["CNV-corner-turning-predecessor-prerequisite",_cornerExercised,str [_cornerSamples,_cornerEvents]] call _check;
+    private _allCornerEventsBraked=true;
+    for "_pairIndex" from 0 to (count _cornerEvents-1) do {
+        if ((_cornerEvents select _pairIndex) isNotEqualTo [] && {!(_cornerBraked select _pairIndex)}) then {_allCornerEventsBraked=false};
+    };
+    ["CNV-corner-turning-predecessor-physical-braking",_cornerExercised && {_allCornerEventsBraked},str [_cornerEvents,_cornerBraked]] call _check;
+    ["CNV-corner-sampled-hull-clearance",_cornerExercised && {_cornerClear} && {_cornerDamageClear},str [_cornerClear,_cornerDamageClear]] call _check;
+    ["CNV-corner-physical-onward-travel",_cornerExercised && {_cornerReached} && {_cornerDamageClear}] call _check;
+} else {
+    ["CNV-02d-corner",[{_vehicles findIf {((getPosATL _x) select 0) < 6240 || {abs (((getPosATL _x) select 1)-6400) > 15}} < 0},150] call _wait] call _check;
+};
 ["CNV-02b-travel-cargo-mounted",_passengers findIf {!alive _x || {vehicle _x != (_vehicles select 2)}} < 0] call _check;
 ["Convoy manual halt","This test deliberately stops the convoy. The passenger should get out and move clear of the vehicles; drivers and weapon crew must remain aboard.",getPosATL (_vehicles select 0)] call _phase;
 [_convoy,0] call WAIT_fnc_SimpleAiConvoy;
@@ -620,6 +702,8 @@ if (_focus in ["all","features","mechanics","airborne"]) then {
     [_fallbackCheck,_fallbackPhase,_wait,"B_Parachute"] call compile preprocessFileLineNumbers "cortexQAAirborne.sqf";
 };
 if (_focus in ["all","features","mechanics","vehicles","stateflows","dangerparity","dangerbuildings"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAVehicles.sqf"};
+if (_focus in ["all","features","mechanics","vehicles"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQADrivingTraffic.sqf"};
+if (_focus in ["all","features","mechanics","vehicles","drivercrew"] && {!(missionNamespace getVariable ["WAIT_CortexQA_HeadlessBatch",false])}) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQADrivingCrew.sqf"};
 if (_focus in ["all","features","mechanics","vehicles","naval"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQANaval.sqf"};
 if (_focus in ["all","features","mechanics","fire"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAFire.sqf"};
 if (_focus in ["all","features","mechanics","fire","grenades"]) then {[_check,_phase,_wait] call compile preprocessFileLineNumbers "cortexQAGrenades.sqf"};

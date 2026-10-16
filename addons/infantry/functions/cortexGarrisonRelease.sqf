@@ -23,6 +23,8 @@
  * 2: actors <ARRAY of OBJECT>, [] - empty releases the whole group; a non-empty subset retires
  *    only those members and preserves other assignments. The group order retires once no assignments remain.
  *
+ * 3: recall formation <BOOL>, true - false for a validated WAIT successor task, avoiding
+ *    a protected JOIN command while restoring the old owned PATH/stance/speed/watch holds.
  * Return Value:
  * Boolean - true when released or forwarded
  *
@@ -30,15 +32,15 @@
  * [_group] call WAIT_fnc_CortexGarrisonRelease;
  * Result: the defenders leave their positions and fight as a normal squad.
  *
- * Current callers: WAIT_fnc_CortexGroupTick, the AI Orders ZEN module and mission scripts.
+ * Current callers: CortexClearBuilding (no recall handoff), WAIT_fnc_CortexGroupTick, the AI Orders ZEN module and mission scripts.
  */
 
-params [["_group", grpNull, [grpNull, objNull]],["_restore",true,[true]],["_actors",[],[[]]]];
+params [["_group", grpNull, [grpNull, objNull]],["_restore",true,[true]],["_actors",[],[[]]],["_recall",true,[true]]];
 if (_group isEqualType objNull) then {_group = group _group};
 if (isNull _group) exitWith {false};
 if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false};
 if (!local _group) exitWith {
-    if (isServer) then {[_group,_restore,_actors] remoteExecCall ["WAIT_fnc_CortexGarrisonRelease", groupOwner _group]; true} else {false};
+    if (isServer) then {[_group,_restore,_actors,_recall] remoteExecCall ["WAIT_fnc_CortexGarrisonRelease", groupOwner _group]; true} else {false};
 };
 // No Cortex assignment means there is nothing for this release to restore.
 if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isEqualTo [] && {units _group findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} < 0}) exitWith {false};
@@ -95,7 +97,7 @@ if (isNull _leader) then {_leader=leader _group};
                 && {_live vectorDistance (_move select 3) <= 0.25};
             private _recallCommand= !(_command in ["MOVE","FOLLOW"]) || {_command == "MOVE" && {_ownedMove}};
             if (_recallCommand && {_canRestore || {!_externalTakeover && {_ownedHold && {_command in ["","STOP","ATTACK","FIRE","SUPPRESS"]}}}}) then {
-                _x doFollow _leader
+                if (_recall) then {_x doFollow _leader};
             };
         };
     };
@@ -116,6 +118,10 @@ private _hasAssignments=units _group findIf {(_x getVariable ["WAIT_AIPass_Garri
 if (!_partial || {!_hasAssignments}) then {
     _group setVariable ["WAIT_AIPass_Garrison", nil, true];
     _group setVariable ["WAIT_Cortex_GarrisonDeadline",nil,true];
+    _group setVariable ["WAIT_Cortex_GarrisonPlacement",nil,true];
+    _group setVariable ["WAIT_Cortex_GarrisonPending",nil,true];
+    _group setVariable ["WAIT_Cortex_GarrisonRefill",nil,true];
+    _group setVariable ["WAIT_Cortex_GarrisonRoster",nil,true];
     _group setVariable ["WAIT_Cortex_GarrisonCandidates",nil,true];
     _group setVariable ["WAIT_AIPass_GarrisonApplied", nil];
 };

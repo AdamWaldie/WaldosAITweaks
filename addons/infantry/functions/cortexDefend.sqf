@@ -2,6 +2,9 @@
  * Author: WaldoTheWarfighter
  * Repeat/JIP: A new defence replaces the prior assignment. Published assignments are reapplied by the new local owner after migration or JIP.
  * Orders an AI group to hold a defensive line facing a direction, with a rear reserve.
+ * Line/reserve geometry is planned before old orders are released. Invalid, wet, steep or
+ * overlapping layouts return false with prior assignments intact. Geometry is not proof of
+ * native path accessibility; physical approach/arrival remains a separate requirement.
  * Line and reserve slots count only local combat-effective actors without player or specialist
  * ownership; protected actors remain outside the order's allocation and starting strength.
  *
@@ -35,7 +38,7 @@
  * [group this, getMarkerPos "ridge", 45, 80] call WAIT_fnc_CortexDefend;
  * Result: the squad forms an 80 m line on the ridge facing north-east, with a reserve behind it.
  *
- * Current callers: mission scripts and the AI Orders ZEN module.
+ * Current callers: mission scripts and WAIT_fnc_CortexOrderLocal for native/optional defence tasks.
  */
 
 params [["_group", grpNull, [grpNull, objNull]], ["_centre", [], [[], objNull]], ["_facing", 0, [0, [], objNull]], ["_width", 60, [0]]];
@@ -50,29 +53,41 @@ if !(missionNamespace getVariable ["WAIT_AIPass_Active", false]) exitWith {
     diag_log format ["[WAIT] %1 defend refused: the Smart AI Pass is not running on this machine.", _group];
     false
 };
-if (_centre isEqualType objNull) then {_centre = getPosATL _centre};
+if (_centre isEqualType objNull) then {if (isNull _centre) then {_centre=[]} else {_centre = getPosATL _centre}};
 private _anchor=[_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _anchor) then {_anchor=leader _group};
 if (count _centre < 2) then {_centre = getPosATL _anchor};
+_centre=+_centre;
+if (count _centre == 2) then {_centre pushBack 0};
+if (count _centre != 3 || {_centre findIf {!(_x isEqualType 0) || {!finite _x}} >= 0}
+    || {!finite _width} || {_width <= 0}) exitWith {false};
+private _facingValid=true;
 if !(_facing isEqualType 0) then {
-    private _towards = if (_facing isEqualType objNull) then {getPosATL _facing} else {_facing};
-    _facing = _centre getDir _towards;
+    private _towards = if (_facing isEqualType objNull) then {if (isNull _facing) then {[]} else {getPosATL _facing}} else {_facing};
+    _facingValid=count _towards in [2,3] && {_towards findIf {!(_x isEqualType 0) || {!finite _x}} < 0};
+    if (_facingValid) then {_facing = _centre getDir _towards};
 };
+if (!_facingValid || {!(_facing isEqualType 0)} || {!finite _facing}) exitWith {false};
+_facing=((_facing mod 360)+360) mod 360;
 private _units = (units _group) select {
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {!isPlayer _x}
         && {vehicle _x == _x} && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}
 };
-if (_units isEqualTo []) exitWith {false};
-// End transient movement before this explicit order takes ownership.
-[_group,false] call WAIT_fnc_CortexReleaseGroup;
-[_group] call WAIT_fnc_CortexClearRelease;
-if ((_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexDefendRelease};
+if (_units isEqualTo [] || {count _units > 64}) exitWith {false};
 private _reserveCount = if (count _units >= 4) then {floor (count _units / 3)} else {0};
 private _line = _units select [0, count _units - _reserveCount];
 private _reserve = _units select [count _line, _reserveCount];
 private _threat = _centre getPos [150, _facing];
 private _spacing = _width / ((count _line - 1) max 1);
 private _taken = [];
+private _placements=[];
+private _layoutValid=true;
+private _slotValid={
+    params ["_position"];
+    count _position == 3 && {!surfaceIsWater _position}
+        && {((surfaceNormal _position) select 2) >= 0.55}
+        && {_taken findIf {_x distance2D _position < 1} < 0}
+};
 {
     private _offset = (_forEachIndex - (count _line - 1) / 2) * _spacing;
     private _slot=_centre getPos [_offset,_facing+90];
@@ -82,10 +97,11 @@ private _taken = [];
             if (!surfaceIsWater _alternative && {((surfaceNormal _alternative) select 2) >= 0.55}) exitWith {_slot=_alternative};
         } forEach [0.75,0.5,0.25,0];
     };
-    private _spot = ([_slot, _threat, 8, _taken] call WAIT_fnc_CortexFindCover) select 0;
+    private _spot = ([_slot, _threat, 8, _taken, _group] call WAIT_fnc_CortexFindCover) select 0;
+    if !([_spot] call _slotValid) then {_layoutValid=false};
     _taken pushBack _spot;
     private _sector = _facing + ((_forEachIndex / ((count _line - 1) max 1)) - 0.5) * 60;
-    _x setVariable ["WAIT_AIPass_DefendPos", [_spot, _sector, "LINE"], true];
+    _placements pushBack [_x,[_spot,_sector,"LINE"]];
 } forEach _line;
 private _rearCandidates=[];
 {_rearCandidates pushBack [_centre getPos [40,_facing+180+_x]]} forEach [0,-30,30,-60,60];
@@ -95,8 +111,18 @@ private _rear=if (_rearRoute isEqualTo []) then {+_centre} else {+(_rearRoute se
     private _offset=(_forEachIndex-(count _reserve-1)/2)*5;
     private _slot=_rear getPos [_offset,_facing+90];
     if (surfaceIsWater _slot || {((surfaceNormal _slot) select 2) < 0.55}) then {_slot=+_rear};
-    _x setVariable ["WAIT_AIPass_DefendPos", [_slot,_facing,"RESERVE"], true];
+    if !([_slot] call _slotValid) then {_layoutValid=false};
+    _taken pushBack _slot;
+    _placements pushBack [_x,[_slot,_facing,"RESERVE"]];
 } forEach _reserve;
+// Geometry queries may overlap new authority. Refuse before cleanup or assignment mutation.
+if (!_layoutValid || {count _placements != count _units} || {!local _group}
+    || {!([_group] call WAIT_fnc_CortexIsEligible)} || {[_group] call WAIT_fnc_CortexExternalTakeover}) exitWith {false};
+// End transient movement only after a complete layout is ready.
+[_group,false] call WAIT_fnc_CortexReleaseGroup;
+[_group] call WAIT_fnc_CortexClearRelease;
+if ((_group getVariable ["WAIT_AIPass_Defend", []]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexDefendRelease};
+{_x params ["_actor","_assignment"];_actor setVariable ["WAIT_AIPass_DefendPos",_assignment,true]} forEach _placements;
 if ((_group getVariable ["WAIT_AIPass_Garrison", []]) isNotEqualTo []) then {[_group] call WAIT_fnc_CortexGarrisonRelease};
 _group setVariable ["WAIT_AIPass_Defend", [_centre, _facing, _width, count _units], true];
 _group setVariable ["WAIT_AIPass_DefendApplied", false];

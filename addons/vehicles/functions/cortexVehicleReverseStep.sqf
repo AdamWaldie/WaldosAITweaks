@@ -3,18 +3,34 @@
  * Purpose: Own one finite tracked reverse leg while preserving a threat-facing hull and native turret engagement.
  * Locality/authority: Current AI group and vehicle owner only; all command boundaries yield to external ownership.
  * A vehicle-specific external driving marker blocks reverse commands and release STOP/turn writes.
+ * A companion generation/seat/destination/current-route receipt binds commands and cleanup. A
+ * changed receipt returns RELEASED, preventing the caller's normal forward fallback over handover.
  * Incapacitated crew cannot drive a leg; cleanup cancels only a matching recorded turn direction.
- * Repeat/JIP: Generation/epoch-bound record; repeated steps retain commands. No worker or JIP command replay.
+ * Fresh shared rear body-width actor/geometry observation gates each active reverse step.
+ * It does not create another controller or change native collision.
+ * Repeat/JIP: Generation/epoch-bound record; repeated steps retain commands. Exact unchanged
+ * inherited commands may be retired by the new owner, but never replayed. Legacy records without
+ * command evidence retire metadata only. No worker or JIP command replay.
  * Arguments: 0 group <GROUP>; 1 state <HASHMAP>; 2 vehicle <OBJECT>; 3 threat ATL <ARRAY>;
  * 4 mode <STRING, START>; 5 operation generation <NUMBER, -1>.
  * Return: STRING - REVERSE, COMPLETE, FALLBACK or RELEASED. Caller owns forward fallback and operation release.
- * Current callers: CortexVehicles, CortexGroupTick, OperationCancel and OperationRelease.
+ * Current callers: CortexVehicles, CortexGroupTick, CortexLocality, OperationCancel and OperationRelease.
  * Example: [group driver apc1,state,apc1,getPosATL enemy1,"START",4] call WAIT_fnc_CortexVehicleReverseStep;
  */
 params [["_group",grpNull,[grpNull]],["_state",createHashMap,[createHashMap]],
     ["_vehicle",objNull,[objNull]],["_threat",[],[[]]],["_mode","START",[""]],["_generation",-1,[0]]];
 if (isNull _group || {!local _group}) exitWith {"FALLBACK"};
 private _record=_group getVariable ["WAIT_VehicleReverse",[]];
+private _commandReceipt=_group getVariable ["WAIT_VehicleReverse_Command",[]];
+private _commandsUnchanged={
+    params ["_ownedVehicle"];
+    count _commandReceipt == 6 && {(_commandReceipt select 0) == _generation}
+        && {driver _ownedVehicle == (_commandReceipt select 1)}
+        && {effectiveCommander _ownedVehicle == (_commandReceipt select 2)}
+        && {(expectedDestination (_commandReceipt select 1)) isEqualTo (_commandReceipt select 3)}
+        && {(expectedDestination (_commandReceipt select 2)) isEqualTo (_commandReceipt select 4)}
+        && {([_group] call WAIT_fnc_DrivingRouteReceipt) isEqualTo (_commandReceipt select 5)}
+};
 private _release={
     params [["_reason","RELEASE",[""]]];
     if (count _record == 9 && {(_record select 1) == _generation}) then {
@@ -36,9 +52,14 @@ private _release={
                 isNull _x || {isPlayer _x} || {!local _x} || {!isNull remoteControlled _x}
                     || {group _x != _group} || {([_x] call WAIT_fnc_CortexExternalOwner) != ""}
                     || {[_x] call WAIT_fnc_CompatibilityExternalControl}
+                    || {!simulationEnabled _x} || {isObjectHidden _x}
+                    || {!(_x checkAIFeature "MOVE")} || {!(_x checkAIFeature "PATH")}
+                    || {!isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+                    || {currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED",
+                        "HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}
             } < 0;
             if (!([_group] call WAIT_fnc_CortexExternalTakeover)
-                && {_crewStillOwned} && {(_record select 2) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+                && {_crewStillOwned} && {[_ownedVehicle] call _commandsUnchanged}
                 && {isNil {_ownedVehicle getVariable "WAIT_ExternalDrivingOwner"}}) then {
                 private _info=vehicleMoveInfo _ownedVehicle;
                 if ((_info param [1,""]) in ["LEFT","RIGHT"]
@@ -47,24 +68,30 @@ private _release={
             };
             _ownedVehicle setVariable ["WAIT_VehicleReverseOwner",nil,true];
         };
-        _group setVariable ["WAIT_VehicleReverse",nil,true];
+        if (count _commandReceipt == 6 && {(_commandReceipt select 0) == _generation}
+            && {(_group getVariable ["WAIT_VehicleReverse_Command",[]]) isEqualTo _commandReceipt}) then {
+            _group setVariable ["WAIT_VehicleReverse_Command",nil,true];
+        };
+        if ((_group getVariable ["WAIT_VehicleReverse",[]]) isEqualTo _record) then {
+            _group setVariable ["WAIT_VehicleReverse",nil,true];
+        };
     };
     "RELEASED"
 };
 if (toUpperANSI _mode == "RELEASE") exitWith {["RELEASE"] call _release};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 private _limits=_operation getOrDefault ["reverseLimits",[30,20,35]];
-private _eligible=(missionNamespace getVariable ["WAIT_AIPass_Active",false])
+private _fallbackAuthority=(missionNamespace getVariable ["WAIT_AIPass_Active",false])
     && {[_group,"WAIT_AIPass_VehicleWithdraw_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
-    && {[_group,"WAIT_AIPass_VehicleReverse_Enable",true] call WAIT_fnc_CortexFeatureEnabled}
     && {count _operation > 0} && {(_operation getOrDefault ["generation",-2]) == _generation}
     && {(_operation getOrDefault ["intent",""]) == "VEHICLE_WITHDRAW"}
     && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
     && {!([_group] call WAIT_fnc_CortexExternalTakeover)}
     && {!isNull _vehicle} && {local _vehicle} && {alive _vehicle} && {canMove _vehicle}
     && {isNil {_vehicle getVariable "WAIT_ExternalDrivingOwner"}}
-    && {_vehicle isKindOf "Tank"} && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])};
-if (!_eligible) exitWith {["INELIGIBLE"] call _release; "FALLBACK"};
+    && {!(_vehicle getVariable ["WAIT_Convoy_Active",false])};
+private _eligible=_fallbackAuthority && {_vehicle isKindOf "Tank"}
+    && {[_group,"WAIT_AIPass_VehicleReverse_Enable",true] call WAIT_fnc_CortexFeatureEnabled};
 private _driver=driver _vehicle;
 private _commander=effectiveCommander _vehicle;
 if (isNull _driver || {isNull _commander} || {_driver == _commander}
@@ -74,29 +101,34 @@ if (isNull _driver || {isNull _commander} || {_driver == _commander}
     || {!local _driver} || {!local _commander}
     || {isPlayer _driver} || {isPlayer _commander} || {group _driver != _group}
     || {group _commander != _group} || {!isNull remoteControlled _driver}
-    || {!isNull remoteControlled _commander}) exitWith {["CREW_UNAVAILABLE"] call _release; "FALLBACK"};
+    || {!isNull remoteControlled _commander}
+    || {[_driver,_commander] findIf {
+        !isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])
+            || {[_x] call WAIT_fnc_CortexExternalOwner != ""}
+            || {!simulationEnabled _x} || {isObjectHidden _x}
+            || {!(_x checkAIFeature "MOVE")} || {!(_x checkAIFeature "PATH")}
+            || {currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED",
+                "HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}
+    } >= 0}) exitWith {
+    private _handover=count _record == 9 && {(_record select 1) == _generation};
+    ["CREW_UNAVAILABLE"] call _release;["RELEASED","FALLBACK"] select (_fallbackAuthority && {!_handover})
+};
+// A matching old episode cannot acquire a replacement crew or overwrite a newer native order.
+// This is handover, not failed navigation: the caller must not issue its forward fallback.
+if (count _record == 9 && {(_record select 1) == _generation}
+    && {(_record select 0) == _vehicle} && {!([_vehicle] call _commandsUnchanged)}) exitWith {
+    ["COMMAND_OR_SEATS_CHANGED"] call _release;"RELEASED"
+};
+if (!_eligible) exitWith {
+    ["INELIGIBLE"] call _release;["RELEASED","FALLBACK"] select _fallbackAuthority
+};
 // Observe only the short swept rear area of this active finite reverse leg. This is
 // actor safety, not a path replacement or a global traffic scan. Keep native collisions.
-private _rearOccupied={
-    private _box=boundingBoxReal _vehicle;
-    private _low=_box select 0;
-    private _high=_box select 1;
-    private _depth=(4+(abs speed _vehicle)/1.8) min 12;
-    private _radius=(_depth+(abs (_low select 1))+(abs (_high select 0))) max 8;
-    private _occupants=_vehicle nearEntities [["CAManBase","LandVehicle"],_radius];
-    // Dense traffic is unsafe to reverse through; cap script-side actor evaluation.
-    if (count _occupants > 64) exitWith {true};
-    _occupants findIf {
-        _x != _vehicle && {!(_x in crew _vehicle)} && {alive _x}
-        && {private _relative=_vehicle worldToModel (getPosATL _x);
-            (_relative select 0) >= (_low select 0)-2
-            && {(_relative select 0) <= (_high select 0)+2}
-            && {(_relative select 1) <= (_low select 1)+1}
-            && {(_relative select 1) >= (_low select 1)-_depth}
-        }
-    } >= 0
+private _rearDepth=(4+(abs speed _vehicle)/1.8) min 12;
+private _rearClearance=[_vehicle,_rearDepth] call WAIT_fnc_DrivingRearClear;
+if !(_rearClearance select 0) exitWith {
+    [_rearClearance select 1] call _release; "FALLBACK"
 };
-if (call _rearOccupied) exitWith {["REAR_OCCUPIED"] call _release; "FALLBACK"};
 if (toUpperANSI _mode == "START") exitWith {
     if (count _record == 9) exitWith {
         if ((_record select 1) == _generation && {(_record select 0) == _vehicle}) then {"REVERSE"} else {"FALLBACK"}
@@ -123,6 +155,9 @@ if (toUpperANSI _mode == "START") exitWith {
     _vehicle setVariable ["WAIT_VehicleReverseOwner",[_group,_generation],true];
     _vehicle sendSimpleCommand "STOPTURNING";
     _vehicle sendSimpleCommand "BACK";
+    _commandReceipt=[_generation,_driver,_commander,+(expectedDestination _driver),
+        +(expectedDestination _commander),[_group] call WAIT_fnc_DrivingRouteReceipt];
+    _group setVariable ["WAIT_VehicleReverse_Command",_commandReceipt,true];
     "REVERSE"
 };
 if (count _record != 9 || {(_record select 0) != _vehicle} || {(_record select 1) != _generation}
@@ -149,6 +184,10 @@ if (_turn != (_record select 8)) then {
     // Resume reverse once when that turn is cancelled, not on every scheduler step.
     if (_turn == "STOPTURNING") then {_vehicle sendSimpleCommand "BACK"};
     _record set [8,_turn];
+    // Only our guarded command write may update command receipts; route/deadline never renew.
+    _commandReceipt set [3,+(expectedDestination _driver)];
+    _commandReceipt set [4,+(expectedDestination _commander)];
+    _group setVariable ["WAIT_VehicleReverse_Command",_commandReceipt,true];
 };
 if (_record isNotEqualTo _beforeRecord) then {_group setVariable ["WAIT_VehicleReverse",_record,true]};
 "REVERSE"

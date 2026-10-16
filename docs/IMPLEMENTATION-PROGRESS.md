@@ -1,3 +1,44 @@
+## Corrected module scope
+
+The ordinary-driving enable/release/inspect native and ZEN modules, their settings transport and
+associated coverage claims were removed. CBA retains settings ownership. Modules must dispatch
+scoped behaviours through production task executors; task-specific destinations/radii remain valid
+parameters. The driving FSM, shared clearance and tactical handover changes remain in place.
+Audits remain held; no new behaviour-module acceptance is claimed.
+
+## Shared reverse clearance observation
+
+Ordinary recovery and tracked withdrawal now consume the same body-sized rear actor/geometry
+observer. It projects actor footprints, refuses dense candidate sets and uses at most six solid
+geometry rays. Consumers retain movement authority, existing terrain/avenue checks and finite
+recovery semantics. This replaces fixed-width ordinary probes and centre-only tracked solid checks;
+it does not establish collision avoidance or driving completion. Physical cases are pending and
+audits remain held. Finite tactical movement now retires ordinary driving before acquisition;
+admission, queued execution, commands and late restoration preserve the successor lease. Physical
+handover and post-expiry resumption remain pending.
+
+## Ordinary driving operation lifecycle
+
+Ordinary driving admission now starts/reuses an owner-local route-scoped FSM. Its phase nodes
+queue the established physical executor through the existing shared scheduler. Epoch, brain and
+route identity prevent stale execution; matching cleanup releases tracked speed leases. Cruise,
+intentional native wait, recovery and handback are separate states. Exhausted attempts retain a
+terminal receipt until a changed order or explicit group release. This is implementation work,
+not driving completion. Full offline gates and all physical wait/repeat/migration cases remain
+required; audits are still held. Predictive traffic, gate actions and yield/overtake execution remain
+incomplete.
+
+## Driving continuation after merged follow-up
+
+The prior follow-up is merged. The next branch expands ordinary-driving waypoint identity to include
+conditions, timeouts, synchronized triggers, speed, combat mode and formation. Every speed/recovery
+write rechecks the captured identity. Same-index edits reset finite recovery observation, and the
+implicit spawn waypoint cannot admit driving assistance. Initial refusal clears an unapplied speed
+snapshot. Shared-route recovery is limited to the current leader vehicle; followers retain native
+formation movement. Command admission rechecks actual seat identities and vehicle/group locality.
+Source checks and a full offline build are required. Physical follower/leader-change, recovery/order-edit and
+performance acceptance remain open. Audits stay held.
+
 ## Current acceptance boundary - 2026-10-14
 
 All 65 feature families remain partial. Source through 3cb1c9d passed 663 tests and the full build gates. The consolidated CQB changes address unfinished-floor claim order, exterior query displacement, moving follow-through paths and live destination occupancy. Physical effectiveness across larger forces, casualties, modded buildings, HC migration and performance remains incomplete.

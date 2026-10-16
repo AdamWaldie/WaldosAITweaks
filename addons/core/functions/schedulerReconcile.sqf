@@ -3,6 +3,8 @@
  * Maintains one shared callback and retains only jobs belonging to enabled owner-local runtimes.
  * Locality / Authority: Local runtime lifecycle only; does not change CBA settings or other owners.
  * Repeat/JIP: Idempotent. Each joining owner creates its own callback after effective settings readiness.
+ * Retained keyed wakeAt deadlines participate in the idle cache; unrelated lifecycle changes
+ * cannot postpone a wake already raised by the current local operation.
  * Arguments: None.
  * Return Value: BOOL - true while at least one local runtime needs the scheduler.
  * Current callers: CortexInit/Stop, AIRebalanceInit/Stop, convoy lifecycle and owner-local aircraft setup.
@@ -27,7 +29,7 @@ private _earliest = -1;
         }
     };
     {
-        private _due = _x select 0;
+        private _due = (_x select 0) min ((_x select 2) getOrDefault ["wakeAt",_x select 0]);
         if (_earliest < 0 || {_due < _earliest}) then {_earliest = _due};
     } forEach _retained;
     missionNamespace setVariable [_x, _retained];
