@@ -70,9 +70,8 @@ private _leader = [_group] call WAIT_fnc_CortexGroupAnchor;
 if (isNull _leader) then {_leader=leader _group};
 if (vehicle _leader != _leader) exitWith {["LEADER_MOUNTED"] call _refuse};
 private _onFoot = (units _group) select {
-    private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
     alive _x && {local _x} && {vehicle _x == _x} && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
-        && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
+        && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
 };
 if (count _onFoot < (missionNamespace getVariable ["WAIT_AIPass_Flank_MinGroupSize", 6])) exitWith {["INSUFFICIENT_ACTORS",[count _onFoot]] call _refuse};
 if (count _onFoot / ((_group getVariable ["WAIT_AIPass_PeakSize", count _onFoot]) max 1) < 0.6) exitWith {["CASUALTY_STRENGTH",[count _onFoot,_group getVariable ["WAIT_AIPass_PeakSize",count _onFoot]]] call _refuse};

@@ -2,6 +2,7 @@
  * Author: WaldoTheWarfighter
  * Executes exactly one checked shot on the current battery owner. The server observes the actual firing event.
  * Locality/authority: documented guards enforce server coordination and owner-local execution.
+ * Smoke enablement is checked both before safety work and at the final command boundary.
  * Repeat/JIP: mission tokens reject stale work; server state survives HC migration, not restart.
  * Arguments: 0: battery <OBJECT>; 1: aim ATL <ARRAY>; 2: magazine <STRING>; 3: purpose <STRING>; 4: mode <STRING>; 5: token <STRING>.
  * Return Value: Boolean, firing command issued.
@@ -22,6 +23,7 @@ if (!local _battery || {!alive _battery} || {!([_operator] call WAIT_fnc_CortexC
     || {(_battery getVariable ["WAIT_AIPass_FireToken", ""]) != _token}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active", false])} || {[] call WAIT_fnc_CortexIsPaused}
     || {!([group gunner _battery] call WAIT_fnc_CortexIsEligible)}
+    || {_mode == "SMOKE" && {!([_crewGroup,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}}
     || {!_danger && {!([_battery, _purpose] call WAIT_fnc_CortexArtilleryRole)}}
     || {if (_danger) then {
         !([_crewGroup,"WAIT_AIPass_Danger_Enable",true] call WAIT_fnc_CortexFeatureEnabled)
@@ -43,6 +45,7 @@ if (!(_magazine in getArtilleryAmmo [_battery]) || {(magazinesAllTurrets [_batte
 if (!local _battery || {gunner _battery != _operator}
     || {!([_operator] call WAIT_fnc_CortexCombatEffective)}
     || {(_battery getVariable ["WAIT_AIPass_FireToken",""]) != _token}
-    || {!([group _operator] call WAIT_fnc_CortexIsEligible)}) exitWith {call _reject};
+    || {!([group _operator] call WAIT_fnc_CortexIsEligible)}
+    || {_mode == "SMOKE" && {!([group _operator,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}}) exitWith {call _reject};
 _battery doArtilleryFire [_aim, _magazine, 1];
 true

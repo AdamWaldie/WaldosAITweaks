@@ -1,0 +1,44 @@
+{
+  "reviewed": "2026-10-16",
+  "source": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssist.sqf",
+  "sourceSHA256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+  "scope": "TrafficCap prediction, FromLeft and TrafficRays classification; called curvature helpers remain separately scoped",
+  "rangesReviewed": [
+    "1021-1170 traffic constants, relative course, time windows and fixed discovery",
+    "1187-1343 left-side classification and forward/reverse traffic rays"
+  ],
+  "findings": [
+    {
+      "area": "prediction and discovery",
+      "source": "TrafficCap uses six-second closest-approach/time-window tests but discovers vehicles within a fixed 60m query.",
+      "wait": "FollowingCap previously searched only own travel plus hull margin. The new envelope includes own six-second travel plus nominal 35m/s approaching travel and 20m margin, capped at 500m. One query and the 64-hull refusal remain.",
+      "limits": "Faster approaching vehicles, unusually large hulls and engine query cost remain unverified. The prediction horizon alone is not a physical stopping-distance guarantee."
+    },
+    {
+      "area": "following",
+      "source": "Same-direction traffic can set measured-speed caps and short-gap deductions. Predicted rear-end proximity can lower the cap again. The source also excludes its active overtake peer from ordinary following.",
+      "wait": "Continuous loaded-hull gap/closing allowance remains the WAIT path. Registered convoy predecessor spacing is delegated only when aligned, with close hull contact still vetoed. No new following gains were inferred from this review."
+    },
+    {
+      "area": "oncoming and crossing priority",
+      "source": "Oncoming traffic uses deterministic ID ordering; crossing prediction normally reacts to traffic on the right. FromLeft checks source rank/feature/player status before assuming an approaching left-side peer yields.",
+      "wait": "Keep current occupied-hull safety and emergency crossing braking for either side. No unacknowledged peer gains permission to cross a conflict merely because a rank or addon marker exists."
+    },
+    {
+      "area": "ray classification and persistent blockage",
+      "source": "Forward traffic uses a centre ray and rear traffic uses a fan, bent through curvature helpers. Traffic rays classify a standing vehicle as an obstacle after eight seconds and omit some resulting stop requests; hard occupancy is separately retained by TrafficStep. Empty forward vehicles are delegated to obstacle helpers.",
+      "wait": "Empty and wrecked hulls remain geometric obstructions. Timer expiration cannot clear occupied space. Bypass admission must prove its own route/ownership and current geometry; this review does not validate the source curvature helpers or whole obstruction chain."
+    }
+  ],
+  "remaining": [
+    "Read every called curvature/segment helper and relevant settings branch",
+    "Complete discovery/cadence and follower priority interactions",
+    "Native finite queue-cascade implementation",
+    "Physical crossing/oncoming/braking/dense-traffic and normal/HC acceptance",
+    "Measure 5% median and 10% p95 overhead budget"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "held by user instruction"
+}

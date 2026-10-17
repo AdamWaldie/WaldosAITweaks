@@ -6,7 +6,8 @@
  * assigned vehicle role and asks the engine to perform an internal seat change. Zeus, player,
  * specialist, convoy and authored task ownership always win.
  * Repeat/JIP: Finite and generation-owned. The caller records every attempted generation, so a
- * rejected or accepted recovery cannot churn assignments. A new owner evaluates only later danger.
+ * Actor reservations, direct remote control and specialist ownership veto both seat commands.
+ * Rejected or accepted recovery cannot churn assignments. A new owner evaluates only later danger.
  * Arguments: 0: group <GROUP>, grpNull; 1: vehicle <OBJECT>, objNull; 2: hostile <OBJECT>, objNull;
  * 3: cause <STRING>, ""; 4: danger generation <NUMBER>, -1.
  * Return Value: Boolean - true only when a seat-change request was issued.
@@ -50,6 +51,11 @@ private _candidate=commander _vehicle;
 if (isNull _candidate || {!alive _candidate} || {!local _candidate} || {isPlayer _candidate}
     || {group _candidate != _group} || {_candidate == driver _vehicle}
     || {!([_candidate] call WAIT_fnc_CortexCombatEffective)}) exitWith {["COMMANDER_INELIGIBLE"] call _reject};
+if ([_candidate] call WAIT_fnc_CortexActorMoveReserved
+    || {!isNull remoteControlled _candidate}
+    || {!isNull (_candidate getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+    || {([_candidate] call WAIT_fnc_CortexExternalOwner) != ""}
+    || {[_candidate] call WAIT_fnc_CompatibilityExternalControl}) exitWith {["ACTOR_OWNERSHIP"] call _reject};
 private _command=toUpperANSI currentCommand _candidate;
 if (fleeing _candidate || {_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"]}) exitWith {["NATIVE_TASK"] call _reject};
 if (_candidate knowsAbout _hostile <= 0) exitWith {["NO_NATIVE_KNOWLEDGE"] call _reject};

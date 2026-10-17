@@ -94,3 +94,19 @@ Current implementation, physical acceptance and progression blockers are recorde
 The packaged optionals folder contains a separate AI Turret Aiming addon. Load that optional mod alongside WAIT to apply a restart-required AI turret aiming-error ceiling of 0.12 radians. It changes no weapon dispersion, ammunition, projectile or recoil properties. CBA switches cannot unload an engine configuration patch; remove the optional mod and restart to restore the base configuration. Default WAIT installation does not load it. Physical lethality, player precision and compatibility acceptance remain pending.
 
 For packaged audit comparisons, use the checked-in launcher with -EnginePolicies turret_aiming for the policy arm and omit it for the default arm. The launcher records the selection and uses the same sealed optional addon on every participating machine; native baseline runs reject WAIT engine policies.
+
+Navigation corridors are available as a native Zeus behaviour task and optional ZEN dialog.
+They define an explicit area, facing, dimensions and task speed for ordinary/convoy lead routing;
+CBA still owns addon settings. See [corridor controls and limitations](docs/Smart-AI-Pass.md#navigation-corridor-operator-controls).
+Physical corridor/module acceptance remains pending.
+
+### Permanent signing authority
+
+Signed candidates reuse the external `WaldoTheWarfighter` pair. The pinned public-key SHA-256 is `297f847320561498d0c04e8db2e0570f60b770f1f932adcdcc20c45c2275c889`; a missing or mismatched key stops signing. Never regenerate or rename this authority. HEMTT release packing uses `--no-sign --no-archive`; signing is a separate step.
+
+The encrypted Actions secret `WALDO_SIGNING_KEYPAIR` contains JSON fields `privateKey` and `publicKey`, each base64 encoded. Configure it through stdin, never a command-line value or committed file. Signing removes the secret from the environment before invoking tools, decodes into a temporary directory outside the checkout and removes that directory afterward. Only the public `.bikey` and PBO `.bisign` files enter the package.
+
+The candidate workflow pins armake2 commit `3cc3362101900ff41504db3e780dd1625634cf94` with the retained file-ordering and compiled-SQF patch. Local signing may use the fingerprint-pinned Bohemia DSSignFile executable. `sign_release.py` independently checks every PBO with HEMTT, rejects damaged signature copies, seals file hashes and exports `wait-candidate.zip`, its SHA-256 and `signing-verification.json`. Promotion repeats pinned-key verification on the exact candidate. These checks prove packaging/signatures, not AI or performance acceptance. Candidate generation does not publish a release or upload to Steam.
+
+
+Candidate signing and independent verification cover every PBO recursively, including optional addon folders. An unsigned optional addon prevents export just as an unsigned main addon does. The earlier local `permanent-key-final-20261016` artifact omitted the optional turret policy signature and is superseded; do not distribute it.

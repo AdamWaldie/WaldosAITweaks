@@ -1,0 +1,102 @@
+{
+  "reviewed": "2026-10-16",
+  "source": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssist.sqf",
+  "sourceSHA256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+  "scope": "ArcPts, SegN, ClampK and RaySegments helpers plus travelled-curvature main branch; remaining geometry consumers remain separately scoped",
+  "rangesReviewed": [
+    "384-454 arc helpers and segment conversion",
+    "2519-2555 travelled curvature, direction reset and bend length",
+    "450-554 complete Sense body; classifier and gate helpers retain separately scoped reviews"
+  ],
+  "sourceIntent": "Predict obstacle rays along measured travelled curvature only for a short bend horizon, then continue tangentially. Bound bend angle and segment work; reset curvature after standing or changing forward/reverse direction.",
+  "sourceMechanics": [
+    "ArcPts bends only through BendLen and then extends straight along the reached tangent.",
+    "SegN chooses one to three segments using bend angle and ray length; ClampK limits the bent part to about seventy degrees.",
+    "RaySegments converts the model arc to fixed height above local ground; this is an observation path, not native steering execution.",
+    "The main branch derives curvature as 2*x/(x*x+y*y) from old position in current model space, with three-metre/1.5-second measurement thresholds and a 250m straightness radius."
+  ],
+  "waitComparison": [
+    "DrivingTurnTrack already uses travelled curvature with owner/context/seat binding, freshness and direction/standing reset.",
+    "DrivingGeometryCap already bounds the near bend horizon and continues tangentially. Physical sweep adequacy and grade/bridge behaviour remain unaccepted.",
+    "DrivingNativePathWatch additionally observes native driver PathCalculated events; it grants no movement or clearance authority. A next-three-node window could reject dense valid forward nodes before they span three metres.",
+    "The revised native hint walks six metres of retained path distance, interpolates sparse segments, preserves floor/forward/disconnected-stretch guards and makes at most two bounded passes over the existing 64 nodes."
+  ],
+  "limits": [
+    "No new world query, movement command or scheduler was added by this hint change.",
+    "Retaining only the first 64 event nodes can still leave a vehicle without usable nearby evidence.",
+    "A current native path is a hint, not proof of collision clearance, physical steering, progress or mission completion.",
+    "Dense/sparse paths, stopped turns, grades, repeated native orders, interruption and the runtime performance budget need physical acceptance."
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "held by user instruction",
+  "sensingExtension": {
+    "sourceIntent": "Sense casts a ground-relative low row through curved segments, classifies hits and evaluates lateral distance along the arc/tangent. STRICT sensing narrows bypass treatment of the excluded object. Debug publication is throttled.",
+    "comparison": "WAIT samples rigid body rows at current absolute elevation and retains separate gate, traffic and pedestrian observers. This review found its solid filter used absolute normal Z even though only upward support should be excluded.",
+    "change": "Use signed normal Z for support exclusion. Downward underside hits remain solid constraints. Ray count, observation cadence and native movement authority are unchanged.",
+    "engineReference": "https://community.bistudio.com/wiki/lineIntersectsSurfaces",
+    "engineContract": "The second element of each returned intersection is the intersected surface normal. GEOM sensing is not a complete PhysX or hull-clearance proof.",
+    "remaining": "Source classifier/gate adapters are separately reviewed. Terrain-relative low rows versus absolute body rows, grade/deck transitions, modded undersides and physical braking still require measured comparison."
+  },
+  "gradeDeckReview": {
+    "scope": "Source-only projection analysis. No sampled geometry or native traversal executed.",
+    "sourceRanges": [
+      "431-454 RaySegments endpoint conversion",
+      "483-489 Sense GEOM casts"
+    ],
+    "sourceProjection": "RaySegments keeps transformed XY but replaces endpoint altitude using AGLToASL [worldX,worldY,H]. Sense uses one H=0.6 row; endpoints interpolate as straight segments.",
+    "waitProjection": "DrivingGeometryCap transforms each sampled model body row through current vehicle pitch/elevation; straight sensing has one segment per row/width. Turning has up to three segments. No future support height is observed.",
+    "analyticSensitivity": [
+      {
+        "distanceM": 10,
+        "relativeGradeDegrees": 5,
+        "heightDifferenceM": 0.875
+      },
+      {
+        "distanceM": 25,
+        "relativeGradeDegrees": 5,
+        "heightDifferenceM": 2.187
+      },
+      {
+        "distanceM": 50,
+        "relativeGradeDegrees": 5,
+        "heightDifferenceM": 4.374
+      },
+      {
+        "distanceM": 10,
+        "relativeGradeDegrees": 10,
+        "heightDifferenceM": 1.763
+      },
+      {
+        "distanceM": 25,
+        "relativeGradeDegrees": 10,
+        "heightDifferenceM": 4.408
+      },
+      {
+        "distanceM": 50,
+        "relativeGradeDegrees": 10,
+        "heightDifferenceM": 8.816
+      }
+    ],
+    "interpretation": "For a hypothetical grade change relative to the current body projection, even five degrees produces approximately 2.19m divergence at25m. These are mathematical sensitivity examples, not observed engine failures or a driveability threshold.",
+    "limitations": [
+      "Ground-relative endpoints do not establish that the chosen elevation belongs to the current road deck; do not equate terrain with a bridge surface.",
+      "Current-pitch rigid projection can diverge from a changed grade before the vehicle pitches; ignoring upward normals does not recover obstacles the rays never intersect.",
+      "Sparse endpoints also cannot represent arbitrary intermediate crest/dip shape.",
+      "The fixed 0.45m lower body-row offset leaves lower objects outside that row; wheels, PhysX and pathfinder behaviour are separate evidence.",
+      "GEOM observations and native path hints do not prove full swept-body or braking clearance."
+    ],
+    "nextDecision": "Before changing projection, compare bounded support observations with current native path elevation and vehicle/deck identity. Reject missing or ambiguous surface information. Keep current upper body rows and signed underside handling; do not introduce a terrain-only clearance shortcut.",
+    "physicalCases": [
+      "same vehicle/obstacle on flat terrain and grade change",
+      "crest and dip with low solid obstacle beyond transition",
+      "same low obstacle on elevated deck and ground below",
+      "low overhead obstruction on level deck and ramp",
+      "curved uphill/downhill approach with real braking and mission interruption"
+    ],
+    "performance": "Any added support observation must have an explicit per-callback query/hit budget and measured overhead. No new world queries were added in this review.",
+    "implementationAccepted": false,
+    "physicalAcceptance": false
+  }
+}

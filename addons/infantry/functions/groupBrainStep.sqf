@@ -46,13 +46,14 @@ if (count _clearHold == 4) then {
         _group setVariable ["WAIT_Cortex_ClearHold",nil,true];
         if (_owned && {count (_group getVariable ["WAIT_Operation",createHashMap]) == 0}) then {
             private _leader=leader _group;
+            private _deferred=[];
             {
                 if (local _x && {group _x == _group} && {!isPlayer _x}
                     && {currentCommand _x == "STOP"} && {isNull remoteControlled _x}
                     && {[_x] call WAIT_fnc_CortexCombatEffective}
                     && {isNull objectParent _x} && {_x checkAIFeature "MOVE"} && {_x checkAIFeature "PATH"}
                     && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
-                    && {(_x getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo []}
+                    && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
                     && {!([_group,false,_x] call WAIT_fnc_CortexExternalTakeover)}) then {
                     if (_x == _leader) then {
                         private _waypointIndex=currentWaypoint _group;
@@ -65,7 +66,17 @@ if (count _clearHold == 4) then {
                         _x doFollow _leader;
                     };
                 };
+                // A newer individual order retires the old hold. A still-owned STOP
+                // under a temporary actor reservation must retain its handover receipt.
+                if (local _x && {group _x == _group} && {!isPlayer _x}
+                    && {currentCommand _x == "STOP"}
+                    && {[_x] call WAIT_fnc_CortexActorMoveReserved}) then {
+                    _deferred pushBackUnique _x;
+                };
             } forEach (_clearHold select 3);
+            if (_deferred isNotEqualTo []) then {
+                _group setVariable ["WAIT_Cortex_ClearHold",[_clearHold select 0,_clearHold select 1,_clearHold select 2,_deferred],true];
+            };
         };
     };
 };

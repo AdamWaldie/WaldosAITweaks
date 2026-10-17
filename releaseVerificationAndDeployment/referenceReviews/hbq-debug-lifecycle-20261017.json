@@ -1,0 +1,87 @@
+{
+  "reviewed": "2026-10-17",
+  "waitSourceCommit": "edc039fadcb660bd45d7e72238bb51dd71eadcf1",
+  "scope": "Complete debug text producer/client renderer and driving display helper; selected producer/terminal branches",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_debugText.sqf",
+      "sha256": "591fd3f58fe286a7ea46b7102e006fb7e0255b8b98e719c79138d96c5736640d",
+      "lineCount": 38,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_debugTextClient.sqf",
+      "sha256": "a4e28240e01801419d1b268fdd4d7c0b4c9138c1436260be7cc770a3f7f6bb34",
+      "lineCount": 32,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssistDebug.sqf",
+      "sha256": "3019209c0705906ad6ff31e89127bd0f01b32ec1400059005bb668b29758f4c4",
+      "lineCount": 159,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssist.sqf",
+      "sha256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+      "rangesReviewed": [
+        "132-148 debug registration/clear",
+        "2985-3005 terminal cleanup"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "area": "text transport",
+      "evidence": "Same object/text throttled10s; changed text publishes immediately as text/color/lifetime/local sequence. Global object list is pruned for null entries only when another message registers. No explicit list/count/rate bound for changed texts.",
+      "disposition": "Retain semantic deduplication and finite presentation intent. Use bounded per-owner records, explicit timestamp/expiry and bounded collector; do not use global list writes as multi-owner merge authority."
+    },
+    {
+      "area": "display clock and stale replay",
+      "evidence": "Draw3D reads message serial within800m camera distance, starts lifetime from first local sight, and draws for supplied duration. Display gates return early but handler remains installed. Historical object message has no observation timestamp validation before a new client or newly nearby camera starts its local timer.",
+      "disposition": "Local presentation avoids clock-offset flicker but does not prove source freshness. New/JIP clients can display historical data as recent. Separate observation timestamp from local render timing, expire source records and bound/remove handlers on shutdown."
+    },
+    {
+      "area": "cache namespace collision",
+      "evidence": "debugText stores HBQAD_DbgLast=[text,time] on object. driveAssistDebug sphere loop also writes HBQAD_DbgLast=[path,obstaclePosition] locally. On an interface machine that also produces messages, these different layouts share a key.",
+      "disposition": "Use distinct versioned producer/render caches. This is a source collision risk, not a confirmed runtime failure. Do not copy ambiguous cache ownership."
+    },
+    {
+      "area": "per-frame work and local objects",
+      "evidence": "Draw3D loops navigation areas, registered vehicles and helper positions with camera distance gates, including repeated terrain/bounds transforms. Separate permanent0.25s loop tracks path/obstacle state and creates/deletes local Sign_Sphere100cm_F objects; that loop has no direct enabled/detail gate.",
+      "disposition": "Prefer draw-only diagnostics with bounded precomputed records and complete disabled cleanup. Do not infer zero physics/performance impact from local object creation; measure it. Debug geometry is not movement/path proof."
+    },
+    {
+      "area": "observation pose and migration",
+      "evidence": "Ray endpoints are model-relative and rendered at current vehicle transform. DriveAssist terminal code clears public debug arrays outside its local-vehicle guard; newer owner data is not protected by an episode receipt.",
+      "disposition": "Retain original sample pose/time when rendering historical observations; reject stale predecessor cleanup. A moving current ray picture is not a fresh sensor trace."
+    },
+    {
+      "area": "WAIT comparison",
+      "evidence": "WAIT AIGetDiagnostics is server-only/read-on-demand with bounded group/member and recent callback summaries; its header explicitly excludes HC-private counters from server aggregation. Convoy capture is opt-in/latest-sample and CQB entry capture opt-in/bounded RPT records. Production search found no Draw3D diagnostics helper equivalent.",
+      "disposition": "Do not claim display parity or whole-machine profiling coverage. Keep diagnostic samples separate from completion, behaviour outcomes and median/p95 runtime acceptance. HC collection and actual debug overhead remain separate acceptance work."
+    }
+  ],
+  "waitFilesReviewed": [
+    "addons/core/functions/aiGetDiagnostics.sqf:header and declared scope",
+    "addons production Draw3D/drawIcon3D/drawLine3D search",
+    "addons/vehicles/functions/convoyTick.sqf:diagnostic declaration/admission",
+    "addons/infantry/functions/buildingOperationStep.sqf:entry capture implementation"
+  ],
+  "nextWork": [
+    "Review remaining HBQ helper/caller branches, not file-count completion",
+    "Keep source/renderer caches distinct and finite if implementing visual diagnostics",
+    "Validate per-owner diagnostic collection and disabled cleanup separately from uninstrumented performance runs"
+  ],
+  "productionChange": false,
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "paused; no launch"
+}

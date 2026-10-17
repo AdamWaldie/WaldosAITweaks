@@ -6,7 +6,9 @@
  * Arguments: 0 actor <OBJECT, objNull>; 1 building <OBJECT, objNull>; 2 candidate ATL <ARRAY, []>;
  * 3 selected exit ATL <ARRAY, []>; 4 watch ATL <ARRAY, []>; 5 exits <ARRAY, []>;
  * 6 reserved ATL positions <ARRAY, []>; 7 committed observer lanes <ARRAY, []>,
- * each [post ATL, watch ATL]; 8 diagnostics <BOOL, false>. More than 64 lanes is refused.
+ * each [post ATL, watch ATL]; 8 diagnostics <BOOL, false>. Limits: 64 exits,
+ * 128 reserved posts and 64 lanes. Every coordinate must be a finite numeric triple;
+ * malformed/over-budget input refuses before any world/geometry query.
  * Diagnostic mode returns the same acceptance result with read-only check measurements.
  * Return Value: BOOL by default; diagnostic mode returns [BOOL, named check pairs ARRAY].
  * Supported observation geometry never establishes path arrival or room safety.
@@ -16,8 +18,22 @@
 params [["_actor",objNull,[objNull]],["_building",objNull,[objNull]],
     ["_target",[],[[]]],["_entry",[],[[]]],["_watch",[],[[]]],
     ["_entries",[],[[]]],["_taken",[],[[]]],["_observerLanes",[],[[]]],["_diagnostics",false,[true]]];
-if (isNull _actor || {isNull _building} || {count _target != 3}
-    || {count _entry != 3} || {count _watch != 3} || {count _observerLanes > 64}) exitWith {
+private _positionValid={
+    params ["_position"];
+    _position isEqualType [] && {count _position == 3}
+        && {_position findIf {!(_x isEqualType 0) || {!finite _x}} < 0}
+};
+if (isNull _actor || {isNull _building}
+    || {!([_target] call _positionValid)} || {!([_entry] call _positionValid)}
+    || {!([_watch] call _positionValid)} || {count _entries > 64} || {count _taken > 128}
+    || {count _observerLanes > 64}
+    || {_entries findIf {!([_x] call _positionValid)} >= 0}
+    || {_taken findIf {!([_x] call _positionValid)} >= 0}
+    || {_observerLanes findIf {
+        !(_x isEqualType []) || {count _x != 2}
+            || {!([_x select 0] call _positionValid)}
+            || {!([_x select 1] call _positionValid)}
+    } >= 0}) exitWith {
     if (_diagnostics) then {[false,[["inputs",false]]]} else {false}
 };
 private _bounds=boundingBoxReal _building;
@@ -51,11 +67,6 @@ private _blocksSegment = {
 private _candidateBody=(AGLToASL _target) vectorAdd [0,0,1.1];
 private _candidateEye=(AGLToASL _target) vectorAdd [0,0,1.6];
 private _laneBlocked=_observerLanes findIf {
-    if (!(_x isEqualType []) || {count _x != 2}
-        || {!((_x select 0) isEqualType [])} || {!((_x select 1) isEqualType [])}
-        || {count (_x select 0) != 3} || {count (_x select 1) != 3}
-        || {(_x select 0) findIf {!(_x isEqualType 0)} >= 0}
-        || {(_x select 1) findIf {!(_x isEqualType 0)} >= 0}) exitWith {true};
     private _postASL=AGLToASL (_x select 0);
     [_candidateBody,_postASL vectorAdd [0,0,1.6],AGLToASL (_x select 1)] call _blocksSegment
         || {[_postASL vectorAdd [0,0,1.1],_candidateEye,AGLToASL _watch] call _blocksSegment}

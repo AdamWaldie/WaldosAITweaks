@@ -11,8 +11,8 @@ class StandalonePerformanceReportTests(unittest.TestCase):
         folder.mkdir()
         (folder/'server').mkdir()
         manifest=dict(focus='standaloneperformance',world='VR',batch_mode='normal',headless_provider=None,native_baseline=not loaded,resolution=[3840,2160],
-                      headlessClients=0,performance_composition='infantry',dependencySources=['cba'],package=dict(dirty=False,fingerprint='same'),
-                      mission_files={'mission.sqm':'same','cortexQAStandalonePerformance.sqf':'same'})
+                      headlessClients=0,performance_composition='infantry',dependencySources=['cba'],package=dict(dirty=False,fingerprint='a'*64),
+                      mission_files={'mission.sqm':'b'*64,'cortexQAStandalonePerformance.sqf':'c'*64})
         (folder/'audit-manifest.json').write_text(json.dumps(manifest))
         identity=[loaded,'z/wait/danger/danger.fsm' if loaded else 'native.fsm',50,300,'INFANTRY_PATROL',2]
         result=[loaded,True,1000,10,20,30,50,300,50,1,True]
@@ -111,3 +111,37 @@ class StandalonePerformanceReportTests(unittest.TestCase):
             self.assertEqual(read_run(folder)['composition'],[50,25,7,8,5,5])
             log.write_text(original.replace('[50,25,7,8,5,5]','[50,25,8,7,5,5]'))
             with self.assertRaises(ValueError): read_run(folder)
+
+    def test_malformed_provenance_is_invalid_not_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory)/'native'
+            self.fixture(folder,False)
+            path=folder/'audit-manifest.json'
+            original=json.loads(path.read_text())
+            mutations=[{'package':{}},{'package':{'dirty':False,'fingerprint':''}},
+                       {'package':{'dirty':0,'fingerprint':'a'*64}},
+                       {'mission_files':{}},{'mission_files':{'mission.sqm':'same'}},
+                       {'mission_files':{'auditIdentity.sqf':'a'*64}},
+                       {'mission_files':{'mission.sqm':'a'*64}},
+                       {'native_baseline':1}]
+            for mutation in mutations:
+                changed=copy.deepcopy(original);changed.update(mutation)
+                path.write_text(json.dumps(changed))
+                with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                    read_run(folder)
+
+    def test_boolean_frame_times_and_malformed_rows_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder=Path(directory)/'native'
+            self.fixture(folder,False)
+            path=folder/'server/run.rpt';original=path.read_text()
+            marker='WAIT STANDALONE PERF RESULT: '
+            row=json.loads(next(line.split(marker)[1] for line in original.splitlines() if marker in line))
+            invalid=[None,{},'not a result']
+            for index in (2,3,4,5,6,7,8,9):
+                changed=copy.deepcopy(row);changed[index]=True;invalid.append(changed)
+            for result in invalid:
+                text='\n'.join(marker+json.dumps(result) if marker in line else line for line in original.splitlines())+'\n'
+                path.write_text(text)
+                with self.subTest(result=result), self.assertRaises(ValueError):
+                    read_run(folder)

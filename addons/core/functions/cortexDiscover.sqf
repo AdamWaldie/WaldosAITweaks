@@ -11,6 +11,8 @@
  * - re-applies garrison orders on the new owner after a locality change, because disableAI and
  *   event handlers are stored per machine;
  * - reconciles finite movement ownership for independent alternative controllers;
+ * - retires inherited exact pass-leg receipts in the existing sixteen-vehicle chunk, including
+ *   vehicle locality that arrives after group adoption, without replaying the old pass;
  * - caches locally owned, eligible artillery for fire support and counter-battery;
  * - re-applies defence-line orders after a locality change;
  * - installs the missile-warning handler on every locally owned, eligible AI aircraft. A warning
@@ -119,12 +121,13 @@ private _spotters=_job get "spotters";
         // generic ground-group loop as a second movement/behaviour owner.
         private _eligible = _groundEligible;
         private _movementLease = _group getVariable ["WAIT_Cortex_MovementLease", []];
-        if (_movementLease isNotEqualTo []) then {
-            if (count _movementLease != 2 || {serverTime >= (_movementLease select 1)}) then {
-                [_group,"",false] call WAIT_fnc_CortexOwnershipLease;
-            } else {
-                [_group,_movementLease select 0,true,_movementLease select 1] call WAIT_fnc_CortexOwnershipLease;
-            };
+        // Observation cannot manufacture authority, renew a deadline or erase unknown state.
+        // Only a complete finite expired lease may be retired through its recorded owner.
+        private _typedMovementLease=_movementLease isEqualType [] && {count _movementLease == 2}
+            && {(_movementLease select 0) isEqualType ""} && {(_movementLease select 0) != ""}
+            && {(_movementLease select 1) isEqualType 0} && {finite (_movementLease select 1)};
+        if (_typedMovementLease && {serverTime >= (_movementLease select 1)}) then {
+            [_group,_movementLease select 0,false] call WAIT_fnc_CortexOwnershipLease;
         };
         if (_eligible) then {
             _group setVariable ["WAIT_AIPass_PeakSize", (_group getVariable ["WAIT_AIPass_PeakSize", 0]) max ({alive _x} count units _group)];
@@ -136,6 +139,12 @@ _job set ["groupCursor",_groupCursor+12];
 
 private _wantArtillery = (missionNamespace getVariable ["WAIT_AIPass_Artillery_Enable", false])
     || {missionNamespace getVariable ["WAIT_AIPass_CounterBattery_Enable", false]};
+// Cleanup uses the existing bounded vehicle slice even when air/artillery features are disabled.
+{
+    if (local _x && {!isNil {_x getVariable "WAIT_DrivingPass_Leg"}}) then {
+        [_x] call WAIT_fnc_DrivingPassRetireInherited;
+    };
+} forEach (_scanVehicles select [_vehicleCursor,16]);
 private _wantFlares = (missionNamespace getVariable ["WAIT_AIPass_AircraftFlares_Enable", true])
     || {missionNamespace getVariable ["WAIT_AIPass_AircraftBreak_Enable", true]};
 private _wantAttackFlares=missionNamespace getVariable ["WAIT_Cortex_AttackRunFlares_Enable",true];

@@ -5,6 +5,8 @@
  * Advances a running drill (flank, bounding advance, direct assault or coordinated bound) by one step: issue a bound, wait for arrival,
  * pause and overwatch, cross streets under smoke, and finish by holding the ground won or assaulting.
  *
+ * Casualty refill admits only local actors with empty or fully typed expired movement leases;
+ * unknown or malformed reservations remain owned and cannot be added to the drill roster.
  * Bounds: each member gets his own spot, spread across a shallow line facing the last known enemy position. A slot on
  * water or a cliff-like side slope contracts towards the bound centre rather than stranding that soldier. Ordinary
  * bounds, the final position and the assault position are snapped to cover facing the enemy
@@ -251,9 +253,7 @@ private _rankCandidates={
     // Reserve selection must honour finite actor tasks before the drill mutates its own roster;
     // the later shared operation roster check cannot undo a carrier already added to a fire team.
     _candidates=_candidates select {
-        private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-        private _reservationFree=_reservation isEqualTo []
-            || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+        private _reservationFree=!([_x] call WAIT_fnc_CortexActorMoveReserved);
         _reservationFree
             && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
             && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}

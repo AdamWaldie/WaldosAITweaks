@@ -184,7 +184,8 @@ if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {
         private _nativeTask=_command in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"];
         private _receipt=_actor getVariable ["WAIT_Cortex_GarrisonMove",[]];
         private _live=(expectedDestination _actor) param [0,[]];
-        private _matching=count _receipt == 4 && {(_receipt select 0) == _group}
+        private _matching=count _receipt == 5 && {(_receipt select 0) == _group}
+            && {(_receipt select 4) isEqualTo (_actor getVariable ["WAIT_AIPass_GarrisonPos",[]])}
             && {(_receipt select 1) == (_group getVariable ["WAIT_AIPass_GarrisonGeneration",-1])}
             && {(_receipt select 2) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
             && {count _live == 3} && {count (_receipt select 3) == 3}
@@ -194,6 +195,7 @@ if ((_group getVariable ["WAIT_AIPass_Garrison",[]]) isNotEqualTo []) then {
             && {_nativeTask || {_command == "FOLLOW"} || {_command == "MOVE" && {!_matching}}}
     };
     if (_diverted isNotEqualTo []) then {[_group,false,_diverted] call WAIT_fnc_CortexGarrisonRelease};
+    [_group] call WAIT_fnc_CortexGarrisonRefill;
 };
 // A group tick can complete bounded assessment and planning after a curator or specialist
 // controller has claimed the group. Check immediately before actor-level commands so old
@@ -549,7 +551,15 @@ if (!_groupMovementOwned && {_movementLease isNotEqualTo []}) then {
 private _now = time;
 private _hasLiveActorMove = {
     private _actorMove = _this getVariable ["WAIT_Cortex_ActorMove",[]];
-    count _actorMove == 3 && {_now < (_actorMove select 2)}
+    if (_actorMove isEqualTo []) exitWith {false};
+    // Unknown ownership is not permission for search, consolidation or contact follow commands.
+    private _expired=_actorMove isEqualType [] && {count _actorMove == 3}
+        && {(_actorMove select 0) isEqualType ""}
+        && {(_actorMove select 1) isEqualType []} && {count (_actorMove select 1) == 3}
+        && {(_actorMove select 1) findIf {!(_x isEqualType 0) || {!finite _x}} < 0}
+        && {(_actorMove select 2) isEqualType 0} && {finite (_actorMove select 2)}
+        && {_now >= (_actorMove select 2)};
+    !_expired
 };
 private _get = {
     _this params ["_name", "_fallback"];
@@ -559,10 +569,13 @@ private _get = {
 // Combined-arms roles are public finite intent. Reapply once when a group moves to a new owner;
 // the token prevents an obsolete owner or an older opportunity from reviving work.
 private _combinedRole=_group getVariable ["WAIT_Cortex_CombinedRole",[]];
-if (count _combinedRole == 7 && {serverTime < (_combinedRole select 5)}) then {
+if ((count _combinedRole) in [7,8] && {serverTime < (_combinedRole select 5)}) then {
     private _combinedApplied=_group getVariable ["WAIT_Cortex_CombinedApplied",[]];
+    private _combinedApplication=_group getVariable ["WAIT_Cortex_CombinedApplicationLocal",[]];
+    private _combinedIdentity=[+_combinedRole,clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]];
     if ((_combinedApplied param [0,""]) != (_combinedRole select 0)
-        || {(_combinedApplied param [1,-1]) != clientOwner}) then {
+        || {(_combinedApplied param [1,-1]) != clientOwner}
+        || {count _combinedApplication != 2 || {(_combinedApplication select 0) isNotEqualTo _combinedIdentity}}) then {
         [_group,_combinedRole] call WAIT_fnc_CortexCombinedArmsLocal;
     };
 };
@@ -801,7 +814,26 @@ if (_phaseGateClosed) then {
 // Soldiers holding ground from a finished drill rejoin once the leader has caught up with them.
 // A previous completed bound must not issue doFollow over a replacement drill.
 // Transfer these actors out of old holding ownership before considering reunion.
-private _ownedMovers = _activeDrill getOrDefault ["units",[]];
+private _ownedMovers = +(_activeDrill getOrDefault ["units",[]]);
+// CLEAR/garrison/defence and an authored stationary order supersede the old drill's
+// reunion ownership even when they use no active drill record. Transfer metadata only.
+if (_ordered) then {_ownedMovers append (_state getOrDefault ["holders",[]])};
+private _holderOperation=_group getVariable ["WAIT_Operation",createHashMap];
+if (count _holderOperation > 0
+    && {(_holderOperation getOrDefault ["generation",-1]) == (_group getVariable ["WAIT_OperationGeneration",0])}
+    && {(_holderOperation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {(_holderOperation getOrDefault ["cancelReason",""]) == ""}) then {
+    _ownedMovers append (_holderOperation getOrDefault ["participants",[]]);
+};
+// Terminal clearance deliberately holds actual posts until a new authored order.
+// An old completed bound must not recall these actors around the indoor leader.
+private _holderClearHold=_group getVariable ["WAIT_Cortex_ClearHold",[]];
+if (count _holderClearHold == 4
+    && {(_holderClearHold select 0) == (_group getVariable ["WAIT_AIPass_ClearGeneration",0])}
+    && {(_holderClearHold select 1) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    && {([_group] call WAIT_fnc_NativeOrderReceipt) isEqualTo (_holderClearHold select 2)}) then {
+    _ownedMovers append (_holderClearHold select 3);
+};
 private _holders = (_state getOrDefault ["holders", []]) select {alive _x && {local _x} && {group _x == _group} && {!(_x in _ownedMovers)}};
 _state set ["holders",_holders];
 // A completed coordinated bound still belongs to the squad-level MOVE/COVER cycle.
@@ -857,10 +889,9 @@ private _beginContact = {
     };
     if ([] call _mayIssueMovement) then {
         {
-            private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
             if (alive _x && {local _x}
                 && {!(toUpperANSI (currentCommand _x) in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
-                && {count _actorMove != 3 || {_now >= (_actorMove select 2)}}) then {
+                && {!(_x call _hasLiveActorMove)}) then {
                 _x doFollow _leader
             };
         } forEach (_state getOrDefault ["searchTeam", []]);
@@ -1130,6 +1161,10 @@ switch (_state get "phase") do {
             if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement}) then {
                 _buildingOwnsMovement=[_group,_state,_enemies] call WAIT_fnc_CortexBuildingContact;
                 if (_buildingOwnsMovement) then {_ordered=true};
+            };
+            // Actor admission does not claim the squad or disable its other roles.
+            if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement} && {!_buildingOwnsMovement}) then {
+                [_group,_state,_enemies] call WAIT_fnc_IndoorActorDispatch;
             };
             if (!_holdFire && {_hasTargetKnowledge} && {!_ordered} && {!_coordinatedOwnsMovement} && {!_buildingOwnsMovement}) then {
                 [_group, _state, _enemies,

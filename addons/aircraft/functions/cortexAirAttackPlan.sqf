@@ -11,6 +11,7 @@
  * This is an intercept/engage/disengage controller, not a scripted claim to full BFM. A standoff
  * plan retains the real loaded weapon/turret pair. Every surface pattern retains a loaded damaging
  * weapon/turret pair suited to its geometry; a lateral pass requires an armed independent turret.
+ * AA threat geometry uses the native reported contact position, never the object's current pose.
  * Observed AA shifts the run away from the threat sector and prefers a usable
  * standoff pair unless that aircraft recently failed to acquire a firing solution.
  * Locality/authority: read-only; called on the aircraft owner. It does not reveal enemies, add
@@ -224,7 +225,11 @@ private _aaPositions=[];
 private _known=(_pilot nearTargets ([8000,5000] select !(_aircraft isKindOf "Plane"))) select [0,16];
 {
     private _contact=_x param [4,objNull];
-    if (!isNull _contact && {alive _contact} && {_side getFriend side _contact < 0.6}) then {
+    private _reportedPosition=_x param [0,[],[[]]];
+    private _validReport=count _reportedPosition == 3 && {
+        _reportedPosition findIf {!(_x isEqualType 0) || {!(finite _x)}} < 0
+    };
+    if (_validReport && {!isNull _contact} && {alive _contact} && {_side getFriend side _contact < 0.6}) then {
         private _antiAir=false;
         if (_contact isKindOf "CAManBase") then {
             _antiAir="AA" in ([_contact] call WAIT_fnc_CortexCapabilities);
@@ -234,7 +239,7 @@ private _known=(_pilot nearTargets ([8000,5000] select !(_aircraft isKindOf "Pla
                 if (_rounds > 0 && {([_magazine] call _ammoFacts) select 0}) exitWith {_antiAir=true};
             } forEach magazinesAllTurrets _contact;
         };
-        if (_antiAir) then {_aaPositions pushBack getPosATL _contact};
+        if (_antiAir) then {_aaPositions pushBack (+_reportedPosition)};
     };
 } forEach _known;
 missionNamespace setVariable ["WAIT_Cortex_AirAmmoFacts",_ammoCache];

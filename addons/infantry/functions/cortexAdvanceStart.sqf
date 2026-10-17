@@ -89,10 +89,9 @@ private _objective = if (_hasAuthoredObjective) then {
 };
 if (_leader distance2D _objective <= 80) exitWith {["OBJECTIVE_REACHED",[_leader distance2D _objective]] call _refuse};
 private _onFoot = (units _group) select {
-    private _actorMove = _x getVariable ["WAIT_Cortex_ActorMove",[]];
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {vehicle _x == _x}
         && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
-        && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
+        && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
 };
 private _riflemen = _onFoot select {_x != _leader && {!(([_x] call WAIT_fnc_CortexUnitRole) in ["MG", "AT", "LEADER"])}};
 private _candidates = [];

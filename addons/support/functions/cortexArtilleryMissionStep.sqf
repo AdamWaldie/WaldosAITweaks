@@ -44,7 +44,9 @@ private _requester=_mission getOrDefault ["requester",grpNull];
 private _danger=(_mission get "purpose") == "DANGER";
 private _crewGroup=if (isNull gunner _battery) then {grpNull} else {group gunner _battery};
 private _requesterBlocked=!isNull _requester && {!([_requester,"WAIT_AIPass_Artillery_Enable",false] call WAIT_fnc_CortexFeatureEnabled) || {!([_requester,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}};
-private _blocked = _requesterBlocked || {!alive _battery} || {!alive gunner _battery}
+private _smokeBlocked=(_mission get "mode") == "SMOKE"
+    && {!([_crewGroup,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)};
+private _blocked = _smokeBlocked || {_requesterBlocked} || {!alive _battery} || {!alive gunner _battery}
     || {combatMode group gunner _battery == "BLUE"} || {unitCombatMode gunner _battery == "BLUE"} || {time > (_mission get "deadline")}
     || {side group gunner _battery != (_mission get "side")}
     || {!([group gunner _battery] call WAIT_fnc_CortexIsEligible)}

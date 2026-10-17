@@ -65,8 +65,10 @@ def supported_focuses(root=ROOT):
     return sorted(values)
 
 def stage(package, destination, focus, root=ROOT, native_baseline=False, performance_composition="infantry", headless_provider=None, batch_mode="normal", world="VR"):
-    if world not in ('VR', 'Altis') or (world != 'VR' and focus != 'nativebuildings'):
-        raise ValueError('Terrain building diagnosis supports only nativebuildings on Altis')
+    if world not in ('VR', 'Altis') or (world != 'VR' and focus not in ('nativebuildings','roadpassing')):
+        raise ValueError('Altis supports only nativebuildings or roadpassing')
+    if focus == 'roadpassing' and (world != 'Altis' or batch_mode != 'normal'):
+        raise ValueError('Road passing requires Altis and a separate normal batch')
     if focus not in supported_focuses(root):
         raise ValueError(f'Unknown audit focus: {focus}')
     if native_baseline and focus not in ('standaloneperformance', 'nativebuildings'):
@@ -77,6 +79,10 @@ def stage(package, destination, focus, root=ROOT, native_baseline=False, perform
         raise ValueError('Unknown performance composition')
     if batch_mode not in ('normal', 'headless'):
         raise ValueError('Unsupported audit batch mode')
+    if focus == 'indooractorshc' and (batch_mode != 'headless' or not headless_provider):
+        raise ValueError('Individual indoor HC fixtures require a dedicated headless batch and real provider')
+    if focus in ('indooractors','indoornatural') and batch_mode != 'normal':
+        raise ValueError('Individual indoor normal fixtures require a separate batch from HC migration')
     if headless_provider and batch_mode != 'headless':
         raise ValueError('Headless providers require a dedicated headless batch')
     if headless_provider and focus == 'standaloneperformance':
@@ -120,11 +126,17 @@ def stage(package, destination, focus, root=ROOT, native_baseline=False, perform
         server_init.write_text(server_init.read_text().replace('cortexQAStandalonePerformance.sqf', 'cortexQANativeBuildings.sqf'), encoding='utf-8')
         with (mission/'initPlayerLocal.sqf').open('a') as client_init:
             client_init.write('\nplayer setCaptive true;\n[] execVM "cortexQAGuide.sqf";\ndiag_log "WAIT CORTEX QA CLIENT COMPLETE: 0 finding(s) []";\n')
-        if world == 'Altis':
-            sqm=mission/'mission.sqm'
-            sqm.write_text(sqm.read_text().replace('A3_Map_VR','A3_Map_Altis').replace('position[]={5800,0,5800}','position[]={16600,0,12800}'),encoding='utf-8')
-            identity=mission/'auditIdentity.sqf'
-            identity.write_text(identity.read_text().replace('A3_Map_VR','A3_Map_Altis'),encoding='utf-8')
+    if focus == 'roadpassing':
+        # A normal observer mission has no HC slots; keep the addon-dependent audit initializers.
+        shutil.copyfile(root/'releaseVerificationAndDeployment/standalonePerformance/mission.sqm',mission/'mission.sqm')
+    if world == 'Altis':
+        sqm=mission/'mission.sqm'
+        sqm.write_text(sqm.read_text(encoding='utf-8').replace('A3_Map_VR','A3_Map_Altis').replace('position[]={5800,0,5800}','position[]={16600,0,12800}'),encoding='utf-8')
+        identity=mission/'auditIdentity.sqf'
+        identity.write_text(identity.read_text(encoding='utf-8').replace('A3_Map_VR','A3_Map_Altis'),encoding='utf-8')
+        if focus == 'roadpassing':
+            server_init=mission/'initServer.sqf'
+            server_init.write_text(server_init.read_text(encoding='utf-8').replace('[5800,5800,0]','[16600,12800,0]'),encoding='utf-8')
     provider_evidence = None
     if headless_provider:
         from stage_headless_provider import stage_provider
@@ -159,6 +171,8 @@ def release_gate(package, evidence):
     report = json.loads(evidence.read_text())
     if report.get('focus') == 'nativebuildings':
         raise ValueError('Native building diagnostics cannot accept a WAIT release')
+    if report.get('focus') in ('indooractors','indooractorshc','indoornatural'):
+        raise ValueError('Focused individual indoor fixtures cannot accept a WAIT release')
     if record['dirty']:
         raise ValueError('Release requires a clean committed build')
     if report.get('status') != 'PASS' or not report.get('complete'):

@@ -19,6 +19,8 @@
  * position rather than starting flank, assault or advance drills. Broken squads retreat; with
  * WAIT_AIPass_Surrender_Enable, a broken squad no larger than the profile's surrenderSurvivors, with
  * an enemy believed within 60 m and no friendly squad within 300 m, surrenders instead.
+ * Native suppression samples are bounded to 0..1; the unavailable/disabled -1 sentinel
+ * contributes no pressure rather than an artificial morale bonus.
  * Morale inputs come from state the pass already holds; there are no allUnits scans.
  * Locality and authority: call where the group is local.
  *
@@ -52,7 +54,9 @@ private _wounds = 0;
 {
     _courage = _courage + (_x skill "courage");
     _wounds = _wounds + damage _x;
-    if (local _x) then {_suppression = _suppression + getSuppression _x};
+    // Native -1 means unavailable/disabled, not negative combat pressure. Bound script-set
+    // or addon-modified samples too, preserving the documented 20% suppression weight.
+    if (local _x) then {_suppression = _suppression + ((getSuppression _x) max 0 min 1)};
 } forEach _alive;
 _courage = _courage / _count;
 _suppression = _suppression / _count;

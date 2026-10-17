@@ -34,8 +34,7 @@ if (isNull _group || {!local _group} || {[_group,false,_actor] call WAIT_fnc_Cor
 if (count _lease >= 6 && {(_lease select 3) != (_group getVariable ["WAIT_OperationGeneration",0])
     || {(_lease select 4) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
     || {(_lease select 5) != _group}}) exitWith {["NEW_OPERATION_OR_OWNER"] call _evidence};
-private _reservation=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
-if (count _reservation == 3 && {(_reservation param [2,-1,[0]]) > time}) exitWith {
+if ([_actor] call WAIT_fnc_CortexActorMoveReserved) exitWith {
     ["ACTOR_RESERVATION"] call _evidence
 };
 if (!([_actor] call WAIT_fnc_CortexCombatEffective)

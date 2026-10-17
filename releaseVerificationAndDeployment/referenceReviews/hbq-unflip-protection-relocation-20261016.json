@@ -1,0 +1,78 @@
+{
+  "reviewed": "2026-10-16",
+  "waitSourceCommit": "01fd1264a3ddd13c9412d8fb23cf403347c9bc1e",
+  "scope": "Complete unflip, temporary damage protection and relocation helpers; no whole-mod parity",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_unflipLoop.sqf",
+      "sha256": "856a0430011f16907df54161bc1fac02c64b7d3226ae6c4fb02f10970920107c",
+      "lineCount": 119,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_protectBriefly.sqf",
+      "sha256": "a5968313440ea8292bd0e997547cc6ad10bf7e4f1cd402f75337889717092ba7",
+      "lineCount": 34,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_teleportVehicleFree.sqf",
+      "sha256": "4fc5e3240b9477d223002011cb9630355efa05f90a2eb525a01d138aa87f1f02",
+      "lineCount": 178,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "area": "unflip admission and authority",
+      "evidence": "Owner loop checks every5s; upZ<0.4, speed<1, not water and missing/dead driver start persistence timer. Actual repair requires elapsed>5s at a later sample and playersNear false. Native transform/velocity writes upright the vehicle, else relocation helper.",
+      "disposition": "Useful intent: persistent immobilization, crew history and nearby collision awareness. Reject automatic transform/velocity correction as natural WAIT driving. Source loop lacks route/task/Zeus receipts; local vehicle alone does not authorize crew orders."
+    },
+    {
+      "area": "crew continuation",
+      "evidence": "Remembers alive nonplayer crew seat/turret rows while aboard. After repair, eligible on-foot former crew within150m receive seat assignments/orderGetIn. At45s, unseen former crew can be moveIn seated; queue expires120s. Delayed phase only retains alive/on-foot/age and visibility checks, not newer tasks, assignment, group ownership, consciousness or local actor.",
+      "disposition": "Retain original-seat intent and finite return deadline. A WAIT implementation requires owner-local native boarding, unchanged assignment/task receipts, reserved incoming-seat arbitration and migration handling. Reject forced seating and stale crew recall; corpse/vacancy and partial crew recovery need physical cases."
+    },
+    {
+      "area": "overlapping protection",
+      "evidence": "protectBriefly snapshots vehicle+crew permissions, allowDamage false, then spawned delayed callback enables damage for each originally allowed object. No token, local-owner check, current-state receipt or overlap count; it does not restore false values explicitly.",
+      "disposition": "Overlapping calls can let an older timer end a newer protection window; later mission protection can also be overwritten. Do not copy. Any authorized temporary protection needs finite owner-local restoration with explicit overlap/ownership design; matching false alone cannot identify a newer false write."
+    },
+    {
+      "area": "relocation geometry",
+      "evidence": "Helper rejects ships and airborne aircraft>5m; searches roads100m (not pedestrian/bridge/trail/hide), then up to180 radial ground candidates through150m. Includes wrecks, props, people, terrain categories and nearby moving traffic; road heading follows closest original orientation.",
+      "disposition": "Collision-aware placement and bounded candidate intent can inform explicit placement tasks, not physical pathfinding success. Road branch does not apply full terrain/flatness predicate used for radial ground spots. No swept route/3D hull clearance proof or predictive arrival safety."
+    },
+    {
+      "area": "reservation scope",
+      "evidence": "Chosen relocation spot reserves15m for30s in local missionNamespace. Transform is written unscheduled after checks and temporary protection. Helper itself has no local vehicle, curator/order receipt or requester guard.",
+      "disposition": "No cross-owner atomic reservation. Reject using this local list as shared multiplayer coordination. Natural recovery must keep authored route and physical travel; explicit operator placement is a separate task."
+    },
+    {
+      "area": "WAIT related lifecycle",
+      "evidence": "Production search found allowDamage temporary restoration in CortexParachuteJump: original permission is restored by raw allowDamage remoteExecCall after0.8s abort or subsequent3s callback. No per-exit damage-protection token or overlap journal in that function.",
+      "disposition": "Parachute exit is an intentional aircraft behaviour, not driving teleport recovery. Investigate repeated exit, locality transfer and newer mission protection before changing restoration. Do not claim a current live failure or repair from source inspection alone."
+    }
+  ],
+  "waitFilesReviewed": [
+    "addons/infantry/functions/cortexParachuteJump.sqf:complete",
+    "addons production allowDamage/moveInDriver/setVectorUp search"
+  ],
+  "nextWork": [
+    "Design finite owner-local damage-protection cleanup with explicit competing-writer limitations",
+    "Trace airborne caller repeat and migration ownership before changing exit callbacks",
+    "Keep physical jam recovery distinct from administrative placement/unflip",
+    "Run casualty boarding and protection-overlap acceptance only after audit resume"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "productionChange": false,
+  "audits": "paused; no launch"
+}

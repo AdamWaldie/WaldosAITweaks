@@ -82,6 +82,7 @@ if (isNull _battery) then {
         && {!((netId _x) in _missions)} && {[_x, _purpose] call WAIT_fnc_CortexArtilleryRole}
         && {[group gunner _x] call WAIT_fnc_CortexIsEligible}
         && {[group gunner _x,_feature,false] call WAIT_fnc_CortexFeatureEnabled}
+        && {_mode != "SMOKE" || {[group gunner _x,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled}}
         && {combatMode group gunner _x != "BLUE" && {unitCombatMode gunner _x != "BLUE"}}
         && {_target inRangeOfArtillery [[_x], [_x, _mode == "SMOKE"] call WAIT_fnc_CortexArtilleryAmmo]}
     };
@@ -91,6 +92,7 @@ if (isNull _battery || {!alive gunner _battery} || {(netId _battery) in _mission
     || {!_danger && {!([_battery, _purpose] call WAIT_fnc_CortexArtilleryRole)}}
     || {!([group gunner _battery] call WAIT_fnc_CortexIsEligible)}
     || {!([group gunner _battery,_feature,false] call WAIT_fnc_CortexFeatureEnabled)}
+    || {_mode == "SMOKE" && {!([group gunner _battery,"WAIT_AIPass_ArtillerySmoke_Enable",true] call WAIT_fnc_CortexFeatureEnabled)}}
     || {!isNull _spotter && {side group _spotter != side group gunner _battery}}
     || {_retreatSmoke && {_requestSide != side group gunner _battery}}) exitWith {false};
 private _magazine = [_battery, _mode == "SMOKE"] call WAIT_fnc_CortexArtilleryAmmo;

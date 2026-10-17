@@ -26,15 +26,8 @@ jobs:
       - run: unzip incoming/wait-candidate.zip -d candidate
       - run: python releaseVerificationAndDeployment/mod_pipeline.py release-gate candidate incoming/cortex-results.json
       - run: python releaseVerificationAndDeployment/check_cortex_coverage.py --require-accepted
-      - name: Verify every addon signature
-        run: |
-          for pbo in candidate/addons/*.pbo; do
-            verified=false
-            for key in candidate/keys/*.bikey; do
-              if hemtt utils verify "$pbo" "$key"; then verified=true; break; fi
-            done
-            "$verified" || exit 1
-          done
+      - name: Verify pinned authority and every addon signature
+        run: python releaseVerificationAndDeployment/sign_release.py candidate
       - name: Check release identity and publish installable package
         env:
           GH_TOKEN: ${{ github.token }}

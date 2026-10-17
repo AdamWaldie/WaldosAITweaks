@@ -14,7 +14,7 @@ private _alive = units _group select {alive _x};
 if (_alive isEqualTo []) exitWith {"The selected squad has no living members."};
 if (units _group findIf {isPlayer _x} >= 0) exitWith {"Player squads cannot be given Cortex orders."};
 if (_order in ["RELEASE","EXCLUDE","RETURN"]) exitWith {""};
-if !(missionNamespace getVariable ["WAIT_AIPass_Enable",false]) exitWith {"Cortex behaviours are disabled. Enable them in Cortex Control > Overview & profiles first."};
+if !(missionNamespace getVariable ["WAIT_AIPass_Enable",false]) exitWith {"Cortex behaviours are disabled. Enable them in CBA addon settings first."};
 if (local _group && {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}) exitWith {"Cortex is not ready on this squad's owner. Wait for settings to reach that machine and retry."};
 if !([_group,true] call WAIT_fnc_CortexIsEligible) exitWith {"This squad is excluded, remote-controlled, outside the configured AI filters, or controlled by another feature. Release that control first."};
 if (_order == "AIRBORNE") exitWith {

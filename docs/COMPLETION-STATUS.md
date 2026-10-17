@@ -1,251 +1,170 @@
-# Current delivery status
-
-Status checked on 14 October 2026. The previous percentage table is withdrawn as a measure of implementation completion. It counted registry entries, source classifications, audit wiring and selected reviews. Those counts do not measure whether AI delivers the intended behaviour.
-
-All 65 registered feature families remain partial. Some narrow physical cases have succeeded, and others have failed or varied across repeated runs. No family has complete intent, authority, locality and performance acceptance. This does not mean that every existing behaviour is absent. No reliable overall completion percentage can currently be assigned.
-
-The current offline candidate passes 666 tests and the full build gates. Audits are held by user request. The ongoing source comparison distinguishes actual called mechanisms, missing methods, changed intent, retained failures and outcomes that remain unproven. File presence and accepted orders receive no physical completion credit.
-
-Historical evidence below retains its original candidate and scope. It must not override this current status or be read as acceptance of later changes.
-
-## Latest evidence boundary - 2026-10-13
-
-Offline follow-up through 406b0ed adds unresolved artillery parking, observer rejection retry, exact CQB watch retirement, protected-target and believed-position vehicle responses, finite convoy timing evidence and ASL aircraft ingress projection. All passed offline gates; none has fresh physical acceptance. All 65 feature families remain partial; audits remain paused.
-
-Source through 406b0ed passed 660 tests and full build gates. All 65 feature families remain partial. Latest completed normal clearance retained 18 findings; the next normal run was stopped early with eight findings and a first-six-person INCOMPLETE result. Subsequent entry-search, exterior observation, promotion/replay and driving-release fixes have no fresh physical acceptance. Audit launches are paused at the user's request. See [the current implementation ledger](IMPLEMENTATION-PROGRESS.md) for exact runtime boundaries and remaining scope.
-
-Earlier evidence follows and must not be treated as current launch state.
-
 # WAIT completion status
 
-Current evidence - 2026-10-13: all 65 feature families remain partial. Source through 8c7d7c7 passed 654 tests and full build gates. Normal CQB candidate 8c7d7c7 is running in runtime-20261013-045724-829 with zero HCs. Two prior resumed normal batches retained 13 and 12 findings respectively: twelve-person clearance remained incomplete, and whole-pair casualty entry failed. Narrow two/six-person cases passed; single-casualty entry varied between runs. This does not establish repeatability. Recent corrections cover planned formation fallback and removal of geometry-only room offsets; their physical acceptance is pending. The wall negative-control fixture still fails after spawn displacement and is being repaired. Later historical statements that audits are paused do not describe current authorization or runtime state. Counter-battery source now uses qualified delayed native observers and side-specific radar receipts; physical acceptance remains pending.
+Checked against the feature registry and local build evidence on 17 October 2026.
+WAIT is not production-ready. All **65 feature families remain partial; 0/65 have full acceptance**.
+This is an acceptance count, not a claim that implementation is zero percent. The former
+implementation percentages were withdrawn because source inventories, registration and offline
+test counts did not measure delivered AI behaviour. No defensible overall implementation or
+Workshop-parity percentage is available.
 
-Historical source and acceptance notes follow.
+## Current evidence boundary
 
-Current offline follow-up through c4f8606 passed 654 tests and the full build gates. Artillery fire checks operating-gunner readiness at the command boundary; assigned observers reject hidden/simulation-disabled actors before observation commands. Counter-battery acquisition still lacks qualified non-radar detection, and later global emissions can retarget active missions without side-specific detection. These faults remain open. No new physical acceptance; audits remain paused.
+- Audits are paused by the user. No new in-game result is claimed here.
+- The latest clean review source is `48a77bb`. Its complete Release build and fixed-key signing passed; nine signatures verified and nine damaged controls were rejected again after ZIP extraction. These package checks add no behaviour acceptance.
+- Recent source changes protect actor ownership across smoke, drill refill, coordinated support, crew replacement and airborne exits. Airborne execution/cleanup uses insertion episodes. CQB preserves unchanged owned MOVE through native readiness changes; opt-in bounded entry diagnostics and stronger independent visit geometry prepare later investigation. These effects remain physically unverified.
+- The latest local code validation passed **1089 tests** and all sequential offline gates.
+  The current batch adds authenticated combined-ground failure replacement, exact role/operator authority,
+  owner-epoch application receipts and durable destination/recovery journals. Active route changes retire
+  movement; capability checks retain the original expiry. Routine ground gunnery yields to the live role.
+  These offline results provide no new physical or performance acceptance.
+- Routine vehicle targeting now tries bounded lower-ranked usable contacts. Driving discovery includes nominal approaching traffic, and native bend hints use path distance instead of node count. Sampled downward undersides retain solid constraints. These changes have offline coverage only.
+- Infantry suppression now requires the selected loaded primary bullet muzzle and muzzle-specific nonempty spare magazines. Garrison posture recovery preserves the immediate prior stance only under unchanged assignment/ownership and live building transform; it yields to movement, native service and actor reservations. These source fixes have offline coverage only.
+- Fire authority, reserve rejection and real-fire garrison recovery/repeat fixtures are prepared but unrun. Fixture improvements do not retroactively resolve historical audit failures or establish current physical acceptance.
+- The normal convoy matrix now records actual lead/follower constraint chains. Mixed-column stop/start causation, native queue recovery, expanded traffic-query cost and physical steering/braking remain unresolved. Source reviews retain explicit gaps and no whole-mod parity credit.
+- Ground support checks loaded target-suitable station ammunition before manoeuvre commitment and again
+  during travel and arrival. Protected individual tasks and strict actor reservations prevent competing
+  gunner orders. Routine vehicle direct fire also checks the shared friendly/civilian firing cone.
+  Infantry fire control now uses the same strict reservation predicate as movement admission.
+- The prepared combined-arms fixture records local gunner FiredMan events with native projectile
+  origin/velocity, admitted operator/token and direction toward the reported contact. This can establish
+  directed shots when run; it cannot prove hits, suppression, destruction or HC observation coverage.
+- Delayed defence arrival/retry now checks its exact assignment and issued destination, retiring changed individual commands without movement restoration. Owner adoption now checks published MOVE/HOLD receipts and native route identity; physical migration remains unverified.
+- Defence release now requires matching command receipts before watch/formation restoration. Admitted replacement tasks suppress predecessor recall; reserve selection requires a physically nearby owned HOLD. Repeated transitions remain physically unverified.
+- Defence reserve planning now rejects overlapping reinforcement slots before assignment changes and excludes busy/reserved actors. Its physical reinforcement and casualty flow remain unverified.
+- Defence admission now also refuses changed native/individual orders, task generations or ownership during geometry planning, before old-task cleanup. Reserved actors are excluded from its layout. Offline checks passed; physical interruption remains unverified.
+- Experimental passing now preserves pull-out headway during qualification, checks complete oriented hull separation before return, and predicts measured traffic courses against the pass corridor. Discovery covers a nominal 35 m/s approach over the proposal duration, up to 1,250 m; faster modded traffic and measured query cost remain limitations. The Altis normal-only roadpassing fixture and convoy startup observations are prepared but unrun.
+- Explicit road-pass cleanup now requires the unchanged authored route and current ownership exclusions before restoring commands. Active consent is context/expiry-bound. Default-off experimental automatic passing now has finite observation/preparation/consent admission; negotiated head-on jam discovery remains unimplemented. Physical and performance acceptance are outstanding.
+- Alternate driving admission and gate intent now compare full 3D native destinations. Bypass execution/handback also checks both seat command types; asynchronous propagation, identical commands and physical interruption remain unverified.
+- Stationary engine-off vehicle hulls with no living crew now reach the existing finite bypass planner. Occupancy/engine/attachment changes invalidate work; independent traffic caps remain. The normal-only parkedbypass focus now prepares actual empty/wreck passage and native boarding during active work. These cases remain unrun; bypass and interruption are physically unverified.
+- The focused `indooractors`, `indooractorshc` and `indoornatural` fixtures are prepared but unrun.
+  Natural admission now runs through the contact decision fallback; its existence is not entry evidence.
+- Permanent-key signing is configured with a pinned public fingerprint, independent signature checks
+  and damaged-signature rejection. The earlier signed artifact predates subsequent behaviour changes;
+  do not treat it as the current source package or as tactical acceptance.
+- Recent source changes include bounded incremental CQB egress planning with pending-worker
+  adoption, target-owned interior observations, current settlement checks, native-task handover
+  guards and shared belief-based building-contact selection. They remain physically unverified.
+- Retained narrow physical clearance evidence from candidate `f9c3d7d`: two-person
+  and six-person fixtures completed their covered room visits. Twelve-person clearance remained
+  incomplete; the completed batch retained 13 findings, including casualty-entry failures.
+  These results do not validate later changes,
+  repeated clearance, hostile-room safety or universal placed/modded-building access.
+- Native/Zeus task ownership, separate normal/HC migration, effective combat and the
+  **5% median / 10% p95 overhead limits remain unaccepted**.
 
+The [65-family acceptance depth register](../releaseVerificationAndDeployment/cortexQA/FEATURE_STATUS.md)
+provides each intended result, source/fixture wiring and retained evidence. Its source/setting
+counts are inventory only. [Historical notes](COMPLETION-HISTORY.md) preserve earlier batches,
+failures and superseded statements; they must not be read as current status.
 
-Recent source changes through 4023e01 passed 653 tests and full offline gates, with no new physical acceptance. CQB reserve staging uses bounded scene cover, three finite searches, owned approach timeout and generation-scoped migration journals built only on transitions. Clearance command readiness, reserve selection, room evidence and egress now account for hidden/simulation-disabled actors separately from roster/restoration ownership. Common recovery yields dormant actors without consuming retries; aggregate operation progress requires active observers. Dormant admission, recovery-observation expiry and wake baselines remain open. Convoy lateral recovery respects the closing cap, but mixed tracked/wheeled stop/start remains unresolved. Reinforcement need uses combat-effective strength; aircraft command boundaries require capable pilots. Grenade launch diagnostics and an isolated cardinal/stance fixture are unrun. Audits remain paused. Garrison now records exact movement receipts, fences continuation/release against replacement MOVE/FOLLOW, releases only diverted actors and their PATH locks, handles native service tasks, and retires the final empty group order. Defence arrival requires 3D distance and a floor match. Coordination uses believed drill contact geometry and transports confirmed-contact age through server/helper new-attack gates; already executing assault adoption remains separate without refreshing age/expiry. Migration, fresh per-target provenance, ongoing contact updates, dynamic allocation and all physical handovers remain incomplete.
+## Implemented areas and remaining acceptance
 
-Status checked on 2026-10-13. WAIT is not production-ready. All 65 registered feature families remain `implemented_partial`. None has complete acceptance. This registry label covers both substantial controllers and capabilities with missing implementation, so it is not a completion percentage.
+Every row below remains partial. Presence of a controller does not establish its effectiveness.
 
-Current evidence (2026-10-13):
-
-- CQB boundary source now requires target-owned roofed topology and bounded intervening-building geometry for room receipts/holds. Fresh-clearance observations independently use live bounds/geometry; an exterior-wall observer negative control is queued. All remain unrun. Earlier proximity-based reports cannot establish the stronger boundary, actual room safety or universal interior entry. End-to-end production wall controls, edge models, dense-worker fairness and matched performance remain required.
-
-- Latest completed production retest 26d782d recorded 410 checks and 11 retained failures, zero SQF/fatal errors and one unresolved load warning. Twelve-person reserve staging passed 39 actual observations, but two-person leader progression and twelve-person participation/settlement/egress remained incomplete. Six-person progression passed while result agreement failed. Later finite INCOMPLETE termination and ordinary physical handover are separate narrow results, not clearance success.
-- Native 194c394 comparison completed 188 checks with 70 retained failures, zero SQF/fatal errors and one unresolved load warning. Command-FSM, direct movement and planner variants had identical raw reached-node masks across four models; there is no observed advantage supporting a production movement-interface replacement. Native failures on these placed instances do not establish a universal engine fault.
-- Current implementation through 4023e01 passed 653 tests and full SQF/config/docs/wiki/parity/performance-pattern gates, with nine production PBOs/FSMs and the disposable native command-FSM validated. Production corrections since the last completed clearance batch retire stalled optional transit points, omit redundant same-floor buddy checkpoints, and protect reserve arrival/promotion from newer individual movement. These changes have no fresh physical production acceptance.
-- Preserved clean candidate `.qa/candidates/d043238-clean` records commit d04323870e0c66fda41b54f06c6b3a38ebf63f75, dirty=false and verified fingerprint 4fb92b1c1df2cf089600cec3a8c90b50339d1c08cf81af29b5e7c37a88bcaed0. It has not been launched and predates later fixes through 392d458. A fresh clean candidate is required before resumed audits; prior packages remain preserved.
-- Driving source corrections reject ineffective crew/immobile vehicles, preserve different reverse turn directions, yield followers to reversing predecessors and use the same effective-driver roster for convoy eligibility/locality. A bounded native reverse-yield/recovery diagnostic is queued. These fixes do not close mixed convoy spacing, stop/start, casualty replacement or performance findings.
-- Equal-size d753d64 native controls completed 228 checks with 80 retained failures. Both leader/follower roles traversed validated Small_01; larger-model traversal remained incomplete. Interrupted 4871330 controls recorded 247 checks with 73 failed assertions, zero SQF/fatal errors, one unresolved load warning and matching provenance. ROOM-STOP and ROOM-SPEED masks were identical across all four models. The batch has complete=false; all recorded processes were terminated and verified absent. Game audits are paused at the user's request until resumed.
-- Normal c450466 clearance completed 407 checks with 11 retained failures, zero SQF exceptions/fatal runtime errors and one unresolved load warning. Two-person participation and handover passed. Six-person shared room coverage and handover passed but one admitted worker never entered. Twelve-person upper-floor node 3, settlement, egress and physical handover failed. The leader received the correct authored MOVE destination but travelled only 2.36138 metres. Both processes were terminated and verified absent.
-- Sealed b48a503 normal clearance completed 408 checks with eight retained twelve-person failures, zero SQF/fatal runtime errors and one unresolved load warning. Two-/six-person progression and handover passed these fixtures. All six twelve-person room nodes were visited, but participation, settlement, egress and handover failed. Both processes were terminated and verified absent. Candidate 26ea2bf completed 409 checks with seven retained twelve-person failures. Two-/six-person participation and handover passed. Twelve-person shared coverage passed; late finite termination correctly returned INCOMPLETE and subsequent physical handover passed. Original participation, settlement and egress findings remain failed. Absolute-boundary exhaustion and migration of that boundary remain untested. Native formation-planned traversal is being added as a diagnostic only. Accepted commands, elapsed time and shared coverage cannot pass individual participation or clearance.
-- Separate two-HC d56396d batch completed 405 checks with seven twelve-person failures and one unresolved load warning. Completed two-person holds were adopted through both HCs, physically followed the successor order under the second HC and returned to server. This narrow result does not establish in-progress clearance migration or general multiplayer acceptance.
-- Earlier reserve staging and casualty-replacement travel passed narrow checks. Full reserve roles, progressive admission beyond eight concurrent workers, security sectors and tactical consolidation remain incomplete.
-- Reliable CQB across placed/native buildings, individual participation, damage-enabled combat, physical handover, driving/convoy/air/support acceptance, required external-controller handovers and the 5% median/10% p95 performance budget remain open. Workshop/driving/FSM foundations remain priority; broad compatibility expansion stays deferred. When the user resumes audits, closure/restarts remain authorized without repeated permission requests.
-
-All 65 families remain partial. Completed production feature families: 0/65; this is an acceptance count, not a statement that implementation is zero percent. Source/feature completion estimates below remain estimates and must not be promoted from static wiring or test counts.
-
-The following batch narrative is historical:
-Historical normal batch (2026-10-11): `runtime-20261011-175607-317`, sealed candidate `e6b3f1d`, normal convoy matrix at 3840x2160 with observer Zeus and zero HCs. At 85 recorded checks, WHEELED-30 and WHEELED-50 passed all fourteen checks each: continuous travel, spacing, single file, stop fraction, halt/resume, crew retention and cleanup. These are flat-VR subcases at a 30 km/h request, not complete convoy or performance acceptance. WHEELED-15 remains failed; pacing repair `3c631a9` is outside the running candidate. HC tests remain a separate batch. One addon load warning remains unresolved.
-
-Historical stopped batch (2026-10-11): `runtime-20261011-145921-734`, candidate `543880e`, 3840x2160 observer Zeus with two HCs. Stopped at user request; all four processes verified absent. Partial report: 823 checks, 266 failed assertions, zero SQF errors, one unresolved load warning; server/client completion markers missing. Repairs after this candidate remain physically unverified. Game audits were subsequently authorized again; the normal convoy batch above is running. Compatibility expansion remains deferred behind FSM/driving foundations.
-
-Game audits are authorized in batches. The broad candidate 89812ab batch completed with
-2,375 checks and 462 failed checks. The subsequent coordination candidate b3a9f70 completed
-with 453 checks and 30 failed checks, zero SQF error lines, zero fatal runtime failures and
-one unresolved load warning. Neither establishes subsystem acceptance.
-
-## Historical batch and queued repairs
-
-Subsequent repairs through `ae23694` are committed to follow-up PR #13 and remain physically unverified. Garrison and defence commands defer finite actor tasks and reservations; cleanup preserves newer tasks; door requests verify building-order generation. Route watchdogs require three-dimensional approach rather than arbitrary lateral travel. New lifecycle cases require real boarding after hold release. These changes do not close earlier coordination failures or prove building path acceptance.
-
-
-Clean candidate ecdff24431f12c7fc780dee195ef5befe4a62fcf is preserved with dirty=false and
-fingerprint e1c26e9caf17f11e632eb0c2117f5f23bdea2fb92b3760b2c8a796bbee6ef139.
-Its corrected coordination retest was authorized on 2026-10-11 and launched as
-runtime-20261011-045348-544. It completed with 456 checks, 32 failed checks, zero SQF error
-lines, zero fatal runtime failures and one unresolved load warning. Physical acceptance failed.
-
-The unresolved `a3_characters_f` warning occurs in the dedicated server RPT at 04:53:56, before its `Starting mission` marker at 04:53:59. The client and HC1 RPTs for this batch contain no corresponding missing-content warning. The installed character PBO exists, and the server's post-load diagnostics confirm the character patch and soldier classes. These observations narrow investigation to startup/loading; they neither identify the cause nor waive the warning for acceptance. Removing a valid mission dependency is not an established repair.
-
-Repairs since b3a9f70 include matching operation generations on coordinated child bounds,
-retiring outgoing child work before parent release, mover pursuit posture, protected actor
-restoration and reservation-token-bound contact positions. Combined ground support preserves
-unrelated movement owners and refuses unavailable operators or unsafe friendly firing lanes.
-Those latter combined-fire repairs require their own physical batch; coordination results cannot
-validate them. Larger force coordination, independent contact areas, capability-selected effects
-and matched performance remain incomplete.
-
-Later fixes remain queued: tactical/building/aircraft FSM supersession and cleanup, role-aware danger
-posture, shared tactical operation phases, and scheduler admission/coalescing. Scheduler coalescing
-now returns before duplicate append, isolates group/owner epochs and retires deleted-group work.
-Additive in-engine cases exercise single execution, epoch rejection, stale callback retirement and
-existing physical movement under the scheduler budget. Those cases have not run in the completed
-package. The HC diagnostic fixture also reapplies its stated damage protection after migration;
-this does not change production or damage-enabled battles. That historical restart request has been superseded by blanket audit closure/restart authorization.
-
-Historical queued repairs below require individual evidence review against later batches:
-Changes through 82e0fc6 are committed and statically/package validated, awaiting physical retest:
-
-- Aircraft: live weapon/launch alignment, lateral turret traverse eligibility, logic-target
-  rejection, preserved re-attack holds, moving-contact interception and bounded bomb drag.
-- Shared combat: logic objects excluded from knowledge and immediate hostile danger admission.
-- Audit fixtures: native radar acquisition separated from delivery, physical target checks,
-  logic-contact rejection plus ordinary movement, and standalone/native-provider registry distinctions.
-- Diagnostics: failure-only management snapshots for invalid performance arms; actual braking
-  release evidence and capped building terminal route evidence.
-- Movement repairs: reserved actors protected from scripted fire orders; generation-owned leader
-  attack delegation, eligible consolidation rosters, result-aware recovery budgets and survivor
-  replacement retain committed bounds and hard deadlines. Physical movement remains unaccepted.
-- Ownership repairs: CQB cleanup yields to individual controllers; explicit vehicle driving
-  ownership blocks reverse, group routes, withdrawal admission and stale speed restoration.
-- Additive audits: standalone driving travel, condition waits, HOLD, same-index replacement,
-  disabled cleanup and physical external handover; attack-policy interruption; concurrent
-  exact-observer posture/cover evidence, and separate native handback versus tactical HC
-  continuation. These cases are queued, not passes.
-- Tactical migration: standalone advance/flank/assault checkpoints retain committed routes,
-  actor destinations, bound deadlines and spent recovery budgets. New owners rebuild one local
-  operation/FSM after authority validation; coordinated bounds keep server-role adoption.
-  Physical resumption, interruption and loaded performance remain unaccepted.
-- Coordination repairs: authenticated prepared eligibility can dispatch beside a current local
-  drill; role handover does not return movers to formation. Operation admission retains the full
-  ATL objective. Cover is stationary by design and does not inherit rally no-progress failure;
-  stop commands occur once per role change. Expired acknowledgements reject, and unsafe bounds
-  allow one delayed retry before retiring only that element. Route rejection does not starve
-  other elements. Three capable survivors retain two movers and one coverer with unique donors.
-- Fixture repairs: coordinated handoff explicitly enables Post Contact, roster sampling uses the
-  configured helper size, absent admission fails after thirty seconds and owner objectives must
-  match their lease. These dependencies and assertions remain physically unaccepted.
-- Individual handover: legacy support hold cleanup in calm, withdrawal and support paths does
-  not restore movement over player, remote or specialist ownership.
-- Vehicle repairs: stopped follower command invalidation, tracked lead resume, unsettled HALT
-  cadence and finite passenger-owner exit retries remain queued for exact-candidate acceptance.
-
-Physical results from older packages do not validate later changes. Native companion
-provider integration, specialist coexistence, CQB, combined combat and matched mixed-force
-performance remain open. Clean candidate 82e0fc63eedffccaee8a0337657c92e94772a9f7 is preserved
-with dirty=false and fingerprint ba42aa4fc0b74b0ec3f732107f2962d14c54133bace2f9a895ea3ed10bb4be15.
-It includes the queued repairs; it has not run physically.
-
-## Module progress toward completion
-
-Overall: 0 of 65 feature families have full acceptance. All eight addon modules are packaged and statically validated, but their behavioural implementation remains partial. This is accepted completion, not a percentage of code written. No release candidate is accepted.
-
-| Addon module | Implementation progress | Completion blocker |
+| Area | Source present | Main unresolved requirement |
 | --- | --- | --- |
-| Core | Shared lifecycle, scheduling, configuration and ownership implemented; transition repairs continue | Full interruption, migration, JIP, queue stability and performance acceptance |
-| Danger | Engine danger FSM and finite response handoff implemented; some physical subcases passed | Response-depth baseline, intake, cover and cleanup failures; recent fixes await retest |
-| Infantry | Tactical, CQB, morale, fire and coordination controllers present; continuity repairs continue | Reliable movement, room progression, casualty replacement and multi-squad combat |
-| Vehicles | Driving, convoy, passengers and gunnery present | Mixed columns, obstructions, passenger orders, tracked reverse and replacement travel |
-| Aircraft | Attack, defence, landing and braking present; release/handover repairs continue | Effective weapon delivery, distinct profiles, clearance, air-to-air and controller transitions |
-| Support | Artillery, medical, ammunition, civilian and delivery capabilities present or partial | Complete physical outcomes, safety, interruption and cleanup |
-| Compatibility | Ownership adapters and actual headless-provider fixture present | Native HC registration; real specialist coexistence, disconnect and migration |
-| Main | Function registration, settings and operation FSM integration packaged | Complete settings persistence/parity and exact-candidate end-to-end acceptance |
-| Optional engine policies | Separate turret policy PBO packaged, default off and restart-required | Physical lethality, override detection and player-accuracy exclusion proof |
+| Core and operation lifecycle | Shared scheduler, generations, owner epochs, cancellation, native-order receipts and finite operation FSMs | Complete interruption, migration, JIP, queue stability and restoration evidence |
+| Danger and individual reactions | Engine danger FSM, bounded observations, cover, stance, suppression and immediate reactions | Full source response-depth parity, correct intake and physically effective responses without competing movement |
+| Infantry manoeuvre | Pairs, advance, flank, assault, defence, withdrawal and recovery controllers | Coherent physical movement/fire, casualty replacement, straggler handling and repeated transitions |
+| CQB, traverse and garrison | Building FSM, native positions, entry/floor progression, reserves, finite failures and egress | Repeatable access/progression across buildings, complete participation, isolation and useful consolidation |
+| Individual indoor engagement | Fresh-belief selector, native context observation/escalation and actor reservation infrastructure | **Actor-local indoor executor and bounded natural fallback are wired but physically unverified**; normal and real-provider HC fixtures are unrun; natural-dispatch and physical validation remain |
+| Multi-squad coordination | Communication eligibility, support opportunities and finite role assignments | Dynamic lanes/sectors, subordinate contacts, reinforcement, casualties and broad-front execution |
+| Combined arms | Contact-led support, vehicle/aircraft capabilities and direct-fire safety | Effective coordinated effects and transitions in balanced damage-enabled battles |
+| Driving and convoys | Owner-local driving/convoy FSMs, terrain/traffic observations, predecessor trails and spacing control | Mixed tracked/wheeled stop/start, obstructions, step-off/braking, recovery and actual route handback |
+| Crew and passengers | Finite seat/task ownership, dismount/remount and boarding checks | Every command/locality transition and physical continuation |
+| Aircraft | Attack/flight ownership, ingress/egress, aiming, defensive and landing/braking controllers | Workable weapons/profiles, real effects, clearance, air-to-air manoeuvres and controller handovers |
+| Artillery and support | Artillery FSM, observers, smoke, counter-battery, medical/ammunition and delivery work | Timely physical outcomes, safety, uncertainty, interruption and cleanup |
+| Zeus and multiplayer | Native/optional ZEN behaviour tasks, CBA configuration, owner dispatch and HC bridge | Complete authoritative payload/execution, JIP, disconnect, migration and successor-order acceptance |
+| Specialist compatibility | Detection/exclusion and partial ownership adapters | Real external-controller handovers; detection alone does not qualify |
+| Performance and release | Bounded scheduling/caches, validators, builds, package seals and benchmark fixtures | Matched infantry/mixed/combat measurements, stable queues and exact tested-package promotion |
 
-The category table below gives feature-level detail. Blockers B1-B7 define the progression order. Static validation is a gate; physical subsystem acceptance, cross-cutting handover and matched performance checks remain separate gates.
+## Workshop source and intent comparison
 
-## Implementation and acceptance by category
+| Reference scope | Current disposition |
+| --- | --- |
+| Complete driving reference suite | Substantial helper/caller reviews and partial counterparts; complete semantic parity, native traffic negotiation/overtaking and real handover remain open. A reviewed helper or registered setting is not implementation credit. |
+| Danger, individual assault, memory and task reference modules | Separate active individual engagement from explicit group CQB and helpers without proven incoming callers. The individual executor is staged; automatic admission remains missing; the normal and HC interruption/repeat fixtures are unrun. Retain useful native paths and knowledge; do not import hidden-target transforms, random/proximity clearance or teleport recovery. |
+| Other tactical/driving/support references | Compare actual call chains, intent, authority and cleanup across the whole source family. Large suites still have untapped or unproven mechanisms; file association cannot establish parity. |
+| Preserved tactical/driving references | Preserved source archive remains the reference. Previously recorded missing original PBOs are not silently treated as recovered; preservation is separate from implementation. |
+| New reference modules | Evaluate general behaviour support, not CQB alone. Consolidate shared task intents and expose only options the production executor actually supports. |
+| Melee, droid and zombie specialists | Compatibility-only. Excluded from general tactical implementation/parity credit; broad compatibility expansion stays last. |
 
-| Category | Implementation present | Acceptance and remaining work |
-| --- | --- | --- |
-| Standalone addon and configuration | Eight addon PBOs, WAIT namespace, CBA settings, optional ZEN, native Zeus orders; nine FSM source files | Build gates pass. Complete CBA persistence, live-change, server enforcement, JIP and module parity remain unaccepted. |
-| Danger foundation | Engine danger FSM, bounded observations, actor/witness identity, finite reactions and shared group handoff | Real contact, close-contact handoff and hold-fire subcases pass. Friendly blast intake, observer cover, cleanup and full response-depth parity remain unresolved. Highest behavioural priority. |
-| Operation lifecycle and scheduler | Generations, owner epochs, cancellation, committed movement, one shared owner-local budget | Multiple Zeus replacement and disable/restart cases pass. Every operation phase, queue growth, low-FPS response and full migration coverage remain pending. |
-| Skill, lighting and lethality | Skill profiles, darkness/NVG/light heuristics and operating-crew tuning | Full equipment/mod variation and infantry/vehicle/aircraft lethality acceptance remain pending. |
-| Cover, suppression and fire | Cover scoring, stance leases, suppression, friendly-lane checks, fire distribution and grenade avoidance | Physical cover arrival and subsequent ordinary movement passed in the latest partial batch. Group hide, observer response and active replacement still have failures. Opposite-contact grenade throws remain unverified. |
-| Infantry movement and combat | Paired bounds, advance, flank, assault, defence, crossing, fire while moving and clear-through transitions | Prior physical failures include reversals, pauses, incomplete participant use and poor approach choice. Dynamic casualty and stuck-actor continuation remain unaccepted. |
-| Morale and survivor management | Withdrawal, surrender, regroup, survivor reinforcement and role rebalancing | Physical reactions and casualty continuation need complete acceptance; no full recreation credit. |
-| Buildings and urban movement | Building operation FSM, entry/room/floor progression, garrison, traverse, reserves and explicit unreachable outcomes | Twelve-person clearance visited six covered positions. Two-/six-person entry, casualty replacement movement, door entry and handover failed in the last completed broad batch. Queued repairs have not completed their retest. |
-| Multi-squad coordination | Communication eligibility, support opportunities, distinct manoeuvre roles and finite coordinated intent | Dynamic bounds, lanes, broad rally areas, casualty response and transition to assault remain unaccepted. |
-| Combined arms | Contact-led support opportunities for infantry, vehicles and aircraft | Depends on effective movement, vehicle and aircraft behaviour. A roughly balanced, damage-enabled tactical battle is not yet accepted. |
-| General driving | Independent driving gate, terrain/grade caps and bounded physical recovery | Road, hill, turn, obstruction, player-roadblock and new-order cases remain pending. |
-| Convoys | Fleet registration, predecessor trails, spacing, holds, contact handling and individual recovery | Single-file behaviour across mixes, spacing/speed settings, migration and roadblocks remains unaccepted. |
-| Passenger and crew ownership | Seat/task generations, safe-stop dismount, remount and native-task protection | Several boarding, safe-exit and crew-retention subcases passed. Independent passenger orders, every transition and locality case remain pending. |
-| Ground gunnery and withdrawal | Target priority, finite suppression, smoke, standoff, jink and tracked reverse leg | Smoke, crew retention and withdrawal distance passed. Threat-facing reverse and Zeus replacement travel failed. |
-| Aircraft attacks and defence | Attack operation FSM, capability selection, native aiming/flight, ingress/egress, countermeasures and air-to-air logic | Known failures include circling, no engagement, poor release geometry, misses and unsafe clearance. Guns, unguided/guided weapons, bombs, attack distinctions and air-to-air manoeuvres need physical proof. |
-| Landing and braking | Dedicated flight ownership, approach, braking, go-around and release logic | Controller code exists; aircraft/terrain diversity and interruption acceptance remain pending. |
-| Artillery and support | Artillery FSM, observed support, first-lethal-burst warning, smoke, relocation and counter-battery | Full warning timing, real effects, disabled-state, safety and interruption acceptance remain pending. |
-| Medical and ammunition | Finite medic tasks, danger cancellation and magazine sharing | Physical treatment/sharing, casualty flow and ownership acceptance remain pending. |
-| Civilian, airborne and naval | Event-driven civilian escape; finite parachute/boat delivery and passenger handover | Richer civilian behaviour and complete delivery-to-ground-combat transitions remain unaccepted. |
-| Specialist interoperability | Per-actor ownership/exclusion and operation release; squad hide acquisition now excludes specialist actors | Actual specialist coexistence, activation/release, mixed groups, JIP and HC cases remain pending. Detection is not acceptance. |
-| Native headless integration | Real provider staging, hashes, registration/transfer/adoption fixture and ownership bridge | Provider now loads. Native HC registration failed, so transfer/adoption acceptance did not run. Saved server evidence confirms installation but has no registration result; RPC receipt/policy and provider rejection remain unresolved. The queued diagnostic wrapper retains the original provider call and return, rather than substituting registration. Standalone engine transfer success does not establish native integration. |
-| Performance and simulation | Shared budgets, caches, distance tiers and matched native/WAIT benchmark pipeline | Infantry patrol measurements matched at 21 ms median and 23 ms p95, but startup warnings invalidated comparison. Mixed/combat load, queue stability and the 5%/10% limits remain unaccepted. No new culling/simulation shortcut accepted. |
-| Optional engine policies | Runtime skill/dispersion controls and policy requirements | A separate optional AI Turret Aiming PBO is now packaged outside the default addons folder. It changes only the AI turret aiming-error ceiling. Other engine policies, physical lethality, player precision and compatibility acceptance remain outstanding. |
-| Documentation and delivery | Static validators, tests, wiki generation, parity checks, package seals, audit launch/reporting and signed-candidate workflow | 559 static tests and package checks pass. No accepted release candidate. Some inventories describe earlier snapshots; full history cleanup has not been re-audited here. |
+CBA owns settings. Zeus/ZEN modules issue behaviours. Explicit optional Garrison teleport
+placement is permitted; it does not permit teleport CQB, routing or recovery.
 
 ## Progression blockers
 
 ### B1: runtime integrity
 
-The startup `a3_characters_f` warning occurs in both native and WAIT runs. Removing the generic declared mission dependency and headless slots did not remove it. Registration diagnostics are prepared but have not been exercised. A clean package is necessary for performance and release acceptance.
+Require exact-candidate mission entry, valid fixture dependencies and no SQF/fatal errors.
+Classify native warnings with independent same-process evidence; a clean package alone is
+not a clean behavioural run. Retain earlier failed/incomplete findings.
 
 ### B2: danger and ownership
 
-Resolve danger intake, response-depth and exact actor/stance cleanup. CBA disablement ends WAIT's response but does not replace the loaded fsmDanger config; no WAIT command/lease is a necessary disabled-state result, not proof of native danger equivalence. Matched baseline performance must continue using the addon-absent native candidate. Verify newer orders, players and specialist owners through real transitions. This is the behavioural prerequisite for infantry, building and coordination acceptance.
-
-Implementation: [engine danger FSM](../addons/danger/danger.fsm), [operation start](../addons/core/functions/operationStart.sqf), [operation restoration](../addons/core/functions/operationRestore.sqf).
+Finish individual decision/execution ownership before composing larger operations. Verify
+newer native/Zeus orders, exact stance/movement cleanup and disabled-state release. CBA
+disablement does not unload the configured danger FSM: addon-absent baselines remain required.
 
 ### B3: infantry and building continuity
 
-Prove movement, fire, casualty replacement and isolated recovery without pauses or returns to stale destinations. Then prove entry, connected room/floor progress, garrison and actual traversal across models and squad sizes.
-
-Implementation: [tactical operation FSM](../addons/main/fsm/tacticalDrill.fsm), [building operation FSM](../addons/main/fsm/buildingOperation.fsm), [building progression](../addons/infantry/functions/buildingOperationStep.sqf).
+Integrate and validate the staged finite actor indoor operation, then prove pair/squad movement, physical
+entry and connected floor/room progression, casualty replacement, unreachable outcomes,
+isolation, egress and repeated task flow. Shared node visits cannot prove each actor entered
+or that a hostile room is safe.
 
 ### B4: coordination and combined arms
 
-Reliable local manoeuvre, building progression and platform support must compose through communication and finite roles. Verify separate lanes, support sectors, transitions and casualty response in balanced live battles.
-
-Implementation: [group tactics FSM](../addons/main/fsm/groupTactics.fsm), [support request FSM](../addons/main/fsm/supportRequest.fsm).
+Compose accepted individual and squad actions through communication, dynamic roles, lanes,
+subordinate contacts and finite support. Prove useful suppression/effects, casualty responses
+and transitions at larger scale; the small fixture frontage is not a production scale limit.
 
 ### B5: vehicle and aircraft effectiveness
 
-Validate driving before convoy fleet behaviour; validate crew/passenger ownership and reverse withdrawal. Aircraft require supported weapons, workable release geometry, terrain clearance, real effects and defensible air-to-air behaviour.
-
-Implementation: [convoy FSM](../addons/main/fsm/convoyOperation.fsm), [reverse withdrawal](../addons/vehicles/functions/cortexVehicleReverseStep.sqf), [air attack FSM](../addons/main/fsm/airAttackOperation.fsm).
+Complete driving before fleet behaviour, with mixed-mass acceleration/braking and safe native
+traffic/recovery. Prove crew/passenger flow, weapons, flight geometry, physical effects and
+handovers. Source crawl/physics shortcuts do not qualify as recovery improvements.
 
 ### B6: multiplayer and specialist handover
 
-Native HC registration must work before native transfer/adoption can be credited. All categories need JIP, migration, disconnect, player/Zeus and specialist handover acceptance.
-
-Implementation: [native provider staging](../releaseVerificationAndDeployment/stage_headless_provider.py), [headless bridge](../addons/compatibility/functions/compatibilityHeadlessBridge.sqf), [specialist ownership](../addons/compatibility/functions/cortexExternalOwner.sqf).
+Prove real provider registration before crediting its transfers. Exercise each operation phase,
+JIP, disconnect, player/Zeus takeover and external-controller release. Keep normal and HC
+batches separate. Broader specialist compatibility follows the behavioural foundations.
 
 ### B7: performance and release
 
-After the behaviour and cross-cutting ownership checks pass, run matched infantry, mixed and combat measurements with stable observers and queues. Complete optional policy packaging, then promote the exact tested signed candidate.
+After physical behaviour and ownership acceptance, run matched infantry, mixed and combat
+measurements against native controls. Establish queue stability and the 5%/10% limits, then
+promote the exact tested signed package. Offline tests, counters and package seals cannot
+replace any of these gates.
 
-Evidence contract: [performance validation](PERFORMANCE-VALIDATION.md), [all 65 feature families](../releaseVerificationAndDeployment/cortexQA/FEATURE_STATUS.md), [capability registry](CAPABILITY-REGISTRY.md).
+## Update rule
 
-## Historical physical evidence through 2026-10-11
+Record source implementation, offline validation, narrow physical evidence, retained failures
+and full acceptance separately. Each new physical claim must identify the tested candidate,
+fixture, owner mode and saved outcome. Never increase completion from a test count, file count,
+accepted command or review count. Preserve failures until stronger matching evidence resolves
+them. [Implementation progress](IMPLEMENTATION-PROGRESS.md) contains detailed dated work;
+its older snapshots do not override this page.
+## Current implementation work: offline evidence only
 
-- `runtime-20261010-123843-079`, candidate `20fd9d7`: completed broad batch, 755 checks, 62 server findings, zero client findings, no matched SQF/fatal errors, one loader warning. Remains FAIL.
-- `runtime-20261010-143646-413`, candidate `c9f6657`: processes exited without either completion marker. Partial report has 171 checks and 19 failed checks; no matched SQF/fatal errors and one loader warning. Building/vehicle stages did not complete.
-- `runtime-20261010-151701-617`, candidate `62d86bd`: completed native-provider batch, 300 checks, one server finding, zero client findings, no matched SQF/fatal errors and one loader warning. Native registration failed its prerequisite; physical native transfers were not accepted.
-- `6308d3f` infantry patrol pair: native and WAIT both observed 21 ms median and 23 ms p95. Strict comparison is INVALID because both contain the loader warning. Patrol results do not establish combat performance.
-- `runtime-20261010-214346-432`, clean candidate `89812ab`: observer Zeus and 3840x2160 mission entry verified. Batch remains active: an unrestricted process check confirmed all four original PIDs and fresh building-stage RPT entries. An earlier restricted-shell inventory falsely appeared empty and its partial reporter snapshot must not be treated as terminal evidence. Completion and final results remain pending.
+The incremental notes have been consolidated below. None of these changes adds accepted
+behaviour or establishes the runtime performance budget. The latest full offline build passed
+1022 tests, compilation/lint and the sequential repository gates, producing nine PBOs.
 
-The latest observed partial snapshot records 1528 checks, 4231 SQF error trace lines,
-no matched fatal failures, one startup load warning and no completion marker. All four
-original processes remain live. The batch reached its final combat case; mechanics,
-reactions, support and further suites still follow. Later source edits are not loaded.
+| Area | Implemented source | Remaining evidence or execution |
+| --- | --- | --- |
+| Actor reservations | Admission, clearance workers/reserves, Garrison/Defend, common operation progress/recovery and release paths share typed finite reservation checks. Recovery commits its live retry budget and guarded native command in one unscheduled boundary; suspended actors do not create failed-path quarantine. Recovery observations for ineligible participants retire before timeout processing, retaining spent attempts and using a current-position baseline on return. Unknown/live markers retain ownership. | Physical handover and interruption under reservations. Progress now retains committed participant and fallback foot/vehicle domains; boarding, vehicle switches, replacement enrollment and migration need live validation. |
+| Deferred movement | Defend retains reserved arrival jobs without consuming retries. Garrison retains its original deadline. Post-clear changed-waypoint handover retains reserved STOP actors and preserves newer individual orders. | Physical reservation expiry, locality migration and repeated task flow. |
+| Casualty refill | Garrison alternate exit cover must be physically settled, locally eligible, unreserved, on foot and idle/stopped before an exterior guard is promoted. CQB ranks replacements near the surviving buddy and protects sole exit cover. Delayed reserve admission now retains episode-bound native command/formation-leader receipts and rechecks eligibility before promotion. Dead, unavailable or early-exited historical entrants no longer preserve a reinforced lane's entry state. Filtered room workers map mover and motion state back to original actor slots. Lone exterior survivors also retire stale entry state without needing a reserve promotion; normal physical regression fixtures for both casualty slots are prepared, unrun. | Real casualty replacement and continuous exterior isolation. Alternate observers now need actual body heading within 75 degrees of the assigned watch point before the existing fresh geometry check; turning/contact timing is unverified. |
+| Convoy pacing | A reversing follower no longer counts as forward progress for a stretched column. Existing closing caps, smoothing and finite recovery remain. | Mixed tracked/wheeled step-off, stop/start, gaps and reverse recovery. |
+| Road-pass proposals | Bounded road discovery preserves ASL geometry and each vehicle's road-segment lane offset. Smooth pull-out requires room before the predecessor hull; the guide returns to the original lane and remains within its travel budget. | Actual road/vehicle variants, native steering feasibility and automatic admission. |
+| Pass geometry/traffic | Overlapping 12-station support/body/oriented-footprint samples have a 243-ray maximum per call and 20 m half-length bound. Fresh bounded traffic observations include dead/parked hulls and approaching traffic. Dense or stale results refuse. | Continuous swept-volume proof is not claimed. Live support, bends, traffic prediction and measured scan cost remain unverified. |
+| Pass preparation | Crew, locality, native orders, guide and time/travel budgets are bound to finite caller-owned work. Geometry slices precede a final traffic observation. The original two-second preparation deadline never renews. | Runtime scheduling/expiry, physical correctness and performance. READY_PROPOSAL grants no movement authority. |
+| Pass consent | Authenticated server BEGIN/ACK/RELEASE, distinct expected-owner replies, unique tokens and exact-token shutdown cleanup are implemented. The private 32-pair registry uses localNamespace; ACK checks only its own pair. | Normal and real-provider HC exchange tests remain unrun. Pass execution and default-off automatic admission are prototyped; both remain physically unverified. Consent grants no priority or collision exemption. |
 
-Three manually assisted building-contact cases remain test problems. CQB, convoy resume,
-air delivery and natural danger-cover findings remain open. Advance AWARE and YELLOW
-stalled with native ATTACK destinations away from their bounds; the old audit awarded
-assault-transition passes even when no assault was observed. Queued fixes and corrected
-physical evidence cannot retroactively turn those runs into acceptance. Notification,
-bomb integration, communication-hook and multi-contact fixture exceptions are recorded
-by cause in the error ledger; repeated trace lines are not separate defects.
-## Historical follow-up changes and acceptance gaps
+| Pass execution | Default-off experimental admission observes sustained slow traffic and runs one finite preparation per owner, requiring real broker consent. Begin/Step/Finish work runs through the existing ordinary-driving FSM and sole speed writer. OUT, measured separation, bounded return scan, RETURN and DROP_BACK retain the original deadline. | Unrun prototype. Exact inherited-leg cleanup is prototyped through adoption, existing driving callbacks and bounded discovery; delayed replication and real HC transfers remain untested. A finite group STOP observer now vetoes native recall for observed interruptions. Repeated identical STOP delivery and own-event timing remain unverified. Physical pass, abort, handback and performance acceptance remain open. |
 
-PR #13 contains the work after merged PR #12. No feature family has gained complete behavioural acceptance from these static changes.
-
-- Scheduler: function-scope keyed coalescing, earliest/self-wake deadlines, epoch and generation isolation, retired-state separation, and atomic admission fixtures.
-- FSM ownership: registered-brain checks across group, building, convoy, support and artillery waits and cleanup; real packaged-FSM retirement cases are queued.
-- CQB: physically visited rooms apply pair handoff before cursor advancement; another lane's completion cannot establish entry; entrance staging requires the assigned mover. The two-person audit additionally requires both actors to progress through multiple interior positions when the fixture supports it.
-- Aircraft: pilot-fixed helicopter delivery legs cross the aim point; OFFSET/HOOK armed rocket fixtures are added. Stand-off geometry is tested separately from target-crossing runs. Actual shots, impacts, destruction, safe exits and terrain acceptance remain required.
-- Diagnostics: bounded movement-handoff records and smoke-request prerequisites expose unresolved competing destinations and admission failures.
-
-The last completed coordination run remains 456 checks with 32 failures. None of those failures has been waived by these changes. The preserved a2bed47 candidate predates later entrance-staging and aircraft changes; results from that candidate cannot validate later commits. The completed audit applications remain open and replacement-launch approval is pending. Full infantry/CQB, convoy, aircraft/support, compatibility, headless/JIP and matched performance acceptance remain incomplete.
+Audits remain paused. All physical acceptance and the 5% median / 10% p95 overhead requirement
+remain open. The sealed signing artifact is a separate historical candidate; later source work
+must not be represented as included in that artifact.

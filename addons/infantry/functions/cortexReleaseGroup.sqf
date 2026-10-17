@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Finite indoor actors release only their exact journal-owned native legs before group cleanup.
  * Hands a group back to its own orders and removes everything the pass applied to it.
  *
  * Ends any flank drill (re-enabling only the AI features the drill itself disabled), rejoins the
@@ -47,6 +48,12 @@
 
 params [["_group", grpNull, [grpNull]], ["_forget", true, [false]], ["_reason", "", [""]], ["_keepBrain",false,[false]]];
 if (isNull _group) exitWith {};
+{
+    private _indoor=_x getVariable ["WAIT_IndoorActor_Brain",createHashMap];
+    if (count _indoor > 0 || {(_x getVariable ["WAIT_IndoorActor_Order",[]]) isNotEqualTo []}) then {
+        ["FINISH",_x,_indoor] call WAIT_fnc_IndoorActorOperation;
+    };
+} forEach units _group;
 // Contact disablement releases autonomous state without rebuilding the same independent
 // safety/aid brain every discovery cycle. Full, external and locality releases still retire it.
 _keepBrain=_keepBrain && {!_forget} && {local _group}
@@ -179,6 +186,9 @@ if (local _group && {!_keepBrain}) then {
 // local set as well as currently occupied vehicles.
 if (local _group) then {
     if (!_keepBrain) then {
+        private _drivingBrain=_group getVariable ["WAIT_Driving_Brain",createHashMap];
+        if (count _drivingBrain > 0) then {[_drivingBrain,_reason] call WAIT_fnc_DrivingOperationFinish};
+        _group setVariable ["WAIT_Driving_Brain",nil];
         {[_x,_group] call WAIT_fnc_DrivingAssistRelease} forEach (_group getVariable ["WAIT_DrivingAssist_Vehicles",[]]);
         _group setVariable ["WAIT_DrivingAssist_Vehicles",nil];
     };

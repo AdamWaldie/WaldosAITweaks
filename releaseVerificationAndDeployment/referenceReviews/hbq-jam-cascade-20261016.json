@@ -1,0 +1,103 @@
+{
+  "reviewed": "2026-10-16",
+  "waitSourceCommit": "4b88ab60c0e8f479d66a7fcf2d6af8ed7d9d211f",
+  "scope": "HBQ queue back-off, jam pair/replan and push/rear-clear helpers; scoped branch review only",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssist.sqf",
+      "sha256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+      "lineCount": 3005
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_push.sqf",
+      "sha256": "b3a7710202b7d049b5ffd78d3acd45cd1366f3dccda347f138475bea1cf0f871",
+      "lineCount": 97
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_rearClear.sqf",
+      "sha256": "1b1935da7b23dfb6f04093e7f3601c1cd615e0b1c10c71137978c37dc2d067bc",
+      "lineCount": 40
+    }
+  ],
+  "rangesReviewed": {
+    "fn_driveAssist.sqf": [
+      "977-988 standing observation",
+      "1383-1533 release, back-up, cascade, replan and jam latch",
+      "1535-1662 TrafficStep consumers",
+      "2186-2207 active driver and player-control boundary",
+      "2712-2728 stationary traffic callback",
+      "2898-2910 moving traffic callback"
+    ],
+    "fn_push.sqf": [
+      "complete file"
+    ],
+    "fn_rearClear.sqf": [
+      "complete file"
+    ]
+  },
+  "findings": [
+    {
+      "area": "persistent jam",
+      "evidence": "JamReal requires both observed vehicles to have stood for more than five seconds, then latches the pair until its role ends. Yield/pass roles use ranks and finite deadlines.",
+      "disposition": "Retain persistence and asymmetric responsibility intent. WAIT still needs a real multi-owner jam operation; ordinary following or pass consent alone is insufficient."
+    },
+    {
+      "area": "queue cascade",
+      "evidence": "JamBack seeks rear clearance before a 5m/2.2s or 2m/1.2s push. If unavailable, it sets HBQAD_BackReq=time publicly on the nearest live crewed rear vehicle. Consumers honour a request younger than six seconds and retain a four-second making-room hold.",
+      "disposition": "Redesign as bounded, authenticated owner consent with explicit requester, participant, route/seat/epoch receipts, fixed expiry and cycle/depth limits. Public timestamp freshness does not establish requester authority. Do not copy the request protocol."
+    },
+    {
+      "area": "abort on forward release",
+      "evidence": "JamBack clears its making-room delay if the current front vehicle exceeds 2km/h. MovingBehind vetoes reversing into traffic observed moving faster than 2km/h in the rear sector.",
+      "disposition": "Useful intent for a native reverse leg: stop making room when the dependency clears, with fresh rear safety throughout execution. This does not prove continuous collision safety."
+    },
+    {
+      "area": "forced physics",
+      "evidence": "fn_push installs one machine EachFrame handler and repeatedly writes model-space velocity; lateral pushes also zero model-space yaw. It retains forward motion on release and checks short contact rays while active.",
+      "disposition": "Reject forced-velocity and lateral/yaw shortcuts for natural WAIT recovery. A replacement must obtain native reverse/steering execution and observe physical progress. Current tracked combat withdrawal is a separate intent and cannot be relabelled as general convoy jam recovery."
+    },
+    {
+      "area": "replan and hold bypass",
+      "evidence": "JamReplan excludes follower/player-led/young orders, checks routeWaiting, and permits at most three retries at twenty-second intervals until progress changes. TrafficStep can temporarily relax a hard hold for 1.5s after replan and suppress non-hard holds for ten seconds after a fifteen-second hold.",
+      "disposition": "Preserve finite retry and authored-wait intent. Reject unconditional traffic-ignore windows as WAIT safety authority. New native-route retries require unchanged authored metadata and current movement ownership; live geometric exclusions remain effective."
+    },
+    {
+      "area": "convoy guard",
+      "evidence": "TrafficStep has an early _Convoy exit, but fn_driveAssist initializes _Convoy=false and the inspected source has no other assignment. Main-loop _Follower handling is separate.",
+      "disposition": "Do not infer active convoy integration from this guard or its comments. WAIT convoy spacing remains its own controller. Whole follower/TrafficCap behaviour needs further comparison."
+    },
+    {
+      "area": "WAIT execution gap",
+      "evidence": "DrivingOperationStep and ConvoyOperationStep derive phases from current owner-local state. CortexVehicleReverseStep serves generation-bound tracked VEHICLE_WITHDRAW and explicitly refuses active convoys. DrivingPassAgreementServer brokers finite pass consent only.",
+      "disposition": "Keep the gap explicit: no general authenticated queue-cascade executor exists. Reuse authority patterns only after defining native motion capability, refusal, cleanup and restoration for the new intent."
+    }
+  ],
+  "implementationRequirements": [
+    "One finite episode with a fixed original expiry and bounded participant count/depth. A repeated request must not renew it.",
+    "Each actual vehicle/crew owner authenticates its own consent and checks native route, seat, epoch, simulation, player/Zeus/specialist authority and intentional waits.",
+    "Rear-most eligible participant moves first only after fresh bounded hull/actor clearance. Cycles, refusal, stale ownership or unknown space end admission without pushing another actor.",
+    "Use existing sole movement/speed writers and native driving commands. Native reverse capability for each vehicle class must be demonstrated before enabling the operation.",
+    "Observe physical displacement and separation. Forward release, newer orders, casualties, ownership change and expiry terminate only owned work.",
+    "Keep obstruction safety active during replan and release. Preserve original route conditions, synchronisation and terminal failure evidence.",
+    "After audits resume: separated normal/HC cases for stopped queues, moving rear traffic, closed rear space, opposing/crossing traffic, hostile/uncontrolled peers, cycles, expired messages, Zeus replacement and interrupted recovery. Measure overhead."
+  ],
+  "remaining": [
+    "Complete TrafficCap sensing/classification branch and all corresponding priority interactions",
+    "Complete source follower/order handling and cadence comparison",
+    "Native wheeled and convoy reverse capability and finite operation implementation",
+    "Physical multi-owner jam/queue outcomes and performance"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "held by user instruction",
+  "preparedCapabilityFixture": {
+    "file": "releaseVerificationAndDeployment/cortexQA/runVehicleDrills.sqf",
+    "scope": "Normal-owner excluded native diagnostic only; separate tracked APC, wheeled MRAP and truck, each LEFT/RIGHT.",
+    "requirements": "At least three backward-velocity samples, one metre displacement, three degrees heading change, observed yaw sign and bounded turning observer execution.",
+    "build": "1068 tests; full Build exit0; .qa/workshop-evaluation-20261016/native-reverse-families-build.log",
+    "physicalRun": false,
+    "queueExecutorImplemented": false,
+    "convoyCapabilityProven": false
+  }
+}

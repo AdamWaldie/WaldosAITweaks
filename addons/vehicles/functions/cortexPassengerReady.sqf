@@ -20,8 +20,15 @@ if (isNull _vehicle || {!alive _vehicle} || {!local _unit} || {isPlayer _unit}
 // A finite actor-level task owns this soldier independently of the passenger group's
 // contact episode. Routine dismount/remount must not supersede its cover or recovery move.
 private _reservation=_unit getVariable ["WAIT_Cortex_ActorMove",[]];
-if (_reservation isNotEqualTo [] && {!(_reservation isEqualType []) || {count _reservation != 3}
-    || {!((_reservation select 2) isEqualType 0)} || {time < (_reservation select 2)}}) exitWith {false};
+private _reserved=_reservation isNotEqualTo [] && {
+    !(_reservation isEqualType []) || {count _reservation != 3}
+        || {!((_reservation select 0) isEqualType "")}
+        || {!((_reservation select 1) isEqualType [])} || {count (_reservation select 1) != 3}
+        || {(_reservation select 1) findIf {!(_x isEqualType 0) || {!finite _x}} >= 0}
+        || {!((_reservation select 2) isEqualType 0)} || {!finite (_reservation select 2)}
+        || {time < (_reservation select 2)}
+};
+if (_reserved) exitWith {false};
 // Routine seat changes must not steal an actor's medical, equipment or other authored task.
 // The matching GET IN is our permitted continuation, not permission to replace a different seat.
 private _command=toUpperANSI currentCommand _unit;

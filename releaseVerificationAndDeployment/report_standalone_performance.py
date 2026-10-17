@@ -8,6 +8,16 @@ import re
 
 def read_run(folder):
     manifest=json.loads((folder/'audit-manifest.json').read_text())
+    if not isinstance(manifest,dict) or type(manifest.get('native_baseline')) is not bool:
+        raise ValueError('Explicit boolean run role is required')
+    package=manifest.get('package')
+    fixtures=manifest.get('mission_files')
+    digest=lambda value: isinstance(value,str) and re.fullmatch(r'[0-9a-fA-F]{64}',value) is not None
+    if not isinstance(package,dict) or package.get('dirty') is not False or not digest(package.get('fingerprint')):
+        raise ValueError('Clean candidate with a SHA-256 fingerprint is required')
+    if (not isinstance(fixtures,dict) or not {'mission.sqm','cortexQAStandalonePerformance.sqf'} <= fixtures.keys() or any(
+            not isinstance(name,str) or not name or not digest(value) for name,value in fixtures.items())):
+        raise ValueError('Hashed mission fixture inventory is required')
     logs=list((folder/'server').glob('*.rpt'))
     if len(logs) != 1:
         raise ValueError('Exactly one server RPT is required')
@@ -25,8 +35,15 @@ def read_run(folder):
     identity=row('WAIT STANDALONE PERF IDENTITY: ')
     result=row('WAIT STANDALONE PERF RESULT: ')
     composition=row('WAIT STANDALONE PERF COMPOSITION: ')
-    if len(identity) != 6 or len(result) != 11 or identity[2] != 50 or identity[4] not in ('INFANTRY_PATROL','MIXED_PATROL'):
+    if (not isinstance(identity,list) or not isinstance(result,list) or not isinstance(composition,list)
+            or len(identity) != 6 or len(result) != 11 or identity[2] != 50
+            or identity[4] not in ('INFANTRY_PATROL','MIXED_PATROL')):
         raise ValueError('Unexpected fixture or result schema')
+    if (any(type(identity[i]) is not int for i in (2,3,5))
+            or any(type(result[i]) is not int for i in (2,6,7,8,9))
+            or any(type(value) is not int or value < 0 for value in composition)
+            or not isinstance(identity[1],str)):
+        raise ValueError('Counts and runtime identity have invalid types')
     scenario={'infantry':'INFANTRY_PATROL','mixed':'MIXED_PATROL'}.get(manifest.get('performance_composition'))
     if scenario != identity[4] or identity[3] <= 0 or (scenario == 'INFANTRY_PATROL' and identity[3] != 300):
         raise ValueError('Scenario declaration or actor count mismatch')
@@ -40,7 +57,7 @@ def read_run(folder):
         raise ValueError('Danger FSM identity or server ownership mismatch')
     if result[2] < 100 or result[6:9] != [50,identity[3],50] or result[9:] != [1,True]:
         raise ValueError('Samples, movement, actor survival or observer validation failed')
-    if any(not isinstance(value,(int,float)) or not math.isfinite(value) or value <= 0 for value in result[3:6]):
+    if any(type(value) not in (int,float) or not math.isfinite(value) or value <= 0 for value in result[3:6]):
         raise ValueError('Invalid frame-time measurement')
     if not result[3] <= result[4] <= result[5]:
         raise ValueError('Invalid quantile ordering')

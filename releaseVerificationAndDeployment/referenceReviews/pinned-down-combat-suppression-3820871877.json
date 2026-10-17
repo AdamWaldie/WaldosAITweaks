@@ -1,0 +1,321 @@
+{
+  "workshopId": "3820871877",
+  "name": "Pinned Down Combat Suppression",
+  "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3820871877",
+  "added": "2026-10-16",
+  "scope": "AI behaviour only; player features explicitly excluded by user",
+  "status": "initial_ai_source_comparison_complete_deep_review_pending",
+  "evidence": "Main PBO extracted with HEMTT; AI event/FSM/stance/skills/hearing/bootstrap paths inspected selectively, relevant source hashes compared with preserved 3559900745. Not a complete mod review. No production changes or live audit.",
+  "localPath": "E:/SteamLibrary/steamapps/workshop/content/107410/3820871877",
+  "evaluate": [
+    "AI suppression and suppressive-fire decisions and execution",
+    "Stance-dependent AI suppression and startle reactions, where implemented",
+    "AI combat awareness and contact detection",
+    "AI-specific CBA controls, event sources, locality/HC ownership, cleanup, repeat behaviour and performance",
+    "Compare against preserved earlier Pinned Down suppression sources and current WAIT behaviour; identify changes and useful improvements without assuming parity"
+  ],
+  "excluded": [
+    "Player combat stress",
+    "Player weapon-handling effects",
+    "Player visual, camera and auditory effects",
+    "Player-facing startle effects"
+  ],
+  "acceptance": "No implementation or physical acceptance credit. Inspect complete relevant source/caller paths and licence before adaptation; validate actual behaviour when audits are authorised.",
+  "implementationAccepted": false,
+  "runtimeValidated": false,
+  "files": [
+    {
+      "path": "E:\\SteamLibrary\\steamapps\\workshop\\content\\107410\\3820871877\\license.txt",
+      "bytes": 14804,
+      "sha256": "31dbeeb71a573700ccdfce7a5dd38c43438f9b5414e4ce968bc2671518caf8cc"
+    },
+    {
+      "path": "E:\\SteamLibrary\\steamapps\\workshop\\content\\107410\\3820871877\\meta.cpp",
+      "bytes": 109,
+      "sha256": "eb50e4fd956d172d226a0c1e7e4a4c2d9b454fcbf71f7308eaa60771f7d2df8c"
+    },
+    {
+      "path": "E:\\SteamLibrary\\steamapps\\workshop\\content\\107410\\3820871877\\mod.cpp",
+      "bytes": 798,
+      "sha256": "5a924654353b3855b4a1445632e56b513158c4a1de3b2ab1090a4f8a41d6d514"
+    },
+    {
+      "path": "E:\\SteamLibrary\\steamapps\\workshop\\content\\107410\\3820871877\\addons\\pd_suppressive_audio.pbo",
+      "bytes": 121501,
+      "sha256": "0d5f0a7565f250243199eefbcbb2c4ff6967e2676aca1110fc17bf066865653f"
+    },
+    {
+      "path": "E:\\SteamLibrary\\steamapps\\workshop\\content\\107410\\3820871877\\addons\\PinnedDown.pbo",
+      "bytes": 1355284,
+      "sha256": "ac94deaf558a78dfee69fc1d011ff3cbfa2ce47af2231548753aa8cecaa17272"
+    }
+  ],
+  "sourceComparison": [
+    {
+      "file": "config.cpp",
+      "sha256": "0f18c6b404fbe4220d4d758d2990999ee247c65e1f0e41a6bd31a601404d53f7",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "XEH_preInit.sqf",
+      "sha256": "2cc530727b0695c634308459c69ce76903b48f91ffb5cce551505ae2b84459bf",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_AIsuppression.sqf",
+      "sha256": "58305d4df3ad78e6278202537091da860c14e9d96b47a805ac65d802553b9e47",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_attachSP.sqf",
+      "sha256": "334838a7eab064ea70e1971bc288be56c34d4edea157efb1d7c53011d5297117",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_clearRedPeripheral.sqf",
+      "sha256": "48c8f540302dede2a9514d7012849f625b9ddeabbf63e8a4ed9b99a387da87ea",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_clearTunnelFallback.sqf",
+      "sha256": "761f59e550e53038bb51b4d75eebe91b20dab4570ed96a15c184e14cd08916c8",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_closeFireReaction.sqf",
+      "sha256": "1735f60253ceb3e183af2284cfee47ac57ceeba1bdae55d6239fe5965d07b26e",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_Death_no.sqf",
+      "sha256": "59e89c38ad05ae44e0ed4449b1fc82810d03ff8423fec14ad5a5913fbc13d6df",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_degradeSkills.sqf",
+      "sha256": "d755683eff5e206998403a08adbced67d18ac3511b2a3a97853f0810f9cc7168",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_initDebugActions.sqf",
+      "sha256": "b3071f07a31e9e1715f0f35d4b93d6afea67fdad6d0d6d6ee17d0759bc73cb6f",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_installScriptErrorTracer.sqf",
+      "sha256": "439d42553a54866d761aecec72bf31942e9acb5cb2297dca39affb9b392548c2",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_isPlayerGroupAI.sqf",
+      "sha256": "6b81d04d447066cfa8da66fd01be88d7989ed3aeed75263f8e2c7cc98761d646",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_isSupportAware.sqf",
+      "sha256": "052dae729df58529c9582acd0c9ef9ce4911d66d01cd13e3e9a6d1f00ff9b08f",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_performanceSample.sqf",
+      "sha256": "1bf0de21ec529e0b0c601b85c66d1504dc0731139ba0c7b0bc420cf055c2f10d",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_Pinned.fsm",
+      "sha256": "c258d53985c874fb5cac0f6914e799d2ab816c8857584dcf39af19ed8812c3e9",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_PinnedRev_Init.sqf",
+      "sha256": "5ff8c2852860740e9dcd54bc60168fecd85a1a83177e2467968739d456b74c39",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_playerSuppressionCleanup.sqf",
+      "sha256": "aa6ed1e3d43a3028e6bc4fb852951a7b3fe7eebf4f590a8a846d10b2fe8f6a3c",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_postInit.sqf",
+      "sha256": "837eb6cd4b29a59e978f668c26c386ffda5a8a21f2d3bad67defd16e97519b20",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_releaseAI.sqf",
+      "sha256": "e5742062981c63198b80018adfb09c2359c0929bf7fc835131f0b20c001609d6",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_releaseOwnedStance.sqf",
+      "sha256": "ef0d077ccacb5d8bebd0f1621a9c1c8a66b969fc980150d8f0b2e6931111c29c",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_resetTraceCounters.sqf",
+      "sha256": "558848ddbf6c3f3df2b674b76076f900fda12a4fb5bc878858fb3ad3228018ac",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_SimSupinit.sqf",
+      "sha256": "9fbfbdb82a8e95dd7fce280bbbb6ca9352780e0b805e1cc45ac48aa4b9020780",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_simulateEyeBlink.sqf",
+      "sha256": "bcb4ad485ddcdd4d08d35bde2468496610ddf0a88a96ac60352d6f31e07dfa73",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_startPerformanceTracer.sqf",
+      "sha256": "c50348eb052379386e7251eaef8b8543942feed8b49895e26727eba308240e41",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_SUPclientInit.sqf",
+      "sha256": "398cf77faf88c00555065e16a0cf1d04b66ba212378b94bc08998b397dc66f06",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_syncSettings.sqf",
+      "sha256": "2c3470feff1bf0ad49cf9f959908e7935f6600f4f92703e1f73376347682cbfd",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_trace.sqf",
+      "sha256": "6f8786a39b0fd9fe191f7afc486efb0972e66cf84d1f26a5cf8fe07b241ca3ff",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_traceCounter.sqf",
+      "sha256": "5f46924c77899797572f8d1a7c8e11bb8b4549b91f0418a49a5ac81d5a7ddfd2",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_traceSummary.sqf",
+      "sha256": "ec306103c4e5d80910ddd0871678615a4822df41f0f19b32b8e7300530508f01",
+      "priorPresent": true,
+      "identicalToPreserved": false
+    },
+    {
+      "file": "functions\\fn_updateRedPeripheral.sqf",
+      "sha256": "4c166aea2b7fc494c637d5e6ac522b1cf604aea72e8bfe0b3fedd4aea91b433f",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    },
+    {
+      "file": "functions\\fn_updateTunnelFallback.sqf",
+      "sha256": "427444460c8c346704b5e9366c57f295a894024328c4476b4dbb8ab3d23d8763",
+      "priorPresent": true,
+      "identicalToPreserved": true
+    }
+  ],
+  "findings": [
+    {
+      "area": "source continuity",
+      "observed": "Suppression FSM, attach, bootstrap, skill degradation, close-fire reaction and release helpers match preserved source byte-for-byte. AIsuppression delta expands Suppressed arguments and invokes the new awareness reveal helper.",
+      "disposition": "Retain provenance under the new ID; do not claim a new suppression executor or repeat prior implementation credit."
+    },
+    {
+      "area": "knowledge",
+      "observed": "postInit awareness helper uses Suppressed shooter/instigator, hostility and range gates, per-source-group two-second cooldown and skill-scaled accumulated object reveal. Any muzzle attachment is classified as suppressed. Group knowledge array has no pruning in the inspected helper.",
+      "wait": "cortexHearingLocal retains a quantized expiring sound area without the shooter object.",
+      "disposition": "Preserve uncertain observation and bounded memory. Review actual weapon suppression classification separately. Do not import object-reveal semantics as hearing certainty."
+    },
+    {
+      "area": "stance and CQB",
+      "observed": "FSM uses nearest-building radius plus ceiling ray, caches indoor result for eight seconds, crouches indoors and forces prone outdoors. releaseOwnedStance restores only if the applied stance still matches.",
+      "wait": "dangerEngineAct uses expiring stance ownership and protects committed movers.",
+      "disposition": "Compare geometry-sensitive indoor posture with current stance leases. Any enhancement needs movement/transform cache invalidation and must not pin CQB movers. No routing or clearance improvement established by this source."
+    },
+    {
+      "area": "pressure and skills",
+      "observed": "Real-event timers capped at twelve seconds by default; hearing hold is separate and support-aware groups bypass it. Three aiming skills degrade from cached baseline and restore directly. Brain config sets maxSuppression to seven.",
+      "wait": "cortexMorale consumes native suppression alongside casualties, wounds and known threats.",
+      "disposition": "Review suppression normalization and interaction with current brain configuration before tuning. Preserve real pressure during movement; avoid blanket baseline restoration over newer skill changes."
+    },
+    {
+      "area": "fire control",
+      "observed": "FSM uses current attack target, short target claims, known alternates, three person-discovery samples with ninety-metre radius cap, lane checks, loaded/reserve ammunition gates and finite suppression bursts.",
+      "disposition": "Compare against WAIT fire-control authority, current ROE and full lane coverage. Local claims are not cross-owner coordination; capped samples need coverage proof. Do not add another firing controller."
+    },
+    {
+      "area": "lifecycle and cost",
+      "observed": "Server bootstrap queues created/respawned units and reconciles allUnits every four seconds; shared monitor visits registered actors about once a second. Owner forwarding exists in attach/release helpers.",
+      "disposition": "Use existing bounded WAIT owner scheduler. Remaining review must trace ownership migration, stale local registration, callback authority and end-to-end cleanup; one shared handler does not imply constant cost."
+    },
+    {
+      "area": "continuing locality",
+      "observed": "AIsuppression checks local unit at entry. Search of continuing FSM and monitor found no local-unit exit/recheck; server reconciliation selects only server-local units. Owner forwarding at attachment alone is not ownership migration coverage.",
+      "disposition": "Do not port persistent monitor/FSM ownership. Retain WAIT owner epoch retirement/adoption; audit migration later rather than crediting attachment guards as handover."
+    }
+  ],
+  "licence": "Bundled licence states Arma Public License - No Derivatives. No source/assets copied into production. Permission/licence disposition required before any derivative redistribution; engineering findings describe independent design requirements.",
+  "remaining": [
+    "Complete untruncated AI FSM, event, settings and lifecycle review with line-level dispositions.",
+    "Verify archive manifest before relying on old snapshot beyond explicitly compared files.",
+    "Compare current WAIT suppression normalization, full-lane fire safety and indoor posture cache ownership.",
+    "Implement only justified independent improvements with regression checks; physical acceptance remains pending while audits are paused."
+  ],
+  "audioDisposition": "Inspected pd_suppressive_audio config, settings and playback entry. Config registers only custom sound request and local CBA option; requestFallbackCrack requires hasInterface and player. No AI controller or CfgAmmo/brain overrides found in this addon configuration. Excluded as player audio.",
+  "independentImprovements": [
+    {
+      "area": "selected muzzle readiness",
+      "file": "addons/core/functions/cortexFireControl.sqf",
+      "change": "Suppression requires selected primary weapon, nonempty current muzzle with loaded rounds and damaging shotbullet ammunition; inventory reserve no longer qualifies a pistol, launcher or empty selected muzzle. No forced selection or reload. Reserve accounting is muzzle-specific and excludes loaded and empty magazines; underbarrel grenades cannot satisfy rifle reserves.",
+      "offlineValidation": "Complete Build terminal exit 0; 1058 tests, SQF/config/documentation/parity/performance static gates and FSM validation; 9 PBOs.",
+      "log": ".qa/workshop-evaluation-20261016/suppression-reserve-build.log",
+      "physicalAcceptance": false,
+      "commandContract": "https://community.bistudio.com/wiki/ammo",
+      "commandContracts": [
+        "https://community.bistudio.com/wiki/ammo",
+        "https://community.bistudio.com/wiki/compatibleMagazines",
+        "https://community.bistudio.com/wiki/magazinesAmmoFull"
+      ],
+      "buildFingerprint": "2871d90f5e59aac24b085dcdb08f43d6890c6215678d9d62d77a8506c8cafd4f"
+    }
+  ],
+  "effectPathReview": {
+    "scope": "AI skill degradation, shared decay/disable branches, AI CBA mapping and brain config; source-only review remains incomplete.",
+    "skillChanges": "Three aiming skills are derived from a cached baseline with suppression power0.8 and configurable cap; courage is not degraded. Recovery uses configured half-life scaled by courage, then writes cached baseline at low stress or disable. No per-skill applied-value receipt protects a later external skill edit.",
+    "engineContract": "https://community.bistudio.com/wiki/getSuppression?useskin=vector",
+    "documentedRange": "Native suppression is documented0..1, with-1 for unavailable/disabled; source division by configured maxSuppression and synthetic floor3 need engine measurement, not an assumption of raw config-scale API values.",
+    "waitFinding": "CortexMorale previously summed-1 as negative pressure; now clamps local samples0..1 before averaging. Disabled/unavailable contributes zero, while the existing20% weight stays bounded. No new suppression controller, scan or skill penalty.",
+    "validation": "Full Build exit0,1069 tests/all gates; .qa/workshop-evaluation-20261016/morale-suppression-sentinel-build.log",
+    "physicalAcceptance": false,
+    "remaining": [
+      "Trace all live AI setting disable callbacks and FSM shutdown against specialist takeover.",
+      "Measure normalized native suppression separately from configured brain maxima and explicit script writes.",
+      "Do not apply cached-baseline skill restoration over later owner changes.",
+      "Live disabled-suppression morale and end-to-end fire/morale behaviour remain unrun."
+    ]
+  }
+}

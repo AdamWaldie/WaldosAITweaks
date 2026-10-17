@@ -23,17 +23,21 @@
  * repeated linear array membership searches. Ranking retains the discovered asset; dispatch
  * rechecks its live commander/driver ownership without another full unit scan. A unique rank
  * tie-breaker avoids comparing group objects. This does not bound total discovery population.
+ * Contact positions require exactly three finite numeric ATL components, each within +/-1e6m.
+ * Invalid payloads reject before local cooldown or server reservation; no live-target fallback is used.
  * Arguments: 0: requester <GROUP>; 1: observed hostile <OBJECT>; 2: believed ATL <ARRAY>;
- * 3: observation server time <NUMBER>.
+ * 3: observation server time <NUMBER>; 4: native reporter confidence <NUMBER,1>, capped at2.5.
+ * Roles append versioned contact receipt [1,original observedAt,capped confidence] without renewing age.
  * Return Value: Number of asset roles dispatched.
  * Current callers: WAIT_fnc_CortexCombinedArmsRequest through remote execution.
  * Example: [_group,_enemy,getPosATL _enemy,serverTime] remoteExecCall ["WAIT_fnc_CortexCombinedArmsServer",2];
  */
-params [["_requester",grpNull,[grpNull]],["_target",objNull,[objNull]],["_position",[],[[]]],["_observedAt",-1,[0]]];
+params [["_requester",grpNull,[grpNull]],["_target",objNull,[objNull]],["_position",[],[[]]],["_observedAt",-1,[0]],["_confidence",1,[0]]];
 if (!isServer || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {[] call WAIT_fnc_CortexIsPaused} || {isNull _requester} || {isNull _target} || {!alive _target}
     || {remoteExecutedOwner > 0 && {remoteExecutedOwner != groupOwner _requester}}
-    || {count _position < 2} || {_position findIf {!(_x isEqualType 0)} >= 0}
+    || {count _position != 3} || {_position findIf {!(_x isEqualType 0) || {!finite _x} || {abs _x > 1e6}} >= 0}
+    || {!finite _confidence} || {_confidence <= 0} || {_confidence > 4}
     || {!finite _observedAt} || {_observedAt < 0} || {_observedAt > serverTime+1}
     || {serverTime-_observedAt > 10} || {_target distance2D _position > 75}
     || {(side _requester) getFriend side _target >= 0.6}
@@ -47,6 +51,7 @@ private _serial=(missionNamespace getVariable ["WAIT_Cortex_CombinedSerial",0])+
 missionNamespace setVariable ["WAIT_Cortex_CombinedSerial",_serial];
 private _token=format ["%1:%2",netId _requester,_serial];
 private _expiry=serverTime+35;
+private _contactReceipt=[1,_observedAt,_confidence min 2.5];
 private _ground=0;
 private _groundAnchor=[];
 private _air=0;
@@ -121,7 +126,7 @@ private _groundCandidates=(_orderedGroups select {
         && {alive _asset} && {canFire _asset}
 }) apply {[_x select 1,_x select 2]};
 _groundCandidates resize ((count _groundCandidates) min 32);
-_requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_position,_expiry,_groundCandidates,0],true];
+_requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_position,_expiry,_groundCandidates,0,+_contactReceipt],true];
 {
     private _candidate=_x select 1;
     private _candidateTransmitter=[_candidate] call WAIT_fnc_CortexGroupTransmitter;
@@ -133,7 +138,7 @@ _requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_p
         // Different local contacts may request support concurrently. Preserve a live role
         // already reserved by another opportunity, matching the air fallback contract.
         && {private _existingRole=_candidate getVariable ["WAIT_Cortex_CombinedRole",[]];
-            count _existingRole != 7 || {serverTime >= (_existingRole select 5)} || {(_existingRole select 0) == _token}}
+            !((count _existingRole) in [7,8]) || {serverTime >= (_existingRole select 5)} || {(_existingRole select 0) == _token}}
         && {_distance <= _voiceRange || {_senderRadio && {_candidateRadio}}}) then {
         // Reuse this request's discovery, then validate live operating ownership.
         // A stale asset is refused rather than rescanning or dispatching to passengers.
@@ -173,7 +178,7 @@ _requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_p
         };
         if (_role != "") then {
             private _context=if (_role == "GROUND_MANOEUVRE") then {+_groundAnchor} else {[]};
-            private _opportunity=[_token,_requester,_target,+_position,_role,_expiry,_context];
+            private _opportunity=[_token,_requester,_target,+_position,_role,_expiry,_context,+_contactReceipt];
             _candidate setVariable ["WAIT_Cortex_CombinedRole",_opportunity,true];
             _candidate setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
             _candidate setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"DISPATCHED",serverTime,_target],true];
@@ -188,7 +193,7 @@ _requester setVariable ["WAIT_Cortex_CombinedOpportunity",[_token,_target,+_posi
 // Index 1 is the second ranked air candidate: the first, if any, was dispatched above. A rejected
 // local preflight advances this finite list once rather than creating another planner or delaying
 // the infantry contact. The server never infers a remote airframe's live weapon compatibility.
-_requester setVariable ["WAIT_Cortex_CombinedAirFallback",[_token,_target,+_position,_expiry,+_airCandidates,1],true];
+_requester setVariable ["WAIT_Cortex_CombinedAirFallback",[_token,_target,+_position,_expiry,+_airCandidates,1,+_contactReceipt],true];
 [{
     params ["_requester","_token","_roleGroups"];
     if (!isNull _requester && {((_requester getVariable ["WAIT_Cortex_CombinedOpportunity",[]]) param [0,""]) == _token}) then {

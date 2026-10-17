@@ -18,8 +18,9 @@
  * rotates through its candidates at a 2.5-4 s interval. The first order receives a 0.25-2.25 s
  * short per-group random delay, so separate squads do not produce an uncanny global volley. This models
  * alternating or "talking" fire inside an element while leaving unrelated elements asynchronous.
- * A suppressor needs at least two magazines and 60 rounds
- * for his weapon, must not himself be heavily suppressed, and must have a clear line of fire
+ * A suppressor needs at least two nonempty spare magazines and 60 rounds
+ * for his weapon, must currently hold a loaded primary bullet muzzle, must not himself be heavily
+ * suppressed, and must have a clear line of fire
  * (WAIT_fnc_CortexLineOfFireClear keeps friendlies, including the flanking element, and civilians out
  * of the cone). Each suppressor rests 8 s between bursts. Flank element members are left alone.
  * The pass adds no detection. A live coordinated role may suppress its reported position
@@ -103,11 +104,9 @@ private _eligible = (units _group) select {
 };
 // Route ownership extends beyond drills: a clearer, evading actor or finite aid mover
 // must not receive an ATTACK/SUPPRESS command over its current destination.
-private _reservedActors=_eligible select {
-    private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-    _reservation isEqualType [] && {count _reservation == 3}
-        && {(_reservation select 2) isEqualType 0} && {(_reservation select 2) > _now}
-};
+// Unknown ownership must not become permission to replace an actor's route. Only the
+// shared typed, finite reservation predicate can establish that a lease has expired.
+private _reservedActors=_eligible select {[_x] call WAIT_fnc_CortexActorMoveReserved};
 private _operation=_group getVariable ["WAIT_Operation",createHashMap];
 if ((_operation getOrDefault ["intent",""]) in ["CLEAR","MEDICAL_AID","WITHDRAW"]
     && {(_operation getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}) then {
@@ -229,11 +228,25 @@ if (_suppressPos isNotEqualTo []) then {
             private _unit = _members select (_x select 1);
             if ((_unit getVariable ["WAIT_AIPass_LastSuppress", -1e6]) <= _now - 8 && {getSuppression _unit < 0.5}) then {
                 private _weapon = primaryWeapon _unit;
-                private _compatible = compatibleMagazines _weapon;
-                private _spare = (magazinesAmmo _unit) select {(_x select 0) in _compatible};
-                private _rounds = _unit ammo _weapon;
+                // A carried rifle reserve does not qualify a pistol, empty muzzle or selected
+                // underbarrel launcher. Leave weapon selection/reloading to the current owner.
+                private _muzzle = currentMuzzle _unit;
+                private _magazine = currentMagazine _unit;
+                private _ammo = configFile >> "CfgAmmo" >> getText (configFile >> "CfgMagazines" >> _magazine >> "ammo");
+                private _loaded = if (_muzzle == "") then {0} else {_unit ammo _muzzle};
+                private _rifleReady = _weapon != "" && {currentWeapon _unit == _weapon}
+                    && {_loaded > 0} && {toLowerANSI getText (_ammo >> "simulation") == "shotbullet"}
+                    && {getNumber (_ammo >> "hit") > 0};
+                // Weapon-wide compatibility includes underbarrel magazines. Count only loose,
+                // nonempty reserves for this muzzle; loaded magazines must not count twice.
+                private _magazineMuzzle = [ _muzzle, "this" ] select (_muzzle == _weapon);
+                private _compatible = compatibleMagazines [_weapon,_magazineMuzzle];
+                private _spare = (magazinesAmmoFull _unit) select {
+                    !(_x select 2) && {(_x select 1) > 0} && {(_x select 0) in _compatible}
+                };
+                private _rounds = _loaded;
                 {_rounds = _rounds + (_x select 1)} forEach _spare;
-                if (count _spare >= 2 && {_rounds >= 60} && {[_unit, _targetASL] call WAIT_fnc_CortexLineOfFireClear}) then {
+                if (_rifleReady && {count _spare >= 2} && {_rounds >= 60} && {[_unit, _targetASL] call WAIT_fnc_CortexLineOfFireClear}) then {
                     _unit doSuppressiveFire _targetASL;
                     _unit setVariable ["WAIT_AIPass_LastSuppress", _now];
                     _group setVariable ["WAIT_AIPass_SuppressCursor",(_cursor + 1) mod count _ranked];

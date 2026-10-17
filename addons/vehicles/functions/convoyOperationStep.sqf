@@ -51,6 +51,15 @@ if ((_configuration param [5,"TRAVEL"]) == "HALT") then {
  };
  if (_recoveryActors > 0) then {_phase="RECOVERY"} else {if (_phase != "CONTACT_HOLD" && {_spacingPairs > 0}) then {_phase="SPACING"}};
 };
+if ((_configuration param [5,""]) == "TRAVEL" && {_phase != "CONTACT_HOLD"}
+    && {_state getOrDefault ["obstacleLimited",false]}) then {_phase="OBSTACLE"};
+// Corridor intent describes the lead's existing writer, never an independent convoy controller.
+private _corridorPhase=_state getOrDefault ["corridorPhase",""];
+if ((_configuration param [5,""]) == "TRAVEL" && {_phase != "CONTACT_HOLD"}
+    && {_corridorPhase in ["CORRIDOR_APPROACH","CORRIDOR_CROSS","CORRIDOR_TAIL"]}) then {_phase=_corridorPhase};
+private _bypassPhase=_state getOrDefault ["bypassPhase",""];
+if ((_configuration param [5,""]) == "TRAVEL" && {_phase != "CONTACT_HOLD"}
+    && {_bypassPhase in ["BYPASS_PLAN","BYPASS_FOLLOW","BYPASS_TAIL"]}) then {_phase=_bypassPhase;_delay=1};
 // A temporary tactical pause releases local leases but retains this registry brain.
 // Describe suspension explicitly instead of publishing stale spacing/recovery roles.
 if (_group getVariable ["WAIT_Convoy_Suspended",false] || {_state getOrDefault ["ownerSuspended",false]}) then {

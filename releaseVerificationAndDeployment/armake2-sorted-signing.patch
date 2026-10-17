@@ -1,0 +1,22 @@
+--- a/src/sign.rs
++++ b/src/sign.rs
+@@ -84,7 +84,9 @@
+     let mut h = Hasher::new(MessageDigest::sha1()).unwrap();
+     let mut nothing = true;
+ 
+-    for (name, cursor) in pbo.files.iter() {
++    let mut files_sorted: Vec<_> = pbo.files.iter().collect();
++    files_sorted.sort_by_key(|(name, _)| name.to_lowercase());
++    for (name, cursor) in files_sorted {
+         let ext = name.split('.').last().unwrap();
+ 
+         match version {
+@@ -96,7 +98,7 @@
+                     ext == "wrp" { continue; }
+             },
+             BISignVersion::V3 => {
+-                if ext != "sqf" && ext != "inc" && ext != "bikb" &&
++                if ext != "sqf" && ext != "sqfc" && ext != "inc" && ext != "bikb" &&
+                     ext != "ext" && ext != "fsm" && ext != "sqm" &&
+                     ext != "hpp" && ext != "cfg" && ext != "sqs" &&
+                     ext != "h" { continue; }

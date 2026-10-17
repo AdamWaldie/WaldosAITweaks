@@ -1,5 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
+ * Individual indoor work is cancelled on transfer; only an exact journal-owned native leg may
+ * return to formation on the new owner. No indoor movement or deadline is replayed.
  * Passenger, naval landing, pending calm remount, active coordinated-support, post-contact movement
  * standalone manoeuvre and active withdrawal intent survive migration without replaying old owner jobs. Invalidates old jobs,
  * restores interrupted transient behaviour and resumes a bounded support assignment,
@@ -12,6 +14,9 @@
  * Combat-mode restoration checks the applied value before restoring, preserving newer ROE changes.
  * Aircraft occupants are restored from any earlier ground lease but are not adopted into ground
  * transitions; their dedicated flight controllers remain the sole movement owner.
+ * Ordinary driving brains retire before the owner epoch changes; successor queued work starts
+ * against the new epoch and does not inherit an exhausted old-owner receipt. Public pass-leg
+ * cleanup may hand back only unchanged native commands; split vehicle locality waits for discovery.
  * Arguments: 0: group <GROUP>, default grpNull; 1: gained locality <BOOL>, default false.
  * Return Value: Nothing unless a value is explicitly returned below.
  * Current callers: group Local handler and discovery.
@@ -57,6 +62,18 @@ if (local _group) then {
 };
 [_group,true] call WAIT_fnc_CortexHearingLocal;
 [_group,true] call WAIT_fnc_DangerSetup;
+// Handler IDs are local; remove the prior owner's observer even after group locality is lost.
+private _passWatch=_group getVariable ["WAIT_DrivingPass_CommandWatch",[]];
+if (count _passWatch == 6) then {
+    [_group,_passWatch select 0,createHashMapFromArray [["token",_passWatch select 1],
+        ["epoch",_passWatch select 2],["generation",_passWatch select 3]],true]
+        call WAIT_fnc_DrivingPassCommandWatch;
+};
+// Retire the exact previous driving receipt before changing its owner epoch.
+private _drivingBrain=_group getVariable ["WAIT_Driving_Brain",createHashMap];
+if (count _drivingBrain > 0) then {[_drivingBrain,"LOCALITY_CHANGE"] call WAIT_fnc_DrivingOperationFinish};
+_group setVariable ["WAIT_Driving_Brain",nil];
+_group setVariable ["WAIT_Driving_FSM",nil];
 private _oldBrain=_group getVariable ["WAIT_GroupBrain",createHashMap];
 if (count _oldBrain > 0) then {
     _oldBrain set ["cancelled",true];
@@ -77,6 +94,18 @@ _group setVariable ["WAIT_BuildingBrain",nil];
 _group setVariable ["WAIT_BuildingBrain_FSM",nil];
 {
         private _unit = _x;
+        private _indoor=_unit getVariable ["WAIT_IndoorActor_Brain",createHashMap];
+        if (count _indoor > 0 || {(_unit getVariable ["WAIT_IndoorActor_Order",[]]) isNotEqualTo []}
+            || {!isNil {_unit getVariable "WAIT_IndoorActor_FSM"}}) then {
+            if (count _indoor > 0) then {_indoor set ["finished",true]};
+            ["TRANSFER",_unit,createHashMap] call WAIT_fnc_IndoorActorOperation;
+            // Public cancellation may already have completed elsewhere. Retire this machine's
+            // exact old pointer regardless; otherwise returning ownership blocks the next START.
+            if ((_unit getVariable ["WAIT_IndoorActor_Brain",createHashMap]) isEqualTo _indoor) then {
+                _unit setVariable ["WAIT_IndoorActor_Brain",nil];
+                _unit setVariable ["WAIT_IndoorActor_FSM",nil];
+            };
+        };
         // Event-handler IDs are machine-local. Retire this owner's listener on both
         // loss and gain; the old drill is cancelled, never replayed on the new owner.
         private _fragHandler = _unit getVariable ["WAIT_Cortex_FragHandler",-1];
@@ -101,6 +130,17 @@ _group setVariable ["WAIT_AIPass_Managed", nil];
 {_group setVariable [_x, nil]} forEach ["WAIT_AIPass_GarrisonApplied", "WAIT_AIPass_DefendApplied", "WAIT_AIPass_ClearApplied"];
 _group setVariable ["WAIT_AIPass_Adopted", _gained];
 if (!_gained || {!local _group}) exitWith {};
+// Group and vehicle ownership need not arrive together; discovery retries the split case.
+private _passVehicles=[];
+{
+    private _vehicle=vehicle _x;
+    if (_vehicle != _x && {!(_vehicle in _passVehicles)}) then {
+        _passVehicles pushBack _vehicle;
+        if (!isNil {_vehicle getVariable "WAIT_DrivingPass_Leg"}) then {
+            [_vehicle] call WAIT_fnc_DrivingPassRetireInherited;
+        };
+    };
+} forEach units _group;
 // Completed clearance has no active operation/order, but native STOP survives migration.
 // Adopt the public hold receipt into this owner's generation without replaying movement.
 private _clearHold=_group getVariable ["WAIT_Cortex_ClearHold",[]];

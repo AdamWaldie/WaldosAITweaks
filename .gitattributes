@@ -1,0 +1,3 @@
+
+# Unified-diff blank context lines are intentional; preserve the signer patch bytes.
+releaseVerificationAndDeployment/armake2-sorted-signing.patch -text whitespace=-blank-at-eol

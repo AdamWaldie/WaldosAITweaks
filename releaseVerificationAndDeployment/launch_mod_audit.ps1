@@ -28,6 +28,8 @@ if (!$Package) { $Package=Join-Path $repo '.hemttout/build' }
 if ($BatchMode -eq 'normal' -and $HeadlessClients -ne 0) {throw 'Normal batches require zero HCs; use BatchMode headless for migration tests'}
 if ($BatchMode -eq 'headless' -and $HeadlessClients -ne 2) {throw 'Headless batches require two HCs for split-owner acceptance'}
 if ($Focus -in @('performancecontact','performancemixed') -and $BatchMode -ne 'headless') {throw 'Multi-owner performance requires a dedicated headless batch; use standaloneperformance for normal comparisons'}
+if ($Focus -eq 'indooractorshc' -and ($BatchMode -ne 'headless' -or $HeadlessClients -ne 2 -or !$HeadlessProvider)) {throw 'Individual indoor HC fixtures require BatchMode headless, HeadlessClients 2 and a real HeadlessProvider'}
+if ($Focus -in @('indooractors','indoornatural') -and ($BatchMode -ne 'normal' -or $HeadlessClients -ne 0)) {throw 'Individual indoor normal fixtures require BatchMode normal and HeadlessClients 0'}
 if ($ServerOnly -and $Focus -ne 'dangerload') {throw 'ServerOnly is restricted to the dangerload loader diagnostic.'}
 if (!$ArmaPath) {
     $ArmaPath=(Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\bohemia interactive\arma 3').main

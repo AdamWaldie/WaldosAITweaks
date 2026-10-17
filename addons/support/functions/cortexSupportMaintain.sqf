@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Owner execution preserves unknown/malformed actor reservations through the shared strict predicate.
  * Releases only the current WAIT support assignment when it expires, is revoked or loses every
  * feature gate capable of owning it. A mode must remain enabled at both ends of the reservation;
  * independent requester/responder checks could otherwise preserve a lease whose next state no
@@ -237,14 +238,13 @@ if (_coordinating) then {
                 _group setVariable ["WAIT_Operation",_coverOperation,true];
             };
             {
-                private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
                 if (local _x && {group _x == _group} && {isNull objectParent _x}
                     && {[_x] call WAIT_fnc_CortexCombatEffective} && {!isPlayer _x}
                     && {isNull (remoteControlled _x)} && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
                     && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
                     && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
                     && {!(toUpperANSI currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
-                    && {count _actorMove != 3 || {time >= (_actorMove select 2)}}) then {
+                    && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}) then {
                     doStop _x;
                 };
             } forEach units _group;

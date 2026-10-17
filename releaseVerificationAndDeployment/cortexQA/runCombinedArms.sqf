@@ -6,6 +6,8 @@
  * Locality/authority: scheduled dedicated-server fixture with server-owned groups and normal production calls.
  * Outside VR a bounded one-time scan rotates both vehicle routes and the contact geometry onto a
  * dry corridor with measurable relief, safe surface normals and vehicle-scale grades.
+ * Shot acceptance requires a damaging native projectile from the assigned operator/token,
+ * directed within 15 degrees of the reported contact. This proves neither a hit nor target effect.
  * Repeat/JIP: disposable actors are labelled publicly and deleted at completion; settings are restored by the parent runner.
  * Arguments: check <CODE>; phase <CODE>; wait <CODE>.
  * Return Value: Nothing.
@@ -114,12 +116,43 @@ private _enemyGroup=west call _makeGroup;
 _enemyGroup setVariable ["WAIT_AIPass_Exclude",true,true];
 private _enemy=_enemyGroup createUnit ["B_Soldier_F",[3600,3780] call _terrainPosition,[],0,"NONE"];
 _enemy setDir (_terrainHeading+180); _enemy disableAI "PATH"; _enemy allowDamage false; _enemy setVariable ["WAIT_CortexQA_Label","OBSERVED HOSTILE",true]; _objects pushBack _enemy;
+// Normal batch only: observe actual station projectiles on the local firing actor.
+// FiredMan includes vehicle weapons; no camera-range-dependent remote sampler is credited.
+// Reference: https://community.bohemia.net/wiki/Arma_3%3A_Event_Handlers#FiredMan
+private _installStationObserver={
+    params ["_vehicle"];
+    private _unit=gunner _vehicle;
+    if (isNull _unit || {!local _unit}) exitWith {false};
+    private _old=_unit getVariable ["WAIT_CortexQA_CombinedFiredManEH",-1];
+    if (_old >= 0) then {_unit removeEventHandler ["FiredMan",_old]};
+    private _handler=_unit addEventHandler ["FiredMan",{
+        params ["_unit","_weapon","_muzzle","","_ammo","_magazine","_projectile","_vehicle"];
+        if (!local _unit || {isNull _vehicle} || {gunner _vehicle != _unit}
+            || {vehicle _unit != _vehicle}) exitWith {};
+        private _shots=_vehicle getVariable ["WAIT_CortexQA_Shots",[]];
+        _shots pushBack serverTime;if (count _shots > 128) then {_shots deleteAt 0};
+        _vehicle setVariable ["WAIT_CortexQA_Shots",_shots,true];
+        private _role=(group _unit) getVariable ["WAIT_Cortex_CombinedRole",[]];
+        private _position=_role param [3,[],[[]]];
+        private _report=if (count _position == 3) then {AGLToASL _position} else {[]};
+        private _origin=[];private _course=[];
+        if (!isNull _projectile) then {_origin=getPosASL _projectile;_course=velocity _projectile};
+        private _records=_vehicle getVariable ["WAIT_CortexQA_StationShots",[]];
+        _records pushBack [serverTime,_unit,_weapon,_muzzle,_ammo,_magazine,
+            _role param [0,""],_origin,_course,_report,assignedTarget _unit];
+        if (count _records > 128) then {_records deleteAt 0};
+        _vehicle setVariable ["WAIT_CortexQA_StationShots",_records,true];
+    }];
+    _unit setVariable ["WAIT_CortexQA_CombinedFiredManEH",_handler];
+    _vehicle setVariable ["WAIT_CortexQA_StationObserver",[clientOwner,_unit,_handler,serverTime],true];
+    true
+};
 private _apc=createVehicle ["O_APC_Tracked_02_cannon_F",[3200,3600] call _terrainPosition,[],0,"NONE"];
 _apc setDir (_terrainHeading+90); createVehicleCrew _apc; private _apcGroup=group driver _apc; _groups pushBackUnique _apcGroup;
 _apcGroup setGroupIdGlobal ["Cortex QA ground support"];
 _apcGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true]; _apcGroup setCombatMode "RED"; _apc allowDamage false;
 _apc setVariable ["WAIT_CortexQA_Label","APC / independent fire support",true]; _apc setVariable ["WAIT_CortexQA_Shots",[],true];
-_apc addEventHandler ["Fired",{params ["_vehicle","_weapon","_muzzle","","_ammo","_magazine","","_operator"]; private _shots=_vehicle getVariable ["WAIT_CortexQA_Shots",[]]; _shots pushBack serverTime; if (count _shots > 128) then {_shots deleteAt 0}; _vehicle setVariable ["WAIT_CortexQA_Shots",_shots,true]; private _records=_vehicle getVariable ["WAIT_CortexQA_StationShots",[]]; private _role=(group _operator) getVariable ["WAIT_Cortex_CombinedRole",[]]; _records pushBack [serverTime,_operator,_weapon,_muzzle,_ammo,_magazine,_role param [0,""]]; if (count _records > 128) then {_records deleteAt 0}; _vehicle setVariable ["WAIT_CortexQA_StationShots",_records,true]}]; _objects pushBack _apc; _objects append crew _apc;
+["COMBINED-APC-local-shot-observer",[_apc] call _installStationObserver] call _check; _objects pushBack _apc; _objects append crew _apc;
 private _groundRouteTarget=[4000,3600] call _terrainPosition;
 private _groundRouteStart=_apc distance2D _groundRouteTarget;
 _apc limitSpeed 30;
@@ -129,7 +162,7 @@ _ifv setDir (_terrainHeading+90); createVehicleCrew _ifv; private _ifvGroup=grou
 _ifvGroup setGroupIdGlobal ["Cortex QA ground manoeuvre"];
 _ifvGroup setVariable ["WAIT_Headless_ExcludeGroup",true,true]; _ifvGroup setCombatMode "RED"; _ifv allowDamage false;
 _ifv setVariable ["WAIT_CortexQA_Label","IFV / safe-side manoeuvre",true]; _ifv setVariable ["WAIT_CortexQA_Shots",[],true];
-_ifv addEventHandler ["Fired",{params ["_vehicle","_weapon","_muzzle","","_ammo","_magazine","","_operator"]; private _shots=_vehicle getVariable ["WAIT_CortexQA_Shots",[]]; _shots pushBack serverTime; if (count _shots > 128) then {_shots deleteAt 0}; _vehicle setVariable ["WAIT_CortexQA_Shots",_shots,true]; private _records=_vehicle getVariable ["WAIT_CortexQA_StationShots",[]]; private _role=(group _operator) getVariable ["WAIT_Cortex_CombinedRole",[]]; _records pushBack [serverTime,_operator,_weapon,_muzzle,_ammo,_magazine,_role param [0,""]]; if (count _records > 128) then {_records deleteAt 0}; _vehicle setVariable ["WAIT_CortexQA_StationShots",_records,true]}];
+["COMBINED-IFV-local-shot-observer",[_ifv] call _installStationObserver] call _check;
 private _ifvStart=getPosATL _ifv;
 private _ifvRouteTarget=[4000,3480] call _terrainPosition;
 private _ifvRouteStart=_ifv distance2D _ifvRouteTarget;
@@ -206,8 +239,13 @@ private _groundwaitWaypoint=(waypoints _fireGroup) findIf {waypointDescription _
 ["COMBINED-ground-actual-fire",[{
     _fireToken != "" && {_fireAsset getVariable ["WAIT_CortexQA_StationShots",[]] findIf {
         private _ammo=configFile >> "CfgAmmo" >> (_x select 4);
+        private _origin=_x param [7,[],[[]]];private _course=_x param [8,[],[[]]];
+        private _report=_x param [9,[],[[]]];
         (_x select 1) == _fireOperator && {(_x select 6) == _fireToken}
             && {getNumber (_ammo >> "hit") > 0 || {getNumber (_ammo >> "indirectHit") > 0}}
+            && {count _origin == 3} && {count _course == 3} && {count _report == 3}
+            && {vectorMagnitude _course > 1} && {_origin distance _report > 1}
+            && {(vectorNormalized _course) vectorDotProduct (vectorNormalized (_report vectorDiff _origin)) >= cos 15}
     } >= 0}
 },20] call _wait,
     str (_fireAsset getVariable ["WAIT_CortexQA_StationShots",[]])] call _check;

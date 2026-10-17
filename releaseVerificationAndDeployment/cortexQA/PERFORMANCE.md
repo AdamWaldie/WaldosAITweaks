@@ -104,3 +104,10 @@ measurement and deletes emptied groups on their actual owner between arms.
 The 25/50/150 scale points, ACE HC distribution, repeated hardware runs and publication-rate
 measurement remain outstanding. Keep existing physical behaviour tests and add performance coverage
 alongside them.
+
+
+## Distributed owner helper initialization
+
+The disposable mission init now explicitly compiles the distributed owner sampler/workload definitions on every machine. Previously the file was staged but had no initialization caller. Sampling, workloads and handlers still start only on a server request, and the three owner entry points reject other remote senders. This repairs the executable audit path; it does not validate any previous or future frame-time result. Fresh matched measurements remain required.
+
+Standalone report inputs require explicit boolean native/WAIT roles, a clean candidate with a full SHA-256 fingerprint and a SHA-256 mission inventory containing both the mission and standalone workload source. Counts must be integers and frame-time measurements finite positive numbers; JSON booleans are not measurements. Malformed provenance or result rows invalidate the comparison rather than earning budget credit. This validation is not runtime evidence or a substitute for repeated matched captures.

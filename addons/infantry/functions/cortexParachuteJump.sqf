@@ -6,7 +6,9 @@
  * static-line class, WALDO_STATIC_STATICCHUTE, default NonSteerable_Parachute_F) is created for him a
  * moment later, so his backpack is never swapped out. He is protected from damage for the few seconds of the exit.
  * Missing classes and non-parachute vehicle classes fall back to the vanilla static chute.
+ * Exit admission preserves actor reservations, direct remote control and specialist ownership.
  * Repeat/JIP: each accepted call starts one local exit; delayed cleanup restores original damage permission.
+ * Failed chute boarding deletes only this newly created empty local chute; no replacement seat is forced.
  * AI leave a parachute on their own when they land. For players, use the Paradrop feature instead.
  * Locality and authority: call where the soldier is local (moveOut and moveInDriver are local-argument).
  *
@@ -28,6 +30,13 @@
 
 params [["_unit", objNull, [objNull]], ["_aircraft", objNull, [objNull]]];
 if (isNull _unit || {!alive _unit} || {!local _unit} || {isPlayer _unit} || {vehicle _unit != _aircraft}) exitWith {false};
+// Direct calls and a queued drop both preserve individual controller ownership at exit.
+if (!([_unit] call WAIT_fnc_CortexCombatEffective)
+    || {[_unit] call WAIT_fnc_CortexActorMoveReserved}
+    || {!isNull remoteControlled _unit}
+    || {!isNull (_unit getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+    || {([_unit] call WAIT_fnc_CortexExternalOwner) != ""}
+    || {[_unit] call WAIT_fnc_CompatibilityExternalControl}) exitWith {false};
 private _chuteClass = missionNamespace getVariable ["WALDO_STATIC_STATICCHUTE", "NonSteerable_Parachute_F"];
 // Backpack classes also exist in CfgVehicles but cannot carry a jumper.
 if !(isClass (configFile >> "CfgVehicles" >> _chuteClass) && {_chuteClass isKindOf "ParachuteBase"}) then {
@@ -48,7 +57,13 @@ _unit setVelocity _velocity;
     private _chute = createVehicle [_chuteClass, getPosATL _unit, [], 0, "CAN_COLLIDE"];
     _chute setDir getDir _unit;
     _unit moveInDriver _chute;
-    _chute setVelocity (_velocity vectorMultiply 0.5);
+    // A failed seat command must not leave an empty moving chute behind. Never delete
+    // an occupied object or a chute whose locality changed after creation.
+    if (vehicle _unit == _chute) then {
+        _chute setVelocity (_velocity vectorMultiply 0.5);
+    } else {
+        if (!isNull _chute && {local _chute} && {crew _chute isEqualTo []}) then {deleteVehicle _chute};
+    };
     [{
         params ["_unit", "_damageAllowed"];
         if (!isNull _unit) then {[_unit, _damageAllowed] remoteExecCall ["allowDamage", _unit]};

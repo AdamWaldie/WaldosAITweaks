@@ -2,7 +2,8 @@
  * Author: WaldoTheWarfighter
  * Purpose: Replaces unavailable tactical-role participants with capable surviving soldiers without dropping the active element from progress accounting.
  * Locality/authority: Reads only local actors and updates the current group operation on its owner.
- * Protected native tasks and finite actor reservations cannot be recruited or retained as active role participants; an earlier roster entry does not override a newer finite owner.
+ * Newly enrolled replacements capture their platform; retained actors never rebind theirs.
+ * Protected native tasks and strictly typed finite actor reservations cannot be recruited or retained as active role participants; an earlier roster entry does not override a newer finite owner.
  * Repeat/JIP: Idempotent for an unchanged generation and owner epoch. Only roster changes publish
  * operation state; unchanged callbacks do not retransmit it. Public state carries the roster after
  * migration; actors marked unavailable remain excluded.
@@ -19,9 +20,7 @@ if (count _operation == 0 || {(_operation getOrDefault ["generation",-2]) != _ge
 if ((_operation getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])) exitWith {[]};
 private _blocked=(_operation getOrDefault ["unavailable",[]])+_excluded;
 private _capable=(units _group) select {
-    private _reservation=_x getVariable ["WAIT_Cortex_ActorMove",[]];
-    private _reservationFree=_reservation isEqualTo []
-        || {_reservation isEqualType [] && {count _reservation == 3} && {(_reservation param [2,1e12,[0]]) <= time}};
+    private _reservationFree=!([_x] call WAIT_fnc_CortexActorMoveReserved);
     local _x && {!isPlayer _x} && {isNull (remoteControlled _x)}
         && {([_x] call WAIT_fnc_CortexExternalOwner) == ""} && {[_x] call WAIT_fnc_CortexCombatEffective}
         && {isNull objectParent _x} && {!(_x in _blocked)}
@@ -45,6 +44,10 @@ if (_current isNotEqualTo (_operation getOrDefault ["participants",[]])) then {
             _progress pushBack [_actor,getPosATL _actor];
         };
     } forEach _current;
+    private _platforms=_operation getOrDefault ["participantPlatforms",createHashMap];
+    _operation set ["participantPlatforms",createHashMapFromArray (_current apply {
+        [netId _x,_platforms getOrDefault [netId _x,_x]]
+    })];
     _operation set ["participantProgress",_progress];
     _operation set ["participants",_current];
     _operation set ["pairs",[_group,_current] call WAIT_fnc_CombatPairs];

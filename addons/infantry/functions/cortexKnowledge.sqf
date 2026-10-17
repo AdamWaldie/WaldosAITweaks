@@ -1,5 +1,7 @@
 /*
  * Author: WaldoTheWarfighter
+ * Native contact records append group confidence at index5; existing first five fields remain unchanged.
+ * Confidence requires one owner-local group knowsAbout read per evaluated contact (at most eight).
  * Purpose: Summarises bounded, engine-confirmed enemy knowledge for one local AI group without
  * creating or sharing target knowledge.
  * Locality/authority: Read-only; call where the group is local. It reads native AI knowledge and
@@ -22,7 +24,7 @@
  *
  * Return Value:
  * Array - [enemies, seenCount]. enemies is an array of
- * [enemy <OBJECT>, believedPosATL <ARRAY>, seenAge <NUMBER>, distance <NUMBER>, errorMargin <NUMBER>],
+ * [enemy <OBJECT>, believedPosATL <ARRAY>, seenAge <NUMBER>, distance <NUMBER>, errorMargin <NUMBER>, nativeConfidence <NUMBER>],
  * nearest first. seenCount counts enemies seen within the last 5 seconds.
  *
  * Example:
@@ -33,6 +35,7 @@
  */
 
 params [["_group", grpNull, [grpNull]], ["_range", -1, [0]]];
+if (isNull _group || {!local _group}) exitWith {[[],0]};
 if (_range < 0) then {_range = missionNamespace getVariable ["WAIT_AIPass_EngageRange", 800]};
 private _leader = leader _group;
 if (!([_leader] call WAIT_fnc_CortexCombatEffective)) then {
@@ -100,6 +103,8 @@ private _seenCount = 0;
     private _newest = -1;
     private _knownByGroup = false;
     private _error = 1000;
+    // knowsAbout is group-level even for a unit operand; do not repeat it per member.
+    private _confidence=_group knowsAbout _enemy;
     {
         private _knowledge = _x targetKnowledge _enemy;
         if (_knowledge select 0) then {_knownByGroup = true};
@@ -109,7 +114,7 @@ private _seenCount = 0;
     if (_knownByGroup) then {
         private _age = if (_newest > 0) then {time - _newest} else {1e6};
         if (_age <= 5) then {_seenCount = _seenCount + 1};
-        _enemies pushBack [_enemy, _position, _age, _distance, _error];
+        _enemies pushBack [_enemy, _position, _age, _distance, _error,_confidence];
     };
 } forEach _candidates;
 [_enemies, _seenCount]

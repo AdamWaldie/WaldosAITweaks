@@ -3,16 +3,17 @@
  * Purpose: Dispatch one replacement from an opportunity's bounded ranked ground-asset pool.
  * Locality/authority: Server-only internal call after CortexCombinedRejectServer authenticates
  * and retires the exact refusal. Current requester, candidate and operating crew are revalidated.
+ * Original contact confidence/time pass unchanged to replacements; fallback never renews observation age.
  * Repeat/JIP: A token/role consumption receipt rejects duplicates. The shared cursor advances
  * through at most 32 retained candidates; original contact, expiry and independent leases survive.
  * No discovery scan, movement command, locality change or fabricated weapon acceptance is added.
- * Arguments: 0 rejected group <GROUP, grpNull>; 1 retired opportunity <ARRAY, []>, seven fields.
+ * Arguments: 0 rejected group <GROUP, grpNull>; 1 retired opportunity <ARRAY, []>, seven legacy or eight receipt-bearing fields.
  * Return Value: BOOL, one replacement was dispatched; not proof of acceptance or physical effect.
  * Current caller: WAIT_fnc_CortexCombinedRejectServer after exact metadata-only retirement.
  * Example: [_group,_retiredOpportunity] call WAIT_fnc_CortexCombinedGroundFallbackServer;
  */
 params [["_rejected",grpNull,[grpNull]],["_snapshot",[],[[]]]];
-if (!isServer || {isNull _rejected} || {count _snapshot != 7}
+if (!isServer || {isNull _rejected} || {!((count _snapshot) in [7,8])}
     || {!(missionNamespace getVariable ["WAIT_AIPass_Active",false])}
     || {[] call WAIT_fnc_CortexIsPaused}) exitWith {false};
 _snapshot params ["_token","_requester","_target","_position","_role","_expiry","_context"];
@@ -25,10 +26,11 @@ if (isNull _requester || {isNull _target} || {!alive _target}
     || {(side _requester) getFriend side _target >= 0.6}
     || {!([_requester] call WAIT_fnc_CortexIsEligible)}) exitWith {false};
 private _fallback=_requester getVariable ["WAIT_Cortex_CombinedGroundFallback",[]];
-if (count _fallback != 6) exitWith {false};
+if (!((count _fallback) in [6,7])) exitWith {false};
 _fallback params ["_storedToken","_storedTarget","_storedPosition","_storedExpiry","_candidates","_cursor"];
+private _contactReceipt=_fallback param [6,[],[[]]];
 if (_storedToken != _token || {_storedTarget != _target} || {_storedPosition isNotEqualTo _position}
-    || {_storedExpiry != _expiry} || {count _candidates > 32} || {_cursor < 0}
+    || {_storedExpiry != _expiry} || {(_snapshot param [7,[],[[]]]) isNotEqualTo _contactReceipt} || {count _candidates > 32} || {_cursor < 0}
     || {_cursor > count _candidates}) exitWith {false};
 private _result=_rejected getVariable ["WAIT_Cortex_CombinedResult",[]];
 if (count _result != 5 || {(_result select 0) != _token} || {(_result select 1) != _role}
@@ -57,7 +59,7 @@ while {_cursor < count _candidates && {isNull _replacement}} do {
             (!isNull _commander && {group _commander == _candidate})
                 || {!isNull _driver && {group _driver == _candidate}}}
         && {private _live=_candidate getVariable ["WAIT_Cortex_CombinedRole",[]];
-            count _live != 7 || {serverTime >= (_live select 5)}}) then {
+            !((count _live) in [7,8]) || {serverTime >= (_live select 5)}}) then {
         private _receiver=[_candidate] call WAIT_fnc_CortexGroupTransmitter;
         private _anchor=if (isNull _receiver) then {leader _candidate} else {_receiver};
         if (!isNull _anchor && {alive _anchor} && {_anchor distance2D _origin <= _range}
@@ -66,9 +68,9 @@ while {_cursor < count _candidates && {isNull _replacement}} do {
         };
     };
 };
-_requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_position,_expiry,_candidates,_cursor],true];
+_requester setVariable ["WAIT_Cortex_CombinedGroundFallback",[_token,_target,+_position,_expiry,_candidates,_cursor,+_contactReceipt],true];
 if (isNull _replacement) exitWith {false};
-private _opportunity=[_token,_requester,_target,+_position,_role,_expiry,+_context];
+private _opportunity=[_token,_requester,_target,+_position,_role,_expiry,+_context,+_contactReceipt];
 _replacement setVariable ["WAIT_Cortex_CombinedRole",_opportunity,true];
 _replacement setVariable ["WAIT_Cortex_CombinedApplied",nil,true];
 _replacement setVariable ["WAIT_Cortex_CombinedResult",[_token,_role,"FALLBACK_DISPATCHED",serverTime,_target],true];

@@ -499,7 +499,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('time+1.5,_release,_throwGeneration', queued)
         self.assertIn('WAIT_OperationGeneration',queued)
         drill_reserves=source('cortexFlankStep').split('private _rankCandidates={',1)[1].split('private _anchor=',1)[0]
-        self.assertIn('WAIT_Cortex_ActorMove',drill_reserves)
+        self.assertIn('call WAIT_fnc_CortexActorMoveReserved',drill_reserves)
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',drill_reserves)
         self.assertIn('currentCommand _x',drill_reserves)
         flight_authority=source('flightLeaseValid')
@@ -526,8 +526,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_CompatibilityExternalControl',roles)
         self.assertIn('&& {_reservationFree}',roles)
         self.assertNotIn('_x in _existing ||',roles)
-        self.assertIn('(_reservation param [2,1e12,[0]]) <= time',roles)
-        self.assertIn('(_reservation param [2,1e12,[0]]) <= time',drill_reserves)
+        self.assertIn('call WAIT_fnc_CortexActorMoveReserved',roles)
+        self.assertNotIn('(_reservation param [2,1e12,[0]]) <= time',drill_reserves)
         remnant=source('cortexRegroupStep')
         self.assertIn('count (_group getVariable ["WAIT_Operation",createHashMap]) > 0',remnant)
         self.assertIn('!(_x in _participants)',remnant)
@@ -1224,7 +1224,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(cover.index('[_x] call _mayIssueMovement'),cover.index('doStop _x'))
         self.assertNotIn('{call _mayIssueMovement}',bounds)
         step=source('operationStep')
-        temporary=step.split('if (_reserved || {_nativeTask}) then',1)[1].split('if (!_reserved',1)[0]
+        temporary=step.split('if (_reserved || {_nativeTask} || {_suspended}) then',1)[1].split('if (!_reserved',1)[0]
         self.assertIn('_recovery deleteAt _key',temporary)
         self.assertIn('_temporarilyOwned pushBack _actor',temporary)
         self.assertNotIn('_unavailable pushBack',temporary)
@@ -1232,7 +1232,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('!(_x in _temporarilyOwned)',step)
         recovery=source('recoveryStep')
         self.assertEqual(recovery.count('if (call _reserved) exitWith {"YIELDED"}'),2)
-        self.assertIn('WAIT_Cortex_ActorMove',recovery)
+        self.assertIn('call WAIT_fnc_CortexActorMoveReserved',recovery)
         self.assertLess(recovery.index('if (call _reserved)'),recovery.index('if (_attempts >= 1)'))
         self.assertLess(recovery.rindex('if (call _reserved)'),recovery.index('_used set [_key,_attempts+1]'))
         self.assertIn('[_group,_generation] call WAIT_fnc_CortexGroupMoveClear',cancel)
@@ -1801,6 +1801,51 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('setPos',text)
         self.assertNotIn('setVariable [format ["bis_disabled',text)
 
+    def test_door_opening_requires_unobstructed_nearby_interaction(self):
+        text=source('cortexBuildingDoor')
+        for marker in ('private _visibilityChecks=0','_visibilityChecks < 4',
+                       'lineIntersectsSurfaces [eyePos _unit,_position,_unit,objNull,true,1,"GEOM","NONE"]',
+                       '(_hit select 2) == _building','(_hit select 3) == _building',
+                       '(_hit select 0) vectorDistance _position <= 0.5','if (_near && {_visible}'):
+            self.assertIn(marker,text)
+        self.assertLess(text.index('private _near='),text.index('lineIntersectsSurfaces'))
+        self.assertLess(text.index('if (_near && {_visible}'),text.index('call BIS_fnc_door'))
+        self.assertIn('_lock isEqualTo 0',text)
+        self.assertIn('call _orderCurrent',text.split('if (_near && {_visible}',1)[1])
+
+    def test_building_wide_lock_prevents_opening_but_keeps_open_access(self):
+        door=source('cortexBuildingDoor');step=source('buildingOperationStep')
+        self.assertGreaterEqual(door.count('getVariable ["bis_disabled_Door",0]'),2)
+        boundary=door.split('if (_near && {_visible}',1)[1].split('call BIS_fnc_door',1)[0]
+        self.assertIn('getVariable ["bis_disabled_Door",0]',boundary)
+        self.assertIn('bis_disabled_Door_%1',boundary)
+        access=step.split('private _allLocked=',1)[1].split('private _bounds=',1)[0]
+        self.assertIn('getVariable ["bis_disabled_Door",0]',access)
+        self.assertIn('animationSourcePhase (_x select 1) >= 0.8',access)
+
+    def test_bounded_door_visibility_rotates_without_starving_later_entries(self):
+        text=source('cortexBuildingDoor')
+        for marker in ('if (_doors isEqualTo []) exitWith {false}',
+                       '(_doors select [_cursor])+(_doors select [0,_cursor])',
+                       '_nextCursor=(_cursor+_forEachIndex+1) mod _doorCount',
+                       'if (_requested || {_visibilityChecks >= 4}) exitWith {}',
+                       'setVariable ["WAIT_Cortex_DoorVisibilityCursor",_nextCursor]'):
+            self.assertIn(marker,text)
+        cursor=0;visited=[]
+        for _ in range(3):
+            batch=[(cursor+i)%9 for i in range(4)]
+            self.assertEqual(len(batch),4)
+            visited.extend(batch);cursor=(batch[-1]+1)%9
+        self.assertEqual(set(visited),set(range(9)))
+
+    def test_internal_door_execution_refuses_nonserver_remote_senders(self):
+        text=source('cortexBuildingDoor')
+        gate=text.index('if (remoteExecutedOwner > 0 && {remoteExecutedOwner != 2}) exitWith {false}')
+        self.assertLess(gate,text.index('configOf _building'))
+        self.assertLess(gate,text.index('call BIS_fnc_door'))
+        self.assertIn('!local _unit',text)
+        self.assertIn('call _orderCurrent',text)
+
     def test_native_building_operations_have_no_external_delegation_path(self):
         clear=source('cortexClearBuilding')+source('buildingOperationStep')
         garrison=source('cortexGarrison')
@@ -1875,6 +1920,9 @@ class CortexOperations(unittest.TestCase):
         step=source('buildingOperationStep')
         self.assertIn('_count <= 1 || {_index <= 0}',receipt)
         self.assertNotIn('forEach',receipt)
+        self.assertIn('[_count,_index,[_group,"",false,_index] call WAIT_fnc_AuthoredRouteReceipt]',receipt)
+        metadata=source('authoredRouteReceipt')
+        self.assertIn('if (isNull _vehicle && {isNull _object}) then {waypointPosition _waypoint} else {[]}',metadata)
         self.assertIn('_previous param [9,_nativeOrderReceipt,[[]]]',start)
         self.assertIn('["nativeOrderReceipt",_nativeOrderReceipt]',start)
         gate=step.index('([_group] call WAIT_fnc_NativeOrderReceipt) isNotEqualTo _nativeOrderReceipt')
@@ -1944,7 +1992,8 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('["_restore",true,[true]]',release)
             self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',release)
             self.assertIn('private _canRestore = _restore && {!_externalTakeover};',release)
-            self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',release)
+            self.assertIn('_canRestore ||',release)
+            self.assertIn('!_externalTakeover && {_ownedHold',release)
             self.assertIn('_x doFollow _leader',release)
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',release)
         self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease',tick)
@@ -2025,7 +2074,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_reserved select {_x in _unavailable})',text)
         self.assertIn('|| {_member in _unavailable}) && {_reserves isNotEqualTo []})',text)
         self.assertIn('_active=_active select {[_x] call _actorAvailable && {!(_x in _unavailable)}}',text)
-        self.assertIn('private _pair=_x select {[_x] call _actorAvailable',text)
+        self.assertIn('private _pair=_laneRoster select {[_x] call _actorAvailable',text)
         self.assertIn('!(_x in _unavailable)',text)
 
     def test_clear_room_checkpoint_requires_physically_established_floor_and_bounded_shared_access(self):
@@ -2076,6 +2125,54 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('[_worker,_house,_x] call _observedRoomVisit',audit)
         self.assertIn('[_x,_house,_room] call _observedRoomVisit',audit)
 
+    def test_buddy_separation_cannot_renew_room_mover_progress(self):
+        step=source('buildingOperationStep')
+        lane=step.split('private _roomRequestChanged=',1)[1].split('// Once inside, only the assigned room mover',1)[0]
+        self.assertIn('private _issue=_roomRequestChanged;',lane)
+        self.assertIn('if (_partnerCommitted isNotEqualTo _supportTarget) then {_issue=true}',lane)
+        self.assertIn('if (_roomRequestChanged) then {_lastTarget=_positionIndex; _lastProgress=_now;',lane)
+        self.assertNotIn('if (_issue) then {_lastTarget=',lane)
+        self.assertEqual(lane.count('_roomRequestChanged='),0)
+        progress=step.split('// Once inside, only the assigned room mover',1)[1].split('private _commandEnded=',1)[0]
+        self.assertIn('_bestDistance-_targetDistance >= 1',progress)
+
+    def test_clearance_preserves_owned_move_even_when_native_actor_is_ready(self):
+        step=source('buildingOperationStep')
+        same=step.split('private _sameActiveTarget=',1)[1].split('if (!_sameActiveTarget',1)[0]
+        self.assertIn('call _ownsCurrentMove',same)
+        self.assertNotIn('call _activeOwnMove',same)
+        self.assertIn('currentCommand _unit == "" && {count _nativeTarget == 3}',same)
+        self.assertIn('_nativeTarget vectorDistance _committedTarget <= 0.25',same)
+        owned=step.split('private _ownsCurrentMove={',1)[1].split('// Native task ownership',1)[0]
+        self.assertIn('currentCommand _actor == "MOVE"',owned)
+        self.assertIn('_live vectorDistance _issued <= 0.25',owned)
+        retry=step.split('private _commandEnded=',1)[1].split('_retries=_retries+1',1)[0]
+        self.assertIn('_now-_lastProgress > _retryDelay',retry)
+        self.assertIn('_x doMove _unitTarget',retry)
+
+    def test_clear_entry_capture_is_opt_in_bounded_and_read_only(self):
+        step=source('buildingOperationStep')
+        capture=step.split('private _captureEntry={',1)[1].split('private _actorAvailable=',1)[0]
+        for marker in ['_count >= 256','count _stamps >= 16','< 2','expectedDestination _actor',
+                       'currentCommand _actor','getPosASL _actor','WAIT CLEAR ENTRY SAMPLE']:
+            self.assertIn(marker,capture)
+        for forbidden in ['lineIntersects','nearEntities','nearestObjects','doMove','setDestination','remoteExec','setVariable']:
+            self.assertNotIn(forbidden,capture)
+        self.assertIn('getVariable ["WAIT_Cortex_ClearCaptureEntry",false]',step)
+        self.assertIn('if (_captureEntryEnabled &&',step)
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8')
+        self.assertIn('setVariable ["WAIT_Cortex_ClearCaptureEntry",true]',audit)
+
+    def test_independent_room_visit_rejects_open_bounds_and_intervening_objects(self):
+        audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8')
+        visit=audit.split('private _observedRoomVisit={',1)[1].split('// Independent physical exit observation.',1)[0]
+        self.assertIn('if (_roof isEqualTo []) exitWith {false}',visit)
+        self.assertIn('(_nearestRoof select 2) != _house && {(_nearestRoof select 3) != _house}',visit)
+        self.assertIn('_hits isEqualTo []',visit)
+        self.assertNotIn('_hits findIf',visit)
+        self.assertNotIn('getVariable',visit)
+        self.assertNotIn('WAIT_fnc_',visit)
+
     def test_clearance_mover_handoff_preserves_ordered_actor_specific_room_history(self):
         step=source('buildingOperationStep')
         branch=step.split('private _approaches=_job',1)[1].split('private _issue=',1)[0]
@@ -2107,15 +2204,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('(_record select 1)-_remaining >= 0.5',egress)
         self.assertIn('time-(_record select 2) >= 8',egress)
         self.assertIn('(_record select 3) < 1',egress)
-        self.assertIn('if ([_x] call _outsideExit && {simulationEnabled _unit} && {!isObjectHidden _unit})',egress)
-        self.assertIn('if (_assignment param [2,false,[true]]) exitWith {false}', egress)
+        self.assertIn('if ([_x] call _outsideExit && {simulationEnabled _unit} && {!isObjectHidden _unit}',egress)
+        self.assertIn('&& {!(netId _unit in _earlyExits)}',egress)
+        self.assertIn('if (_assignment param [2,false,[true]] && {_stillAtPost}) exitWith {false}', egress)
+        self.assertIn('if (_assignment param [2,false,[true]]) then {_assignment set [2,false]}',egress)
         self.assertIn('_assignment set [2,true]', egress)
         arrival=egress.split('if (!_outside) then {',1)[1].split('_outside\n',1)[0]
         self.assertIn('doStop _unit',arrival)
         self.assertIn('[_unit] call _actorAvailable',arrival)
         self.assertIn('[_unit] call _actorTaskFree',arrival)
         self.assertIn('call _mayIssueMovement',arrival)
-        self.assertIn('abs (((getPosATL _unit) select 2)', egress)
+        self.assertIn('abs (((getPosASL _unit) select 2)', egress)
+        self.assertIn('(AGLToASL _target) select 2',egress)
 
         self.assertIn('[_unit] call _actorAvailable',egress)
         self.assertIn('_record set [3,1]',egress)
@@ -2148,20 +2248,22 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_job get "egressDeadlineServer"',publish)
         qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text()
         observe=qa.split('private _exit=_group getVariable ["WAIT_Cortex_ClearEgress",[]];',1)[1].split('forEach _egressAssignments;',1)[0]
-        self.assertIn('count _exit in [4,10]',observe)
-        self.assertIn('_egressAssignments=+(_exit select 3)',observe)
+        self.assertIn('count _exit in [4,10,13]',observe)
+        self.assertIn('_egressAssignments pushBack +_x',observe)
         self.assertIn('_egressVisits set [_forEachIndex,true]',observe)
 
     def test_clearance_egresses_before_terminal_handover(self):
         text=source('cortexClearBuilding')+source('buildingOperationStep')
         self.assertIn('(_job getOrDefault ["phase","CLEAR"]) == "EGRESS"',text)
-        self.assertIn('[_unit,_exitPoint,false]',text)
-        egress=text.split('private _claimedExitPoints=[];',1)[1].split('_job set ["phase","EGRESS"]',1)[0]
+        self.assertIn('pushBack [_unit,+_target,false]',text)
+        egress=text.split('private _claimedExitPoints=',1)[1].split('_job set ["phase","EGRESS"]',1)[0]
+        planner=text.split('private _chooseExteriorExit={',1)[1].split('// Shared room coverage',1)[0]
         self.assertIn('_claimedExitPoints+_securityPoints',egress)
-        self.assertIn('call WAIT_fnc_BuildingExteriorProposal',egress)
-        self.assertIn('call WAIT_fnc_BuildingExteriorCandidate',egress)
+        self.assertIn('call _chooseExteriorExit',egress)
+        self.assertIn('call WAIT_fnc_BuildingExteriorProposal',planner)
+        self.assertIn('call WAIT_fnc_BuildingExteriorCandidate',planner)
         self.assertNotIn('from 0 to 11',egress)
-        self.assertIn('_claimedExitPoints pushBack +_exitPoint',egress)
+        self.assertIn('_claimedExitPoints pushBackUnique +(_x select 1)',egress)
         self.assertIn('_unit distance2D _target > 1',text)
         self.assertIn('_job set ["phase","EGRESS"]',text)
         self.assertIn('_job set ["egressAssignments",_egressAssignments]',text)
@@ -2185,18 +2287,18 @@ class CortexOperations(unittest.TestCase):
             self.assertGreaterEqual(text.count('private _mayIssueMovement = {'),2)
             self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover)',text)
             self.assertIn('&& {[_x] call _mayIssueMovement}',text)
-            self.assertIn('WAIT_Cortex_ActorMove',text)
+            self.assertIn('call WAIT_fnc_CortexActorMoveReserved',text)
             self.assertIn('currentCommand _actor in [',text)
             self.assertGreaterEqual(text.count('_actor checkAIFeature "MOVE"'),2)
         self.assertIn('if ([_x] call _mayIssueMovement) then {',garrison)
         self.assertIn('private _openedDoor = if ((_assignment param [4,"INTERIOR"]) != "EXTERIOR" && {[_x] call _mayIssueMovement})',garrison)
-        self.assertIn('WAIT_Cortex_ActorMove',garrison)
+        self.assertIn('call WAIT_fnc_CortexActorMoveReserved',garrison)
         self.assertIn('currentCommand _actor in [',garrison)
         self.assertIn('!([_group,false,_actor] call WAIT_fnc_CortexExternalTakeover)',garrison)
         self.assertIn('[_group] call WAIT_fnc_CortexExternalTakeover',reserve)
-        self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_x setVariable ["WAIT_AIPass_DefendPos"'))
+        self.assertLess(reserve.index('CortexExternalTakeover'),reserve.index('_actor setVariable ["WAIT_AIPass_DefendPos"'))
         self.assertNotIn('_x doMove _position;',reserve)
-        self.assertIn('[_group,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
+        self.assertIn('[_group,_reserve,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
 
     def test_garrison_duck_handlers_yield_to_a_later_external_owner(self):
         """Suppression callbacks must not alter the posture of a Zeus or specialist-owned unit."""
@@ -2236,7 +2338,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(ground_fire.index('CortexExternalTakeover'),ground_fire.index('_gunner doTarget _target'))
         self.assertNotIn('forEach crew _asset',combined)
         self.assertLess(combined.rindex('CortexExternalTakeover'),combined.index('call WAIT_fnc_AirAttackOperationStart'))
-        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover) then {',ground)
+        self.assertIn('!([_group] call WAIT_fnc_CortexExternalTakeover) && {call _routeCurrent}',ground)
         arrival=ground.split('if (_asset distance2D _destination <= 70)',1)[1].split('if (time >=',1)[0]
         self.assertLess(arrival.index('CortexExternalTakeover'),arrival.index('_gunner doTarget _target'))
         self.assertIn('if (_fireAllowed) then {',arrival)
@@ -2305,7 +2407,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_entries resize ((count _entries) min 4)',apply)
         self.assertIn('if (_nextEntry < count _entries && {[_x] call _mayIssueMovement}) then',apply)
         self.assertNotIn('doStop _x; _x doMove',apply)
-        self.assertIn('if ([_unit] call _mayIssueMovement) then {doStop _unit}',apply)
+        self.assertIn('if (!_heldInPlace && {_unit in _freshActors} && {[_unit] call _mayIssueMovement}) then {doStop _unit}',apply)
         self.assertIn('["deadline", _deadline]',apply)
         self.assertIn('getVariable ["WAIT_Cortex_GarrisonDeadline",-1]',apply)
         self.assertIn('serverTime > (_job get "deadline")',apply)
@@ -2321,7 +2423,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('forEach [0.65,0.35,0]',reserve)
         self.assertIn('surfaceNormal _position',reserve)
         text=source('cortexDefendApplyLocal')
-        self.assertIn('_routes pushBack [_x,getPosATL _x,time,0,_routeGeneration]',text)
+        self.assertIn('private _route=[_x,getPosATL _x,time,0,_routeGeneration,+_assignment,false,',text)
         self.assertIn('WAIT_AIPass_DefendRouteGeneration',text)
         self.assertIn('if (_fullApply) then {_actors=+units _group}',text)
         self.assertIn('forEach (_job get "actors")',text)
@@ -2343,7 +2445,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('forEach _actors',apply)
         self.assertNotIn('_group setVariable ["WAIT_AIPass_DefendApplied", false]',reserve)
         self.assertNotIn('_x doMove _position',reserve)
-        self.assertIn('[_group,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
+        self.assertIn('[_group,_reserve,_reserve] call WAIT_fnc_CortexDefendApplyLocal',reserve)
         self.assertIn('WAIT_AIPass_DefendRouteGeneration',release)
 
     def test_clearance_renews_safety_lease_only_on_observed_progress(self):
@@ -2359,7 +2461,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_previous param [10,_deadline,[0]]',admission)
         self.assertIn('(240 max (60*count _positions)) min 900',admission)
         self.assertIn('[_building, _cleared, _deadline',admission)
-        self.assertIn('_nativeOrderReceipt, _hardDeadline], true]',admission)
+        self.assertIn('_nativeOrderReceipt, _hardDeadline, _contactBelief, _continueRoute], true]',admission)
         self.assertIn('serverTime > (_job getOrDefault ["hardDeadline",_job get "deadline"])',step)
         self.assertNotIn('_job set ["hardDeadline"',step)
         self.assertIn('|| {!_allWorkersEntered} || {!_allWorkersProgressed}',step)
@@ -3197,7 +3299,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_previous_holders_cannot_follow_over_replacement_drill(self):
         text = source('cortexGroupTick')
-        self.assertIn('_ownedMovers = _activeDrill getOrDefault ["units",[]]', text)
+        self.assertIn('_ownedMovers = +(_activeDrill getOrDefault ["units",[]])', text)
         self.assertIn('!(_x in _ownedMovers)', text)
         self.assertIn('if (_holders isNotEqualTo [] && {!(_state getOrDefault ["assaulting",false])})', text)
         self.assertLess(text.index('!(_x in _ownedMovers)'), text.index('{_x doFollow _leader} forEach _rejoin'))
@@ -3279,6 +3381,156 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_suppressionEnemy setPosATL [2100,1460,0]',qa)
         self.assertIn('_x doTarget objNull; _x doWatch objNull',qa)
         self.assertNotIn('call WAIT_fnc_CortexFireControl',qa)
+
+    def test_queued_danger_smoke_rechecks_strict_reservation_before_release(self):
+        grenade=source('cortexThrowGrenade')
+        release=grenade.split('private _release = {',1)[1]
+        reservation=release.index('_dangerInvalid=[_unit] call WAIT_fnc_CortexActorMoveReserved;')
+        cancel=release.index('if (_dangerInvalid) exitWith {["ACTOR_RESERVED"] call _cancel};')
+        self.assertLess(reservation,cancel)
+        self.assertLess(cancel,release.index('_unit doWatch _towards;'))
+        self.assertLess(cancel,release.index('forceWeaponFire'))
+        self.assertNotIn('_reservation param [2,1e12,[0]]',release)
+        self.assertIn('[_retry,+_this,0.25] call CBA_fnc_waitAndExecute;',release)
+
+    def test_suppression_sentinel_does_not_improve_ranking_or_evasion(self):
+        self.assertIn('damage _x + ((getSuppression _x) max 0 min 1)',source('cortexAntiArmour'))
+        self.assertIn('(1 - 0.5 * ((getSuppression _unit) max 0 min 1))',source('cortexGrenadeCheck'))
+        smoke=source('dangerSmokeStep')
+        self.assertIn('[-((getSuppression _x) max 0 min 1),random 1,_x]',smoke)
+        availability=smoke.split('private _actorAvailable={',1)[1].split('private _members=',1)[0]
+        self.assertIn('!([_actor] call WAIT_fnc_CortexActorMoveReserved)',availability)
+        self.assertNotIn('_reservation param',availability)
+        for skill in (0,0.5,1):
+            baseline=0.5+0.5*skill
+            for suppression in (-1,0,0.5,1,3):
+                probability=baseline*(1-0.5*min(1,max(0,suppression)))
+                self.assertGreaterEqual(probability,0)
+                self.assertLessEqual(probability,baseline)
+
+    def test_morale_suppression_sentinel_cannot_become_negative_pressure(self):
+        morale=source('cortexMorale')
+        self.assertIn('_suppression + ((getSuppression _x) max 0 min 1)',morale)
+        self.assertNotIn('_suppression + getSuppression _x',morale)
+        self.assertIn('0.2 * _suppression',morale)
+        # Native disabled/unavailable is -1; out-of-range scripted pressure must not
+        # invert or exceed the existing contribution. This is not an in-engine result.
+        for value,expected in [(-1,0),(0,0),(0.5,0.1),(1,0.2),(3,0.2)]:
+            self.assertAlmostEqual(0.2*min(1,max(0,value)),expected)
+
+    def test_garrison_posture_recovery_and_repeat_require_distinct_real_bursts(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text()
+        case=qa.split('// Real incoming-fire posture test',1)[1].split('private _origins=_members',1)[0]
+        for proof in ['GARRISON-duck-restores-prior-posture','unitPos _defender == _priorPosture',
+                      'GARRISON-duck-repeat-real-fire', '> _secondShotBaseline',
+                      '> _until', 'if (_secondDuck) then {']:
+            self.assertIn(proof,case)
+        self.assertLess(case.index('GARRISON-duck-restores-prior-posture'),case.index('_defender setUnitPos "UP";'))
+        self.assertEqual(case.count('_attacker doFire _defender;'),2)
+
+    def test_garrison_duck_live_case_uses_real_fire_and_replacement_input(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text()
+        case=qa.split('// Real incoming-fire posture test',1)[1].split('private _origins=_members',1)[0]
+        for proof in ['addEventHandler ["FiredMan"','_attacker doFire _defender;',
+                      'GARRISON-duck-real-fire','GARRISON-duck-preserves-new-stance',
+                      'No real duck reaction; replacement case not exercised',
+                      'allowDamage (_damagePolicies select _forEachIndex)']:
+            self.assertIn(proof,case)
+        self.assertNotIn('setSuppression',case)
+        self.assertNotIn('setVariable ["WAIT_AIPass_DuckUntil"',case)
+        self.assertNotIn('setPosATL',case)
+        self.assertLess(case.index('GARRISON-duck-real-fire'),case.index('_defender setUnitPos "UP";'))
+
+    def test_garrison_duck_checks_live_building_transform_at_both_boundaries(self):
+        duck=source('cortexGarrisonApplyLocal').split('private _duck = {',1)[1].split('WAIT_AIPass_GarrisonHandlerIds',1)[0]
+        event, delayed=duck.split('params ["_unit", "_until", "_priorStance",',1)
+        self.assertIn('_duckTransform isNotEqualTo [getPosWorld _duckBuilding,vectorDir _duckBuilding,vectorUp _duckBuilding]',event)
+        self.assertIn('isNull _duckBuilding',event)
+        self.assertLess(event.index('private _duckTransform='),event.index('_unit setUnitPos _duckStance;'))
+        self.assertIn('_transform isEqualTo [getPosWorld _building,vectorDir _building,vectorUp _building]',delayed)
+        self.assertIn('!isNull _building',delayed)
+        self.assertLess(delayed.index('private _transform='),delayed.index('_unit setUnitPos _priorStance;'))
+
+    def test_garrison_duck_yields_to_reserved_and_native_tasks_at_both_boundaries(self):
+        duck=source('cortexGarrisonApplyLocal').split('private _duck = {',1)[1].split('WAIT_AIPass_GarrisonHandlerIds',1)[0]
+        event, delayed=duck.split('params ["_unit", "_until", "_priorStance",',1)
+        for section in (event,delayed):
+            self.assertIn('WAIT_fnc_CortexActorMoveReserved',section)
+            self.assertIn('objectParent _unit',section)
+            self.assertIn('remoteControlled _unit',section)
+            for task in ['"MOVE"','"FOLLOW"','"GET IN"','"HEAL"','"CARRY SOLDIER"','"ASSEMBLE"','"REPAIR"']:
+                self.assertIn(task,section)
+        self.assertIn('getVariable ["WAIT_AIPass_Epoch",0]',event)
+        self.assertIn('getVariable ["WAIT_AIPass_Epoch",0]',delayed)
+
+    def test_garrison_duck_restores_immediate_stance_only_for_same_assignment(self):
+        apply=source('cortexGarrisonApplyLocal')
+        duck=apply.split('private _duck = {',1)[1].split('WAIT_AIPass_GarrisonHandlerIds',1)[0]
+        for proof in ['private _priorStance=unitPos _unit;', 'group _unit == _duckGroup',
+                      'local _duckGroup', '== _duckGeneration', '== _duckEpoch',
+                      'isEqualTo _duckAssignment', '_unit setUnitPos _priorStance;',
+                      '[_unit,_until,_priorStance,_duckGroup,_duckGeneration,_duckEpoch,_duckAssignment]']:
+            self.assertIn(proof,duck)
+        self.assertLess(duck.index('private _priorStance=unitPos _unit;'),duck.index('_unit setUnitPos _duckStance;'))
+        self.assertLess(duck.index('if (toUpperANSI _priorStance == "DOWN") exitWith {};'),duck.index('_unit setUnitPos _duckStance;'))
+        self.assertNotIn('_unit setUnitPos (_unit getVariable ["WAIT_AIPass_GarrisonStance"',duck)
+
+    def test_suppression_reserve_rejection_has_live_positive_peers(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runFireControl.sqf').read_text()
+        for proof in ['FIRE-reserve-starved-fixture-', 'count _rifleSpare == 1',
+                      'count _grenadeSpare == 4', 'FIRE-launcher-reserves-do-not-qualify-rifle',
+                      '_reserveStarved findIf {(_x getVariable ["WAIT_AIPass_LastSuppress",-1]) >= 0} < 0']:
+            self.assertIn(proof,qa)
+        self.assertLess(qa.index('FIRE-multi-squad-actual-suppression'),qa.index('FIRE-launcher-reserves-do-not-qualify-rifle'))
+        self.assertNotIn('call WAIT_fnc_CortexFireControl',qa)
+
+    def test_individual_hold_fire_is_exercised_beside_firing_peers(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runFireControl.sqf').read_text()
+        for proof in ['private _heldShooter=_shooters select 3;',
+                      '_heldShooter setUnitCombatMode "BLUE";',
+                      'FIRE-individual-hold-fixture','FIRE-individual-hold-no-shots',
+                      'FIRE-individual-hold-no-scripted-order',
+                      '== _heldShotBaseline']:
+            self.assertIn(proof,qa)
+        self.assertLess(qa.index('_heldShooter setUnitCombatMode "BLUE";'),qa.index('FIRE-both-targets-actual-fire'))
+        self.assertLess(qa.index('FIRE-both-targets-projectile-hits'),qa.index('FIRE-individual-hold-no-shots'))
+        fire=source('cortexFireControl')
+        self.assertLess(fire.index('unitCombatMode _x in ["YELLOW","RED"]'),fire.index('_unit doFire _closest'))
+
+    def test_fire_audit_requires_projectiles_during_suppression_commands(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runFireControl.sqf').read_text()
+        for proof in ['_shots pushBack [time,_weapon,_muzzle,_ammo,_magazine,_orderedAt,',
+                      '_orderedAt >= 0', '_shotAt >= _orderedAt', '_shotAt <= _orderedAt+8',
+                      '_weapon == primaryWeapon _unit', '_command == "SUPPRESS"',
+                      '_readyGroups == 2 && {_groupsWithShots == 2}',
+                      '(units _group) findIf {[_x] call _hasSuppressionShot} < 0']:
+            self.assertIn(proof,qa)
+        self.assertIn('if (count _shots > 200) then {_shots deleteAt 0}',qa)
+
+    def test_fire_audit_releases_individual_never_fire_orders(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runFireControl.sqf').read_text()
+        for actors, check in [('_shooters','FIRE-weapons-free-unit-modes'),
+                              ('_suppressionShooters','FIRE-suppression-unit-modes')]:
+            command='{_x setUnitCombatMode "RED"} forEach '+actors+';'
+            self.assertLess(qa.index(command),qa.index(check))
+            self.assertIn(actors+' findIf {unitCombatMode _x != "RED"} < 0',qa)
+        self.assertLess(qa.index('FIRE-weapons-free-unit-modes'),qa.index('FIRE-both-targets-actual-fire'))
+        self.assertLess(qa.index('FIRE-suppression-unit-modes'),qa.index('private _deadline=time+35'))
+
+    def test_suppression_requires_the_loaded_primary_bullet_muzzle(self):
+        suppression = source("cortexFireControl").split('// Disciplined suppression', 1)[1]
+        boundary = suppression.index('_unit doSuppressiveFire _targetASL')
+        for proof in ['currentMuzzle _unit', 'currentMagazine _unit',
+                      '_unit ammo _muzzle', 'currentWeapon _unit == _weapon',
+                      '_loaded > 0', '== "shotbullet"',
+                      'compatibleMagazines [_weapon,_magazineMuzzle]',
+                      '(magazinesAmmoFull _unit) select',
+                      '!(_x select 2) && {(_x select 1) > 0}',
+                      'getNumber (_ammo >> "hit") > 0',
+                      'if (_rifleReady && {count _spare >= 2} && {_rounds >= 60}']:
+            self.assertLess(suppression.index(proof), boundary)
+        self.assertNotIn('selectWeapon', suppression)
+        self.assertNotIn('_unit ammo _weapon', suppression)
 
     def test_native_canfire_gets_immediate_safe_suppression_parity(self):
         fire = source("cortexFireControl")
@@ -3418,8 +3670,8 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('setVariable ["WAIT_Cortex_ActorMove",["ANTI_ARMOUR"',text)
         self.assertIn('_state set ["antiArmourRelocation"',text)
         support=source('cortexSupportBoundStart')
-        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',support)
-        self.assertIn('time >= (_actorMove select 2)',support)
+        self.assertIn('!([_x] call WAIT_fnc_CortexActorMoveReserved)',support)
+        self.assertNotIn('count _actorMove != 3',support)
         for cleanup in [source('cortexRestoreCalm'),source('cortexLocality')]:
             self.assertIn('setVariable ["WAIT_Cortex_ActorMove",nil]',cleanup)
 
@@ -3969,7 +4221,8 @@ class CortexOperations(unittest.TestCase):
         self.assertGreaterEqual(local.count('"APPLIED"'),2)
         self.assertIn('WAIT_Cortex_CombinedApplied',tick)
         self.assertIn('(_combinedApplied param [1,-1]) != clientOwner',tick)
-        self.assertIn('_group reveal [_target,2.5]',local)
+        self.assertIn('_group reveal [_target,_contactReceipt select 2]',local)
+        self.assertNotIn('_group reveal [_target,2.5]',local)
         # Shared knowledge must not become an ATTACK/pursuit order for every crew member. Only the
         # stationary fire role may explicitly target its gunner; manoeuvre and air controllers own
         # their later target/release boundary.
@@ -4180,20 +4433,206 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('"ORDER_ISSUED"',arrival)
         self.assertIn('"WAIT_Cortex_CombinedFireDecision"',arrival)
         self.assertLess(arrival.index('WAIT_fnc_CortexLineOfFireClear'),arrival.index('_gunner doFire'))
+    def test_combined_runtime_failures_retire_only_the_admitted_opportunity_after_cleanup(self):
+        local=source('cortexCombinedArmsLocal')
+        step=source('cortexCombinedGroundStep')
+        server=source('cortexCombinedRejectServer')
+        self.assertIn('["opportunity",+_opportunity]',local)
+        finish=step.split('private _finish={',1)[1].split('if (isNull _group ||',1)[0]
+        self.assertLess(finish.index('call WAIT_fnc_CortexGroupMoveClear'),finish.index('remoteExecCall ["WAIT_fnc_CortexCombinedRejectServer",2]'))
+        for guard in ('_operationMatches','isEqualTo _snapshot','serverTime < (_snapshot select 5)'):
+            self.assertIn(guard,finish)
+        for reason in ('ASSET_LOST','ASSET_IMMOBILE','BLOCKED','MOVEMENT_REJECTED','NO_STATION_AMMO','BLOCKED_FIRE_LANE'):
+            self.assertIn('"'+reason+'"',finish)
+            self.assertIn('"'+reason+'"',server)
+        self.assertIn('select (_fireDecision == "ORDER_ISSUED")',step)
+        self.assertIn('simulationEnabled _asset && {!isObjectHidden _asset} && {!canMove _asset}',step)
+
+    def test_combined_ground_continuation_and_result_require_complete_admitted_role(self):
+        text=source('cortexCombinedGroundStep')
+        role=text.split('private _roleCurrent={',1)[1].split('private _finish={',1)[0]
+        for guard in ('(_snapshot select 0) isEqualTo _token','(_snapshot select 2) isEqualTo _target',
+                      '(_snapshot select 4) == "GROUND_MANOEUVRE"','_job getOrDefault ["expiry",-1]',
+                      'isEqualTo _snapshot'):
+            self.assertIn(guard,role)
+        finish=text.split('private _finish={',1)[1].split('if (isNull _group ||',1)[0]
+        self.assertLess(finish.index('if (call _roleCurrent)'),finish.index('"WAIT_Cortex_CombinedResult"'))
+        self.assertLess(text.index('if !(call _roleCurrent) exitWith'),text.index('if (_asset distance2D _destination <= 70)'))
+        self.assertIn('if (_laneClear && {call _roleCurrent})',text)
+        self.assertIn('group _gunner == _group',text)
+        self.assertIn('group _gunner != _group',source('cortexCombinedArmsLocal'))
+
+    def test_combined_manoeuvre_checks_real_weapon_station_before_route_commitment(self):
+        text=source('cortexCombinedArmsLocal')
+        manoeuvre=text.split('if (_role == "GROUND_MANOEUVRE") exitWith {',1)[1].split('if (_role == "AIR_ATTACK") exitWith {',1)[0]
+        admission=manoeuvre.split('private _start=',1)[0]
+        for guard in ('group _gunner != _group','local _gunner','WAIT_fnc_CortexCombatEffective',
+                      'NO_FIRE_OPERATOR','NO_STATION_AMMO','NO_TARGET_AMMO',
+                      '[_asset,_gunner,_target] call WAIT_fnc_CortexGroundFireReady',
+                      'remoteExecCall ["WAIT_fnc_CortexCombinedRejectServer",2]'):
+            self.assertIn(guard,admission)
+        self.assertNotIn('doFire',admission)
+        self.assertNotIn('reveal',admission)
+        self.assertLess(manoeuvre.index('if (_capabilityRefusal != "") exitWith'),manoeuvre.index('WAIT_fnc_CortexSelectAvenue'))
+        self.assertLess(manoeuvre.index('NO_TARGET_AMMO'),manoeuvre.index('WAIT_fnc_CortexOwnershipLease'))
+
+    def test_combined_executor_suppresses_exact_owner_epoch_duplicates_before_effects(self):
+        text=source('cortexCombinedArmsLocal')
+        guard=text.index('WAIT_Cortex_CombinedApplicationLocal')
+        self.assertLess(text.index('isNotEqualTo _opportunity'),guard)
+        self.assertLess(guard,text.index('private _asset=objNull'))
+        self.assertLess(guard,text.index('_group reveal'))
+        self.assertIn('[+_opportunity,clientOwner,_group getVariable ["WAIT_AIPass_Epoch",0]]',text)
+        self.assertIn('(_application select 0) isEqualTo _applicationIdentity',text)
+        self.assertIn('private _applied=[_token,clientOwner,_application select 1]',text)
+        self.assertEqual(text.count('setVariable ["WAIT_Cortex_CombinedApplied",'),2)
+        self.assertEqual(text.count('call _markApplied;'),10)
+        fire=text.split('if (_role == "GROUND_FIRE") exitWith {',1)[1].split('if (_role == "GROUND_MANOEUVRE") exitWith {',1)[0]
+        self.assertLess(fire.index('_gunner doFire'),fire.index('call _markApplied'))
+
+    def test_combined_replay_retains_spent_recovery_and_original_observation_age(self):
+        local=source('cortexCombinedArmsLocal')
+        step=source('cortexCombinedGroundStep')
+        journal=local.split('private _progress=_group getVariable ["WAIT_Cortex_CombinedGroundProgress"',1)[1].split('// Route geometry belongs',1)[0]
+        for guard in ('isEqualTo _opportunity','isEqualTo _asset','in [0,1]',
+                      'finite (_progress select 3)','serverTime >= (_progress select 3)',
+                      '_progressAt=time-(serverTime-(_progress select 3))'):
+            self.assertIn(guard,journal)
+        self.assertIn('["stalls",_stalls]',local)
+        self.assertIn('if (_matchingProgress && {!_resumeGround}) exitWith',journal)
+        self.assertIn('(_progress select 3) >= 0',journal)
+        retry=step.split('// Spend before route reacquisition',1)[1]
+        self.assertLess(retry.index('"WAIT_Cortex_CombinedGroundProgress"'),retry.index('call WAIT_fnc_CortexGroupMove'))
+        self.assertIn('serverTime-(time-(_job get "progressAt"))',retry)
+        self.assertIn('if (_stalls >= 1)',step)
+
+    def test_combined_owner_replay_preserves_destination_only_under_native_order_and_crew_receipts(self):
+        local=source('cortexCombinedArmsLocal')
+        self.assertLess(local.index('call WAIT_fnc_CortexLocality'),local.index('private _applicationIdentity='))
+        replay=local.split('private _resumeGround=false;',1)[1].split('// Route geometry belongs',1)[0]
+        for guard in ('count _progress == 10','(_progress select 6) isEqualTo _nativeOrder',
+                      '(_progress select 7) isEqualTo driver _asset','(_progress select 8) isEqualTo _operator'):
+            self.assertIn(guard,replay)
+        self.assertIn('if (_resumeGround) then {_selected=[+(_progress select 5)]} else {',local)
+        self.assertLess(local.index('if (_matchingProgress && {!_resumeGround}) exitWith'),local.index('WAIT_fnc_CortexOwnershipLease'))
+        step=source('cortexCombinedGroundStep')
+        self.assertEqual(step.count('+(_job get "nativeOrder"),_job get "driver",_job get "operator","ACTIVE"'),2)
+        active=step.split('private _driver=driver _asset;',1)[1].split('if (isNull _target',1)[0]
+        self.assertIn('_driver isNotEqualTo (_job getOrDefault ["driver",objNull])',active)
+        self.assertIn('_operator isNotEqualTo (_job getOrDefault ["operator",objNull])',active)
+        self.assertIn('group _driver != _group && {group _operator != _group}',active)
+        self.assertIn('["OWNER_LOST"] call _finish',active)
+
+    def test_combined_terminal_journal_cannot_restart_movement_or_fire_on_new_owner(self):
+        local=source('cortexCombinedArmsLocal')
+        ground=local.split('if (_role == "GROUND_MANOEUVRE") exitWith {',1)[1]
+        terminal=ground.split('// A future firing role',1)[0]
+        self.assertIn('in ["COMPLETE","FAILED"]',terminal)
+        self.assertIn('isEqualTo _opportunity',terminal)
+        self.assertIn('isEqualTo _asset',terminal)
+        self.assertNotIn('doFire',terminal)
+        self.assertNotIn('CortexGroupMove',terminal)
+        self.assertIn('(_progress select 9) == "ACTIVE"',ground)
+        step=source('cortexCombinedGroundStep')
+        self.assertIn('_progress set [9,["FAILED","COMPLETE"] select (_reason == "POSITION_REACHED")]',step)
+
+    def test_combined_replay_defers_split_crew_locality_and_checks_returning_owner_epoch(self):
+        local=source('cortexCombinedArmsLocal')
+        defer=local.split('// Group and crew locality can arrive',1)[1].split('if (_role == "AIR_ATTACK"',1)[0]
+        self.assertIn('group _x == _group',defer)
+        self.assertIn('!local _x',defer)
+        self.assertIn('exitWith {false}',defer)
+        self.assertNotIn('CortexCombinedRejectServer',defer)
+        tick=source('cortexGroupTick')
+        replay=tick.split('private _combinedRole=',1)[1].split('private _nearest =',1)[0]
+        self.assertIn('WAIT_Cortex_CombinedApplicationLocal',replay)
+        self.assertIn('WAIT_AIPass_Epoch',replay)
+        self.assertIn('isNotEqualTo _combinedIdentity',replay)
+
+    def test_combined_active_route_edits_retire_without_recovery_or_fallback(self):
+        local=source('cortexCombinedArmsLocal')
+        self.assertIn('["moveWaypoint",+_waypoint]',local)
+        self.assertIn('["moveReceipt",[count waypoints _group,_waypoint select 1,',local)
+        step=source('cortexCombinedGroundStep')
+        route=step.split('private _routeCurrent={',1)[1].split('if (isNull _target',1)[0]
+        for guard in ('isNotEqualTo _waypoint','_owned isNotEqualTo (_receipt select 2)',
+                      'currentWaypoint _group == (_receipt select 1)','currentWaypoint _group != (_waypoint select 1)+1',
+                      '_asset distance2D _destination > 70', 'isEqualTo ((_liveRows select 0) select [1])'):
+            self.assertIn(guard,route)
+        self.assertIn('["NATIVE_ORDER_CHANGED"] call _finish',route)
+        self.assertIn('if !(call _routeCurrent) then {_fireDecision="NATIVE_ORDER_CHANGED"}',step)
+        fallback=step.split('_reason in [',1)[1].split(']',1)[0]
+        self.assertNotIn('NATIVE_ORDER_CHANGED',fallback)
+
+    def test_combined_audit_requires_local_native_projectile_toward_reported_contact(self):
+        text=(ROOT/'releaseVerificationAndDeployment/cortexQA/runCombinedArms.sqf').read_text(encoding='utf-8')
+        sampler=text.split('private _installStationObserver={',1)[1].split('private _apc=createVehicle',1)[0]
+        for guard in ('!local _unit','addEventHandler ["FiredMan"','gunner _vehicle != _unit',
+                      'velocity _projectile','getPosASL _projectile','_role param [3',
+                      'count _records > 128'):
+            self.assertIn(guard,sampler)
+        self.assertNotIn('createVehicle',sampler)
+        self.assertNotIn('setVelocity',sampler)
+        shot=text.split('["COMBINED-ground-actual-fire"',1)[1].split('["COMBINED-ground-manoeuvre-physical-travel"',1)[0]
+        self.assertIn('(_x select 1) == _fireOperator',shot)
+        self.assertIn('(_x select 6) == _fireToken',shot)
+        self.assertIn('vectorMagnitude _course > 1',shot)
+        self.assertIn('>= cos 15',shot)
+
+    def test_combined_enroute_capability_reassessment_is_finite_and_dormancy_preserves_expiry(self):
+        text=source('cortexCombinedGroundStep')
+        block=text.split('// Dormancy/locality convergence',1)[1].split('if (_asset distance2D _destination > 70',1)[0]
+        self.assertIn('exitWith {1}',block)
+        self.assertIn('!local _stationOperator',block)
+        defer=block.split('private _stationOperator=',1)[1].split('private _capabilityFailure=',1)[0]
+        self.assertIn('[_stationOperator] call WAIT_fnc_CortexCombatEffective',defer)
+        self.assertIn('_job set ["capabilityAt",serverTime+4]',block)
+        for reason in ('NO_FIRE_PLATFORM','NO_FIRE_OPERATOR','NO_STATION_AMMO','NO_TARGET_AMMO'):
+            self.assertIn(reason,block)
+            self.assertIn(reason,source('cortexCombinedRejectServer'))
+        self.assertNotIn('reveal',block)
+        self.assertNotIn('doFire',block)
+        self.assertNotIn('set ["expiry"',block)
+        self.assertLess(text.index('serverTime >= (_job getOrDefault ["expiry"'),text.index('// Dormancy/locality convergence'))
+        self.assertIn('["capabilityAt",serverTime+4]',source('cortexCombinedArmsLocal'))
+
+    def test_fire_control_uses_strict_movement_reservations_without_disabling_native_fire(self):
+        text=source('cortexFireControl')
+        self.assertIn('private _reservedActors=_eligible select {[_x] call WAIT_fnc_CortexActorMoveReserved};',text)
+        self.assertIn('private _members = _eligible - _drillUnits;',text)
+        self.assertIn('private _movingMembers = _eligible arrayIntersect _drillUnits;',text)
+        predicate=source('cortexActorMoveReserved')
+        for proof in ('_lease isEqualTo []','count _lease == 3','finite _x','finite (_lease select 2)','time >= (_lease select 2)'):
+            self.assertIn(proof,predicate)
+        self.assertNotIn('disableAI',predicate)
+
+    def test_combined_ground_preserves_protected_individual_tasks(self):
+        guard=source('cortexActorFireTaskAvailable')
+        self.assertIn('WAIT_fnc_CortexActorMoveReserved',guard)
+        for command in ('REARM','HEAL','GET IN','GET OUT','SCRIPTED','REPAIR','REFUEL','CARRY SOLDIER'):
+            self.assertIn('"'+command+'"',guard)
+        self.assertNotIn('doTarget',guard)
+        self.assertNotIn('setVariable',guard)
+        admission=source('cortexCombinedArmsLocal')
+        self.assertEqual(admission.count('[_gunner] call WAIT_fnc_CortexActorFireTaskAvailable'),2)
+        step=source('cortexCombinedGroundStep')
+        self.assertIn('[_stationOperator] call WAIT_fnc_CortexActorFireTaskAvailable',step)
+        self.assertIn('&& {[_gunner] call WAIT_fnc_CortexActorFireTaskAvailable}',step)
+
     def test_combined_ground_refusal_authenticates_without_mutating_movement(self):
         text=source('cortexCombinedRejectServer')
         self.assertIn('WAIT_fnc_HeadlessResolveSender',text)
         self.assertIn('_current isNotEqualTo _snapshot',text)
-        self.assertIn('count _snapshot != 7',text)
+        self.assertIn('!((count _snapshot) in [7,8])',text)
         self.assertNotIn('WAIT_fnc_OperationCancel',text)
         self.assertNotIn('doMove',text)
         self.assertNotIn('doFollow',text)
         local=source('cortexCombinedArmsLocal')
-        self.assertEqual(local.count('remoteExecCall ["WAIT_fnc_CortexCombinedRejectServer",2]'),6)
+        self.assertEqual(local.count('remoteExecCall ["WAIT_fnc_CortexCombinedRejectServer",2]'),8)
     def test_combined_ground_refusal_producer_reasons_reach_server_retirement(self):
         local=source('cortexCombinedArmsLocal')
         server=source('cortexCombinedRejectServer')
-        emitted=set(re.findall(r'_fireRefusal\s*=\s*"([^"\n]+)"',local))
+        emitted=set(re.findall(r'_(?:fire|capability)Refusal\s*=\s*"([^"\n]+)"',local))
         emitted.update(re.findall(r'\[_group,_opportunity,"([^"\n]+)",clientOwner\] remoteExecCall \["WAIT_fnc_CortexCombinedRejectServer",2\]',local))
         accepted=re.search(r'_reason in \[(.*?)\]',server)
         self.assertIsNotNone(accepted)
@@ -4223,7 +4662,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(server.index('"WAIT_Cortex_CombinedGroundFallback"'),server.index('remoteExecCall ["WAIT_fnc_CortexCombinedArmsLocal"'))
         self.assertIn('((count _groundCandidates) min 32)',server)
         self.assertIn('"WAIT_Cortex_CombinedGroundFallback",nil',server)
-        self.assertIn('count _live != 7 || {serverTime >= (_live select 5)}',fallback)
+        self.assertIn('!((count _live) in [7,8]) || {serverTime >= (_live select 5)}',fallback)
         self.assertNotIn('(_live select 0) == _token',fallback)
         self.assertIn('_target distance2D _position > 75',fallback)
         self.assertIn('group _commander == _candidate',fallback)
@@ -4381,7 +4820,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (unitPos _unit == (_unit getVariable ["WAIT_Cortex_GarrisonDuckStance", ""]))', apply)
         self.assertIn('if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""]))', release)
         self.assertIn('!([group _unit] call WAIT_fnc_CortexIsEligible)', apply)
-        delayed=apply.split('params ["_unit", "_until"];')[1].split('}, [_unit, _until]')[0]
+        delayed=apply.split('params ["_unit", "_until", "_priorStance",')[1].split('}, [_unit,_until,_priorStance,')[0]
         self.assertIn('&& {[group _unit] call WAIT_fnc_CortexIsEligible}', delayed)
         for text in [apply, release]:
             self.assertIn('setVariable ["WAIT_Cortex_GarrisonDuckStance",nil,true]', text)
@@ -4394,6 +4833,17 @@ class CortexOperations(unittest.TestCase):
             self.assertLess(text.index(release),text.index('call ace_captives_fnc_setSurrendered'))
         self.assertIn('WAIT_fnc_CortexCombatEffective',text)
 
+    def test_grenade_evasion_admission_and_cleanup_require_strict_ownership(self):
+        text=source('cortexGrenadeCheck')
+        admission=text.split('private _grenade =',1)[1]
+        self.assertLess(admission.index('call WAIT_fnc_CortexActorMoveReserved'),admission.index('_unit doMove _spot'))
+        self.assertNotIn('count _actorMove != 3',admission)
+        cleanup=text.split('if (_regroup isNotEqualTo []) exitWith {',1)[1].split('private _grenade =',1)[0]
+        self.assertIn('_actorMove isEqualTo ["GRENADE_EVASION",_spot,_expires]',cleanup)
+        self.assertNotIn('(_actorMove select 1) distance2D',cleanup)
+        self.assertLess(cleanup.index('_actorMove isEqualTo'),cleanup.index('if (_ownsEvasion && {local _unit})'))
+        self.assertLess(cleanup.index('if (_ownsEvasion && {local _unit})'),cleanup.index('setVariable ["WAIT_Cortex_ActorMove",nil]'))
+
     def test_grenade_evasion_regroup_does_not_overwrite_new_actions(self):
         text=source('cortexGrenadeCheck')
         callback=text.split('if (_regroup isNotEqualTo []) exitWith {')[1].split('private _grenade =',1)[0]
@@ -4401,10 +4851,10 @@ class CortexOperations(unittest.TestCase):
             self.assertLess(callback.index(guard),callback.index('doFollow'))
         self.assertLess(callback.index('doFollow'),callback.index('setVariable ["WAIT_Cortex_ActorMove",nil]'))
         self.assertIn('if (_ownsEvasion && {local _unit}) then {',callback)
-        for guard in ['(_actorMove select 2) == _expires','WAIT_OperationGeneration','WAIT_AIPass_Epoch','CortexExternalOwner','remoteControlled','currentCommand']:
+        for guard in ['_actorMove isEqualTo ["GRENADE_EVASION",_spot,_expires]','WAIT_OperationGeneration','WAIT_AIPass_Epoch','CortexExternalOwner','remoteControlled','currentCommand']:
             self.assertLess(callback.index(guard),callback.index('doFollow'))
         self.assertIn('setVariable ["WAIT_Cortex_ActorMove",["GRENADE_EVASION"',text)
-        self.assertIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
+        self.assertIn('!([_unit] call WAIT_fnc_CortexActorMoveReserved)',text)
         self.assertIn('setVariable ["WAIT_Cortex_ActorMove",nil]',callback)
         self.assertIn('[WAIT_fnc_CortexGrenadeCheck,createHashMapFromArray [["regroup",_regroupActors]],6] call WAIT_fnc_CortexQueueJob',text)
         self.assertIn('"WAIT_AIPass_GrenadeEvasion_Enable",true] call WAIT_fnc_CortexFeatureEnabled',text)
@@ -4417,19 +4867,26 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_unit enableAI "PATH"',grenade)
         self.assertIn('_state set ["supportHeld",_supportHeld-[_unit]]',grenade)
         maintain=source('cortexSupportMaintain')
-        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',maintain)
-        self.assertIn('time >= (_actorMove select 2)',maintain)
+        self.assertIn('!([_x] call WAIT_fnc_CortexActorMoveReserved)',maintain)
+        self.assertNotIn('count _actorMove != 3',maintain)
 
     def test_tactical_drills_do_not_consume_reserved_actors(self):
-        for name in ['cortexFlankStart','cortexAdvanceStart']:
+        for name in ['cortexFlankStart','cortexAdvanceStart','cortexAssaultStart']:
             text=source(name)
-            self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',text)
-            self.assertIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
+            self.assertIn('!([_x] call WAIT_fnc_CortexActorMoveReserved)',text)
+            self.assertNotIn('count _actorMove != 3 || {time >= (_actorMove select 2)}',text)
+        guard=source('cortexActorMoveReserved')
+        for required in ['!local _actor','_lease isEqualTo []','_lease isEqualType []',
+                         'count _lease == 3','(_lease select 0) isEqualType ""',
+                         'count (_lease select 1) == 3','finite (_lease select 2)',
+                         'findIf {!(_x isEqualType 0) || {!finite _x}} < 0','!_expired']:
+            self.assertIn(required,guard)
+        self.assertNotIn('setVariable',guard)
 
     def test_queued_grenade_rechecks_takeover_and_frag_safety(self):
         text=source('cortexThrowGrenade')
         callback=text.split('params ["_unit", "_muzzle", "_magazine"')[1]
-        for guard in ['WAIT_fnc_CortexCombatEffective','WAIT_fnc_CortexIsEligible','WAIT_AIPass_ZeusHold','_magazine in magazines _unit','_distance < 8','_distance > 40','nearEntities ["CAManBase",12]']:
+        for guard in ['WAIT_fnc_CortexCombatEffective','WAIT_fnc_CortexIsEligible','WAIT_AIPass_ZeusHold','_magazine in magazines _unit','_distance < 8','_distance > 40','nearEntities ["CAManBase",_safetyRadius]']:
             self.assertIn(guard,callback)
         self.assertLess(callback.index('WAIT_AIPass_ZeusHold'),callback.index('forceWeaponFire'))
         self.assertLess(callback.index('!= _drillToken'),callback.index('forceWeaponFire'))
@@ -4540,7 +4997,7 @@ class CortexOperations(unittest.TestCase):
         release=source('cortexClearRelease')
         self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',release)
         self.assertIn('then {_restore=false}',release)
-        self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore && {_taskFree} && {_movementOwned}) then {'))
+        self.assertLess(release.index('then {_restore=false}'),release.index('if (_restore && {_taskFree} && {_movementOwned} && {isNull objectParent _x}) then {'))
         self.assertIn('_destination vectorDistance _issued <= 0.25',release)
         self.assertIn('count _issued == 3 && {count _destination == 3}',release)
         self.assertLess(release.index('private _movementTargets='),release.index('_group setVariable ["WAIT_BuildingBrain",nil]'))
@@ -4560,19 +5017,20 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (unitPos _x == (_x getVariable ["WAIT_Cortex_GarrisonDuckStance", ""])) then {',garrison_release)
         self.assertIn('if (!_externalTakeover) then {',garrison_release)
         self.assertIn('&& {_reservationFree} && {!_nativeTask} && {isNull objectParent _unit}',garrison_release)
-        self.assertIn('WAIT_Cortex_ActorMove',garrison_release)
+        self.assertIn('call WAIT_fnc_CortexActorMoveReserved',garrison_release)
         self.assertIn('currentCommand _unit in [',garrison_release)
         self.assertIn('if (!_externalTakeover && {getForcedSpeed _x ==',garrison_release)
         # The garrison job must release its own PATH lock at loss of eligibility and recheck
         # ownership before its arrival hold or first individual move can mutate a unit.
         self.assertIn('[_group,false] call WAIT_fnc_CortexGarrisonRelease;',garrison_apply)
-        self.assertIn('if ([_unit] call _mayIssueMovement) then {doStop _unit};',garrison_apply)
+        self.assertIn('if (!_heldInPlace && {_unit in _freshActors} && {[_unit] call _mayIssueMovement}) then {doStop _unit};',garrison_apply)
         arrival=garrison_apply.split('if ([_x,_assignment] call _assignmentArrived) then {',1)[1].split('} else {',1)[0]
         self.assertIn('if ([_x] call _mayIssueMovement) then {',arrival)
         self.assertLess(arrival.index('if ([_x] call _mayIssueMovement) then {'),arrival.index('_x disableAI "PATH"'))
         self.assertIn('["assignmentArrived",_assignmentArrived]',garrison_apply)
         self.assertIn('_assignmentArrived=_job get "assignmentArrived"',garrison_apply)
-        physical=garrison_apply.split('private _assignmentArrived=',1)[1].split('private _buildingAnchor',1)[0]
+        self.assertIn('private _assignmentArrived=WAIT_fnc_CortexGarrisonArrived;',garrison_apply)
+        physical=source('cortexGarrisonArrived')
         for guard in ['vectorDistance _target > _radius','> 0.75','worldToModel',
                       'lineIntersectsSurfaces','(_x select 2) == _building']:
             self.assertIn(guard,physical)
@@ -4654,8 +5112,9 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('["","STOP","ATTACK","FIRE","SUPPRESS"]',code)
             self.assertIn('private _externalTakeover = [_group] call WAIT_fnc_CortexExternalTakeover;',code)
             self.assertIn('private _canRestore = _restore && {!_externalTakeover};',code)
-            self.assertIn('_canRestore || {!_externalTakeover && {_ownedHold',code)
-            self.assertIn('WAIT_Cortex_ActorMove',code)
+            self.assertIn('_canRestore ||',code)
+            self.assertIn('!_externalTakeover && {_ownedHold',code)
+            self.assertIn('call WAIT_fnc_CortexActorMoveReserved',code)
             self.assertIn('&& {_reservationFree} && {!_nativeTask}',code)
             restore_condition=code.split('_canRestore ||',1)[1].split('then {',1)[0]
             for external in ['MOVE','GET IN','GET OUT','ACTION','SCRIPTED']:
@@ -4695,6 +5154,48 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_activeVehicleMove = count _vehicleMove == 2',vehicles)
         non_vehicle=vehicles.split('} else {',1)[1].split('};',1)[0]
         self.assertNotIn('deleteAt "movementLease"',non_vehicle)
+
+    def test_routine_ground_gunnery_yields_combined_roles_and_checks_operator_station_lane(self):
+        text=source('cortexVehicles')
+        reservation=text.split('private _combinedGroundRole=',1)[1].split('private _gunnerAvailable=',1)[0]
+        self.assertIn('in ["GROUND_FIRE","GROUND_MANOEUVRE"]',reservation)
+        self.assertIn('serverTime < (_combinedGroundRole select 5)',reservation)
+        self.assertNotIn('setVariable',reservation)
+        authority=text.split('private _gunnerAvailable=',1)[1].split('if (_externalTakeover)',1)[0]
+        for proof in ('group _gunner == _group','CortexCombatEffective','simulationEnabled _gunner','isObjectHidden _gunner','remoteControlled _gunner','CortexExternalOwner','CompatibilityExternalControl','CortexActorFireTaskAvailable'):
+            self.assertIn(proof,authority)
+        danger=text.split('if (_knownHostile &&',1)[1].split('} forEach _affectedVehicles',1)[0]
+        routine=text.split('if (_ranked isNotEqualTo []',1)[1].split('private _standoff',1)[0]
+        for block in (danger,routine):
+            for proof in ('!_combinedGroundFireOwned','call _gunnerAvailable','canFire _vehicle','CortexGroundFireReady','CortexLineOfFireClear'):
+                self.assertIn(proof,block)
+        self.assertLess(routine.index('CortexLineOfFireClear'),routine.index('_gunner doFire _target'))
+
+    def test_vehicle_gunnery_selects_first_usable_ranked_contact_with_finite_work(self):
+        text=source('cortexVehicles')
+        selection=text.split('private _target=objNull;',1)[1].split('private _standoff',1)[0]
+        self.assertIn('forEach (_ranked select [0,8])',selection)
+        self.assertIn('[_vehicle,_gunner,_candidate] call WAIT_fnc_CortexGroundFireReady',selection)
+        self.assertIn('[_gunner,aimPos _candidate] call WAIT_fnc_CortexLineOfFireClear',selection)
+        self.assertIn('exitWith {\n                    _target=_candidate;',selection)
+        self.assertLess(selection.index('if (!isNull _target)'),selection.index('_gunner doTarget _target'))
+        self.assertNotIn('nearEntities',selection)
+        self.assertNotIn(' reveal ',selection)
+        self.assertIn('if (count _candidates > 8) then {_candidates resize 8}',source('cortexKnowledge'))
+
+    def test_convoy_matrix_captures_actual_lead_and_follower_control_boundaries(self):
+        text=source('convoyTick')
+        matrix=(ROOT/'releaseVerificationAndDeployment/cortexQA/runConvoyMatrix.sqf').read_text(encoding='utf-8')
+        self.assertIn('setVariable ["WAIT_Convoy_CaptureControl",!_baseline]',matrix)
+        self.assertIn('getOrDefault ["controlSamples",createHashMap]',matrix)
+        self.assertIn('getOrDefault ["leadControlSample",[]]',matrix)
+        self.assertLess(text.index('private _captureControl='),text.index('private _leadLimit ='))
+        self.assertIn('_state deleteAt "leadControlSample"',text)
+        for cap in ('pacing','corridor','accelerationAndArrival','bypass','trafficGeometry','infantry'):
+            self.assertIn('(_leadControl select 4) pushBack ["'+cap+'",_leadLimit]',text)
+        write=text.split('_lead forceSpeed _ownedSpeed;',1)[1].split('// Speed limits cannot restart',1)[0]
+        self.assertIn('if (_captureControl) then {_leadControl set [5,true]}',write)
+        self.assertIn('_state set ["leadControlSample",_leadControl]',write)
 
     def test_vehicle_gunnery_refreshes_fire_when_contact_was_already_shared(self):
         vehicles=source('cortexVehicles')
@@ -4849,12 +5350,43 @@ class CortexOperations(unittest.TestCase):
         for key in ['supportToken','responding','respondingTo','respondUntil','arrivedAt','assaulting']:
             self.assertIn(f'"{key}"',calm)
 
+    def test_convoy_native_recovery_uses_recorded_pre_extension_point(self):
+        text=source('convoyTick')
+        recovery=text.split('private _recoveryTarget=',1)[1].split('_vehicle setConvoySeparation',1)[0]
+        self.assertIn('_progress param [12,[],[[]]]',recovery)
+        self.assertIn('if (_native)',recovery)
+        self.assertIn('_progress set [11,[+_pose,time]]',text)
+        self.assertNotIn('_progress set [11,+_recordedDestination]',text)
+        self.assertIn('_trail findIf {(_x vectorDistance _recoveryTarget) <= 1}',recovery)
+        self.assertLess(recovery.index('if (_recorded >= 0 && {_recorded+_trailBase >= (_progress select 3)})'),recovery.index('_movementOperator doMove _recoveryTarget'))
+        after=recovery.split('_movementOperator doMove _recoveryTarget;',1)[1]
+        self.assertIn('_progress set [10,[driver _vehicle,_movementOperator',after)
+        self.assertIn('setVariable ["WAIT_Convoy_MovementReceipt",[_group,_revision',after)
+        self.assertIn('+(expectedDestination _movementOperator)',after)
+        capture=text.index('private _recordedDestination=+_destination')
+        extend=text.index('_destination=_destination getPos [40 min')
+        self.assertLess(capture,extend)
+        commit=text.split('_movementOperator doMove _destination;',1)[1]
+        self.assertIn('_progress set [12,+_recordedDestination]',commit)
+        self.assertIn('[] call _mayIssueDriving',text[text.rfind('if (',0,text.index('_movementOperator doMove _destination;')):text.index('_movementOperator doMove _destination;')])
+
+    def test_convoy_two_point_tail_recomputes_cap_and_first_segment_grade(self):
+        text=source('convoyTick')
+        start=text.index('if (_pathAssistEnabled && {count _path >= 2}) then {')
+        block=text[start:text.index('if (_native && {_path isNotEqualTo []})',start)]
+        self.assertIn('for "_j" from 0 to (count _path-2)',block)
+        self.assertLess(block.index('if (_j > 0)'),block.index('private _a=_path select (_j-1)'))
+        self.assertIn('_pathGrade=_pathGrade max (abs (_heightC-_heightB)/_segment)',block)
+        self.assertIn('_progress set [8,_pathCap]',block)
+        self.assertIn('_limit=_limit min _pathCap',block)
+        self.assertIn('private _closingCap',text)
+        self.assertIn('call WAIT_fnc_DrivingFollowingCap',text)
+
     def test_live_actor_escape_survives_contact_transition(self):
         tick=source('cortexGroupTick')
         begin=tick.split('private _beginContact = {',1)[1].split('switch (_state get "phase")',1)[0]
-        self.assertIn('getVariable ["WAIT_Cortex_ActorMove",[]]',begin)
-        self.assertIn('count _actorMove != 3 || {_now >= (_actorMove select 2)}',begin)
-        self.assertLess(begin.index('count _actorMove'),begin.index('_x doFollow _leader'))
+        self.assertIn('!(_x call _hasLiveActorMove)',begin)
+        self.assertLess(begin.index('!(_x call _hasLiveActorMove)'),begin.index('_x doFollow _leader'))
 
     def test_post_contact_transitions_do_not_churn_combat_or_actor_moves(self):
         tick=source('cortexGroupTick')
@@ -5146,7 +5678,7 @@ class CortexOperations(unittest.TestCase):
             self.assertIn('WAIT_fnc_Cortex'+name,text)
     def test_no_building_garrison_cannot_report_success(self):
         text=source('cortexGarrison')
-        self.assertLess(text.index('Refuse an empty search'),text.index('call WAIT_fnc_CortexClearRelease'))
+        self.assertLess(text.index('_candidateAssignments isEqualTo []'),text.index('call WAIT_fnc_CortexClearRelease'))
     def test_explicit_native_order_dispatch_has_no_distance_or_module_selection_gate(self):
         dispatch = source('cortexOrderDispatch')
         local = source('cortexOrderLocal')
@@ -5408,7 +5940,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('if (!_partial || {!_hasAssignments}) then {\n    _group setVariable ["WAIT_AIPass_Garrison", nil, true]',release)
         self.assertLess(release.index('} forEach _actors;'),release.index('private _hasAssignments='))
         self.assertIn('findIf {(_x getVariable ["WAIT_AIPass_GarrisonPos",[]]) isNotEqualTo []} >= 0',release)
-        self.assertIn('[_group,_restore,_actors] remoteExecCall',release)
+        self.assertIn('[_group,_restore,_actors,_recall] remoteExecCall',release)
         self.assertIn('[_group,false,_diverted] call WAIT_fnc_CortexGarrisonRelease',tick)
         self.assertIn('_live vectorDistance (_receipt select 3) <= 0.25',tick)
 
@@ -5416,15 +5948,18 @@ class CortexOperations(unittest.TestCase):
         apply=source("cortexGarrisonApplyLocal")
         callback=apply.split('params ["_job"];',1)[1]
         gate=callback.split("private _mayIssueMovement = {",1)[1].split("private _pending =",1)[0]
-        self.assertIn('_command in ["MOVE","FOLLOW"]',gate)
-        self.assertIn('_command == "MOVE" && {count _receipt == 4}',gate)
+        self.assertIn('_command in ["","STOP"]',gate)
+        self.assertNotIn('!(_command in ["MOVE","FOLLOW"])',gate)
+        self.assertIn('_command == "MOVE" && {count _receipt == 5}',gate)
         self.assertIn('_live vectorDistance (_receipt select 3) <= 0.25',gate)
         self.assertIn('(_receipt select 1) == (_job get "generation")',gate)
         self.assertIn("&& {_commandOwned}",gate)
 
     def test_garrison_release_preserves_replacement_move_and_follow(self):
         apply=source("cortexGarrisonApplyLocal"); release=source("cortexGarrisonRelease")
-        self.assertEqual(apply.count("call _rememberMove;"),8)
+        self.assertEqual(apply.count("call _rememberMove;"),9)
+        self.assertIn('[_unit,_holdReceiptTarget] call _rememberMove;',apply)
+        self.assertIn('(expectedDestination _unit) param [0,_destination]',apply)
         self.assertIn('["rememberMove",_rememberMove]',apply)
         self.assertIn('_live vectorDistance (_move select 3) <= 0.25',release)
         self.assertIn('_command == "MOVE" && {_ownedMove}',release)
@@ -5450,8 +5985,9 @@ class CortexOperations(unittest.TestCase):
 
     def test_recovery_dormancy_yields_before_retry_commit(self):
         recovery=source("recoveryStep")
-        guard='if (!(simulationEnabled _actor) || {isObjectHidden _actor}) exitWith {"YIELDED"};'
+        guard='|| {isObjectHidden _actor}) exitWith {"YIELDED"};'
         self.assertEqual(recovery.count(guard),2)
+        self.assertEqual(recovery.count('!(simulationEnabled _actor)'),2)
         self.assertLess(recovery.index(guard),recovery.index("private _recovery="))
         self.assertLess(recovery.rindex(guard),recovery.index("_used set [_key,_attempts+1]"))
         self.assertLess(recovery.rindex(guard),recovery.index("_actor doMove _destination"))
@@ -5635,7 +6171,7 @@ class CortexOperations(unittest.TestCase):
         release=source('convoyReleaseLocal')
         self.assertIn('private _externalTakeover = local _group && {',release)
         self.assertIn('private _mayRestoreGroup=local _group && {!_externalTakeover};',release)
-        self.assertIn('if (_mayRestoreGroup) then {',release)
+        self.assertIn('if (_mayRestoreGroup && {!_preserveMoves}) then {',release)
         self.assertIn('if (_mayRestoreGroup && {!isNull _driver}',release)
         self.assertLess(release.index('private _mayRestoreGroup='),release.index('setFormation _formation'))
 
@@ -5742,7 +6278,7 @@ class CortexOperations(unittest.TestCase):
     def test_convoy_driving_assist_is_bounded_and_does_not_take_route_ownership(self):
         tick=(ROOT/'addons/vehicles/functions/convoyTick.sqf').read_text(encoding='utf-8')
         for marker in ['WAIT_Convoy_DrivingAssist_Enable','["roadLookAt",time+3]',
-                       'roadsConnectedTo _road','_travel >= 70','["roadAssist",',
+                       'WAIT_fnc_DrivingRoadCap','["roadAssist",',
                        '["leadSpeedLimit",[_leadLimit,time]]','private _pathTurn=0;',
                        'private _pathGrade=0;']:
             self.assertIn(marker,tick)
@@ -5755,9 +6291,12 @@ class CortexOperations(unittest.TestCase):
 
     def test_convoy_grade_uses_absolute_elevation_for_roads_and_trails(self):
         tick=source('convoyTick')
-        road=tick.split('// One bounded road walk per convoy',1)[1].split('// During contact',1)[0]
-        self.assertIn('getPosASL _road',road)
-        self.assertIn('getPosASL _nextRoad',road)
+        road=source('drivingRoadCap')
+        self.assertIn('WAIT_fnc_DrivingRoadCap',tick)
+        self.assertIn('getRoadInfo _piece',road)
+        self.assertIn('_info param [6,[],[[]]]',road)
+        self.assertIn('_info param [7,[],[[]]]',road)
+        self.assertIn('getPosASL _piece',road)
         self.assertNotIn('getPosATL',road)
         trail=tick.split('private _pathGrade=0;',1)[1].split('private _pathCap=',1)[0]
         self.assertIn('(ATLToASL _b) select 2',trail)
@@ -5989,6 +6528,28 @@ class CortexOperations(unittest.TestCase):
         matrix = (ROOT / 'releaseVerificationAndDeployment/cortexQA/runConvoyMatrix.sqf').read_text(encoding='utf-8')
         self.assertIn('{deleteVehicle (_x select 0)} forEach _fixtureCrew', matrix)
         self.assertIn('-operating-crew-retained', matrix)
+
+    def test_support_owner_move_and_cover_preserve_strict_actor_reservations(self):
+        start=source('cortexSupportBoundStart')
+        fit=start.split('private _fit=',1)[1].split('if (count _fit < 3)',1)[0]
+        self.assertIn('!([_x] call WAIT_fnc_CortexActorMoveReserved)',fit)
+        maintain=source('cortexSupportMaintain')
+        cover=maintain.split('private _coverIdentity=',1)[1]
+        self.assertLess(cover.index('!([_x] call WAIT_fnc_CortexActorMoveReserved)'),cover.index('doStop _x'))
+        for code in [start,cover]:
+            self.assertNotIn('count _actorMove != 3',code)
+            self.assertIn('WAIT_fnc_CompatibilityExternalControl',code)
+            self.assertIn('"CARRY SOLDIER"',code)
+
+    def test_drill_refill_checks_strict_actor_ownership_before_roster_mutation(self):
+        step=source('cortexFlankStep')
+        rank=step.split('private _rankCandidates={',1)[1].split('private _units=[];',1)[0]
+        self.assertIn('private _reservationFree=!([_x] call WAIT_fnc_CortexActorMoveReserved);',rank)
+        self.assertNotIn('_reservation param [2,1e12,[0]]',rank)
+        self.assertIn('WAIT_fnc_CompatibilityExternalControl',rank)
+        self.assertIn('"CARRY SOLDIER"',rank)
+        refill=step.split('private _units=[];',1)[1]
+        self.assertLess(refill.index('call _rankCandidates'),refill.index('_units pushBack _replacement'))
 
     def test_drill_steps_cannot_adopt_a_replacement_action(self):
         step=source('cortexFlankStep')
@@ -6285,7 +6846,7 @@ class CortexOperations(unittest.TestCase):
         step=source('cortexFlankStep')
         self.assertIn('_enemyPos getPos [20,_crossingDirection+180]',step)
         grenade=source('cortexThrowGrenade')
-        self.assertIn('nearEntities ["CAManBase",12]',grenade)
+        self.assertIn('nearEntities ["CAManBase",_safetyRadius]',grenade)
 
     def test_assault_checks_carriers_across_both_arrived_elements(self):
         step=source('cortexFlankStep')
@@ -6419,7 +6980,7 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_pilot doMove _destination',controller)
         self.assertNotIn('_pilot commandMove _destination',controller)
         self.assertNotIn('_pilot setDestination [_destination',controller)
-        self.assertIn('waypoints _group apply {[waypointPosition _x,waypointType _x]}',controller)
+        self.assertIn('private _routeSignature=[_group] call WAIT_fnc_AuthoredRouteReceipt;',controller)
         self.assertNotIn('[count waypoints _group,_waypointIndex,_resumePosition',controller)
         self.assertIn('private _target=_job getOrDefault ["target",objNull]',controller)
         self.assertIn('private _leadSeconds=[16,5] select (_stage == "ATTACK")',controller)
@@ -6504,7 +7065,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('_x doTarget objNull',controller)
         self.assertIn('_x doWatch objNull',controller)
         self.assertNotIn('_group reveal [_fireTarget,4]',controller)
-        handover_cleanup=controller.split('if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {',1)[1].split('if (!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"])) then {',1)[0]
+        handover_cleanup=controller.split('if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {',1)[1].split('if (!_preserveEditedLeg && {!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED","OWNED_ROUTE_CHANGED"])}) then {',1)[0]
         self.assertNotIn('doTarget objNull',handover_cleanup)
         self.assertNotIn('doWatch objNull',handover_cleanup)
         self.assertIn('_operator doFire _fireTarget',controller)
@@ -6677,7 +7238,7 @@ class CortexOperations(unittest.TestCase):
         self.assertEqual(controller.count('addWaypoint [_destination,0]'),1)
         self.assertEqual(controller.count('deleteWaypoint'),1)
         self.assertIn('setWaypointName _ownedWaypointName',controller)
-        self.assertIn('waypointName _x != _ownedWaypointName',controller)
+        self.assertIn('private _currentRoute=[_group,_ownedWaypointName] call WAIT_fnc_AuthoredRouteReceipt;',controller)
         self.assertIn('format ["AIR_%1",_plan get "pattern"]',controller)
         self.assertIn('call WAIT_fnc_OperationStart',controller)
         self.assertIn('operationGeneration',controller)
@@ -6895,6 +7456,7 @@ class CortexOperations(unittest.TestCase):
             'WAIT_fnc_CortexArtilleryRequest',
             'WAIT_fnc_CortexReinforce',
             'WAIT_fnc_CortexCoordinatedAssault',
+            'WAIT_fnc_IndoorActorDispatch',
             'WAIT_fnc_CortexTacticalStart'
         ]:
             contact=tick.split('case "CONTACT": {',1)[1]
@@ -7087,6 +7649,82 @@ class CortexOperations(unittest.TestCase):
                        'DANGER-VEHICLE-orient-physical-alignment','DANGER-VEHICLE-orient-no-travel',
                        'DANGER-VEHICLE-orient-crew-retained']:
             self.assertIn(marker,audit)
+
+    def test_airborne_held_first_fixture_requires_another_physical_exit(self):
+        qa=(ROOT/'releaseVerificationAndDeployment/cortexQA/runAirborne.sqf').read_text(encoding='utf-8')
+        for marker in ['AIRBORNE-held-first-stays-aboard','AIRBORNE-unheld-passenger-exits',
+                       'vehicle _unheld isKindOf "ParachuteBase"','vehicle _heldActor == _aircraft',
+                       'isEqualTo _holdLease','WAIT_CortexQA_HeadlessBatch',
+                       '"WAIT_AIPass_Airborne_JumpInterval",_savedJumpInterval,true']:
+            self.assertIn(marker,qa)
+        self.assertNotIn('call WAIT_fnc_CortexParachuteJump',qa)
+        self.assertNotIn('WAIT_fnc_CortexAirborneDropStep',qa)
+        self.assertIn('AIRBORNE-physical-landing',qa)
+        self.assertIn('AIRBORNE-post-landing-movement',qa)
+
+    def test_airborne_episode_rejects_stale_execution_and_cleanup(self):
+        start=source('cortexAirborneCheck')
+        step=source('cortexAirborneDropStep')
+        self.assertIn('["episode",_episode]',start)
+        self.assertIn('WAIT_AIPass_DropSerial',start)
+        for owner in ['_group','_aircraft']:
+            self.assertIn(owner+' setVariable ["WAIT_AIPass_DropEpisode",_episode,true]',start)
+        entry=step.split('private _finish =',1)[0]
+        for guard in ['_episode isEqualTo []','WAIT_AIPass_Epoch','WAIT_AIPass_DropEpisode','exitWith {-1}']:
+            self.assertIn(guard,entry)
+        finish=step.split('private _finish = {',1)[1].split('if (isNull _group',1)[0]
+        self.assertLess(finish.index('_episode isEqualTo (_group getVariable'),finish.index('setVariable ["WAIT_AIPass_Dropping",nil]'))
+        self.assertLess(finish.index('_episode isEqualTo (_aircraft getVariable'),finish.index('setVariable ["WAIT_AIPass_DropUntil",nil]'))
+
+    def test_airborne_drop_rechecks_live_aircraft_control_before_each_exit(self):
+        drop=source('cortexAirborneDropStep')
+        phase=drop.split('if ((_job get "phase") == "DROP") exitWith {',1)[1].split('// LAND',1)[0]
+        selection=phase.split('private _jumpers =',1)[1].split('if (_jumpers isEqualTo []',1)[0]
+        for guard in ['WAIT_fnc_CortexActorMoveReserved','WAIT_fnc_CortexCombatEffective',
+                      'remoteControlled _x','WAIT_fnc_CompatibilityExternalControl']:
+            self.assertIn(guard,selection)
+        for guard in ['private _pilot=driver _aircraft','isPlayer _commander','remoteControlled _pilot',
+                      'remoteControlled _commander','bis_fnc_moduleRemoteControl_owner',
+                      '[group _pilot] call WAIT_fnc_CortexExternalTakeover',
+                      '[group _commander] call WAIT_fnc_CortexExternalTakeover']:
+            self.assertLess(phase.index(guard),phase.index('call WAIT_fnc_CortexParachuteJump'))
+
+    def test_parachute_exit_preserves_actor_tasks_before_mutation(self):
+        jump=source('cortexParachuteJump')
+        for guard in ['call WAIT_fnc_CortexCombatEffective','call WAIT_fnc_CortexActorMoveReserved',
+                      'remoteControlled _unit','bis_fnc_moduleRemoteControl_owner',
+                      'call WAIT_fnc_CortexExternalOwner','call WAIT_fnc_CompatibilityExternalControl']:
+            self.assertLess(jump.index(guard),jump.index('_unit allowDamage false'))
+            self.assertLess(jump.index(guard),jump.index('moveOut _unit'))
+
+    def test_cqb_replacement_invalidates_only_lane_entry_proposal(self):
+        step=source('buildingOperationStep')
+        replacement=step.split('if (_laneRosterChanged) then {',1)[1].split('private _enteredActors=',1)[0]
+        self.assertIn('_entryTargets deleteAt (str _pairIndex)',replacement)
+        self.assertIn('_job set ["pairEntryTargets",_entryTargets]',replacement)
+        for protected in ['"cleared"','"hardDeadline"','"failedBy"','"recoveryBudget"']:
+            self.assertNotIn(f'set [{protected}',replacement)
+        self.assertNotIn('doMove',replacement)
+        self.assertNotIn('doStop',replacement)
+
+    def test_parachute_failed_boarding_cleans_only_empty_owned_chute(self):
+        jump=source('cortexParachuteJump')
+        boarding=jump.split('_unit moveInDriver _chute;',1)[1]
+        self.assertLess(boarding.index('if (vehicle _unit == _chute)'),boarding.index('_chute setVelocity'))
+        cleanup=boarding.split('} else {',1)[1].split('deleteVehicle _chute',1)[0]
+        for guard in ['!isNull _chute','local _chute','crew _chute isEqualTo []']:
+            self.assertIn(guard,cleanup)
+        self.assertIn('[_unit, _damageAllowed]',boarding)
+
+    def test_combat_gunner_replacement_preserves_actor_controller_ownership(self):
+        text=source('cortexVehicleCrewRecover')
+        ownership=text.split('if ([_candidate] call WAIT_fnc_CortexActorMoveReserved',1)[1].split('private _command=',1)[0]
+        for guard in ['remoteControlled _candidate','bis_fnc_moduleRemoteControl_owner',
+                      'WAIT_fnc_CortexExternalOwner','WAIT_fnc_CompatibilityExternalControl','ACTOR_OWNERSHIP']:
+            self.assertIn(guard,ownership)
+        self.assertLess(text.index('ACTOR_OWNERSHIP'),text.index('_candidate assignAsGunner'))
+        self.assertLess(text.index('ACTOR_OWNERSHIP'),text.index('_candidate action'))
+        self.assertNotIn('setVariable ["WAIT_Cortex_ActorMove",nil]',text)
 
     def test_mounted_danger_recovers_a_lost_gunner_without_sacrificing_the_driver(self):
         registry=(ROOT/'addons/main/CfgFunctions.hpp').read_text(encoding='utf-8')
@@ -7337,11 +7975,13 @@ class CortexOperations(unittest.TestCase):
             self.assertIn(marker,contact)
         self.assertIn('["BUILDINGS", "03 Infantry", "07 Buildings and CQB"]',sections)
         self.assertIn('class CortexBuildingContact',functions)
-        for marker in ['(_x param [2,1e6,[0]]) <= 5','isNull objectParent _enemy',
-                       'boundingBoxReal _candidateBuilding','worldToModelVisual','lineIntersectsSurfaces',
-                       '(_x select 2) == _candidateBuilding','count _capable < 4',
-                       '["preserveBrain",true]','WAIT_fnc_CortexClearBuilding']:
+        for marker in ['count _capable < 4','["preserveBrain",true]',
+                       'WAIT_fnc_BuildingContactSelect','WAIT_fnc_CortexClearBuilding']:
             self.assertIn(marker,contact)
+        selector=source('buildingContactSelect')
+        for marker in ['_age <= 5','isNull objectParent _enemy','boundingBoxReal _building',
+                       'worldToModel _belief','lineIntersectsSurfaces','_nearest select 2']:
+            self.assertIn(marker,selector)
         for forbidden in [' setPos ',' moveIn ',' allowDamage ',' disableAI ']:
             self.assertNotIn(forbidden,contact)
         self.assertIn('private _preserveBrain=_options getOrDefault ["preserveBrain",false];',clear)
@@ -7352,13 +7992,24 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(tick.index('WAIT_fnc_CortexCoordinatedAssault'),tick.index('WAIT_fnc_CortexBuildingContact'))
         self.assertLess(tick.index('WAIT_fnc_CortexBuildingContact'),tick.index('WAIT_fnc_CortexTacticalStart'))
 
+    def test_natural_building_admission_uses_belief_not_unseen_enemy_transform(self):
+        text=source('buildingContactSelect')
+        for marker in ('_x param [1,[],[[]]]','count _belief == 3','!finite _x',
+                       'finite _age','_age >= 0','private _belief=+(_x select 1)',
+                       'private _building=_nearest select 3','_building worldToModel _belief','AGLToASL _belief'):
+            self.assertIn(marker,text)
+        for forbidden in ('getPosATL _enemy','getPosWorld _enemy','getPosASL _enemy'):
+            self.assertNotIn(forbidden,text)
+        self.assertIn('if (count _records > 3) then {_records resize 3}',text)
+        self.assertIn('_age <= 5',text)
+
     def test_natural_building_contact_has_physical_audit(self):
         audit=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text(encoding='utf-8')
         for marker in ['BUILD-CONTACT-native-knowledge','BUILD-CONTACT-natural-clear-started',
                        'BUILD-CONTACT-physical-entry','WAIT_AIPass_BuildingCombat_Enable',
                        'WAIT_AIPass_BuildingCombat_Range','knowsAbout _contactEnemy']:
             self.assertIn(marker,audit)
-        natural=audit.split('// Natural building contact acceptance.',1)[1].split('// A newer actor destination',1)[0]
+        natural=audit.split('// Natural building contact acceptance.',1)[1].split('// Independent natural-contact continuation case;',1)[0]
         for forbidden in [' reveal ','WAIT_fnc_CortexClearBuilding','setPos','moveIn']:
             self.assertNotIn(forbidden,natural)
         self.assertEqual(natural.count('disableAI "PATH"'),1)
@@ -7396,6 +8047,154 @@ class CortexOperations(unittest.TestCase):
 
 
 
+    def test_tactical_movement_hands_back_ordinary_driving_before_acquisition(self):
+        lease=source('cortexOwnershipLease')
+        available=(ROOT/'addons/vehicles/functions/drivingMovementAvailable.sqf').read_text(encoding='utf-8')
+        self.assertLess(lease.index('WAIT_fnc_DrivingOperationFinish'),lease.index('_group setVariable ["WAIT_Cortex_MovementLease"'))
+        self.assertIn('serverTime < (_lease select 1)',available)
+        self.assertIn('WAIT_VehicleReverse',available)
+        self.assertIn('WAIT_AIPass_Epoch',available)
+        for name in ['drivingAssistStart','drivingAssistRelease','drivingOperationStart','drivingOperationStep']:
+            self.assertIn('WAIT_fnc_DrivingMovementAvailable',(ROOT/('addons/vehicles/functions/'+name+'.sqf')).read_text(encoding='utf-8'))
+        self.assertNotIn('setVariable',available)
+
+    def test_reverse_clearance_is_shared_body_sized_and_read_only(self):
+        """Both native recovery paths must use fresh hull-width actor and geometry evidence."""
+        observer=(ROOT/'addons/vehicles/functions/drivingRearClear.sqf').read_text(encoding='utf-8')
+        ordinary=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        tracked=source('cortexVehicleReverseStep')
+        self.assertIn('boundingBoxReal _vehicle',observer)
+        self.assertIn('boundingBoxReal _thisActor',observer)
+        self.assertIn('count _actors > 64',observer)
+        self.assertIn('forEach _heights',observer)
+        self.assertIn('[0.45,0.9,(_bodyHeight+0.45)*0.5,_bodyHeight]',observer)
+        self.assertIn('forEach [_left,(_left+_right)*0.5,_right]',observer)
+        self.assertIn('_maxX >= _actorLeft',observer)
+        self.assertIn('private _actorLeft=_left;private _actorRight=_right;',observer)
+        self.assertIn('_minY <= _actorFront',observer)
+        self.assertIn('private _actorRear=_rear-_distance;private _actorFront=_rear+0.5;',observer)
+        self.assertIn('"GEOM","NONE"',observer)
+        self.assertIn('call WAIT_fnc_DrivingRearClear',ordinary)
+        self.assertIn('call WAIT_fnc_DrivingRearClear',tracked)
+        self.assertLess(ordinary.index('call WAIT_fnc_DrivingRearClear'),ordinary.index('_movementOperator doMove _rear'))
+        self.assertLess(tracked.index('call WAIT_fnc_DrivingRearClear'),tracked.index('_vehicle sendSimpleCommand "BACK"'))
+        for write in ['forceSpeed','sendSimpleCommand','doMove','setPos','setVelocity','disableCollisionWith']:
+            self.assertNotIn(write,observer)
+        self.assertNotIn('allVehicles',observer)
+        self.assertNotIn('allUnits',observer)
+
+    def test_reverse_clearance_uses_full_vertical_hulls_not_actor_centres(self):
+        text=(ROOT/'addons/vehicles/functions/drivingRearClear.sqf').read_text(encoding='utf-8')
+        for proof in ['private _thisActor=_x','_thisActor modelToWorld [_width,_x,_height]',
+                      'forEach [_otherLow select 2,_otherHigh select 2]',
+                      '_maxZ >= (_low select 2)-0.3','_minZ <= (_high select 2)+0.3']:
+            self.assertIn(proof,text)
+        self.assertNotIn('abs _vertical < 4',text)
+        # A tall hull can overlap while its centre lies outside the former four-metre band.
+        overlap=lambda low,high,other_low,other_high:other_high>=low-0.3 and other_low<=high+0.3
+        self.assertTrue(overlap(-1,2,1.9,7))
+        # Nearby centres on stacked surfaces do not justify occupying the reverse corridor.
+        self.assertFalse(overlap(-1,1,2,3.5))
+        self.assertTrue(overlap(-1,1,1.2,2))
+
+    def test_ordinary_driving_fsm_owns_queued_execution_and_terminal_receipts(self):
+        """Old/replaced/retired driving work cannot enter the movement executor."""
+        fsm=(ROOT/'addons/main/fsm/drivingOperation.fsm').read_text(encoding='utf-8')
+        start=(ROOT/'addons/vehicles/functions/drivingOperationStart.sqf').read_text(encoding='utf-8')
+        queue=(ROOT/'addons/vehicles/functions/drivingOperationQueue.sqf').read_text(encoding='utf-8')
+        step=(ROOT/'addons/vehicles/functions/drivingOperationStep.sqf').read_text(encoding='utf-8')
+        finish=(ROOT/'addons/vehicles/functions/drivingOperationFinish.sqf').read_text(encoding='utf-8')
+        execute=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        for phase in ['Cruise','IntentionalWait','Recovery','Finished','SchedulerWatchdog']:
+            self.assertIn('class '+phase,fsm)
+        self.assertIn('drivingOperation.fsm',start)
+        self.assertIn('WAIT_fnc_CortexQueueJob',queue)
+        self.assertIn('WAIT_DRIVING_%1_%2_%3',queue)
+        self.assertIn('if (count _brain == 0) exitWith {[_group] call WAIT_fnc_DrivingOperationStart}',execute)
+        self.assertIn('[_group,_brain] call WAIT_fnc_DrivingAssistStart',step)
+        for text in [queue,step,finish,execute]:
+            self.assertIn('WAIT_Driving_Brain',text)
+            self.assertIn('ownerEpoch',text)
+        self.assertIn('EXHAUSTED',start+step+finish)
+        self.assertIn('if (_reason != "EXHAUSTED")',finish)
+        self.assertIn('WAIT_fnc_DrivingOperationFinish',source('cortexReleaseGroup'))
+        self.assertNotIn('sleep',step)
+        self.assertNotIn('forceSpeed',queue)
+        self.assertNotIn('doMove',fsm)
+        locality=source('cortexLocality')
+        self.assertLess(locality.index('WAIT_fnc_DrivingOperationFinish'),locality.index('_group setVariable ["WAIT_AIPass_Epoch"'))
+        self.assertIn('WAIT_fnc_DrivingOperationFinish',source('cortexStop'))
+        self.assertLess(start.index('call WAIT_fnc_CortexLocality'),start.index('private _epoch='))
+
+
+    def test_driving_native_wait_never_executes_condition_or_starts_recovery(self):
+        text=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        wait=text.split('private _nativeWaiting = {',1)[1].split('private _mayRecoverRoute',1)[0]
+        for proof in ['!unitReady _vehicle','waypointCompletionRadius','triggerActivated',
+                      'waypointTimeout','waypointStatements','"HOLD"']:
+            self.assertIn(proof,wait)
+        self.assertNotIn('compile',wait)
+        self.assertNotIn('call _condition',wait)
+        self.assertIn('&& {!(call _nativeWaiting)}',text)
+        self.assertIn('_state set [8,"INTENTIONAL_WAIT"]',text)
+
+    def test_driving_recovery_cannot_bypass_a_distant_authored_gate(self):
+        text=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        policy=text.split('private _recoveryOrderFree = {',1)[1].split('private _mayRecoverRoute',1)[0]
+        for proof in ['_index <= 0','waypointType _waypoint == "MOVE"',
+                      '_condition == "true"','_statements param [1,""]',
+                      'waypointScript','waypointTimeout','waypointAttachedVehicle',
+                      'waypointAttachedObject','synchronizedWaypoints','(synchronizedTriggers _waypoint) isEqualTo []']:
+            self.assertIn(proof,policy)
+        self.assertNotIn('distance2D',policy)
+        self.assertNotIn('compile',policy)
+        self.assertIn('&& {call _recoveryOrderFree}',text)
+
+    def test_driving_same_index_order_edits_invalidate_recovery_before_every_write(self):
+        """A condition/trigger/speed edit must fence a stale reverse, even with unchanged position."""
+        start=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        receipt=(ROOT/'addons/vehicles/functions/drivingRouteReceipt.sqf').read_text(encoding='utf-8')
+        metadata=(ROOT/'addons/core/functions/authoredRouteReceipt.sqf').read_text(encoding='utf-8')
+        self.assertIn('[_group,"",false,_index] call WAIT_fnc_AuthoredRouteReceipt',receipt)
+        for command in ['waypointStatements','waypointTimeout','synchronizedTriggers',
+                        'waypointSpeed','waypointCombatMode','waypointFormation',
+                        'waypointScript','waypointAttachedVehicle','waypointAttachedObject',
+                        'synchronizedWaypoints','waypointHousePosition','waypointLoiterAltitude']:
+            self.assertIn(command,metadata)
+        self.assertIn('if (isNull _vehicle && {isNull _object}) then {waypointPosition _waypoint} else {[]}',metadata)
+        self.assertIn('_index <= 0',receipt)
+        guard=start.split('private _mayIssueDriving = {',1)[1].split('};',1)[0]
+        self.assertIn('(call _readRouteIdentity) isEqualTo _routeIdentity',guard)
+        self.assertIn('(_state param [9,[]]) isNotEqualTo _routeIdentity',start)
+        self.assertIn('_state set [6,0]',start)
+        writes=re.findall(r'([^;{}]*)(?:_vehicle forceSpeed|_movementOperator doMove)',start)
+        self.assertEqual(len(writes),5)
+        jam=start.split('// Bounded traffic replan:',1)[1].split('// Waiting behind traffic',1)[0]
+        self.assertIn('&& {call _mayRecoverOrdinaryRoute}) then {',jam)
+        self.assertIn('_movementOperator doMove waypointPosition [_group,currentWaypoint _group]',jam)
+        self.assertGreaterEqual(start.count('call _mayIssueDriving'),3)
+        self.assertIn('if (_state isEqualTo []) then {_vehicle setVariable ["WAIT_DrivingAssist_Restore",nil]}',start)
+
+    def test_driving_followers_cannot_recover_the_leaders_shared_route(self):
+        """Stationary formation followers must never become independent reverse controllers."""
+        start=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
+        for check in ['local _group && {local _vehicle}',
+                      'driver _vehicle isEqualTo _driver',
+                      '(effectiveCommander _vehicle) in [_movementOperator,objNull]',
+                      'vehicle _movementOperator isEqualTo _vehicle',
+                      'local _driver', 'group _driver == _group']:
+            self.assertIn(check,start)
+        guard=start.split('private _mayRecoverRoute = {',1)[1].split('};',1)[0]
+        self.assertIn('call _mayIssueDriving',guard)
+        self.assertIn('vehicle leader _group isEqualTo _vehicle',guard)
+        self.assertGreaterEqual(start.count('{call _mayRecoverRoute}'),2)
+        follower=start.split('if (_state isNotEqualTo [] && {vehicle leader _group isNotEqualTo _vehicle}) then {',1)[1].split('private _origin=',1)[0]
+        self.assertIn('_state set [5,time]',follower)
+        self.assertIn('_state set [6,0]',follower)
+        self.assertIn('if ((_state param [6,0]) != 4) then {_state set [6,0];_state set [7,-1]}',follower)
+        self.assertIn('"NATIVE_FOLLOWER"',follower)
+        self.assertLess(start.index('"NATIVE_FOLLOWER"'),start.index('private _cap='))
+
     def test_general_driving_assist_is_separate_from_convoys_and_preserves_native_routes(self):
         start=(ROOT/'addons/vehicles/functions/drivingAssistStart.sqf').read_text(encoding='utf-8')
         release=(ROOT/'addons/vehicles/functions/drivingAssistRelease.sqf').read_text(encoding='utf-8')
@@ -7411,7 +8210,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WAIT_fnc_DrivingAssistRelease',start)
         self.assertIn('private _yieldToOwner=[_group] call WAIT_fnc_CortexExternalTakeover;',start)
         self.assertIn('getTerrainHeightASL _sample',start)
-        self.assertIn('time+4',start)
+        self.assertIn('time+([4,1] select (_trafficLimited || {_corridorActive} || {_bypassActive} || {_recoveryStage == 2}))',start)
         self.assertIn('private _capMps=_cap/3.6;',start)
         self.assertIn('if (_saved > 0) then {_capMps=_capMps min _saved};',start)
         self.assertIn('forceSpeed _capMps',start)
@@ -7458,7 +8257,7 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('WITHDRAW-tracked-threat-facing',audit)
         for forbidden in ['setDir','setVelocity','setPos','while {','spawn {']:
             self.assertNotIn(forbidden,reverse)
-        self.assertIn('if (_reverse != "REVERSE")',vehicles)
+        self.assertIn('if (_reverse == "FALLBACK")',vehicles)
         self.assertIn('_reverseResult in ["COMPLETE","FALLBACK"]',tick)
         for helper in ['operationCancel','operationRelease','cortexRestoreCalm','cortexLocality']:
             self.assertIn('WAIT_fnc_CortexVehicleReverseStep',source(helper))
@@ -7533,10 +8332,10 @@ class CortexOperations(unittest.TestCase):
         cover=source('dangerCoverStep')
         release=source('cortexReleaseGroup')
         self.assertIn('_dangerCoverLease select 1,true] call WAIT_fnc_DangerCoverStep',release)
-        self.assertIn('if (!_releaseOnly && {count _lease >= 4}',cover)
-        self.assertIn('if (!_releaseOnly && {alive _leasedActor}',cover)
+        self.assertIn('if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 4}',cover)
+        self.assertIn('if (!_releaseOnly && {_leaseContextCurrent} && {_entryContext isEqualTo (call _readOrderContext)} && {alive _leasedActor}',cover)
         self.assertLess(cover.index('if (_releaseOnly) exitWith'),cover.index('call WAIT_fnc_CortexFindCover'))
-        recovery=cover.split('if (!_releaseOnly && {alive _leasedActor}',1)[1].split('_leasedActor doFollow',1)[0]
+        recovery=cover.split('if (!_releaseOnly && {_leaseContextCurrent} && {_entryContext isEqualTo (call _readOrderContext)} && {alive _leasedActor}',1)[1].split('_leasedActor doFollow',1)[0]
         self.assertIn('_leasedActor checkAIFeature "MOVE"',recovery)
         self.assertIn('_leasedActor checkAIFeature "PATH"',recovery)
 
@@ -7602,14 +8401,14 @@ class CortexOperations(unittest.TestCase):
 
     def test_committed_cover_outlives_expired_observation_with_bounded_travel(self):
         text=source('dangerCoverStep')
-        retention=text.split('if (!_releaseOnly && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
+        retention=text.split('if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
         self.assertNotIn('count _threat',retention)
         self.assertIn('max 4 min 12',text)
         self.assertIn('["DANGER_COVER",+_spot,_deadline]',text)
-        self.assertIn('[_actor,_generation,_deadline,+_spot,+_threat]',text)
-        adoption=text.split('// A fresh observation',1)[1].split('if (!_releaseOnly && {count _lease >= 4}',1)[0]
+        self.assertIn('[_actor,_generation,_deadline,+_spot,+_threat,+_entryContext]',text)
+        adoption=text.split('// A fresh observation',1)[1].split('if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 4}',1)[0]
         self.assertIn('_lease set [1,_generation]',adoption)
-        self.assertIn('if (!_releaseOnly && {count _lease >= 5}',adoption)
+        self.assertIn('if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 5}',adoption)
         self.assertIn('WAIT_fnc_CortexCombatEffective',text)
         self.assertNotIn('_lease set [2',adoption)
         self.assertNotIn('doMove _',adoption)
@@ -7628,7 +8427,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(release.index('setVariable ["WAIT_Danger_EngineResponse",nil]'),guard)
         self.assertLess(release.index('setVariable ["WAIT_Danger_EngineStanceLease",nil]'),guard)
         self.assertLess(guard,release.index('_actor setUnitPosWeak _prior'))
-        self.assertIn('(_reservation param [2,-1,[0]]) > time',release)
+        self.assertIn('if ([_actor] call WAIT_fnc_CortexActorMoveReserved) exitWith {',release)
         self.assertNotIn('enableAI',release)
         self.assertNotIn('doMove',release)
 
@@ -7742,7 +8541,7 @@ class CortexOperations(unittest.TestCase):
 
     def test_cover_retention_rechecks_live_authority_before_returning_active(self):
         text=source('dangerCoverStep')
-        retention=text.split('if (!_releaseOnly && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
+        retention=text.split('if (!_releaseOnly && {_leaseContextCurrent} && {count _lease >= 4}',1)[1].split('exitWith {true};',1)[0]
         for gate in ['WAIT_Danger_Generation','WAIT_AIPass_Active','WAIT_AIPass_Danger_Enable',
                      'WAIT_fnc_CortexExternalTakeover','WAIT_Operation','objectParent _actor']:
             self.assertIn(gate,retention)
@@ -7823,7 +8622,8 @@ class CortexOperations(unittest.TestCase):
         text=source('buildingOperationStep')
         self.assertIn('private _routeEvidence=[serverTime,_result,_routeStates',text)
         self.assertLess(text.index('private _result = ["INCOMPLETE","COMPLETE"]'),text.index('private _routeEvidence='))
-        self.assertIn('},_reason,_stageEvidence];',text)
+        self.assertIn('},_reason,_stageEvidence,(keys (_job getOrDefault ["earlyExits",createHashMap])) apply {',text)
+        self.assertIn('+((_job get "earlyExits") get _x)',text)
         self.assertIn('keys _stageRecords select [0,16]',text)
         self.assertIn('_stageCounts getOrDefault [_x,0]',text)
 
@@ -7867,6 +8667,18 @@ class CortexOperations(unittest.TestCase):
         self.assertIn('vectorDistance (AGLToASL _x) <= 1.5',case)
         self.assertEqual(case.count('call WAIT_fnc_CortexClearBuilding'),2)
         self.assertNotIn('_actor setPos',case)
+
+    def test_clearance_entry_timing_comes_from_independent_physical_visits(self):
+        case=(ROOT/'releaseVerificationAndDeployment/cortexQA/runBuildingComparison.sqf').read_text()
+        observed=case.split('private _workerIndex=_forEachIndex;',1)[1].split('} forEach _clearingMembers;',1)[0]
+        self.assertLess(observed.index('call _observedRoomVisit'),observed.index('_memberFirstVisit set'))
+        self.assertIn('_seen isNotEqualTo []',observed)
+        self.assertIn('(_memberFirstVisit select _workerIndex) < 0',observed)
+        self.assertIn('WAIT CLEAR FIRST PHYSICAL ENTRY',observed)
+        self.assertIn('WAIT CLEAR PHYSICAL ENTRY TIMING',case)
+        self.assertIn('_admissionPairs findIf {_worker in _x}',case)
+        self.assertNotIn('lineIntersectsSurfaces',observed)
+        self.assertNotIn('setVariable',observed)
 
     def test_clearance_partner_entry_is_committed_and_doors_require_proximity(self):
         step=source('buildingOperationStep')
@@ -7914,6 +8726,22 @@ class CortexOperations(unittest.TestCase):
         self.assertNotIn('_pairRoutes=',update)
         self.assertNotIn('_state set [0',update)
 
+    def test_clearance_resume_refusals_precede_other_task_handoff(self):
+        text=source('cortexClearBuilding')
+        deadline=text.index('if (serverTime >= (_deadline min _hardDeadline)) exitWith')
+        changed_order=text.index('if (_resume && {(_previous param [9,_nativeOrderReceipt')
+        for cleanup in ('call WAIT_fnc_CortexReleaseGroup',
+                        'call WAIT_fnc_CortexGarrisonRelease','call WAIT_fnc_CortexDefendRelease'):
+            self.assertLess(deadline,text.index(cleanup))
+            self.assertLess(changed_order,text.index(cleanup))
+        handoff=text.index('private _preserveBrain=_options')
+        capture=text.index('_nativeOrderReceipt=[_group] call WAIT_fnc_NativeOrderReceipt;',handoff)
+        self.assertLess(text.index('call WAIT_fnc_CortexDefendRelease'),capture)
+        self.assertLess(capture,text.index('setVariable ["WAIT_AIPass_ClearOrder"'))
+        baseline=text.index('if (!_resume) then {_baseAttack=attackEnabled _leader}')
+        self.assertLess(capture,baseline)
+        self.assertLess(baseline,text.index('setVariable ["WAIT_AIPass_ClearOrder"'))
+
     def test_clearance_refusal_identifies_bounded_actor_admission_evidence(self):
         text=source('cortexClearBuilding')
         self.assertIn('(units _group) select [0,16]',text)
@@ -7949,7 +8777,7 @@ class CortexOperations(unittest.TestCase):
         self.assertLess(text.index('_pair set [_slot,_replacement]'),text.index('if (_pairRosterChanged) then'))
     def test_clearance_reserves_stage_once_and_release_owned_marker(self):
         step=source('buildingOperationStep')
-        for marker in ['reserveStageAttempts','(_reserves select [0,8])','_stageAttempts pushBackUnique _key','doStop _reserve','WAIT_Cortex_ClearReserve']:
+        for marker in ['reserveStageAttempts','_stageReserves select [0,8]','_stageAttempts pushBackUnique _key','doStop _reserve','WAIT_Cortex_ClearReserve']:
             self.assertIn(marker,step)
         self.assertIn('private _stageSearchBudget=1',step)
         self.assertIn('{_stageSearchBudget > 0}',step)
@@ -7985,7 +8813,7 @@ class CortexOperations(unittest.TestCase):
         step=source('buildingOperationStep')
         stage=step.split('private _reserveStages=',1)[1].split('private _pairRosterChanged=',1)[0]
         self.assertLess(stage.index('_stage set [2,"ARRIVED"]'),stage.index('// A deadline may retire only'))
-        recovery=stage.split('// A deadline may retire only',1)[1].split('} forEach (_reserves select [0,8])',1)[0]
+        recovery=stage.split('// A deadline may retire only',1)[1].split('} forEach _stageReserves',1)[0]
         for guard in ['[_reserve] call _ownsCurrentMove','[_reserve] call _reserveReady','call _mayIssueMovement']:
             self.assertLess(recovery.index(guard),recovery.index('doStop _reserve'))
         self.assertIn('_stageSearchCounts getOrDefault [_key,0]',recovery)
@@ -8010,7 +8838,7 @@ class CortexOperations(unittest.TestCase):
     def test_post_clear_hold_handover_requires_changed_order_and_owner_receipt(self):
         text=source('groupBrainStep')
         branch=text.split('private _clearHold=',1)[1].split('private _legacyJob=',1)[0]
-        for guard in ['WAIT_AIPass_ClearGeneration','(_clearHold select 1) == _epoch','WAIT_fnc_NativeOrderReceipt','currentCommand _x == "STOP"','WAIT_fnc_CortexExternalTakeover','WAIT_fnc_CompatibilityExternalControl','WAIT_Cortex_ActorMove','count (_group getVariable ["WAIT_Operation",createHashMap]) == 0']:
+        for guard in ['WAIT_AIPass_ClearGeneration','(_clearHold select 1) == _epoch','WAIT_fnc_NativeOrderReceipt','currentCommand _x == "STOP"','WAIT_fnc_CortexExternalTakeover','WAIT_fnc_CompatibilityExternalControl','WAIT_fnc_CortexActorMoveReserved','count (_group getVariable ["WAIT_Operation",createHashMap]) == 0']:
             self.assertIn(guard,branch)
         self.assertLess(branch.index('WAIT_Cortex_ClearHold",nil'),branch.index('_x doFollow _leader'))
     def test_post_clear_hold_shutdown_releases_only_owned_stop(self):

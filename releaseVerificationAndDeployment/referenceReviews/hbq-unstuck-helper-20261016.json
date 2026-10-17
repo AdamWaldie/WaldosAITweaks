@@ -1,0 +1,66 @@
+{
+  "reviewed": "2026-10-16",
+  "waitSourceCommit": "d5d8d52d202d8e41818f4fea5f1338cc76470898",
+  "scope": "Complete vehicleUnstuck helper and WAIT ordinary recovery issue/handback branches; not whole HBQ parity",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_vehicleUnstuck.sqf",
+      "sha256": "3b179087b1feeb34585905d960c11989357cb0d5a7c634463ea91d1605271ea8",
+      "lineCount": 181,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "area": "comment versus implementation",
+      "evidence": "Header promises fuel recovery, flipping and eventual recreation. Actual helper contains no setFuel or recreation branch; level two expressly avoids flipping/lifting and level three relocates the existing object. Null vehicle/group returns true.",
+      "disposition": "Do not infer capabilities or success from comments/handled return. Distinguish issued command, observed progress and failed recovery."
+    },
+    {
+      "area": "destination intent",
+      "evidence": "Uses current waypoint only when index >0; otherwise accepts expectedDestination when method is not DoNotPlan and X is nonzero. Reissues doMove and setCurrentWaypoint; PATH is unconditionally enabled.",
+      "disposition": "Retain avoidance of index-zero start-position routing. Reject resetting intentional PATH disable or replacing authored waits/scripts/attached orders. WAIT ordinary recovery requires full unchanged route/seat/command receipts and plain MOVE eligibility; direct script-order recovery remains a separate gap."
+    },
+    {
+      "area": "driver replacement",
+      "evidence": "Dead/missing driver selects first alive nonplayer conscious crew member, moves dead driver out, sleeps one second, then uses moveToDriver if actor/vehicle alive, seat empty and actor still aboard. Helper does not check local ownership, generation, route, specialist ownership or newer seat assignment in the callback.",
+      "disposition": "Retain conscious-driver replacement intent and seat vacancy recheck. Do not copy delayed seat mutation without actor/vehicle owner and assignment receipts. Existing WAIT crew controller must be traced separately; this review grants no seat-handover acceptance."
+    },
+    {
+      "area": "repair",
+      "evidence": "Optional mobility repair matches wheel/track/engine/fuel/rotor/transmission/damper substrings and sets matched hitpoints to zero when canMove is false.",
+      "disposition": "Administrative repair is not natural driving recovery. No implicit repair or damage erasure for WAIT ordinary recovery."
+    },
+    {
+      "area": "native versus forced recovery",
+      "evidence": "Level two calls rearClear then push for 2.5m over0.8s if not flying and upright. Level three lifts flying aircraft30m and writes forward model velocity60; land/ship fallback relocates and resets velocity/up vector.",
+      "disposition": "Reject physics/teleport shortcuts for ordinary physical recovery. WAIT currently issues an8m rear doMove after fresh clearance, but native reverse versus U-turn is unproven; class-specific diagnostics are prepared, not run."
+    },
+    {
+      "area": "placement arbitration",
+      "evidence": "Fallback scans vehicles/wrecks/props/people/moving traffic, excludes nearby reserved teleport spots for30s, then mutates transform in one unscheduled block.",
+      "disposition": "Useful intent is collision-aware placement and finite reservation. Local missionNamespace spot list is not cross-owner arbitration. Do not import teleport mechanics or call them queue coordination."
+    },
+    {
+      "area": "WAIT finite handback",
+      "evidence": "DrivingAssistStart uses refresh/rear/final stages with fixed journal deadline, route progress requirement and separate traffic retry budget; DrivingRecoveryRelease checks driver/operator destination, route and native STOP before handback.",
+      "disposition": "Retain finite stages and authored intent. Missing physical native reverse capability and multi-owner queue-room operation remain open. No production change in this review."
+    }
+  ],
+  "waitFilesReviewed": [
+    "addons/vehicles/functions/drivingAssistStart.sqf:450-628",
+    "addons/vehicles/functions/drivingRecoveryRelease.sqf:complete"
+  ],
+  "nextAcceptance": [
+    "Run prepared tracked/wheeled/truck native reverse and steering cases after audit resume",
+    "Trace casualty driver replacement through current crew FSM including delayed seat takeover/migration",
+    "Implement bounded multi-owner jam-room operation only with real native movement capability and authenticated consent",
+    "Measure stalled-queue success, collisions and median/p95 costs"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "paused by user; no launch"
+}

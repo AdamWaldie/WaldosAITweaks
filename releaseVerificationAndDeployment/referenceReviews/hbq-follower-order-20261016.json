@@ -1,0 +1,82 @@
+{
+  "reviewed": "2026-10-16",
+  "scope": "Follower/main order identity, intentional waiting, route-end restoration, stationary watchdog, cadence and terminal cleanup; refreshRoute and routeWaiting helper text inspected. Scoped review, not whole-mod acceptance.",
+  "sources": [
+    {
+      "path": ".qa\\source-refresh-20261011\\inventory\\3812620045\\hbq_advanced_driving_ai\\functions\\fn_driveAssist.sqf",
+      "sha256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+      "lines": 3005
+    },
+    {
+      "path": ".qa\\source-refresh-20261011\\inventory\\3812620045\\hbq_advanced_driving_ai\\functions\\fn_routeWaiting.sqf",
+      "sha256": "9f73ce6923e74108b4f6f56e62bf207d30776b341925ec3e9913ac5d1c0390de",
+      "lines": 38
+    },
+    {
+      "path": ".qa\\source-refresh-20261011\\inventory\\3812620045\\hbq_advanced_driving_ai\\functions\\fn_refreshRoute.sqf",
+      "sha256": "28773a9fd1b297621dbade7ae9b6637a4d6c9715e6c376449598c69cef522be8",
+      "lines": 148
+    }
+  ],
+  "rangesReviewed": [
+    "driveAssist2210-2241 follower/player-led classification and order clock",
+    "driveAssist2310-2384 route-end restore/retry escalation",
+    "driveAssist2556-2597 stationary watchdog consumers",
+    "driveAssist2933-3005 cap cadence and terminal cleanup",
+    "routeWaiting complete",
+    "refreshRoute complete"
+  ],
+  "findings": [
+    {
+      "area": "follower intent",
+      "observed": "Follower is a leader occupying a different vehicle. Follower and player-led groups are excluded from stationary replanning and route-end restoration.",
+      "wait": "Only vehicle leader group == current vehicle may acquire ordinary recovery; other vehicles retain native formation while safety caps remain.",
+      "disposition": "Preserve separate safety observation and leader-only route authority. Leader-on-foot and changed leadership are distinct cases; do not infer recovery authority from a shared waypoint."
+    },
+    {
+      "area": "new order identity",
+      "observed": "Main order key uses group/index/waypoint position with one-metre 2D tolerance; change resets planning age and retry list. Type, statements, synchronization and vertical edits are not part of that key.",
+      "wait": "DrivingRouteReceipt delegates to AuthoredRouteReceipt for full current metadata; owner/context/seat evidence binds execution.",
+      "disposition": "Retain original planning grace for unchanged orders but full metadata identity for replacements. Identical repeated commands remain observationally ambiguous; no claim of complete handover."
+    },
+    {
+      "area": "intentional wait",
+      "observed": "routeWaiting checks within completion radius+50m for HOLD, inactive triggers, timeout or nontrue condition. Conditions are not executed; source strips spaces.",
+      "wait": "Native waiting distinguishes near arrived waits; recoveryOrderFree additionally refuses gated/scripted/attached/synchronized tasks even when distant.",
+      "disposition": "Preserve authored intent; do not turn distant gates into permission to recreate or bypass their waypoint. Test tabs/newlines, attached motion, waypoint edits, WAIT and leader switches physically."
+    },
+    {
+      "area": "route-end reconstruction",
+      "observed": "Caches last waypoint position/type/radius/statements/behaviour/combat/speed/formation/timeout. A distant stopped nonfollower may restore/recreate it, max6 in600s with20s spacing. Repeated no-progress restoration can mark route lost for unstuck.",
+      "disposition": "Do not resurrect intentionally removed mission waypoints or replay arbitrary statements. WAIT finite retries must keep exact unchanged route identity and spent budget, with physical progress evidence. Teleport escalation is not natural recovery."
+    },
+    {
+      "area": "refresh helper",
+      "observed": "refreshRoute uses3s group throttle and an unscheduled delete/add/current waypoint transaction. Commanded vehicles instead reassert current waypoint and commander doMove. Crew helper enables MOVE/PATH and may doFollow; optional EndPath flattens destination altitude before a fixed-path handback wait.",
+      "disposition": "Keep useful driver-versus-commander intent and serialized ownership. Reject blanket MOVE/PATH enablement, unowned doFollow, waypoint recreation and flattening a deck route. Use exact command receipts and current actor/task authority."
+    },
+    {
+      "area": "watchdog timing",
+      "observed": "Stationary watchdog gives a new order20s, then15/30s replan delays; three retries within90s can mark route lost. It excludes traffic holds, active nav/overtake and busy work.",
+      "wait": "Ordinary driving has planning grace and original finite recovery/traffic episodes; holds/follower changes cannot reset spent work.",
+      "disposition": "Retain finite planning opportunity without repeated rejuvenation. Source route-lost/teleport flags are not physical failure recovery. Queue execution remains separately incomplete."
+    },
+    {
+      "area": "cadence and terminal ownership",
+      "observed": "Obstacle/traffic parts have separate due clocks, nominal0.25s alert or0.4s base; sleep bounded0.1..3s, overtaking0.25s. After loop, some local speed release is guarded, but running/busy/debug flags are cleared outside that local guard. Gate cleanup spawns a separate up-to180s worker.",
+      "disposition": "Use shared bounded scheduler and generation/epoch exact cleanup. Do not let retiring old-owner work clear successor state. Local handler count or sleep intervals alone do not establish measured performance or safe migration."
+    }
+  ],
+  "physicalCases": [
+    "leader vehicle versus follower on same route",
+    "leader on foot and leadership change",
+    "new waypoint metadata or elevation at same index",
+    "intentional near/distant HOLD/trigger/script/timeouts",
+    "new commander/driver command during retry and cleanup",
+    "ownership migration while gate cleanup or replanning is pending"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "auditRun": false
+}

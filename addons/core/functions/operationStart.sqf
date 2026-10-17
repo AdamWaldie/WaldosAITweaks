@@ -2,6 +2,9 @@
  * Author: WaldoTheWarfighter
  * Purpose: Starts or replaces one finite WAIT operation without allowing stale work to command the group.
  * Locality/authority: Runs on the current group owner; server forwards only through callers that already own dispatch.
+ * Progress domain: participant platforms are captured at commitment. Foot actors boarding another
+ * vehicle and crews changing vehicle cannot supply progress to the old operation; empty-roster
+ * fallback retains its original foot/vehicle domain without fixing the leader actor identity.
  * Repeat/JIP: Replacing an intent increments a public generation. The durable summary is replayable; local routes and callbacks rebuild on ownership migration.
  * Arguments: 0 group <GROUP>; 1 intent <STRING>; 2 objective <OBJECT or ARRAY>; 3 participants <ARRAY>; 4 route <ARRAY>; 5 state <STRING, PLAN>.
  * Return Value: HASHMAP operation, or an empty HASHMAP when the group cannot be owned here.
@@ -61,6 +64,8 @@ private _operation=createHashMapFromArray [
     ["pairs",_pairs], ["objective",_objective], ["participants",_capable], ["participantsRequired",_participants isNotEqualTo []], ["route",+_route], ["phase",toUpperANSI _phase],
     ["startedAt",time], ["lastProgressAt",time], ["lastProgressPosition",getPosATL _operationAnchor],
     ["participantProgress",_capable apply {[_x,getPosATL _x]}], ["lastProgressActor",objNull],
+    ["participantPlatforms",createHashMapFromArray (_capable apply {[netId _x,vehicle _x]})],
+    ["progressPlatform",vehicle _operationAnchor],["progressOnFoot",_dangerPosture],
     ["replans",0], ["recovery",createHashMap], ["recoveryAttempts",createHashMap], ["unavailable",[]], ["restore",createHashMap],
     ["dangerAtStart",_liveDanger], ["dangerPosture",_dangerPosture], ["cancelReason",""]
 ];

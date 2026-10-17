@@ -205,3 +205,39 @@ Runtime 20260929-155242 predates this expanded dispatch and does NOT run the com
 `-CortexFocus artillery` independently runs the finite lethal burst, warning and counter-battery cases. Its explicitly assigned spotter is created and removed by that fixture; it no longer depends on a private unit from the infantry block.
 
 Ammo sharing additionally checks disable-after-transfer and a second scheduler-driven transfer after re-enable, including donor funding and total-round conservation. These additions require the next rebuilt mission; runtime 20260929-155242 predates them.
+
+
+### Individual indoor executor fixtures (unrun)
+
+The `indooractors` focus is a normal-server-only batch: `-Focus indooractors -BatchMode normal -HeadlessClients 0`. It stages the registered individual investigation API separately from whole-group clearance. It does not enable automatic dispatch. Do not run it while audits are paused.
+
+The two actors must each physically enter a roofed native position, choose destinations at least 1.5 metres apart and travel at least five metres. Live actor pose, floor, bounds and geometry are sampled independently of result receipts. The same actor must then naturally clear its real cooldown and investigate another position. Refusal cases use a fresh idle actor so an earlier cooldown cannot mask the stale-belief, reservation and STOP guards. A genuinely approaching actor receives a new ordinary native MOVE; the old task must retire, preserve that destination and physically follow it. Missing idle/APPROACH prerequisites fail. No door opening, actor relocation, path reset or forced completion assists positive cases. Fixture placement correction occurs before actor spawn and is reported independently.
+
+The release verifier refuses this focused report as whole-addon release evidence. Each positive result must match the new actor generation, and the originally selected target must remain unchanged. This focus cannot certify danger/contact admission, combat effectiveness, casualty flow, moved/inaccessible buildings, HC cancellation or performance. HC transfer requires a separate focused batch; no HC result is inferred from these server-owned actors.
+
+
+### Individual indoor ownership transfer fixtures (unrun)
+
+`-Focus indooractorshc -BatchMode headless -HeadlessClients 2 -HeadlessProvider <repository>` is separate from the normal indooractors focus. It requires the real staged companion provider and two registered, connected HCs. The engine-only migration fallback is insufficient. No audit is authorised while the current audit pause remains active.
+
+Each HC gets a fresh server-owned actor already approaching a real house. Provider acknowledgement must identify that HC and a current adoption revision. An authenticated owner helper observes the actual local brain, marker and journal; it cannot fabricate cleanup. A fresh native MOVE is sent to that owner only after those controls have retired, and actual onward travel is required. The same actor returns through the provider to the server, where its old private brain/FSM pointer must be gone even when no public journal remains. Without resetting cooldowns, it starts a new generation and must physically enter the house. The old deadline must still overlap this restart; a missing timing prerequisite remains a failure. The new generation and original new deadline must survive old callbacks.
+
+The disposable mission init installs owner helpers on every machine, including HCs and JIP. Installation defines functions only: it starts no sampler, controller or event handler. Owner requests accept only the server, a fresh expiry and a previously unused serial; replies must match the server's pending request and the actor's actual current owner. Acknowledgements are not physical movement evidence. Focused normal and HC reports are both refused as full-addon release evidence.
+
+
+The staged native-context extension adds observation-only same-contact paths and a single measured-stall escalation, as well as unchanged ordinary-waypoint handback. Existing indooractors/indooractorshc positives start from idle script admission; they do not validate these new native-combat branches. Dedicated native engagement, clear-fire veto, BUSY path preservation, escalation and ordinary-route continuation variants remain required. Automatic dispatch remains disabled pending squad-claim integration. No new behaviour acceptance follows from source gates.
+
+
+The separate normal-only `indoornatural` focus enables CONTACT and observes the real group decision path with two soldiers and a firing hostile inside a fresh house. It never calls indoor START/dispatch or injects knowledge. It requires native knowledge, contact-bound journals, independently measured interior entry and travel for both soldiers. Invulnerability isolates routing from casualty timing, so this is not combat-effectiveness acceptance. Missing discovery, admission or movement remains a failure. This new focus is unrun; it cannot promote a whole-addon release.
+
+
+Fresh clearance fixtures now log `WAIT CLEAR FIRST PHYSICAL ENTRY` once per observed soldier and a final `WAIT CLEAR PHYSICAL ENTRY TIMING` summary. Times come from the existing independent physical room-visit collector, with no extra geometry scan or injected task state. Rows retain original pair membership, admitted-worker status and missing-entry sentinels, so exterior duty can be distinguished from a late or absent clearing partner. These measurements are diagnostic; no arbitrary universal entry-time threshold replaces the existing physical assertions. The new timing evidence remains unrun while audits are paused.
+
+
+The normal clearance batch includes two single-survivor casualty cases, one for each original
+pair slot. They use independent live room observations, deliberate casualty injection and at
+least three metres of subsequent physical travel to a previously unvisited covered point.
+They retain the original operation episode and hard deadline, provide no reserves, and inject
+no movement, lease or completion state. The slot-zero exterior-survivor prerequisite must be
+observed; a missed timing window remains failed/unexercised. These additions are unrun and do
+not establish physical acceptance. HC migration coverage remains in the separate HC batch.

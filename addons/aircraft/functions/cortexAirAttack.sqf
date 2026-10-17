@@ -45,7 +45,9 @@
  * salvo or a gun burst. It never waits indefinitely for a single engine fire callback.
  * A lack of travel, solution or fire aborts the run; elapsed time alone
  * never completes it. Zeus priority, locality loss, explicit exclusions, runtime disablement or a
- * changed curator waypoint end the lease immediately. Cleanup deletes only that named temporary
+ * changed curator waypoint end the lease immediately. The named WAIT leg also has a metadata
+ * receipt; an edit yields and removes only its WAIT name, preserving the edited native waypoint.
+ * Every cleanup path repeats that check, including early cancellation before normal route comparison. Cleanup deletes only that named temporary
  * waypoint. A successful run hands the aircraft back toward its unchanged original waypoint.
  * During direct Zeus handover, cleanup clears this attack's target commands, preserves the native
  * attack policy and selects the authenticated curator waypoint. One non-forced height request uses
@@ -83,6 +85,13 @@ private _finish={
         };
     };
     private _finishGroup=_job getOrDefault ["group",grpNull];
+    // Early Zeus/external cancellation can precede the main callback's route comparison.
+    // Recheck at cleanup so cancellation reason alone cannot authorize deleting an edited leg.
+    private _finishOwnedName=_job getOrDefault ["ownedWaypointName",""];
+    private _preserveEditedLeg=!isNull _finishGroup && {_finishOwnedName != ""}
+        && {!isNil {_job get "ownedWaypointReceipt"}}
+        && {([_finishGroup,_finishOwnedName,true] call WAIT_fnc_AuthoredRouteReceipt)
+            isNotEqualTo (_job get "ownedWaypointReceipt")};
     if (!isNull _finishGroup && {"token" in _job}) then {[_finishGroup,_job,"ENDED",_reason] call WAIT_fnc_CortexDrillSetStage};
     private _handler=_job getOrDefault ["firedHandler",-1];
     if (_handler >= 0) then {_aircraft removeEventHandler ["Fired",_handler]};
@@ -101,9 +110,9 @@ private _finish={
             if (_ownedWaypointIndex >= 0) then {private _ownedWaypoint=(waypoints _finishGroup) select _ownedWaypointIndex;
                     private _snapshot=_finishGroup getVariable ["WAIT_Cortex_ZeusOrderSnapshot",[]];
                     private _hold=_finishGroup getVariable ["WAIT_AIPass_ZeusHold",[]];
-                    private _claimed=count _snapshot == 7 && {count _hold == 2}
+                    private _claimed=_preserveEditedLeg || {_reason == "OWNED_ROUTE_CHANGED"} || {count _snapshot == 7 && {count _hold == 2}
                         && {(_snapshot select 0) == (_hold select 0)}
-                        && {(_snapshot select 5) == (_ownedWaypoint select 1)};
+                        && {(_snapshot select 5) == (_ownedWaypoint select 1)}};
                     if (_claimed) then {
                         _ownedWaypoint setWaypointName "";
                     } else {deleteWaypoint _ownedWaypoint};};
@@ -133,8 +142,8 @@ private _finish={
             // This is a one-time replay of authenticated Zeus intent, not a Cortex route. Without
             // it Arma retained the pre-attack RED/COMBAT state and ignored AWARE/FULL movement.
             // Use the actual waypoint handle:
-            // deleting the Cortex waypoint leaves engine-ID gaps, so a findIf list offset is not a
-            // valid waypoint ID and previously selected the deleted slot/waypoint zero.
+            // deletion reindexes native waypoints, so use the handle from this fresh lookup,
+            // rather than retaining an index captured before cleanup.
             private _authoredWaypoint=if (_authoredWaypointOffset >= 0) then {
                 _handoverWaypoints select _authoredWaypointOffset
             } else {
@@ -180,7 +189,7 @@ private _finish={
         };
         // On an ordinary finite end, retire only the exact hostile WAIT assigned and only while no
         // player, curator or specialist has claimed the group. A newer target survives cleanup.
-        if (!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"])) then {
+        if (!_preserveEditedLeg && {!(_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED","OWNED_ROUTE_CHANGED"])}) then {
             private _ownedTarget=_job getOrDefault ["fireTarget",objNull];
             private _cleanupExternal=[_finishGroup] call WAIT_fnc_CortexExternalTakeover
                 || {[_finishGroup] call WAIT_fnc_CortexZeusHeld};
@@ -196,7 +205,7 @@ private _finish={
                 } forEach crew _aircraft;
             };
         };
-        if (_resume && {!isNull _finishGroup} && {local _finishGroup}) then {
+        if (_resume && {!_preserveEditedLeg} && {!isNull _finishGroup} && {local _finishGroup}) then {
             private _resumePosition=_job getOrDefault ["resumePosition",[]];
             private _resumeGroup=group driver _aircraft;
             private _resumeWaypointIndex=if (count _resumePosition >= 2) then {
@@ -225,7 +234,7 @@ private _finish={
     // Prevent immediate rediscovery of the same known contact after a finite run. This is a short
     // re-attack interval, not a movement controller or Zeus order guard.
     _aircraft setVariable ["WAIT_Cortex_AirAttackBlockedUntil",serverTime+(
-        if (_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED"]) then {5}
+        if (_preserveEditedLeg || {_reason in ["CONTROL_RELEASED","AUTHORED_ROUTE_CHANGED","OWNED_ROUTE_CHANGED"]}) then {5}
         else {if (_reason in ["COMPLETE","TARGET_DESTROYED"]) then {20}
             else {if (_reason == "DELIVERY_SAFETY_FLOOR") then {120} else {35}}}
     ) max (_aircraft getVariable ["WAIT_Cortex_AirAttackBlockedUntil",0])];
@@ -347,7 +356,7 @@ if (_stage == "") then {
     if (_waypointIndex >= 0 && {_waypointIndex < count waypoints _group}) then {_resumePosition=waypointPosition [_group,_waypointIndex]};
     // Capture authored route content rather than currentWaypoint. The engine advances that index as
     // an aircraft flies, which previously looked like a replacement order and cancelled valid runs.
-    private _routeSignature=waypoints _group apply {[waypointPosition _x,waypointType _x]};
+    private _routeSignature=[_group] call WAIT_fnc_AuthoredRouteReceipt;
     _job set ["target",_target]; _job set ["points",_plan get "points"];
     _job set ["pattern",_plan get "pattern"]; _job set ["token",_plan get "token"];
     if ((_plan get "pattern") == "LATERAL") then {
@@ -490,10 +499,14 @@ if (_stage == "") then {
 };
 if (_startFailure != "") exitWith {[_startFailure] call _finish};
 private _ownedWaypointName=_job getOrDefault ["ownedWaypointName",""];
-private _currentRoute=(waypoints _group select {waypointName _x != _ownedWaypointName}) apply {
-    [waypointPosition _x,waypointType _x]
-};
+private _currentRoute=[_group,_ownedWaypointName] call WAIT_fnc_AuthoredRouteReceipt;
 if (_currentRoute isNotEqualTo (_job getOrDefault ["routeSignature",_currentRoute])) exitWith {["AUTHORED_ROUTE_CHANGED"] call _finish};
+// Compare the excluded leg too: edits/deletion/duplicate names yield before another flight write.
+// Attached target movement changes position naturally; the shared receipt compares identity instead.
+private _currentOwnedReceipt=[_group,_ownedWaypointName,true] call WAIT_fnc_AuthoredRouteReceipt;
+if (!isNil {_job get "ownedWaypointReceipt"} && {_currentOwnedReceipt isNotEqualTo (_job get "ownedWaypointReceipt")}) exitWith {
+    ["OWNED_ROUTE_CHANGED"] call _finish
+};
 private _target=_job getOrDefault ["target",objNull];
 if (!isNull _target && {alive _target} && {captive _target
     || {_target getVariable ["ace_captives_isSurrendering",false]}
@@ -501,7 +514,7 @@ if (!isNull _target && {alive _target} && {captive _target
     || {(side _group) getFriend side _target >= 0.6}}) exitWith {["TARGET_NO_LONGER_HOSTILE",true] call _finish};
 if (!isNull _target && {alive _target} && {_stage in ["INGRESS","ATTACK"]}
     && {(_group knowsAbout _target) <= 0}) exitWith {["TARGET_KNOWLEDGE_LOST",true] call _finish};
-if (!isNull _target) then {_job set ["lastTargetPosition",getPosATL _target]};
+if (!isNull _target) then {_job set ["lastTargetPositionASL",getPosASL _target]};
 // Destroying the target must not strand the aircraft at the firing point. Complete the full
 // INGRESS -> ATTACK -> EGRESS contract, using the wreck's stable position for departure geometry.
 // A target lost before an actual attack remains a failed run and hands native control back at once.
@@ -685,9 +698,10 @@ if (_commandedStage != _stage) then {
         _created
     } else {(waypoints _group) select _ownedWaypointIndex};
     _ownedWaypoint setWaypointPosition [_destination,0];
-    // Object-attached DESTROY is the supported native attack association for both air and surface
-    // targets. It lets the aircraft FSM form the actual attack angle instead of Cortex forcing an
-    // attitude that is only safe over flat VR terrain.
+    // Object-attached DESTROY is this controller's current native association, not a documented
+    // guarantee for every aircraft: the engine command documents GETIN support and warns that
+    // other types may not work. Keep this path pending physical attack/flight acceptance;
+    // Cortex never forces an attitude to hide a failed native association.
     if (_nativeAttackWaypoint) then {
         _ownedWaypoint setWaypointPosition [getPosATL _target,0];
         _ownedWaypoint setWaypointType "DESTROY";
@@ -698,6 +712,7 @@ if (_commandedStage != _stage) then {
         _ownedWaypoint setWaypointType "MOVE";
     };
     _group setCurrentWaypoint _ownedWaypoint;
+    _job set ["ownedWaypointReceipt",[_group,_ownedWaypointName,true] call WAIT_fnc_AuthoredRouteReceipt];
     _job set ["commandedStage",_stage];
     _job set ["commandedDestination",+_destination];
     _job set ["commandedAt",serverTime];
@@ -1060,8 +1075,10 @@ if (_stage == "EGRESS" && {(_stageDistance <= _effectiveCapture || {_stagePassed
 private _egressTravel=if (_stage == "EGRESS") then {
     _aircraft distance2D (_job getOrDefault ["egressStartPosition",getPosATL _aircraft])
 } else {0};
-private _awayFromTarget=(velocity _aircraft) vectorDotProduct ((getPosATL _aircraft) vectorDiff
-    (_job getOrDefault ["lastTargetPosition",getPosATL _aircraft])) > 0;
+// World velocity and displacement must share an absolute vertical origin. ATL values from
+// different terrain cells can invert the departure test when the aircraft climbs over relief.
+private _awayFromTarget=(velocity _aircraft) vectorDotProduct ((getPosASL _aircraft) vectorDiff
+    (_job getOrDefault ["lastTargetPositionASL",getPosASL _aircraft])) > 0;
 // Fast fixed-wing aircraft do not reliably capture an exact doMove point after a weapon release.
 // Physical travel away from the target is an equally valid egress and avoids holding the aircraft
 // under Cortex until a timeout after the attack has already succeeded.

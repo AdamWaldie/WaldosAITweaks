@@ -2,6 +2,9 @@
  * Author: WaldoTheWarfighter
  * Purpose: Commits one short terrain-screened reposition when the current contact cannot support a useful assault, flank or advance.
  * Locality / Authority: Runs only on the current group owner after normal WAIT eligibility checks. Zeus, players, authored HOLD/SENTRY orders, specialist owners and newer WAIT operations take precedence.
+ * A routine group-waypoint fallback yields to any live or malformed actor reservation;
+ * the earlier close-armour withdrawal retains survival priority. Other native/fire and
+ * independently scoped manoeuvre paths remain available to unreserved actors.
  * Repeat/JIP: One operation generation owns one waypoint. A public cooldown prevents route churn; locality migration retires the old generation and never replays its command blindly.
  * Arguments: 0: group <GROUP>; 1: state <HASHMAP>; 2: ordered known enemies <ARRAY>; 3: selected target index <NUMBER, default 0>; 4: assessment reason <STRING>.
  * Return Value: Boolean - true only when a physical reposition or close-threat withdrawal started.
@@ -62,6 +65,21 @@ if (_reason == "ARMOUR_OVERMATCH" && {_distance <= 120}) exitWith {
     _withdrawing
 };
 
+// This fallback writes a group-wide waypoint. It cannot reserve only the remaining
+// actors, so preserve finite actor work rather than stealing a grenade/AT/indoor leg.
+// The close-armour withdrawal above retains its urgent survival priority.
+private _actorReserved={
+    private _lease=_this getVariable ["WAIT_Cortex_ActorMove",[]];
+    if (_lease isEqualTo []) exitWith {false};
+    private _expired=_lease isEqualType [] && {count _lease == 3}
+        && {(_lease select 0) isEqualType ""}
+        && {(_lease select 1) isEqualType []} && {count (_lease select 1) == 3}
+        && {(_lease select 1) findIf {!(_x isEqualType 0) || {!finite _x}} < 0}
+        && {(_lease select 2) isEqualType 0} && {finite (_lease select 2)}
+        && {time >= (_lease select 2)};
+    !_expired
+};
+if ((units _group) findIf {_x call _actorReserved} >= 0) exitWith {false};
 private _toward=_origin getDir _threatPos;
 private _away=_threatPos getDir _origin;
 private _range=switch (_reason) do {

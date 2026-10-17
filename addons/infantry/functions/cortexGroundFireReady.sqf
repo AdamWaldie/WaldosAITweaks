@@ -10,7 +10,7 @@
  * 2 target <OBJECT, objNull>, omitted means the legacy station-only ammunition check.
  * Return Value: BOOL, station has usable damaging ammunition for the supplied target,
  * or any damaging ammunition when target is omitted; not proof of firing/effect.
- * Current callers: CortexCombinedArmsLocal and CortexCombinedGroundStep.
+ * Current callers: CortexCombinedArmsLocal, CortexCombinedGroundStep and CortexVehicles.
  * Example: [_vehicle,gunner _vehicle,_enemy] call WAIT_fnc_CortexGroundFireReady;
  */
 params [["_asset",objNull,[objNull]],["_gunner",objNull,[objNull]],["_target",objNull,[objNull]]];

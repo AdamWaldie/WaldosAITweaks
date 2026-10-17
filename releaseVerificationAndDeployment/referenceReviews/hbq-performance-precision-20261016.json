@@ -1,0 +1,86 @@
+{
+  "reviewed": "2026-10-16",
+  "waitSourceCommit": "109fdd4b217354009aeaff2f99b01b174abcfffe",
+  "scope": "Complete monitor/precision/player-proximity helpers and selected driving cadence consumers",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_perfMonitor.sqf",
+      "sha256": "43e1a678a218c7c58960ae0b56a3dd48c3ef0e48d9f1c427eb7fcda962a031dd",
+      "lineCount": 91,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_precision.sqf",
+      "sha256": "9d5d28551d748410a419f1ec602845bc3e3b6d653c8dd6179bb10eed71381a9b",
+      "lineCount": 36,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_playersNear.sqf",
+      "sha256": "9ab86035b3b06784c17383ed3efb0892dff55f087166c5079fad49896fedaee1",
+      "lineCount": 35,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_driveAssist.sqf",
+      "sha256": "2e6f0515474117496216a8900b5341588603c0b43bf41ec74e259f5c863e9931",
+      "rangesReviewed": [
+        "114-148 settings/precision factors",
+        "2159-2179 separate clocks and time accumulator"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "area": "measurement scope",
+      "evidence": "Monitor samples 0.1s uiSleep wake lateness over2s windows, diag_fps/fpsMin, active scheduled scripts and cumulative vehicle/ray/time deltas. Eight-field stats include elapsed pass milliseconds but renderer does not display its _Ms argument.",
+      "disposition": "Wake lateness is responsiveness evidence, not frame-time overhead attribution. FPS/min, ray rate and script count cannot certify median/p95 budget. Do not adopt source comments about scheduler budget as verified engine facts."
+    },
+    {
+      "area": "demand and network cost",
+      "evidence": "Permanent monitor loop uiSleeps1s while unused. Interface clients publish global wanted timestamp when enabled; multiplayer server broadcasts stats while wanted is younger than10s. HC work is not separately requested/reported by this monitor path.",
+      "disposition": "Retain demand-driven measurement intent; use explicit per-owner evidence, bounded logging and collection lifetime. The claim costs nothing when unused is not literal: dormant loop and driving counters remain. Public diagnostic timestamps are not authority for AI movement."
+    },
+    {
+      "area": "precision cache",
+      "evidence": "Per-vehicle result cached5s. Explicit vehicle precision overrides automatic distance mode. Automatic low scans alive allPlayers minus HeadlessClient_F; no player nearby lowers precision, including dedicated operation with no observers.",
+      "disposition": "Retain amortized configuration/proximity decisions, but no completion credit from reduced work at distance. Validate close and distant active battles equally. Add deliberate invalidation/owner lifecycle if implementing this mechanism; no source cache copied."
+    },
+    {
+      "area": "safety cadence",
+      "evidence": "Driving precision uses obstacle factors2.2/1.5/1 and traffic factors2.2/2.2/1. Independent clocks retain preceding observation/cap between due passes.",
+      "disposition": "Separate expensive observation clocks can help cost, provided maximum observation age, speed/reaction horizon and continuous safety authority are validated. Never release a collision hold merely because a slower scan is not due. No WAIT cadence change made."
+    },
+    {
+      "area": "player visibility heuristic",
+      "evidence": "playersNear filters alive non-HC players below10m ATL; optional direction heuristic projects body getDir by range and halves radius if projected look is farther than0.7radius. It performs no line-of-sight or actual camera-view query.",
+      "disposition": "Not visibility proof: airborne observers, camera/Zeus views, occlusion and body-versus-view direction can disagree. Do not use it to justify hidden teleport/physics recovery. It is distinct from precision distance selection."
+    },
+    {
+      "area": "WAIT evidence boundary",
+      "evidence": "Standalone performance fixture samples diag_deltaTime every frame for60s after20s warmup; validates50 moving server-owned groups, surviving actors, composition and observer continuity. Reporter compares matched clean provenance and median/p95 against5/10percent limits.",
+      "disposition": "Useful patrol-only paired benchmark. Does not prove combat, CQB, queues, actual HC ownership, multi-owner coordination or client/JIP costs. Whole-addon budget remains unaccepted. Repeated matched runs and diverse workloads remain required."
+    }
+  ],
+  "waitFilesReviewed": [
+    "releaseVerificationAndDeployment/report_standalone_performance.py:complete",
+    "releaseVerificationAndDeployment/cortexQA/runStandalonePerformance.sqf:complete"
+  ],
+  "nextAcceptance": [
+    "Measure normal and actual-HC workloads separately",
+    "Include combat/CQB/convoy stalls and changing ownership, with matching behaviour outcomes",
+    "Capture frame-time distributions plus operation latency/scan age so reduced responsiveness cannot masquerade as performance success",
+    "Use repeated matched native/WAIT candidates; record hardware/runtime/dependency identities and observer continuity"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeHBQParity": false,
+  "audits": "paused; no launch",
+  "productionChange": false
+}

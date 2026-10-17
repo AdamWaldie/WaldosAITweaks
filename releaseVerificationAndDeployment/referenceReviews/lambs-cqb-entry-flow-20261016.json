@@ -1,0 +1,88 @@
+{
+  "reviewed": "2026-10-16",
+  "waitSourceCommit": "90e0c306fafbd58e3b94871399f40317cbac9864",
+  "scope": "Current entry/buddy/physical-visit comparison against individual assault and legacy CQB helpers; no whole LAMBS parity",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/1858075458/lambs_main/functions/UnitAction/fnc_doAssault.sqf",
+      "sha256": "d232f587dff55bfe1389e32c4c7b9551688c61353d7ad42d61c36e7c65eaa7cf",
+      "lineCount": 142,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/1858075458/lambs_main/functions/UnitAction/fnc_doAssaultCQB.sqf",
+      "sha256": "309bdcfb8a3cae817263aa78107a3743d706b3e4327235a6f3c03d4510f8aff1",
+      "lineCount": 119,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/1858075458/lambs_danger/functions/fnc_tacticsCQB.sqf",
+      "sha256": "ed8324ac0d36f64fb87924683fa5b2df737e1f836ae4eafc60d0e0a192587f7d",
+      "lineCount": 76,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    },
+    {
+      "path": ".qa/source-refresh-20261011/inventory/1858075458/lambs_main/script_macros.hpp",
+      "sha256": "54518d4572afcbfb4cffd21eb9d3a13af270f7fd4f1a0f3d2999bc7c962cdc1a",
+      "lineCount": 51,
+      "rangesReviewed": [
+        "RND definition"
+      ]
+    }
+  ],
+  "priorReview": ".qa/workshop-comparison-20261014/LAMBS-CQB-EXECUTION-REVIEW-20261015.json",
+  "findings": [
+    {
+      "area": "active path distinction",
+      "evidence": "Prior source trace records danger Engage -> brainEngage -> doAssault; doAssaultCQB has self-callback but incoming active FSM caller was not proven. Current review reads both helpers but does not re-establish compiled callgraph.",
+      "disposition": "Do not attribute legacy helper results to active danger FSM. Preserve uncertainty rather than treating function name as behaviour parity."
+    },
+    {
+      "area": "active destination and target floor",
+      "evidence": "doAssault retains BUSY expected destination near getHideFrom; otherwise searches building nodes matching rounded live hostile ASL height and closer to hide position. Writes doMove or LEADER PLANNED only when destination differs by more than1m.",
+      "disposition": "Useful intent: keep useful native movement and reduce needless replanning, with target-relevant floors. WAIT must use finite native belief instead of unseen hostile live height; do not copy live-transform tracking."
+    },
+    {
+      "area": "legacy progression and cleanup",
+      "evidence": "doAssaultCQB sets forceMove, doMove plus FORMATION PLANNED destination, shared side-specific first-node list,7s repeat. RND(0.95) expands random1>0.95 and can delete a node without arrival. tacticsCQB later restores attackEnabled from an old snapshot without current applied-value/episode proof.",
+      "disposition": "Retain continuous intent only. Reject random progress credit, competing destination setters and stale restoration. These are not solutions to WAIT partner entry."
+    },
+    {
+      "area": "previous contact data gap now closed in source",
+      "evidence": "Current BuildingContact passes contactBelief; ClearBuilding validates finite3D point/timestamp age<=5s and building bounds, persists timestamp, seeds one matching-floor route; BuildingContactSelect derives house from owned roof over believed position with bounded3record scan.",
+      "disposition": "Prior review missing contact data-path statement is stale for current source. Implementation exists offline, physical effectiveness remains unproven. Keep lower-floor access sequencing and avoid live enemy polling."
+    },
+    {
+      "area": "buddy entry intent and remaining gap",
+      "evidence": "Current operation commits partner toward nearby native same-floor node1.2..8m from initial anchor, ranked free before occupied and clear segment from anchor. Lead continues until partner has physical entry receipt. After12s no distance improvement, one recovery can retry the lead-proven anchor; alternate searches are bounded by coverage changes.",
+      "disposition": "This is not deliberate permanent exterior cover, but geometric connectivity does not prove native path reachability. Do not tune timing/spacing blind or remove physical arrival guards. Need paired per-actor native destination/path and progress evidence at lead entry, partner issue/retry and final settlement."
+    },
+    {
+      "area": "navigation evidence",
+      "evidence": "Production uses3D proximity/floor/bounds/owned overhead/clear segment; latest independent audit now rejects open bounds and any segment blocker. Neither is hostile room safety proof.",
+      "disposition": "Keep visits distinct from clearance of threats, stable exterior isolation and post-clear continuation. Source helper random deletion cannot replace physical evidence."
+    }
+  ],
+  "waitFilesReviewed": [
+    "addons/infantry/functions/buildingOperationStep.sqf:1690-1835,1910-1993,2210-2298",
+    "addons/infantry/functions/cortexClearBuilding.sqf:contactBelief validation and365-405 route seed",
+    "addons/infantry/functions/buildingContactSelect.sqf:complete",
+    "addons/infantry/functions/cortexBuildingContact.sqf:contact dispatch"
+  ],
+  "nextWork": [
+    "Capture per-actor entry decision provenance without changing native routes or fabricating visits",
+    "Separate no-native-path, threshold congestion, invalid destination and command takeover in physical evidence",
+    "Retain casualty buddy replacement, straggler isolation and settlement as distinct acceptance cases"
+  ],
+  "productionChange": false,
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "wholeLambsParity": false,
+  "audits": "paused; no launch"
+}

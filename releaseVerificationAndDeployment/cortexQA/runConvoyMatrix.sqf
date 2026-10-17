@@ -126,6 +126,8 @@ if (!_diagnostic && {!_columnOnly} && {!_trackedOnly}) then {
         private _id = format ["CNVM-%1-%2",_label,_spacing];
         [_id,"This case creates operating crew, no cargo passengers: all must stay aboard. Watch their labelled vehicles and actual tracks on the 1 km straight, then a deliberate halt/resume. Separate cases test corners. BASELINE labels identify engine-only comparisons.",[2500,2500] call _terrainPosition] call _phase;
         private _group = createGroup [east,true];
+        // Normal fixture owns this group. Capture only WAIT cases; engine baselines stay untouched.
+        _group setVariable ["WAIT_Convoy_CaptureControl",!_baseline];
         _group setVariable ["WAIT_Headless_ExcludeGroup",true,true];
         _group setVariable ["acex_headless_blacklist",true,true];
         private _vehicles=[];
@@ -197,14 +199,33 @@ if (!_diagnostic && {!_columnOnly} && {!_trackedOnly}) then {
         // Startup is assessed separately so a loop cannot hide inside the warm-up window.
         private _startupTurned=false;
         private _startupBackwards=false;
+        private _startupFirstMove=[-1,-1,-1];
+        private _startupRestarts=[0,0,0];
+        private _startupStopsAfterMove=[0,0,0];
+        private _startupMoving=[false,false,false];
         for "_sample" from 1 to 40 do {
             {
-                if (abs speed _x > 2 && {abs (((getDir _x-_terrainHeading+540) mod 360)-180) > 75}) then {_startupTurned=true};
+                private _index=_forEachIndex;
+                private _moving=abs speed _x > 2;
+                private _wasMoving=_startupMoving select _index;
+                if (_moving && {!_wasMoving}) then {
+                    if ((_startupFirstMove select _index) < 0) then {
+                        _startupFirstMove set [_index,diag_tickTime-_start];
+                    } else {_startupRestarts set [_index,(_startupRestarts select _index)+1]};
+                };
+                if (!_moving && {_wasMoving}) then {
+                    _startupStopsAfterMove set [_index,(_startupStopsAfterMove select _index)+1];
+                };
+                _startupMoving set [_index,_moving];
+                if (_moving && {abs (((getDir _x-_terrainHeading+540) mod 360)-180) > 75}) then {_startupTurned=true};
                 private _startupDelta=(getPosATL _x) vectorDiff (_origins select _forEachIndex);
                 if ((_startupDelta vectorDotProduct _terrainForward) < -5) then {_startupBackwards=true};
             } forEach _vehicles;
             sleep 0.5;
         };
+        // Observations only: a speed threshold crossing is not a completed start or collision.
+        // Preserve the excluded warm-up window without inventing an unvalidated acceptance limit.
+        diag_log format ["WAIT CORTEX QA MATRIX STARTUP: case=%1 windowSeconds=%2 firstMoveSeconds=%3 restarts=%4 stopsAfterMove=%5 positions=%6 speeds=%7",_id,diag_tickTime-_start,_startupFirstMove,_startupRestarts,_startupStopsAfterMove,_vehicles apply {getPosATL _x},_vehicles apply {speed _x}];
         [_id+"-startup-no-loop",!_startupTurned && {!_startupBackwards},str [_startupTurned,_startupBackwards]] call _check;
         while {diag_tickTime-_start < 80} do {
             if (_baseline && {diag_tickTime >= _nextFollow}) then {
@@ -265,7 +286,9 @@ if (!_diagnostic && {!_columnOnly} && {!_trackedOnly}) then {
                         _timingController getOrDefault ["leadSpeedLimit",[]],
                         _progress param [1,-1],_progress param [4,0],
                         _progress param [5,[]],_progress param [6,[]],
-                        isAISteeringComponentEnabled _x]
+                        isAISteeringComponentEnabled _x,
+                        (_timingController getOrDefault ["controlSamples",createHashMap]) getOrDefault [_key,[]],
+                        _timingController getOrDefault ["leadControlSample",[]]]
                 } else {["UNAVAILABLE_REMOTE_OWNER",groupOwner _group]};
                 [netId _x,speed _x,getForcedSpeed _x,velocityModelSpace _x,
                     _longitudinal,netId _operator,currentCommand _operator,expectedDestination _operator,

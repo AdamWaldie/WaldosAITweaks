@@ -3,9 +3,10 @@
  * Installs the owner-local sampler and workload activator used by the distributed Cortex
  * performance audit.
  * Locality/authority: compiled on the server and every connected headless client during audit
- * pre-init. WAIT_CortexQA_PerformanceSampleOwner samples only groups local to that machine.
- * Queue diagnostics sample existing callback cost/latency and queue depth once per second.
- * Retired-between-sample work can be missed; diagnostics never establish performance acceptance.
+ * mission initialization. WAIT_CortexQA_PerformanceSampleOwner samples only groups local to that machine.
+ * Queue diagnostics sample queue depth and the existing 256-entry executed-callback ring once
+ * per second, including terminal jobs. Ring entries overwritten between samples can be missed;
+ * diagnostics never establish performance acceptance.
  * Repeat/JIP: replacing a sample removes the earlier EachFrame handler and advances a generation;
  * a late completion cannot publish over a newer run. Results are published once for the server
  * audit runner. A public owner heartbeat distinguishes an attached HC from one whose simulation
@@ -30,7 +31,8 @@
  */
 WAIT_CortexQA_PerformanceSampleOwner = {
     params [["_sampleId","",[""]],["_duration",60,[0]]];
-    if (_sampleId == "" || {_duration <= 0}) exitWith {};
+    if (remoteExecutedOwner != 2 && {!(isServer && {remoteExecutedOwner == 0})}) exitWith {};
+    if (_sampleId == "" || {!finite _duration} || {_duration <= 0} || {_duration > 600}) exitWith {};
     private _oldHandler=missionNamespace getVariable ["WAIT_CortexQA_PerformanceFrameHandler",-1];
     if (_oldHandler >= 0) then {removeMissionEventHandler ["EachFrame",_oldHandler]};
     private _generation=(missionNamespace getVariable ["WAIT_CortexQA_PerformanceGeneration",0])+1;
@@ -46,7 +48,7 @@ WAIT_CortexQA_PerformanceSampleOwner = {
     [_sampleId,_duration,_generation,clientOwner,_heartbeatKey] spawn {
         params ["_sampleId","_duration","_generation","_sampleOwner","_heartbeatKey"];
         private _maxOverdue=0;
-        private _sampleStarted=time;
+        private _sampleStartedTick=diag_tickTime;
         private _maxCallbackMs=0;
         private _maxCompletedLatency=0;
         private _peakQueued=0;
@@ -57,12 +59,19 @@ WAIT_CortexQA_PerformanceSampleOwner = {
             _peakQueued=_peakQueued max count _queued;
             {
                 _maxOverdue=_maxOverdue max (time-(_x param [0,time]));
-                private _state=_x param [2,createHashMap,[createHashMap]];
-                if ((_state getOrDefault ["lastRunAt",-1]) >= _sampleStarted) then {
-                    _maxCallbackMs=_maxCallbackMs max (_state getOrDefault ["lastCallbackMs",0]);
-                    _maxCompletedLatency=_maxCompletedLatency max (_state getOrDefault ["queueLatency",0]);
-                };
             } forEach _queued;
+            // Finite driving/operation callbacks leave the queue after execution. Read their
+            // existing bounded owner-local history rather than reporting zero from queued jobs.
+            // diag_tickTime matches the ring clock; mission time is not interchangeable.
+            private _observedAt=diag_tickTime;
+            private _completed=+(missionNamespace getVariable ["WAIT_AIPass_CallbackSamples",[]]);
+            {
+                if (count _x == 5 && {(_x select 4) >= _sampleStartedTick}
+                    && {(_x select 4) <= _observedAt}) then {
+                    _maxCallbackMs=_maxCallbackMs max (_x select 2);
+                    _maxCompletedLatency=_maxCompletedLatency max (_x select 3);
+                };
+            } forEach (_completed select [0,256]);
             sleep 1;
         };
         if ((missionNamespace getVariable ["WAIT_CortexQA_PerformanceGeneration",-1]) != _generation) exitWith {};
@@ -87,8 +96,8 @@ WAIT_CortexQA_PerformanceSampleOwner = {
         private _result=[_sampleOwner,_count,[0.5] call _percentile,[0.95] call _percentile,
             [0.99] call _percentile,_maxOverdue,count _localGroups,_localUnits];
         missionNamespace setVariable [_heartbeatKey,serverTime,true];
-        // Diagnostic snapshots can miss jobs retired between samples. These values explain
-        // observed queue pressure; they do not prove a whole-run callback maximum or budget.
+        // Diagnostic snapshots can miss ring entries overwritten between samples. These values
+        // include observed retired callbacks, but cannot prove a whole-run maximum or budget.
         private _queueDiagnostic=[_sampleId,_sampleOwner,_maxOverdue,_maxCallbackMs,_maxCompletedLatency,_peakQueued];
         missionNamespace setVariable [format ["WAIT_CortexQA_PerformanceQueue_%1_%2",_sampleId,_sampleOwner],_queueDiagnostic,true];
         diag_log format ["WAIT PERFORMANCE QUEUE DIAGNOSTIC: %1",_queueDiagnostic];
@@ -99,6 +108,7 @@ WAIT_CortexQA_PerformanceSampleOwner = {
 
 WAIT_CortexQA_PerformanceDeleteGroup = {
     params [["_group",grpNull,[grpNull]]];
+    if (remoteExecutedOwner != 2 && {!(isServer && {remoteExecutedOwner == 0})}) exitWith {};
     if (isNull _group || {!local _group}) exitWith {};
     [_group] spawn {
         params ["_group"];
@@ -115,6 +125,7 @@ WAIT_CortexQA_PerformanceStartGroup = {
         ["_destination",[0,0,0],[[]],3],
         ["_contact",false,[false]]
     ];
+    if (remoteExecutedOwner != 2 && {!(isServer && {remoteExecutedOwner == 0})}) exitWith {};
     if (isNull _group || {!local _group}) exitWith {};
     _group setVariable ["WAIT_CortexQA_PerformanceFired",false,true];
     {

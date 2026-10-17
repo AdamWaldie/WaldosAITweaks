@@ -40,6 +40,7 @@ jobs:
       - run: hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
       - run: hemtt utils config inspect addons/danger/danger.fsm
       - run: hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+      - run: hemtt utils config inspect addons/main/fsm/indoorActor.fsm
       - run: hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/airAttackOperation.fsm

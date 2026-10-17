@@ -27,7 +27,12 @@ try {
         if ($LASTEXITCODE) { throw 'Feature coverage checks failed' }
     }
     # The addon contains SQF/config/FSM only. HEMTT still rapifies config with --no-bin.
-    & $Hemtt $Mode.ToLowerInvariant() --no-bin
+    if ($Mode -eq 'Release') {
+        # Signing is a separate fixed-key step; HEMTT must never generate a replacement authority.
+        & $Hemtt release --no-bin --no-sign --no-archive
+    } else {
+        & $Hemtt build --no-bin
+    }
     if ($LASTEXITCODE) { throw 'HEMTT package build failed' }
     & $Hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
     if ($LASTEXITCODE) { throw 'FSM configuration validation failed' }
@@ -39,6 +44,8 @@ try {
     if ($LASTEXITCODE) { throw 'Group tactics FSM configuration validation failed' }
     & $Hemtt utils config inspect releaseVerificationAndDeployment/auditMission/nativeBuildingMove.fsm
     if ($LASTEXITCODE) { throw 'Native building comparison FSM configuration validation failed' }
+    & $Hemtt utils config inspect addons/main/fsm/indoorActor.fsm
+    if ($LASTEXITCODE) { throw 'Individual indoor FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
     if ($LASTEXITCODE) { throw 'Building operation FSM configuration validation failed' }
     & $Hemtt utils config inspect addons/main/fsm/convoyOperation.fsm

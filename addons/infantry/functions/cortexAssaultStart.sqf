@@ -70,10 +70,9 @@ if (_waypointIndex < count waypoints _group && {
 }) exitWith {["AUTHORED_OBJECTIVE_TYPE",[waypointType [_group,_waypointIndex]]] call _refuse};
 
 private _onFoot=(units _group) select {
-    private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
     [_x] call WAIT_fnc_CortexCombatEffective && {local _x} && {isNull objectParent _x}
         && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
-        && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
+        && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
 };
 if (count _onFoot < 4) exitWith {["INSUFFICIENT_ACTORS",[count _onFoot]] call _refuse};
 private _leader=[_group] call WAIT_fnc_CortexGroupAnchor;

@@ -23,6 +23,7 @@
  * altitude afterwards; give it a new flyInHeight in a later waypoint if it should fly lower.
  * Locality and authority: call where the group is local.
  *
+ * Each insertion retains an exact group/serial/owner-epoch episode for stale-job rejection.
  * Repeat/JIP: current feature gates and eligibility are rechecked; owner jobs are retired on migration.
  * Arguments:
  * 0: group <GROUP>
@@ -94,10 +95,15 @@ if (!_ready) exitWith {[[5, 2] select (_distance < 1200), -1] select _force};
 // An event or explicit order may arrive before the discovery sweep. Adopt first,
 // otherwise that sweep invalidates the freshly queued job's owner epoch.
 if !(_group getVariable ["WAIT_AIPass_Adopted",false]) then {[_group,true] call WAIT_fnc_CortexLocality};
+private _serial=(_group getVariable ["WAIT_AIPass_DropSerial",0])+1;
+_group setVariable ["WAIT_AIPass_DropSerial",_serial,true];
+private _episode=[_group,_serial,_group getVariable ["WAIT_AIPass_Epoch",0]];
+_group setVariable ["WAIT_AIPass_DropEpisode",_episode,true];
+_aircraft setVariable ["WAIT_AIPass_DropEpisode",_episode,true];
 _aircraft setVariable ["WAIT_AIPass_DropUntil", time + 30 + count _cargo * 3];
 _group setVariable ["WAIT_AIPass_Dropping", true];
 [WAIT_fnc_CortexAirborneDropStep, createHashMapFromArray [
-    ["group", _group], ["aircraft", _aircraft], ["jumpers", _cargo], ["index", 0], ["phase", "DROP"],
+    ["episode",_episode], ["group", _group], ["aircraft", _aircraft], ["jumpers", _cargo], ["index", 0], ["phase", "DROP"],
     ["target", _target], ["deadline", time + 180], ["forced", _force]
 ], 0] call WAIT_fnc_CortexQueueJob;
 diag_log format ["[WAIT] %1 airborne insertion from %2 (%3 jumpers, %4 m from target, forced=%5).",

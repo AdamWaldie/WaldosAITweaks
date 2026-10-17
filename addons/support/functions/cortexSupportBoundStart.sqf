@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Owner execution preserves unknown/malformed actor reservations through the shared strict predicate.
  * Runs one reserved squad bound as two successive balanced fire-team movements.
  * Locality/authority: group owner consumes the current server role and matching lease.
  * Repeat/JIP: sequence prevents duplicate starts; migration restores mover leases before
@@ -28,13 +29,12 @@ if (_generation < 0 || {(_operation getOrDefault ["generation",-2]) != _generati
 private _final=_point distance2D (_lease select 5) < 2;
 private _unavailable=_operation getOrDefault ["unavailable",[]];
 private _fit=(units _group) select {
-    private _actorMove=_x getVariable ["WAIT_Cortex_ActorMove",[]];
     local _x && {[_x] call WAIT_fnc_CortexCombatEffective} && {isNull objectParent _x}
         && {!(_x in _unavailable)} && {!isPlayer _x} && {isNull remoteControlled _x}
         && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
         && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
         && {_x checkAIFeature "PATH"} && {_x checkAIFeature "MOVE"}
-        && {count _actorMove != 3 || {time >= (_actorMove select 2)}}
+        && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
         && {!(currentCommand _x in ["GET IN","GET OUT","ACTION","HEAL","REARM","JOIN","REPAIR","REFUEL","SUPPORT","SCRIPTED","HEAL SOLDIER","PATCH SOLDIER","FIRST AID","HEAL SELF","CARRY SOLDIER","DROP CARRIED","ASSEMBLE","DISASSEMBLE","TAKE BAG","DROP BAG"])}
 };
 if (count _fit < 3) exitWith {false};

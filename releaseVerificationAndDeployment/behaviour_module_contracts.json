@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "configuration_surface": "CBA",
+  "native_classes": [
+    "WAIT_ModuleConvoyStart",
+    "WAIT_ModuleConvoyHold",
+    "WAIT_ModuleConvoyRelease",
+    "WAIT_ModuleGarrison",
+    "WAIT_ModuleDefend",
+    "WAIT_ModuleDrivingCorridor"
+  ],
+  "zen_labels": [
+    "Create AI Convoy",
+    "Garrison area",
+    "Defend area",
+    "Clear building",
+    "Navigation corridor"
+  ],
+  "contracts": [
+    {
+      "behaviour": "Convoy start/resume, hold/unload, or release",
+      "target": "Explicit crewed AI land vehicle identifying its convoy group",
+      "parameters": [
+        "operation",
+        "speed",
+        "separation",
+        "push-through"
+      ],
+      "handlers": [
+        "addons/vehicles/functions/moduleConvoy.sqf",
+        "addons/vehicles/functions/zenConvoyModule.sqf"
+      ],
+      "executor": "WAIT_fnc_SimpleAiConvoy",
+      "authority": "Existing convoy server request validation and group-owner execution",
+      "termination": "Task release, replacement order, ownership loss or convoy termination",
+      "guide": "docs/Smart-AI-Pass.md",
+      "physical_acceptance": "partial; this contract does not certify runtime behaviour"
+    },
+    {
+      "behaviour": "Garrison buildings in a selected area",
+      "target": "Explicit AI squad and area centre; native module attaches to an AI soldier",
+      "parameters": [
+        "radius",
+        "walking or instant interior placement",
+        "higher positions or randomized roofed-first distribution"
+      ],
+      "handlers": [
+        "addons/infantry/functions/moduleGarrison.sqf",
+        "addons/infantry/functions/zenGarrisonModule.sqf"
+      ],
+      "executor": "WAIT_fnc_CortexOrderDispatch",
+      "authority": "Server-authenticated curator, current-owner garrison executor and acknowledgement",
+      "termination": "Replacement task, native/Zeus handover, release, casualty/morale break or invalid structures",
+      "guide": "docs/Smart-AI-Pass.md",
+      "physical_acceptance": "unverified; UI/authentication/placement/HC/JIP/live behaviour tests pending"
+    },
+    {
+      "behaviour": "Defensive line with rear reserve",
+      "target": "Explicit AI squad and centre",
+      "parameters": [
+        "compass facing",
+        "line width"
+      ],
+      "handlers": [
+        "addons/infantry/functions/moduleGarrison.sqf",
+        "addons/infantry/functions/zenDefendModule.sqf"
+      ],
+      "executor": "WAIT_fnc_CortexOrderDispatch",
+      "authority": "Authenticated curator/server request, preflighted current-owner CortexDefend execution and acknowledgement",
+      "termination": "New task/native/Zeus control, release, casualty/morale break or owner handover",
+      "guide": "docs/Smart-AI-Pass.md",
+      "physical_acceptance": "unverified; dialog, actual line/reserve, interruption, repeat/HC/JIP and performance acceptance pending"
+    },
+    {
+      "behaviour": "Physical building clearance",
+      "target": "Explicit AI squad and exact selected building",
+      "parameters": [
+        "squad",
+        "building"
+      ],
+      "handlers": [
+        "addons/infantry/functions/zenClearModule.sqf"
+      ],
+      "executor": "WAIT_fnc_CortexOrderDispatch",
+      "authority": "Authenticated curator/server task validation and current-owner CortexClearBuilding acknowledgement",
+      "termination": "Replacement/native/Zeus control, release, moved/deleted building, finite result or deadline",
+      "guide": "docs/Smart-AI-Pass.md",
+      "physical_acceptance": "unverified; dialog, physical pair entry/sweep/exit, repeat/HC/JIP and performance pending"
+    },
+    {
+      "behaviour": "Navigation corridor create, update or remove",
+      "target": "Explicit empty-ground position or editable WAIT corridor area; no nearest-area fallback",
+      "parameters": [
+        "task action",
+        "axis facing",
+        "half-length",
+        "half-width",
+        "task speed"
+      ],
+      "handlers": [
+        "addons/vehicles/functions/moduleDrivingCorridor.sqf",
+        "addons/vehicles/functions/zenDrivingCorridorModule.sqf"
+      ],
+      "executor": "WAIT_fnc_DrivingCorridorDispatch",
+      "authority": "Authenticated curator/server validation, revisioned passive definitions and current-owner ordinary/convoy lead execution",
+      "termination": "Area removal/transform change, finite deadline, new order/controller, HALT/release or actual lead crossing; followers retain predecessor trails",
+      "guide": "docs/Smart-AI-Pass.md",
+      "physical_acceptance": "unverified; dialog, editor ownership, repeated passage, mixed convoy, HC/JIP and performance acceptance pending"
+    }
+  ]
+}

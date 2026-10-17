@@ -1,0 +1,65 @@
+{
+  "reviewed": "2026-10-17",
+  "waitSourceCommit": "7d7e1d1eb3ba893ee05add0df1bb2cb597f5d6a4",
+  "scope": "Complete HBQ unstuckLoop admission, escalation and terminal cleanup compared with current WAIT ordinary recovery; not whole-mod parity",
+  "sources": [
+    {
+      "path": ".qa/source-refresh-20261011/inventory/3812620045/hbq_advanced_driving_ai/functions/fn_unstuckLoop.sqf",
+      "sha256": "7b9cccb4641252cc63d249eec33167e41d3e7e000071434a139a3db367a73719",
+      "lineCount": 173,
+      "rangesReviewed": [
+        "complete file"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "area": "lost-route guard ordering",
+      "evidence": "After feature, alive crew, player crew and player leader checks, RouteLost runs before Loading, Blocked, ShouldMove and the physical stuck test. It can relocate and refresh a route despite Busy, Pause, loading, authored waypoint waits, disabled PATH or ASSAULT. Player visibility still blocks this fast path.",
+      "disposition": "Reject this bypass. All recovery paths must retain current task, mobility and controller admission before each movement mutation. WAIT ordinary recovery uses mayRecoverOrdinaryRoute and mayIssueDriving at command boundaries; no equivalent RouteLost shortcut is added."
+    },
+    {
+      "area": "lost-route finite budget",
+      "evidence": "RouteLost increments TeleportsInRow on handled relocation, then continues before the normal delete/give-up threshold checks. Repeated RouteLost reports can therefore bypass those thresholds. It clears RouteLost before attempting both relocation helpers and refreshes the route even when both return false.",
+      "disposition": "Retain immediate diagnosis intent, not immediate relocation. A route fault must consume a durable finite episode and distinguish failed command issue from observed physical route progress."
+    },
+    {
+      "area": "ordinary escalation evidence",
+      "evidence": "Step three increments TeleportsInRow regardless of helper result and can log relocation despite a failed fallback. Visible stuck vehicles cap StuckCount at two, repeating repair/nudge without reaching the teleport-count give-up branch.",
+      "disposition": "Do not import success counters or unlimited visible retries. WAIT retains durable EXHAUSTED stage, route receipts and measured progress; physical native reverse and jam resolution remain unaccepted."
+    },
+    {
+      "area": "observation timing",
+      "evidence": "Base delay five uses multiplier twenty in COMBAT or two otherwise, then max fifteen plus three: 103 or 18 seconds before precision scaling [2,1.5,1]. Header low-precision multiplier is stale. RouteLost cuts the scheduled wait to approximately its one-second polling interval.",
+      "disposition": "Use executable cadence, not comments, for cost comparison. These intervals do not establish WAIT median or p95 overhead."
+    },
+    {
+      "area": "physical progress classification",
+      "evidence": "Stuck is displacement below two metres, or below four with less than 2.5 metres improvement toward destination. Speed above three km/h exempts ordinary stuck, but ProgT older than ninety seconds overrides that exemption. Snapshot is not tied to an unchanged route or seat receipt.",
+      "disposition": "Separate oscillation, queue waiting, new authored orders and actual route progress. WAIT binds recovery to route and seat receipts; direct script-order recovery remains a separate unsupported case."
+    },
+    {
+      "area": "terminal ownership",
+      "evidence": "Entry and loop require local vehicle, but terminal UnstuckRunning false write is outside the locality guard and has no generation comparison.",
+      "disposition": "Old-owner cleanup must not retire a replacement owner episode. WAIT recovery release compares current journal before clearing and admits only current local owner."
+    },
+    {
+      "area": "natural recovery boundary",
+      "evidence": "Escalation calls the previously reviewed helper for forced nudge, optional mobility repair and relocation, and optionally deletes vehicle and crew.",
+      "disposition": "Reject these shortcuts for natural WAIT recovery. Useful intent is finite diagnosis, protected task admission, collision-aware native movement and explicit failure. No production shortcut or new physical acceptance is introduced."
+    }
+  ],
+  "waitFilesReviewed": [
+    "addons/vehicles/functions/drivingAssistStart.sqf:185-232,580-637",
+    "addons/vehicles/functions/drivingRecoveryRelease.sqf:complete"
+  ],
+  "nextAcceptance": [
+    "Prove native reverse versus U-turn for tracked, wheeled and truck classes using prepared fixtures after audits resume",
+    "Verify intentional STOP, HOLD, loading, script and new route takeover during every recovery stage",
+    "Implement multi-owner queue room only with authenticated owner consent and physically proven native movement",
+    "Measure ordinary recovery and stalled traffic costs against the full performance budget"
+  ],
+  "implementationAccepted": false,
+  "physicalAcceptance": false,
+  "validation": "Source comparison only; no Arma launch and no claim that offline checks prove physical recovery."
+}

@@ -15,6 +15,8 @@
  *
  * Review contract: Both DROP and LAND recheck eligibility. A landing timeout ends tracking without assigning a ground attack to soldiers still airborne.
  *
+ * Exact insertion episodes and owner epochs guard execution and cleanup; legacy jobs retire silently.
+ * Every DROP step rechecks live pilot/commander takeover before another passenger exits.
  * Repeat/JIP: current-owner eligibility and automatic feature gates are rechecked before each jump.
  * Arguments:
  * 0: job state <HASHMAP> - group, aircraft, jumpers, index, phase, target, deadline
@@ -32,14 +34,25 @@
 params [["_job", createHashMap, [createHashMap]]];
 private _group = _job getOrDefault ["group", grpNull];
 private _aircraft = _job getOrDefault ["aircraft", objNull];
+private _episode=_job getOrDefault ["episode",[]];
+// Obsolete or legacy jobs cannot execute or retire a successor's insertion state.
+if (isNull _group || {!local _group} || {_episode isEqualTo []}
+    || {(_job getOrDefault ["ownerEpoch",-1]) != (_group getVariable ["WAIT_AIPass_Epoch",0])}
+    || {_episode isNotEqualTo (_group getVariable ["WAIT_AIPass_DropEpisode",[]])}) exitWith {-1};
 private _finish = {
     // A stale owner must not clear the successor's insertion bookkeeping. The shared
     // scheduler captures ownerEpoch when queuing this group job.
     private _sameOwner=!isNull _group && {local _group}
-        && {(_job getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])};
+        && {(_job getOrDefault ["ownerEpoch",-1]) == (_group getVariable ["WAIT_AIPass_Epoch",0])}
+        && {_episode isEqualTo (_group getVariable ["WAIT_AIPass_DropEpisode",[]])};
     if (_sameOwner) then {
         _group setVariable ["WAIT_AIPass_Dropping",nil];
-        if (!isNull _aircraft && {local _aircraft}) then {_aircraft setVariable ["WAIT_AIPass_DropUntil",nil]};
+        _group setVariable ["WAIT_AIPass_DropEpisode",nil,true];
+        if (!isNull _aircraft && {local _aircraft}
+            && {_episode isEqualTo (_aircraft getVariable ["WAIT_AIPass_DropEpisode",[]])}) then {
+            _aircraft setVariable ["WAIT_AIPass_DropUntil",nil];
+            _aircraft setVariable ["WAIT_AIPass_DropEpisode",nil,true];
+        };
     };
     -1
 };
@@ -47,12 +60,31 @@ if (isNull _group || {!local _group} || {!(missionNamespace getVariable ["WAIT_A
     || {!([_group] call WAIT_fnc_CortexIsEligible)}
     || {!(_job getOrDefault ["forced",false]) && {!([_group,"WAIT_AIPass_Airborne_Enable",false] call WAIT_fnc_CortexFeatureEnabled)}}) exitWith {call _finish};
 
+if (_episode isNotEqualTo (_aircraft getVariable ["WAIT_AIPass_DropEpisode",[]])) exitWith {call _finish};
 if ((_job get "phase") == "DROP") exitWith {
-    private _jumpers = (_job get "jumpers") select {alive _x && {local _x} && {vehicle _x == _aircraft}};
+    private _jumpers = (_job get "jumpers") select {
+        local _x && {vehicle _x == _aircraft} && {!isPlayer _x}
+            && {[_x] call WAIT_fnc_CortexCombatEffective}
+            && {!([_x] call WAIT_fnc_CortexActorMoveReserved)}
+            && {isNull remoteControlled _x}
+            && {isNull (_x getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+            && {([_x] call WAIT_fnc_CortexExternalOwner) == ""}
+            && {!([_x] call WAIT_fnc_CompatibilityExternalControl)}
+    };
     if (_jumpers isEqualTo [] || {!alive _aircraft}) exitWith {
         _job set ["phase", "LAND"];
         3
     };
+    // Aircraft control can change after admission while the passenger squad remains AI-owned.
+    private _pilot=driver _aircraft;
+    private _commander=effectiveCommander _aircraft;
+    if (!([_pilot] call WAIT_fnc_CortexCombatEffective) || {isPlayer _pilot}
+        || {isPlayer _commander} || {!isNull remoteControlled _pilot}
+        || {!isNull remoteControlled _commander}
+        || {!isNull (_pilot getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        || {!isNull (_commander getVariable ["bis_fnc_moduleRemoteControl_owner",objNull])}
+        || {[group _pilot] call WAIT_fnc_CortexExternalTakeover}
+        || {[group _commander] call WAIT_fnc_CortexExternalTakeover}) exitWith {call _finish};
     // The jump itself is an owned action. Stop it before the next passenger leaves if Zeus, a
     // player or a specialist controller takes the group; anyone still aboard remains where that
     // new controller expects rather than completing WAIT's earlier drop plan.

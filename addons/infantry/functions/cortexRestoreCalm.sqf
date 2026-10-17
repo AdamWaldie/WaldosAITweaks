@@ -1,7 +1,9 @@
 /*
  * Author: WaldoTheWarfighter
  * Remount cleanup preserves a newer vehicle assignment from Zeus or another controller.
- * Returns a group to CALM and undoes everything the pass changed for the engagement.
+ * Returns a group to CALM and releases the engagement controls it still owns.
+ * Live independent actor-movement reservations survive generic cleanup; only their
+ * feature owner may retire them. Unknown/malformed reservations cannot authorize recall.
  * Ends an active drill synchronously before consuming its restoration data; queued
  * steps then find no matching drill and cannot revive the old movement.
  *
@@ -65,6 +67,18 @@ if (isNull _leader) then {_leader=leader _group};
 if (count (_state getOrDefault ["drill",createHashMap]) > 0) then {
     [_group,_state,"CALM"] call WAIT_fnc_CortexFlankEnd;
 };
+// Generic engagement cleanup is not the owner of every finite actor task. An
+// unknown reservation is also not permission to issue a return-to-formation order.
+private _actorMoveFree={
+    params ["_actor"];
+    private _move=_actor getVariable ["WAIT_Cortex_ActorMove",[]];
+    if (_move isEqualTo []) exitWith {true};
+    _move isEqualType [] && {count _move == 3} && {(_move select 0) isEqualType ""}
+        && {(_move select 1) isEqualType []} && {count (_move select 1) == 3}
+        && {(_move select 1) findIf {!(_x isEqualType 0) || {!finite _x}} < 0}
+        && {(_move select 2) isEqualType 0} && {finite (_move select 2)}
+        && {(_move select 2) <= time}
+};
 private _releaseOwnedHold={
     params ["_unit",["_restorePath",true],["_returnSearchTeam",false]];
     if (_restorePath && {local _unit} && {group _unit == _group}) then {
@@ -82,7 +96,8 @@ private _releaseOwnedHold={
         // A replacement controller may intentionally leave a unit stationary, firing or holding
         // position. Remove only WAIT's PATH lease during that handover; do not turn a neutral
         // engine command into a new follow order.
-        if ((!_yieldToExternal && {_ownedHold}) || {_returnSearchTeam && {!_yieldToExternal}}) then {
+        if (((!_yieldToExternal && {_ownedHold}) || {_returnSearchTeam && {!_yieldToExternal}})
+            && {[_unit] call _actorMoveFree}) then {
             _unit doFollow _leader;
         };
     };
@@ -134,7 +149,9 @@ if (!_yieldToExternal && {count _retreatModeLease == 2} && {combatMode _group ==
             && {!isNull _target} && {assignedTarget _x == _target}) then {_x doTarget objNull};
         _x setVariable ["WAIT_AIPass_VehicleTarget",nil,true];
         _x setVariable ["WAIT_AIPass_TargetHold",nil];
-        _x setVariable ["WAIT_Cortex_ActorMove",nil];
+        // Feature-specific release below retains its own tag/actor checks. Do not
+        // erase a live successor's proof merely because group contact has ended.
+        if ([_x] call _actorMoveFree) then {_x setVariable ["WAIT_Cortex_ActorMove",nil]};
     };
 } forEach units _group;
 private _staticSupport=_group getVariable ["WAIT_Danger_StaticSupport",[]];

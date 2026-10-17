@@ -5,7 +5,8 @@ permissions:
   contents: read
 jobs:
   candidate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,19 +25,31 @@ jobs:
       - run: python releaseVerificationAndDeployment/zeus_script_parity_checker.py
       - run: python releaseVerificationAndDeployment/performance_audit.py
       - run: python releaseVerificationAndDeployment/check_cortex_coverage.py
-      - run: hemtt release --no-bin
+      - name: Install pinned signer with deterministic file ordering and compiled SQF support
+        run: |
+          git clone https://github.com/KoffeinFlummi/armake2 "$RUNNER_TEMP/armake2-source"
+          git -C "$RUNNER_TEMP/armake2-source" checkout --detach 3cc3362101900ff41504db3e780dd1625634cf94
+          git -C "$RUNNER_TEMP/armake2-source" apply "$GITHUB_WORKSPACE/releaseVerificationAndDeployment/armake2-sorted-signing.patch"
+          cargo install --path "$RUNNER_TEMP/armake2-source" --locked --root "$RUNNER_TEMP/armake2" --bin armake2
+      - run: hemtt release --no-bin --no-sign --no-archive
       - run: hemtt utils config inspect addons/main/fsm/tacticalDrill.fsm
       - run: hemtt utils config inspect addons/main/fsm/dangerAssessment.fsm
       - run: hemtt utils config inspect addons/danger/danger.fsm
       - run: hemtt utils config inspect addons/main/fsm/groupTactics.fsm
+      - run: hemtt utils config inspect addons/main/fsm/indoorActor.fsm
       - run: hemtt utils config inspect addons/main/fsm/buildingOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/convoyOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/airAttackOperation.fsm
       - run: hemtt utils config inspect addons/main/fsm/artilleryMission.fsm
       - run: hemtt utils config inspect addons/main/fsm/supportRequest.fsm
       - run: python releaseVerificationAndDeployment/mod_pipeline.py seal .hemttout/release
-      - run: cd .hemttout/release && zip -r ../../wait-candidate.zip .
+      - name: Sign, independently verify and package permanent-key candidate
+        env:
+          WALDO_SIGNING_KEYPAIR: ${{ secrets.WALDO_SIGNING_KEYPAIR }}
+        run: python releaseVerificationAndDeployment/sign_release.py .hemttout/release --signer "$RUNNER_TEMP/armake2/bin/armake2" --output releases/signed-candidate
       - uses: actions/upload-artifact@v4
         with:
           name: WAIT-signed-candidate
-          path: wait-candidate.zip
+          path: releases/signed-candidate/
+          if-no-files-found: error
+          retention-days: 3

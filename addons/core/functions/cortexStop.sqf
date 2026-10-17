@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Finite individual indoor tasks retire their exact-owned native legs before other group cleanup.
  * Stops Cortex on this machine and hands every affected group back to its own orders.
  *
  * Removes tactical event handlers and discards tactical jobs. The shared scheduler and skill jobs
@@ -22,6 +23,7 @@
  * its firing-solution telemetry and re-attack cooldown before the job is discarded.
  * Vehicle safe-stop handshakes restore their prior forced speed only while their exact zero-speed
  * lease remains current; a newer vehicle controller's cap is preserved when tokens are cleared.
+ * Ordinary driving FSM identities and terminal retry receipts are synchronously retired.
  * Ordinary unload-in-combat leases likewise restore only their exact unchanged applied value.
  * Targetless onboard danger reports are also retracted before the scheduler is discarded.
  * Owner-local missile-warning generations are advanced before handlers are removed; an
@@ -171,8 +173,18 @@ if (!isNil "_civilianCreated") then {
     _x setVariable ["WAIT_Cortex_CivilianLocalHandler",nil];
 } forEach (allUnits select {side group _x == civilian});
 {
+    {
+        private _indoor=_x getVariable ["WAIT_IndoorActor_Brain",createHashMap];
+        if (count _indoor > 0 || {(_x getVariable ["WAIT_IndoorActor_Order",[]]) isNotEqualTo []}) then {
+            ["FINISH",_x,_indoor] call WAIT_fnc_IndoorActorOperation;
+        };
+    } forEach units _x;
     [_x,true] call WAIT_fnc_CortexHearingLocal;
     [_x,true] call WAIT_fnc_DangerSetup;
+    private _drivingBrain=_x getVariable ["WAIT_Driving_Brain",createHashMap];
+    if (count _drivingBrain > 0) then {[_drivingBrain,"CORTEX_STOPPED"] call WAIT_fnc_DrivingOperationFinish};
+    _x setVariable ["WAIT_Driving_Brain",nil];
+    _x setVariable ["WAIT_Driving_FSM",nil];
     private _brain=_x getVariable ["WAIT_GroupBrain",createHashMap];
     if (count _brain > 0) then {
         _brain set ["cancelled",true];

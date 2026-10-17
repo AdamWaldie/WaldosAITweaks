@@ -1,5 +1,6 @@
 /*
  * Author: WaldoTheWarfighter
+ * Normal-owner base case also holds the first passenger while the second must physically exit.
  * Checks a moving aircraft drop, physical flight, parachutes, landing, retained backpacks and operating crew.
  * Locality/authority: scheduled server creates fixtures; passenger owner executes the public order.
  * Repeat/JIP: fresh flight per run; public actor overlay, all surviving fixtures cleaned afterwards.
@@ -10,6 +11,7 @@
  */
 params ["_check","_phase","_wait",["_chuteOverride","",[""]]];
 private _savedChute=missionNamespace getVariable ["WALDO_STATIC_STATICCHUTE","NonSteerable_Parachute_F"];
+private _savedJumpInterval=missionNamespace getVariable ["WAIT_AIPass_Airborne_JumpInterval",1];
 if (_chuteOverride != "") then {missionNamespace setVariable ["WALDO_STATIC_STATICCHUTE",_chuteOverride,true]};
 [createHashMapFromArray [["WAIT_AIPass_Enable",true],["WAIT_AIPass_Contact_Enable",false],["WAIT_AIPass_Airborne_Enable",false],["WAIT_AIPass_Regroup_Enable",false]]] call WAIT_fnc_CortexTuning;
 private _aircraft=createVehicle ["O_Heli_Light_02_unarmed_F",[1800,1100,180],[],0,"FLY"];
@@ -71,8 +73,31 @@ private _high=[{(getPosATL _aircraft select 2) >= 120 && {speed _aircraft >= 50}
 ["AIRBORNE-moving-flight-precondition",_high,format ["speed=%1 km/h travel=%2 m altitude=%3 m",speed _aircraft,_aircraft distance2D _flightOrigin,getPosATL _aircraft select 2]] call _check;
 ["AIRBORNE-flight-precondition",_high && {simulationEnabled _aircraft} && {alive driver _aircraft}] call _check;
 ["Airborne: explicit drop across owners","Watch each passenger leave the moving helicopter, descend in a parachute, then physically reach the ground. The aircraft must first travel 100 m and reach 50 km/h. The pilot stays aboard. Backpack contents must survive the whole drop.",getPosATL _aircraft] call _phase;
+// A real actor task marker is an intentional negative input, never a drop-completion receipt.
+// Four seconds between exits leaves time to observe the unheld passenger in a native chute.
+private _heldFirst=_chuteOverride == "" && {!(missionNamespace getVariable ["WAIT_CortexQA_HeadlessBatch",false])};
+private _heldActor=_jumpers select 0;
+private _holdLease=["AUDIT_HELD_PASSENGER",getPosATL _heldActor,time+45];
+if (_heldFirst) then {
+    missionNamespace setVariable ["WAIT_AIPass_Airborne_JumpInterval",4,true];
+    _heldActor setVariable ["WAIT_Cortex_ActorMove",_holdLease];
+};
 ["AIRBORNE-order-accepted",[_cargo] call WAIT_fnc_CortexAirborneDrop] call _check;
 ["AIRBORNE-repeat-order-refused",!([_cargo] call WAIT_fnc_CortexAirborneDrop),"A second immediate order must not queue another drop for the same aircraft"] call _check;
+if (_heldFirst) then {
+    private _unheld=_jumpers select 1;
+    private _unheldExited=[{vehicle _unheld isKindOf "ParachuteBase"},15] call _wait;
+    ["AIRBORNE-held-first-stays-aboard",_high && {alive _heldActor}
+        && {vehicle _heldActor == _aircraft}
+        && {(_heldActor getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _holdLease},
+        str [vehicle _heldActor,_heldActor getVariable ["WAIT_Cortex_ActorMove",[]]]] call _check;
+    ["AIRBORNE-unheld-passenger-exits",_high && {_unheldExited} && {alive _unheld},
+        str [typeOf vehicle _unheld,getPosATL _unheld]] call _check;
+    // Release only the exact test input. The running production job must perform the later exit.
+    if ((_heldActor getVariable ["WAIT_Cortex_ActorMove",[]]) isEqualTo _holdLease) then {
+        _heldActor setVariable ["WAIT_Cortex_ActorMove",nil];
+    };
+};
 private _dropOrigin=getPosATL _aircraft;
 private _seen=[false,false];
 private _chutes=[];
@@ -133,3 +158,5 @@ missionNamespace setVariable ["WAIT_CortexQA_Actors",[],true];
 deleteGroup _cargo; deleteGroup _pilotGroup;
 
 missionNamespace setVariable ["WALDO_STATIC_STATICCHUTE",_savedChute,true];
+
+missionNamespace setVariable ["WAIT_AIPass_Airborne_JumpInterval",_savedJumpInterval,true];
